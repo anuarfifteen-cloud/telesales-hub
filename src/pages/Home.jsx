@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { SLOTS, getBookableDates, formatDate, isBookingOpen } from "@/lib/slots";
 import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
+import MySchedule from "@/components/booking/MySchedule";
 import { Coffee, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -11,7 +12,7 @@ import { toast } from "sonner";
 export default function Home() {
   const [user, setUser] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
-  const dates = getBookableDates();
+  const dates = getBookableDates(); // now 7 days
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -23,13 +24,27 @@ export default function Home() {
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookings", selectedDate],
     queryFn: () =>
-      selectedDate
-        ? base44.entities.Booking.filter({ date: selectedDate })
-        : [],
+      selectedDate ? base44.entities.Booking.filter({ date: selectedDate }) : [],
     enabled: !!selectedDate,
   });
 
-  // Create booking
+  // Fetch ALL bookings for this week (for My Schedule section)
+  const { data: weekBookings = [] } = useQuery({
+    queryKey: ["bookings-week", dates[0]],
+    queryFn: () => base44.entities.Booking.list(),
+    enabled: !!user,
+  });
+
+  // Real-time subscription for selected date
+  useEffect(() => {
+    const unsub = base44.entities.Booking.subscribe((event) => {
+      queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
+    });
+    return unsub;
+  }, [selectedDate]);
+
+  // Create booking with optimistic update
   const createMutation = useMutation({
     mutationFn: (slot) =>
       base44.entities.Booking.create({
@@ -40,26 +55,63 @@ export default function Home() {
         user_email: user.email,
         user_name: user.full_name,
       }),
+    onMutate: async (slot) => {
+      await queryClient.cancelQueries({ queryKey: ["bookings", selectedDate] });
+      const prev = queryClient.getQueryData(["bookings", selectedDate]);
+      // Optimistically add the booking
+      const optimistic = {
+        id: "__optimistic__",
+        date: selectedDate,
+        slot_id: slot.id,
+        slot_label: slot.label,
+        shift: slot.shift,
+        user_email: user.email,
+        user_name: user.full_name,
+      };
+      queryClient.setQueryData(["bookings", selectedDate], (old = []) => [...old, optimistic]);
+      queryClient.setQueryData(["bookings-week", dates[0]], (old = []) => [...old, optimistic]);
+      return { prev };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
       toast.success("Break booked successfully!");
     },
-    onError: () => toast.error("Failed to book. Please try again."),
+    onError: (err, slot, context) => {
+      queryClient.setQueryData(["bookings", selectedDate], context.prev);
+      queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
+      toast.error("Failed to book. Please try again.");
+    },
   });
 
-  // Cancel booking
+  // Cancel booking with optimistic update
   const cancelMutation = useMutation({
     mutationFn: (booking) => base44.entities.Booking.delete(booking.id),
+    onMutate: async (booking) => {
+      await queryClient.cancelQueries({ queryKey: ["bookings", selectedDate] });
+      const prev = queryClient.getQueryData(["bookings", selectedDate]);
+      queryClient.setQueryData(["bookings", selectedDate], (old = []) =>
+        old.filter((b) => b.id !== booking.id)
+      );
+      queryClient.setQueryData(["bookings-week", dates[0]], (old = []) =>
+        old.filter((b) => b.id !== booking.id)
+      );
+      return { prev };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
       toast.success("Booking cancelled.");
     },
-    onError: () => toast.error("Failed to cancel. Please try again."),
+    onError: (err, booking, context) => {
+      queryClient.setQueryData(["bookings", selectedDate], context.prev);
+      queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
+      toast.error("Failed to cancel. Please try again.");
+    },
   });
 
   const handleBook = (slot) => {
     if (!user) return;
-    // Check if user already has a booking on this date
     const existing = bookings.find((b) => b.user_email === user.email);
     if (existing) {
       toast.error("You already have a break booked for this day.");
@@ -81,7 +133,10 @@ export default function Home() {
   const getMyBooking = (slotId) =>
     bookings.find((b) => b.slot_id === slotId && b.user_email === user?.email);
 
-  const myBookingToday = bookings.find((b) => b.user_email === user?.email);
+  // My bookings across the whole week
+  const myWeekBookings = weekBookings.filter(
+    (b) => b.user_email === user?.email && dates.includes(b.date)
+  );
 
   const isMutating = createMutation.isPending || cancelMutation.isPending;
 
@@ -95,7 +150,7 @@ export default function Home() {
               <Coffee className="w-4 h-4 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-bold text-base leading-tight">BreakBook</h1>
+              <h1 className="font-bold text-base leading-tight">TS Booking Slot</h1>
               <p className="text-xs text-muted-foreground leading-tight">
                 {user ? `Hi, ${user.full_name?.split(" ")[0] || user.email}` : ""}
               </p>
@@ -114,12 +169,12 @@ export default function Home() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Date picker */}
+        {/* 7-day Date picker */}
         <section>
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
             Select Date
           </p>
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-1">
             {dates.map((d) => (
               <DateTab
                 key={d}
@@ -131,18 +186,14 @@ export default function Home() {
           </div>
         </section>
 
+        {/* My Real-Time Schedule */}
+        <MySchedule myBookings={myWeekBookings} />
+
         {/* Selected date info */}
         {selectedDate && (
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-foreground text-lg">
-              {formatDate(selectedDate)}
-            </h2>
-            {myBookingToday && (
-              <span className="text-xs bg-emerald-100 text-emerald-700 font-medium px-2.5 py-1 rounded-full">
-                ✓ Booked: {myBookingToday.slot_label}
-              </span>
-            )}
-          </div>
+          <h2 className="font-semibold text-foreground text-lg">
+            {formatDate(selectedDate)}
+          </h2>
         )}
 
         {/* Booking closed notice */}
@@ -152,8 +203,7 @@ export default function Home() {
             <div>
               <p className="font-semibold">Booking not open yet</p>
               <p className="text-xs mt-0.5 text-amber-600">
-                Bookings for {formatDate(selectedDate)} open at 7:30 PM the
-                evening before.
+                Bookings for {formatDate(selectedDate)} open at 7:30 PM the evening before.
               </p>
             </div>
           </div>

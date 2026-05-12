@@ -31,7 +31,7 @@ export function isBookingOpen(dateStr) {
 export function getBookableDates() {
   const today = new Date();
   const dates = [];
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 7; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     const str = d.toISOString().split("T")[0];
