@@ -1,60 +1,76 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { CalendarCheck } from "lucide-react";
 import { SLOTS } from "@/lib/slots";
 
-export default function MySchedule({ bookings, selectedDate }) {
-  // For each slot, find who booked it (could be multiple for slots with maxBookings > 1)
-  const slotRows = SLOTS.flatMap((slot) => {
-    const slotBookings = bookings.filter((b) => b.slot_id === slot.id);
-    if (slotBookings.length === 0) {
-      return [{ slot, booking: null }];
-    }
-    return slotBookings.map((booking) => ({ slot, booking }));
-  });
+function SlotRow({ slot, bookings }) {
+  const slotBookings = bookings.filter((b) => b.slot_id === slot.id);
+  const remaining = slot.maxBookings - slotBookings.length;
+  const isAM = slot.shift === "AM";
 
-  const isAM = (shift) => shift === "AM";
+  const items = [
+    ...slotBookings.map((b) => ({ type: "booked", name: b.user_name || b.user_email?.split("@")[0] })),
+    ...Array(Math.max(0, remaining)).fill({ type: "available" }),
+  ];
 
   return (
-    <section className="rounded-xl border border-primary/20 bg-accent p-4">
-      <div className="flex items-center gap-2 mb-3">
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex items-start justify-between bg-card rounded-lg px-3 py-2.5 border border-border gap-3"
+    >
+      {/* Left: time + shift badge */}
+      <div className="flex items-center gap-2 min-w-0 pt-0.5">
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-0.5 ${isAM ? "bg-amber-400" : "bg-violet-400"}`} />
+        <span className="text-xs font-semibold text-foreground truncate">{slot.label}</span>
+      </div>
+
+      {/* Right: stacked capacity items */}
+      <div className="flex flex-col gap-1 flex-shrink-0 items-end">
+        {items.map((item, idx) =>
+          item.type === "booked" ? (
+            <span key={idx} className="text-xs font-medium text-foreground bg-secondary px-2 py-0.5 rounded-md">
+              {item.name}
+            </span>
+          ) : (
+            <span key={idx} className="text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+              Available
+            </span>
+          )
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function ShiftSection({ label, emoji, slots, bookings }) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-sm">{emoji}</span>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+      <div className="space-y-1.5">
+        {slots.map((slot) => (
+          <SlotRow key={slot.id} slot={slot} bookings={bookings} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function MySchedule({ bookings }) {
+  const amSlots = SLOTS.filter((s) => s.shift === "AM");
+  const pmSlots = SLOTS.filter((s) => s.shift === "PM");
+
+  return (
+    <section className="rounded-xl border border-primary/20 bg-accent p-4 space-y-4">
+      <div className="flex items-center gap-2">
         <CalendarCheck className="w-4 h-4 text-accent-foreground" />
         <p className="text-sm font-semibold text-accent-foreground">Daily Master Schedule</p>
       </div>
-      <div className="space-y-1.5">
-        <AnimatePresence>
-          {slotRows.map(({ slot, booking }, idx) => {
-            const am = isAM(slot.shift);
-            return (
-              <motion.div
-                key={slot.id + (booking?.id || "empty-" + idx)}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 8 }}
-                className="flex items-center justify-between bg-card rounded-lg px-3 py-2 border border-border"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${am ? "bg-amber-400" : "bg-violet-400"}`} />
-                  <span className="text-xs font-semibold text-foreground truncate">{slot.label}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-md font-medium flex-shrink-0 ${am ? "bg-amber-100 text-amber-700" : "bg-violet-100 text-violet-700"}`}>
-                    {slot.shift}
-                  </span>
-                </div>
-                <div className="flex-shrink-0 ml-2">
-                  {booking ? (
-                    <span className="text-xs font-medium text-foreground">
-                      {booking.user_name || booking.user_email?.split("@")[0]}
-                    </span>
-                  ) : (
-                    <span className="text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                      Available
-                    </span>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-      </div>
+      <ShiftSection label="AM Shift" emoji="🌤" slots={amSlots} bookings={bookings} />
+      <ShiftSection label="PM Shift" emoji="🌆" slots={pmSlots} bookings={bookings} />
     </section>
   );
 }

@@ -182,7 +182,7 @@ export default function Home() {
         </section>
 
         {/* Daily Master Schedule */}
-        <MySchedule bookings={bookings} selectedDate={selectedDate} />
+        <MySchedule bookings={bookings} />
 
         {/* Selected date info */}
         {selectedDate && (
