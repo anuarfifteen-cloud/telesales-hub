@@ -1,0 +1,41 @@
+{
+  "name": "Booking",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "The date of the break (YYYY-MM-DD)"
+    },
+    "slot_id": {
+      "type": "string",
+      "description": "Identifier for the break slot, e.g. AM1, AM2, AM3, PM1, PM2, PM3"
+    },
+    "slot_label": {
+      "type": "string",
+      "description": "Human-readable label, e.g. 11:00am - 12:30pm"
+    },
+    "shift": {
+      "type": "string",
+      "enum": [
+        "AM",
+        "PM"
+      ],
+      "description": "Shift this slot belongs to"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the person who booked"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Full name of the person who booked"
+    }
+  },
+  "required": [
+    "date",
+    "slot_id",
+    "shift",
+    "user_email"
+  ]
+}
