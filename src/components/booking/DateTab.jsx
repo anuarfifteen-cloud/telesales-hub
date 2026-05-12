@@ -9,7 +9,7 @@ export default function DateTab({ dateStr, isSelected, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center px-4 py-2.5 rounded-xl transition-all font-inter ${
+      className={`flex flex-col items-center w-full py-2.5 rounded-xl transition-all font-inter ${
         isSelected
           ? "bg-primary text-primary-foreground shadow-md"
           : "bg-card text-muted-foreground hover:bg-secondary border border-border"

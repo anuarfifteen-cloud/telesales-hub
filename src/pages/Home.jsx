@@ -133,11 +133,6 @@ export default function Home() {
   const getMyBooking = (slotId) =>
     bookings.find((b) => b.slot_id === slotId && b.user_email === user?.email);
 
-  // My bookings across the whole week
-  const myWeekBookings = weekBookings.filter(
-    (b) => b.user_email === user?.email && dates.includes(b.date)
-  );
-
   const isMutating = createMutation.isPending || cancelMutation.isPending;
 
   return (
@@ -174,7 +169,7 @@ export default function Home() {
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
             Select Date
           </p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="grid grid-cols-7 gap-2">
             {dates.map((d) => (
               <DateTab
                 key={d}
@@ -186,8 +181,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* My Real-Time Schedule */}
-        <MySchedule myBookings={myWeekBookings} />
+        {/* Daily Master Schedule */}
+        <MySchedule bookings={bookings} selectedDate={selectedDate} />
 
         {/* Selected date info */}
         {selectedDate && (
