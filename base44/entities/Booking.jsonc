@@ -30,10 +30,6 @@
     "user_name": {
       "type": "string",
       "description": "Full name of the person who booked"
-    },
-    "booked_at": {
-      "type": "string",
-      "description": "Exact time the booking was made, e.g. '6:02 AM'"
     }
   },
   "required": [
