@@ -8,7 +8,7 @@ function SlotRow({ slot, bookings }) {
   const isAM = slot.shift === "AM";
 
   const items = [
-    ...slotBookings.map((b) => ({ type: "booked", name: b.user_name || b.user_email?.split("@")[0] })),
+    ...slotBookings.map((b) => ({ type: "booked", name: b.user_name || b.user_email?.split("@")[0], booked_at: b.booked_at })),
     ...Array(Math.max(0, remaining)).fill({ type: "available" }),
   ];
 
@@ -28,9 +28,16 @@ function SlotRow({ slot, bookings }) {
       <div className="flex flex-row flex-wrap gap-1.5 items-start pl-4 sm:pl-0 sm:justify-end">
         {items.map((item, idx) =>
           item.type === "booked" ? (
-            <span key={idx} className="text-xs font-medium text-foreground bg-secondary px-2 py-0.5 rounded-md break-words whitespace-normal">
-              {item.name}
-            </span>
+            <div key={idx} className="flex flex-col items-start bg-secondary px-2 py-1 rounded-md min-w-0">
+              <span className="text-xs font-medium text-foreground break-words whitespace-normal">
+                {item.name}
+              </span>
+              {item.booked_at && (
+                <span className="text-xs text-gray-500 break-words whitespace-normal">
+                  Booked at {item.booked_at}
+                </span>
+              )}
+            </div>
           ) : (
             <span key={idx} className="text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
               Available
