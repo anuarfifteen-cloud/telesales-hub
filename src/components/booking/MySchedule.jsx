@@ -16,23 +16,23 @@ function SlotRow({ slot, bookings }) {
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-start justify-between bg-card rounded-lg px-3 py-2.5 border border-border gap-3"
+      className="flex flex-col sm:flex-row sm:items-start sm:justify-between bg-card rounded-lg px-3 py-2.5 border border-border gap-1.5 sm:gap-3"
     >
-      {/* Left: time + shift badge */}
-      <div className="flex items-center gap-2 min-w-0 pt-0.5">
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-0.5 ${isAM ? "bg-amber-400" : "bg-violet-400"}`} />
-        <span className="text-xs font-semibold text-foreground truncate">{slot.label}</span>
+      {/* Left: dot + time label */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isAM ? "bg-amber-400" : "bg-violet-400"}`} />
+        <span className="text-xs font-semibold text-foreground whitespace-nowrap">{slot.label}</span>
       </div>
 
       {/* Right: stacked capacity items */}
-      <div className="flex flex-col gap-1 flex-shrink-0 items-end">
+      <div className="flex flex-col gap-1 items-start sm:items-end pl-4 sm:pl-0">
         {items.map((item, idx) =>
           item.type === "booked" ? (
-            <span key={idx} className="text-xs font-medium text-foreground bg-secondary px-2 py-0.5 rounded-md">
+            <span key={idx} className="text-xs font-medium text-foreground bg-secondary px-2 py-0.5 rounded-md break-words whitespace-normal max-w-[160px] sm:max-w-none text-right">
               {item.name}
             </span>
           ) : (
-            <span key={idx} className="text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+            <span key={idx} className="text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
               Available
             </span>
           )

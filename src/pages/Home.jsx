@@ -163,13 +163,13 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-2xl mx-auto px-4 pt-3 pb-6 space-y-4">
         {/* 7-day Date picker */}
         <section>
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
             Select Date
           </p>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1.5">
             {dates.map((d) => (
               <DateTab
                 key={d}
@@ -181,19 +181,16 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Daily Master Schedule */}
-        <MySchedule bookings={bookings} />
-
         {/* Selected date info */}
         {selectedDate && (
-          <h2 className="font-semibold text-foreground text-lg">
+          <h2 className="font-semibold text-foreground text-base leading-tight">
             {formatDate(selectedDate)}
           </h2>
         )}
 
         {/* Booking closed notice */}
         {selectedDate && !isBookingOpen(selectedDate) && (
-          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700 flex items-start gap-2">
+          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5 text-sm text-amber-700 flex items-start gap-2">
             <span className="text-base">🔒</span>
             <div>
               <p className="font-semibold">Booking not open yet</p>
@@ -205,21 +202,21 @@ export default function Home() {
         )}
 
         {isLoading ? (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
+              <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />
             ))}
           </div>
         ) : (
           <>
             {/* AM Shift */}
             <section>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-2">
                 <span className="text-base">🌤</span>
                 <p className="text-sm font-semibold text-foreground">AM Shift</p>
                 <div className="flex-1 h-px bg-border" />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {amSlots.map((slot) => (
                   <SlotCard
                     key={slot.id}
@@ -237,12 +234,12 @@ export default function Home() {
 
             {/* PM Shift */}
             <section>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-2">
                 <span className="text-base">🌆</span>
                 <p className="text-sm font-semibold text-foreground">PM Shift</p>
                 <div className="flex-1 h-px bg-border" />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {pmSlots.map((slot) => (
                   <SlotCard
                     key={slot.id}
@@ -259,6 +256,9 @@ export default function Home() {
             </section>
           </>
         )}
+
+        {/* Daily Master Schedule — moved to bottom */}
+        <MySchedule bookings={bookings} />
       </main>
     </div>
   );
