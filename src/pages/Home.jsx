@@ -54,7 +54,6 @@ export default function Home() {
         shift: slot.shift,
         user_email: user.email,
         user_name: user.full_name,
-        booked_at: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
       }),
     onMutate: async (slot) => {
       await queryClient.cancelQueries({ queryKey: ["bookings", selectedDate] });
@@ -68,7 +67,6 @@ export default function Home() {
         shift: slot.shift,
         user_email: user.email,
         user_name: user.full_name,
-        booked_at: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
       };
       queryClient.setQueryData(["bookings", selectedDate], (old = []) => [...old, optimistic]);
       queryClient.setQueryData(["bookings-week", dates[0]], (old = []) => [...old, optimistic]);
