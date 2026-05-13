@@ -24,11 +24,11 @@ function SlotRow({ slot, bookings }) {
         <span className="text-xs font-semibold text-foreground whitespace-nowrap">{slot.label}</span>
       </div>
 
-      {/* Right: stacked capacity items */}
-      <div className="flex flex-col gap-1 items-start sm:items-end pl-4 sm:pl-0">
+      {/* Right: capacity items — wrap horizontally */}
+      <div className="flex flex-row flex-wrap gap-1.5 items-start pl-4 sm:pl-0 sm:justify-end">
         {items.map((item, idx) =>
           item.type === "booked" ? (
-            <span key={idx} className="text-xs font-medium text-foreground bg-secondary px-2 py-0.5 rounded-md break-words whitespace-normal max-w-[160px] sm:max-w-none text-right">
+            <span key={idx} className="text-xs font-medium text-foreground bg-secondary px-2 py-0.5 rounded-md break-words whitespace-normal">
               {item.name}
             </span>
           ) : (

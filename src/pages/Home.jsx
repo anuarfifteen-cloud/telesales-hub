@@ -195,7 +195,7 @@ export default function Home() {
             <div>
               <p className="font-semibold">Booking not open yet</p>
               <p className="text-xs mt-0.5 text-amber-600">
-                Bookings for {formatDate(selectedDate)} open at 7:30 PM the evening before.
+                Bookings open at 6:00 AM on the day of the shift.
               </p>
             </div>
           </div>

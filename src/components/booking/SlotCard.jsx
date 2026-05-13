@@ -27,7 +27,7 @@ export default function SlotCard({
     statusContent = (
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Lock className="w-3.5 h-3.5" />
-        <span>Opens 7:30 PM today</span>
+        <span>Opens 6:00 AM on shift day</span>
       </div>
     );
   } else if (myBooking) {
