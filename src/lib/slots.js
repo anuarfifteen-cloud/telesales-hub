@@ -12,7 +12,7 @@ export function todayInBrunei() {
   return tzFormat(toZonedTime(new Date(), TZ), "yyyy-MM-dd", { timeZone: TZ });
 }
 
-// Break slot definitions
+// Standard break slot definitions
 export const SLOTS = [
   { id: "AM1", shift: "AM", label: "11:00am – 12:30pm", maxBookings: 1 },
   { id: "AM2", shift: "AM", label: "11:45am – 1:15pm",  maxBookings: 2 },
@@ -21,6 +21,23 @@ export const SLOTS = [
   { id: "PM2", shift: "PM", label: "4:30pm – 6:00pm",   maxBookings: 2 },
   { id: "PM3", shift: "PM", label: "6:00pm – 7:30pm",   maxBookings: 1 },
 ];
+
+// Friday-specific AM slots (PM slots remain standard)
+export const FRIDAY_AM_SLOTS = [
+  { id: "FAM1", shift: "AM", label: "12:00pm – 2:00pm", maxBookings: 2, restriction: "Men Only" },
+  { id: "FAM2", shift: "AM", label: "2:00pm – 3:30pm",  maxBookings: 2, restriction: "Women Only" },
+];
+
+/** Returns true if the given dateStr (YYYY-MM-DD) is a Friday */
+export function isFriday(dateStr) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day).getDay() === 5;
+}
+
+/** Returns the AM slots for the given date (Friday-aware) */
+export function getAmSlots(dateStr) {
+  return dateStr && isFriday(dateStr) ? FRIDAY_AM_SLOTS : SLOTS.filter((s) => s.shift === "AM");
+}
 
 /**
  * Returns a UTC Date for when booking unlocks for the given date string.

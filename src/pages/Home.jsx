@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { SLOTS, getBookableDates, formatDate, getUnlockTime } from "@/lib/slots";
+import { SLOTS, getBookableDates, formatDate, getUnlockTime, getAmSlots } from "@/lib/slots";
 import { useBruneiClock } from "@/hooks/useBruneiClock";
 import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
@@ -122,7 +122,7 @@ export default function Home() {
     cancelMutation.mutate(booking);
   };
 
-  const amSlots = SLOTS.filter((s) => s.shift === "AM");
+  const amSlots = getAmSlots(selectedDate);
   const pmSlots = SLOTS.filter((s) => s.shift === "PM");
 
   const getBookedCount = (slotId) => bookings.filter((b) => b.slot_id === slotId).length;

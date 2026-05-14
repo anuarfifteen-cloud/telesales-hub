@@ -87,7 +87,7 @@ export default function SlotCard({
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${shiftDot}`} />
         <div className="min-w-0">
           <p className="font-semibold text-sm text-foreground truncate">{slot.label}</p>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className={`text-xs font-medium px-1.5 py-0.5 rounded-md ${shiftBadge}`}>
               {slot.shift} Shift
             </span>
@@ -95,6 +95,16 @@ export default function SlotCard({
               <Users className="w-3 h-3" />
               {bookedCount}/{slot.maxBookings}
             </span>
+            {slot.restriction === "Men Only" && (
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                Men Only
+              </span>
+            )}
+            {slot.restriction === "Women Only" && (
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                Women Only
+              </span>
+            )}
           </div>
         </div>
       </div>
