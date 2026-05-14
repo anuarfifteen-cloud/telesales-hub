@@ -219,15 +219,19 @@ export default function Home() {
                 <h2 className="font-semibold text-foreground text-base leading-tight">
                   {formatDate(selectedDate)}
                 </h2>
-                {(() => {
+                {unlockTime && bruneiNow < unlockTime && (() => {
                   const [y, mo, d] = selectedDate.split("-").map(Number);
-                  const prevDay = new Date(y, mo - 1, d - 1);
                   const selectedLabel = new Date(y, mo - 1, d).toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" });
-                  const prevLabel = prevDay.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" });
                   return (
-                    <p className="text-sm text-gray-500 italic mt-0.5">
-                      Booking for {selectedLabel} will open on {prevLabel} at 7:30 PM.
-                    </p>
+                    <div className="mt-2 flex flex-row items-start gap-3 bg-amber-50 border border-orange-200 rounded-lg p-3">
+                      <span className="text-base leading-none mt-0.5">🔒</span>
+                      <div>
+                        <p className="font-bold text-orange-800 text-sm">Booking not open yet</p>
+                        <p className="text-orange-700 text-sm mt-0.5">
+                          Bookings for {selectedLabel} open at 7:30 PM the evening before.
+                        </p>
+                      </div>
+                    </div>
                   );
                 })()}
               </div>
