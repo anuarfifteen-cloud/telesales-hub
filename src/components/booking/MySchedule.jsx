@@ -1,11 +1,40 @@
 import { motion } from "framer-motion";
 import { CalendarCheck } from "lucide-react";
-import { SLOTS } from "@/lib/slots";
+import { SLOTS, getAmSlots, isFriday } from "@/lib/slots";
 
 function SlotRow({ slot, bookings }) {
+  const isAM = slot.shift === "AM";
+
+  // Friday restricted slot: show static gender badge only
+  if (slot.restriction) {
+    const isMen = slot.restriction === "Men Only";
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-card rounded-lg px-3 py-2.5 border border-border gap-1.5 sm:gap-3"
+      >
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="w-2 h-2 rounded-full flex-shrink-0 bg-amber-400" />
+          <span className="text-xs font-semibold text-foreground whitespace-nowrap">{slot.label}</span>
+        </div>
+        <div>
+          {isMen ? (
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+              Men Only
+            </span>
+          ) : (
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-purple-100 text-purple-700 border border-purple-200">
+              Women Only
+            </span>
+          )}
+        </div>
+      </motion.div>
+    );
+  }
+
   const slotBookings = bookings.filter((b) => b.slot_id === slot.id);
   const remaining = slot.maxBookings - slotBookings.length;
-  const isAM = slot.shift === "AM";
 
   const items = [
     ...slotBookings.map((b) => ({ type: "booked", name: b.user_name || b.user_email?.split("@")[0], booked_at: b.booked_at })),
@@ -66,8 +95,8 @@ function ShiftSection({ label, emoji, slots, bookings }) {
   );
 }
 
-export default function MySchedule({ bookings }) {
-  const amSlots = SLOTS.filter((s) => s.shift === "AM");
+export default function MySchedule({ bookings, selectedDate }) {
+  const amSlots = getAmSlots(selectedDate);
   const pmSlots = SLOTS.filter((s) => s.shift === "PM");
 
   return (

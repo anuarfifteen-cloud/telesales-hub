@@ -324,7 +324,7 @@ export default function Home() {
               </h2>
             )}
 
-            <MySchedule bookings={bookings} />
+            <MySchedule bookings={bookings} selectedDate={selectedDate} />
           </>
         )}
       </main>
