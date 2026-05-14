@@ -162,30 +162,32 @@ export default function Home() {
           </Button>
         </div>
 
-        {/* Tab buttons */}
-        <div className="max-w-2xl mx-auto px-4 pb-0 flex gap-1">
-          <button
-            onClick={() => setActiveTab("book")}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "book"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            Book a Slot
-          </button>
-          <button
-            onClick={() => setActiveTab("schedule")}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "schedule"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <CalendarDays className="w-3.5 h-3.5" />
-            Daily Schedule
-          </button>
+        {/* Tab buttons — segmented pill control */}
+        <div className="max-w-2xl mx-auto px-4 pb-3">
+          <div className="flex gap-1 bg-slate-100 rounded-xl p-1.5">
+            <button
+              onClick={() => setActiveTab("book")}
+              className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                activeTab === "book"
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-transparent text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <span>📆</span>
+              Book a Slot
+            </button>
+            <button
+              onClick={() => setActiveTab("schedule")}
+              className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                activeTab === "schedule"
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-transparent text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <span>📋</span>
+              Daily Schedule
+            </button>
+          </div>
         </div>
       </header>
 
