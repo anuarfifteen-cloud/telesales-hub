@@ -1,3 +1,17 @@
+import { toZonedTime, format as tzFormat } from "date-fns-tz";
+
+const TZ = "Asia/Brunei";
+
+/** Returns a Date object representing "now" in Brunei time */
+function nowInBrunei() {
+  return toZonedTime(new Date(), TZ);
+}
+
+/** Returns today's date string (YYYY-MM-DD) in Brunei time */
+function todayInBrunei() {
+  return tzFormat(toZonedTime(new Date(), TZ), "yyyy-MM-dd", { timeZone: TZ });
+}
+
 // Break slot definitions
 export const SLOTS = [
   { id: "AM1", shift: "AM", label: "11:00am – 12:30pm", maxBookings: 1 },
@@ -9,39 +23,40 @@ export const SLOTS = [
 ];
 
 /**
- * Booking opens at 6:00 AM on the day itself only.
+ * Booking opens at 6:00 AM Brunei time on the day itself only.
  * Returns true if booking is currently allowed for the given date (YYYY-MM-DD).
  */
 export function isBookingOpen(dateStr) {
-  const now = new Date();
-  const todayStr = now.toISOString().split("T")[0];
+  const bruneiNow = nowInBrunei();
+  const bruneiToday = todayInBrunei();
 
-  // Only today's date is bookable
-  if (dateStr !== todayStr) return false;
+  // Only today (in Brunei) is bookable
+  if (dateStr !== bruneiToday) return false;
 
-  // Opens at 06:00 AM on the day itself
-  const openTime = new Date(dateStr + "T06:00:00");
-  return now >= openTime;
+  // Opens at 06:00 AM Brunei time
+  return bruneiNow.getHours() >= 6;
 }
 
 /**
- * Returns the next bookable date (today if before midnight, tomorrow otherwise).
- * We show today + tomorrow so users can always see upcoming slots.
+ * Returns the next 7 dates starting from today in Brunei time.
  */
 export function getBookableDates() {
-  const today = new Date();
   const dates = [];
+  // Get today in Brunei as a base
+  const bruneiNow = nowInBrunei();
   for (let i = 0; i < 7; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    const str = d.toISOString().split("T")[0];
+    const d = new Date(bruneiNow);
+    d.setDate(bruneiNow.getDate() + i);
+    const str = tzFormat(d, "yyyy-MM-dd", { timeZone: TZ });
     dates.push(str);
   }
   return dates;
 }
 
 export function formatDate(dateStr) {
-  const d = new Date(dateStr + "T00:00:00");
+  // Parse as local date (no TZ shift needed — dateStr is already Brunei date)
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
   return d.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
