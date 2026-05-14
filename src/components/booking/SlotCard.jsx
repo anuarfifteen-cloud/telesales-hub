@@ -4,11 +4,14 @@ import { Button } from "@/components/ui/button";
 
 function formatCountdown(ms) {
   if (ms <= 0) return null;
-  const totalSecs = Math.floor(ms / 1000);
-  const h = Math.floor(totalSecs / 3600);
-  const m = Math.floor((totalSecs % 3600) / 60);
-  const s = totalSecs % 60;
-  return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+  const totalMins = Math.floor(ms / 60000);
+  const d = Math.floor(totalMins / 1440);
+  const h = Math.floor((totalMins % 1440) / 60);
+  const m = totalMins % 60;
+  if (d >= 1) {
+    return `${d}D ${h}h ${String(m).padStart(2, "0")}m`;
+  }
+  return `${h}h ${String(m).padStart(2, "0")}m`;
 }
 
 export default function SlotCard({

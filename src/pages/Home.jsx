@@ -215,9 +215,22 @@ export default function Home() {
             </section>
 
             {selectedDate && (
-              <h2 className="font-semibold text-foreground text-base leading-tight">
-                {formatDate(selectedDate)}
-              </h2>
+              <div>
+                <h2 className="font-semibold text-foreground text-base leading-tight">
+                  {formatDate(selectedDate)}
+                </h2>
+                {(() => {
+                  const [y, mo, d] = selectedDate.split("-").map(Number);
+                  const prevDay = new Date(y, mo - 1, d - 1);
+                  const selectedLabel = new Date(y, mo - 1, d).toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" });
+                  const prevLabel = prevDay.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" });
+                  return (
+                    <p className="text-sm text-gray-500 italic mt-0.5">
+                      Booking for {selectedLabel} will open on {prevLabel} at 7:30 PM.
+                    </p>
+                  );
+                })()}
+              </div>
             )}
 
             {isLoading ? (
