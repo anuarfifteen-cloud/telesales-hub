@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { SLOTS, getBookableDates, formatDate, getUnlockTime, getAmSlots } from "@/lib/slots";
+import { format as tzFormat } from "date-fns-tz";
+const TZ = "Asia/Brunei";
 import { useBruneiClock } from "@/hooks/useBruneiClock";
 import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
@@ -54,6 +56,7 @@ export default function Home() {
         shift: slot.shift,
         user_email: user.email,
         user_name: user.full_name,
+        booked_at: tzFormat(new Date(), "hh:mm:ss aa", { timeZone: TZ }),
       }),
     onMutate: async (slot) => {
       await queryClient.cancelQueries({ queryKey: ["bookings", selectedDate] });

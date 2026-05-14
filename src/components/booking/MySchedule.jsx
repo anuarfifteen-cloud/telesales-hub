@@ -33,7 +33,7 @@ function SlotRow({ slot, bookings }) {
                 {item.name}
               </span>
               {item.booked_at && (
-                <span className="text-xs text-gray-500 break-words whitespace-normal">
+                <span className="text-[10px] text-gray-500 leading-tight mt-0.5">
                   Booked at {item.booked_at}
                 </span>
               )}
