@@ -32,6 +32,39 @@ export default function SlotCard({
   const bookingOpen = msUntilOpen <= 0;
   const countdown = !bookingOpen ? formatCountdown(msUntilOpen) : null;
 
+  // Friday AM restricted slots: show static gender badge only, no booking UI
+  if (slot.restriction) {
+    const isMen = slot.restriction === "Men Only";
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`rounded-xl border p-4 flex items-center justify-between gap-4 transition-all ${shiftBg}`}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${shiftDot}`} />
+          <div className="min-w-0">
+            <p className="font-semibold text-sm text-foreground truncate">{slot.label}</p>
+            <span className={`text-xs font-medium px-1.5 py-0.5 rounded-md ${shiftBadge}`}>
+              {slot.shift} Shift
+            </span>
+          </div>
+        </div>
+        <div className="flex-shrink-0">
+          {isMen ? (
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+              Men Only
+            </span>
+          ) : (
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-purple-100 text-purple-700 border border-purple-200">
+              Women Only
+            </span>
+          )}
+        </div>
+      </motion.div>
+    );
+  }
+
   let statusContent;
   if (myBooking) {
     statusContent = (
@@ -95,16 +128,7 @@ export default function SlotCard({
               <Users className="w-3 h-3" />
               {bookedCount}/{slot.maxBookings}
             </span>
-            {slot.restriction === "Men Only" && (
-              <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                Men Only
-              </span>
-            )}
-            {slot.restriction === "Women Only" && (
-              <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
-                Women Only
-              </span>
-            )}
+
           </div>
         </div>
       </div>
