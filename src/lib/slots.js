@@ -9,18 +9,18 @@ export const SLOTS = [
 ];
 
 /**
- * Booking opens at 7:30 PM the day before the target date.
+ * Booking opens at 6:00 AM on the day itself only.
  * Returns true if booking is currently allowed for the given date (YYYY-MM-DD).
  */
 export function isBookingOpen(dateStr) {
   const now = new Date();
-  const target = new Date(dateStr + "T00:00:00");
+  const todayStr = now.toISOString().split("T")[0];
 
-  // The day before at 19:30 local time
-  const openTime = new Date(target);
-  openTime.setDate(openTime.getDate() - 1);
-  openTime.setHours(19, 30, 0, 0);
+  // Only today's date is bookable
+  if (dateStr !== todayStr) return false;
 
+  // Opens at 06:00 AM on the day itself
+  const openTime = new Date(dateStr + "T06:00:00");
   return now >= openTime;
 }
 
