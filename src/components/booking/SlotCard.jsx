@@ -1,6 +1,15 @@
 import { motion } from "framer-motion";
-import { Users, CheckCircle, Clock, Lock } from "lucide-react";
+import { Users, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+function formatCountdown(ms) {
+  if (ms <= 0) return null;
+  const totalSecs = Math.floor(ms / 1000);
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+}
 
 export default function SlotCard({
   slot,
@@ -8,29 +17,23 @@ export default function SlotCard({
   myBooking,
   onBook,
   onCancel,
-  bookingOpen,
+  unlockTime, // Date object: the moment booking opens
+  now,        // current Brunei Date (live, from parent)
   loading,
 }) {
   const isFull = bookedCount >= slot.maxBookings;
   const isAM = slot.shift === "AM";
 
-  const shiftBg = isAM
-    ? "bg-amber-50 border-amber-200"
-    : "bg-violet-50 border-violet-200";
-  const shiftBadge = isAM
-    ? "bg-amber-100 text-amber-700"
-    : "bg-violet-100 text-violet-700";
+  const shiftBg = isAM ? "bg-amber-50 border-amber-200" : "bg-violet-50 border-violet-200";
+  const shiftBadge = isAM ? "bg-amber-100 text-amber-700" : "bg-violet-100 text-violet-700";
   const shiftDot = isAM ? "bg-amber-400" : "bg-violet-400";
 
+  const msUntilOpen = unlockTime - now;
+  const bookingOpen = msUntilOpen <= 0;
+  const countdown = !bookingOpen ? formatCountdown(msUntilOpen) : null;
+
   let statusContent;
-  if (!bookingOpen) {
-    statusContent = (
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Lock className="w-3.5 h-3.5" />
-        <span>Opens 6:00 AM on shift day</span>
-      </div>
-    );
-  } else if (myBooking) {
+  if (myBooking) {
     statusContent = (
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
@@ -47,6 +50,13 @@ export default function SlotCard({
           Cancel
         </Button>
       </div>
+    );
+  } else if (!bookingOpen) {
+    statusContent = (
+      <Button size="sm" className="h-7 text-xs px-2 tabular-nums" disabled>
+        <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
+        {countdown}
+      </Button>
     );
   } else if (isFull) {
     statusContent = (
@@ -76,9 +86,7 @@ export default function SlotCard({
       <div className="flex items-center gap-3 min-w-0">
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${shiftDot}`} />
         <div className="min-w-0">
-          <p className="font-semibold text-sm text-foreground truncate">
-            {slot.label}
-          </p>
+          <p className="font-semibold text-sm text-foreground truncate">{slot.label}</p>
           <div className="flex items-center gap-2 mt-0.5">
             <span className={`text-xs font-medium px-1.5 py-0.5 rounded-md ${shiftBadge}`}>
               {slot.shift} Shift

@@ -1,4 +1,4 @@
-import { toZonedTime, format as tzFormat } from "date-fns-tz";
+import { toZonedTime, fromZonedTime, format as tzFormat } from "date-fns-tz";
 
 const TZ = "Asia/Brunei";
 
@@ -8,7 +8,7 @@ function nowInBrunei() {
 }
 
 /** Returns today's date string (YYYY-MM-DD) in Brunei time */
-function todayInBrunei() {
+export function todayInBrunei() {
   return tzFormat(toZonedTime(new Date(), TZ), "yyyy-MM-dd", { timeZone: TZ });
 }
 
@@ -23,18 +23,13 @@ export const SLOTS = [
 ];
 
 /**
- * Booking opens at 6:00 AM Brunei time on the day itself only.
- * Returns true if booking is currently allowed for the given date (YYYY-MM-DD).
+ * Returns a UTC Date for when booking unlocks for the given date string.
+ * Unlock = (selectedDate - 1 day) at 19:00:00 Brunei time.
  */
-export function isBookingOpen(dateStr) {
-  const bruneiNow = nowInBrunei();
-  const bruneiToday = todayInBrunei();
-
-  // Only today (in Brunei) is bookable
-  if (dateStr !== bruneiToday) return false;
-
-  // Opens at 06:00 AM Brunei time
-  return bruneiNow.getHours() >= 6;
+export function getUnlockTime(dateStr) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  // Wall-clock: previous calendar day at 19:00 in Brunei
+  return fromZonedTime(new Date(year, month - 1, day - 1, 19, 0, 0, 0), TZ);
 }
 
 /**
@@ -42,7 +37,6 @@ export function isBookingOpen(dateStr) {
  */
 export function getBookableDates() {
   const dates = [];
-  // Get today in Brunei as a base
   const bruneiNow = nowInBrunei();
   for (let i = 0; i < 7; i++) {
     const d = new Date(bruneiNow);
@@ -54,7 +48,6 @@ export function getBookableDates() {
 }
 
 export function formatDate(dateStr) {
-  // Parse as local date (no TZ shift needed — dateStr is already Brunei date)
   const [year, month, day] = dateStr.split("-").map(Number);
   const d = new Date(year, month - 1, day);
   return d.toLocaleDateString("en-US", {
