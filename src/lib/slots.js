@@ -46,7 +46,7 @@ export function getAmSlots(dateStr) {
 export function getUnlockTime(dateStr) {
   const [year, month, day] = dateStr.split("-").map(Number);
   // Wall-clock: previous calendar day at 19:00 in Brunei
-  return fromZonedTime(new Date(year, month - 1, day - 1, 19, 0, 0, 0), TZ);
+  return fromZonedTime(new Date(year, month - 1, day - 1, 19, 30, 0, 0), TZ);
 }
 
 /**
