@@ -9,7 +9,9 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { Coffee, LogOut, CalendarDays, ClipboardList, UserCircle, Bell } from "lucide-react";
+import { Coffee, LogOut, CalendarDays, ClipboardList, UserCircle, Bell, Settings } from "lucide-react";
+import AdminPinModal from "@/components/admin/AdminPinModal";
+import AdminDashboard from "@/components/admin/AdminDashboard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -18,6 +20,8 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [activeTab, setActiveTab] = useState("booking");
   const [innerTab, setInnerTab] = useState("book");
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
   const dates = getBookableDates();
   const queryClient = useQueryClient();
   const bruneiNow = useBruneiClock();
@@ -135,6 +139,10 @@ export default function Home() {
 
   const isMutating = createMutation.isPending || cancelMutation.isPending;
   const unlockTime = selectedDate ? getUnlockTime(selectedDate) : null;
+
+  if (showAdminDashboard) {
+    return <AdminDashboard onBack={() => setShowAdminDashboard(false)} />;
+  }
 
   return (
     <div className="min-h-screen bg-background font-inter pb-20">
@@ -326,13 +334,30 @@ export default function Home() {
 
         {/* ── PROFILE TAB ── */}
         {activeTab === "profile" && (
-          <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+          <div className="flex flex-col items-center py-20 text-center gap-3 min-h-[60vh] relative">
             <UserCircle className="w-12 h-12 text-muted-foreground/40" />
             <h2 className="text-lg font-semibold text-foreground">My Profile</h2>
             <p className="text-sm text-muted-foreground">Coming Soon</p>
+
+            {/* Admin Access button */}
+            <button
+              onClick={() => setShowPinModal(true)}
+              className="absolute bottom-0 flex items-center gap-2 text-xs text-slate-400 hover:text-slate-600 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Admin Access
+            </button>
           </div>
         )}
       </main>
+
+      {/* PIN Modal */}
+      {showPinModal && (
+        <AdminPinModal
+          onClose={() => setShowPinModal(false)}
+          onSuccess={() => { setShowPinModal(false); setShowAdminDashboard(true); }}
+        />
+      )}
 
       {/* ── FIXED BOTTOM NAVIGATION ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-20 bg-card border-t border-border shadow-lg">
