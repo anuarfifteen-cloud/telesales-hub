@@ -76,18 +76,20 @@ export default function AdminDashboard({ onBack }) {
       return;
     }
 
-    // Clear existing data for dates in this upload, then bulk insert
+    // Clear existing data for dates in this upload (sequentially to avoid rate limits)
     const uniqueDates = [...new Set(records.map((r) => r.date))];
-    await Promise.all(
-      uniqueDates.map((d) =>
-        base44.entities.RosterDatabase.filter({ date: d })
-          .then((existing) =>
-            Promise.all(existing.map((e) => base44.entities.RosterDatabase.delete(e.id)))
-          )
-      )
-    );
+    for (const d of uniqueDates) {
+      const existing = await base44.entities.RosterDatabase.filter({ date: d });
+      for (const e of existing) {
+        await base44.entities.RosterDatabase.delete(e.id);
+      }
+    }
 
-    await base44.entities.RosterDatabase.bulkCreate(records);
+    // Bulk create in batches of 50
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < records.length; i += BATCH_SIZE) {
+      await base44.entities.RosterDatabase.bulkCreate(records.slice(i, i + BATCH_SIZE));
+    }
 
     setUploadedCount(records.length);
     setSuccess(true);
