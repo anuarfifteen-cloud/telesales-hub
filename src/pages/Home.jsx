@@ -12,6 +12,7 @@ import LiveClock from "@/components/booking/LiveClock";
 import { Coffee, LogOut, CalendarDays, ClipboardList, UserCircle, Bell, Settings } from "lucide-react";
 import AdminPinModal from "@/components/admin/AdminPinModal";
 import AdminDashboard from "@/components/admin/AdminDashboard";
+import RosterView from "@/components/roster/RosterView";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -324,13 +325,7 @@ export default function Home() {
         )}
 
         {/* ── ROSTER TAB ── */}
-        {activeTab === "roster" && (
-          <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
-            <ClipboardList className="w-12 h-12 text-muted-foreground/40" />
-            <h2 className="text-lg font-semibold text-foreground">Daily Team Roster</h2>
-            <p className="text-sm text-muted-foreground">Coming Soon</p>
-          </div>
-        )}
+        {activeTab === "roster" && <RosterView />}
 
         {/* ── PROFILE TAB ── */}
         {activeTab === "profile" && (
@@ -364,7 +359,7 @@ export default function Home() {
         <div className="max-w-2xl mx-auto flex">
           {[
             { id: "booking", label: "Booking", icon: CalendarDays },
-            { id: "schedule", label: "Roster", icon: ClipboardList },
+            { id: "roster", label: "Roster", icon: ClipboardList },
             { id: "profile", label: "Profile", icon: UserCircle },
           ].map(({ id, label, icon: Icon }) => {
             const isActive = activeTab === id;
