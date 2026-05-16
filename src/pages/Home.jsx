@@ -9,14 +9,14 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { Coffee, LogOut, CalendarDays, BookOpen } from "lucide-react";
+import { Coffee, LogOut, CalendarDays, ClipboardList, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export default function Home() {
   const [user, setUser] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [activeTab, setActiveTab] = useState("book");
+  const [activeTab, setActiveTab] = useState("booking");
   const dates = getBookableDates();
   const queryClient = useQueryClient();
   const bruneiNow = useBruneiClock();
@@ -136,7 +136,7 @@ export default function Home() {
   const unlockTime = selectedDate ? getUnlockTime(selectedDate) : null;
 
   return (
-    <div className="min-h-screen bg-background font-inter">
+    <div className="min-h-screen bg-background font-inter pb-20">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-10 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -161,40 +161,12 @@ export default function Home() {
             <span className="hidden sm:inline">Sign out</span>
           </Button>
         </div>
-
-        {/* Tab buttons — segmented pill control */}
-        <div className="max-w-2xl mx-auto px-4 pb-3">
-          <div className="flex gap-1 bg-slate-100 rounded-xl p-1.5">
-            <button
-              onClick={() => setActiveTab("book")}
-              className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === "book"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-transparent text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <span>📆</span>
-              Book a Slot
-            </button>
-            <button
-              onClick={() => setActiveTab("schedule")}
-              className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === "schedule"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-transparent text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <span>📋</span>
-              Daily Schedule
-            </button>
-          </div>
-        </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 pt-3 pb-6 space-y-4">
 
-        {/* ── BOOK A SLOT TAB ── */}
-        {activeTab === "book" && (
+        {/* ── BOOKING TAB ── */}
+        {activeTab === "booking" && (
           <>
             {/* Live Brunei Clock */}
             <LiveClock />
@@ -301,7 +273,6 @@ export default function Home() {
         {/* ── DAILY SCHEDULE TAB ── */}
         {activeTab === "schedule" && (
           <>
-            {/* 7-day Date picker (also available in schedule tab) */}
             <section>
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
                 Select Date
@@ -327,7 +298,50 @@ export default function Home() {
             <MySchedule bookings={bookings} selectedDate={selectedDate} />
           </>
         )}
+
+        {/* ── ROSTER TAB ── */}
+        {activeTab === "roster" && (
+          <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+            <ClipboardList className="w-12 h-12 text-muted-foreground/40" />
+            <h2 className="text-lg font-semibold text-foreground">Daily Team Roster</h2>
+            <p className="text-sm text-muted-foreground">Coming Soon</p>
+          </div>
+        )}
+
+        {/* ── PROFILE TAB ── */}
+        {activeTab === "profile" && (
+          <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+            <UserCircle className="w-12 h-12 text-muted-foreground/40" />
+            <h2 className="text-lg font-semibold text-foreground">My Profile</h2>
+            <p className="text-sm text-muted-foreground">Coming Soon</p>
+          </div>
+        )}
       </main>
+
+      {/* ── FIXED BOTTOM NAVIGATION ── */}
+      <nav className="fixed bottom-0 left-0 right-0 z-20 bg-card border-t border-border shadow-lg">
+        <div className="max-w-2xl mx-auto flex">
+          {[
+            { id: "booking", label: "Booking", icon: CalendarDays },
+            { id: "schedule", label: "Roster", icon: ClipboardList },
+            { id: "profile", label: "Profile", icon: UserCircle },
+          ].map(({ id, label, icon: Icon }) => {
+            const isActive = activeTab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 text-xs font-medium transition-colors ${
+                  isActive ? "text-blue-600" : "text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                <Icon className={`w-5 h-5 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
