@@ -9,7 +9,7 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { Coffee, LogOut, CalendarDays, ClipboardList, UserCircle } from "lucide-react";
+import { Coffee, LogOut, CalendarDays, ClipboardList, UserCircle, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -139,28 +139,32 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background font-inter pb-20">
       {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-10 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Coffee className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="font-bold text-base leading-tight">TS Booking Slot</h1>
-              <p className="text-xs text-muted-foreground leading-tight">
-                {user ? `Hi, ${user.full_name?.split(" ")[0] || user.email}` : ""}
-              </p>
-            </div>
-          </div>
+      <header className="bg-white sticky top-0 z-10" style={{ boxShadow: "0 1px 12px 0 rgba(0,0,0,0.08)" }}>
+        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+          {/* Left: logout */}
           <Button
             variant="ghost"
-            size="sm"
-            className="text-muted-foreground gap-1.5"
+            size="icon"
+            className="text-slate-400 hover:text-slate-600 w-9 h-9"
             onClick={() => base44.auth.logout()}
           >
             <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Sign out</span>
           </Button>
+
+          {/* Center: app title */}
+          <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
+            <h1 className="font-bold text-base tracking-tight text-slate-900 leading-tight">[INSERT NAME HERE]</h1>
+            {user && (
+              <p className="text-[11px] text-slate-400 leading-tight">
+                {user.full_name?.split(" ")[0] || user.email}
+              </p>
+            )}
+          </div>
+
+          {/* Right: bell */}
+          <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors relative">
+            <Bell className="w-5 h-5 text-slate-500" />
+          </button>
         </div>
       </header>
 
