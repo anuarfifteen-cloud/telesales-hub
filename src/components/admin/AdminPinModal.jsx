@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const CORRECT_PIN = "030525";
+const CORRECT_PIN = "030225";
 
 export default function AdminPinModal({ onClose, onSuccess }) {
   const [pin, setPin] = useState("");

@@ -9,13 +9,12 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { Coffee, LogOut, CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus } from "lucide-react";
 import AdminPinModal from "@/components/admin/AdminPinModal";
 import RosterView from "@/components/roster/RosterView";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-const ADMIN_PIN = "030525";
 const EMPLOYEES = [
   { value: 1, label: "Aiman" }, { value: 2, label: "Adibah" },
   { value: 3, label: "Anil" }, { value: 4, label: "Nurul" },
@@ -32,9 +31,12 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("booking");
   const [innerTab, setInnerTab] = useState("book");
   const [showPinModal, setShowPinModal] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [adminForm, setAdminForm] = useState({ date: "", employee: "", shift: "", task: "" });
   const [adminSaving, setAdminSaving] = useState(false);
+  const [forceBookSlot, setForceBookSlot] = useState(null);
+  const [forceBookEmployee, setForceBookEmployee] = useState("");
   const dates = getBookableDates();
   const queryClient = useQueryClient();
   const bruneiNow = useBruneiClock();
@@ -153,6 +155,31 @@ export default function Home() {
   const isMutating = createMutation.isPending || cancelMutation.isPending;
   const unlockTime = selectedDate ? getUnlockTime(selectedDate) : null;
 
+  const handleAdminDeleteBooking = async (bookingId) => {
+    await base44.entities.Booking.delete(bookingId);
+    queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+    queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
+    toast.success("Booking removed.");
+  };
+
+  const handleForceBook = async (slot) => {
+    if (!forceBookEmployee) return;
+    const emp = EMPLOYEES.find(e => String(e.value) === forceBookEmployee);
+    await base44.entities.Booking.create({
+      date: selectedDate,
+      slot_id: slot.id,
+      slot_label: slot.label,
+      shift: slot.shift,
+      user_email: `emp${emp.value}@telesales.local`,
+      user_name: emp.label,
+      booked_at: tzFormat(new Date(), "hh:mm:ss aa", { timeZone: TZ }),
+    });
+    queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+    setForceBookSlot(null);
+    setForceBookEmployee("");
+    toast.success(`${emp.label} force-booked!`);
+  };
+
   const handleAdminSave = async () => {
     if (!adminForm.date || !adminForm.employee || !adminForm.shift) {
       toast.error("Please fill in date, employee and shift.");
@@ -178,18 +205,11 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white sticky top-0 z-10" style={{ boxShadow: "0 1px 12px 0 rgba(0,0,0,0.08)" }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          {/* Left: logout */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-slate-400 hover:text-slate-600 w-9 h-9"
-            onClick={() => base44.auth.logout()}
-          >
-            <LogOut className="w-4 h-4" />
-          </Button>
+          {/* Left: spacer */}
+          <div className="w-9" />
 
           {/* Center: app title */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
+          <div className="flex flex-col items-center">
             <h1 className="text-xl text-slate-900 leading-tight" style={{ fontFamily: "'Pacifico', cursive" }}>Telesales Hub</h1>
             {user && (
               <p className="text-[11px] text-slate-400 leading-tight">
@@ -198,10 +218,14 @@ export default function Home() {
             )}
           </div>
 
-          {/* Right: bell */}
-          <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors relative">
-            <Bell className="w-5 h-5 text-slate-500" />
-          </button>
+          {/* Right: admin badge or bell */}
+          {isAdmin ? (
+            <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-1 rounded-full border border-red-200">ADMIN</span>
+          ) : (
+            <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors relative">
+              <Bell className="w-5 h-5 text-slate-500" />
+            </button>
+          )}
         </div>
       </header>
 
@@ -288,51 +312,68 @@ export default function Home() {
                   </div>
                 ) : (
                   <>
-                    <section>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-base">🌤</span>
-                        <p className="text-sm font-semibold text-foreground">AM Shift</p>
-                        <div className="flex-1 h-px bg-border" />
-                      </div>
-                      <div className="space-y-1.5">
-                        {amSlots.map((slot) => (
-                          <SlotCard
-                            key={slot.id}
-                            slot={slot}
-                            bookedCount={getBookedCount(slot.id)}
-                            myBooking={getMyBooking(slot.id)}
-                            onBook={handleBook}
-                            onCancel={handleCancel}
-                            unlockTime={unlockTime}
-                            now={bruneiNow}
-                            loading={isMutating}
-                          />
-                        ))}
-                      </div>
-                    </section>
-
-                    <section>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-base">🌆</span>
-                        <p className="text-sm font-semibold text-foreground">PM Shift</p>
-                        <div className="flex-1 h-px bg-border" />
-                      </div>
-                      <div className="space-y-1.5">
-                        {pmSlots.map((slot) => (
-                          <SlotCard
-                            key={slot.id}
-                            slot={slot}
-                            bookedCount={getBookedCount(slot.id)}
-                            myBooking={getMyBooking(slot.id)}
-                            onBook={handleBook}
-                            onCancel={handleCancel}
-                            unlockTime={unlockTime}
-                            now={bruneiNow}
-                            loading={isMutating}
-                          />
-                        ))}
-                      </div>
-                    </section>
+                    {[{ label: "AM Shift", emoji: "🌤", slots: amSlots }, { label: "PM Shift", emoji: "🌆", slots: pmSlots }].map(({ label, emoji, slots }) => (
+                      <section key={label}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-base">{emoji}</span>
+                          <p className="text-sm font-semibold text-foreground">{label}</p>
+                          <div className="flex-1 h-px bg-border" />
+                        </div>
+                        <div className="space-y-1.5">
+                          {slots.map((slot) => {
+                            const slotBookings = bookings.filter(b => b.slot_id === slot.id);
+                            const myBooking = getMyBooking(slot.id);
+                            const isFull = getBookedCount(slot.id) >= slot.maxBookings;
+                            return (
+                              <div key={slot.id} className="space-y-1">
+                                <SlotCard
+                                  slot={slot}
+                                  bookedCount={getBookedCount(slot.id)}
+                                  myBooking={myBooking}
+                                  onBook={handleBook}
+                                  onCancel={handleCancel}
+                                  unlockTime={unlockTime}
+                                  now={bruneiNow}
+                                  loading={isMutating}
+                                />
+                                {isAdmin && (
+                                  <div className="pl-2 space-y-1">
+                                    {slotBookings.map(b => (
+                                      <div key={b.id} className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">
+                                        <span className="text-xs text-red-700 font-medium">{b.user_name || b.user_email}</span>
+                                        <button onClick={() => handleAdminDeleteBooking(b.id)} className="text-red-500 hover:text-red-700 transition-colors">
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                    {!isFull && !slot.restriction && (
+                                      forceBookSlot?.id === slot.id ? (
+                                        <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
+                                          <select
+                                            value={forceBookEmployee}
+                                            onChange={e => setForceBookEmployee(e.target.value)}
+                                            className="flex-1 text-xs border-0 bg-transparent text-slate-700 focus:outline-none"
+                                          >
+                                            <option value="">Select employee…</option>
+                                            {EMPLOYEES.map(emp => <option key={emp.value} value={String(emp.value)}>{emp.label}</option>)}
+                                          </select>
+                                          <button onClick={() => handleForceBook(slot)} className="text-xs font-bold text-blue-600 hover:text-blue-800">Book</button>
+                                          <button onClick={() => { setForceBookSlot(null); setForceBookEmployee(""); }} className="text-xs text-slate-400">✕</button>
+                                        </div>
+                                      ) : (
+                                        <button onClick={() => { setForceBookSlot(slot); setForceBookEmployee(""); }} className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">
+                                          <Plus className="w-3 h-3" /> Force book
+                                        </button>
+                                      )
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    ))}
                   </>
                 )}
               </>
@@ -353,7 +394,7 @@ export default function Home() {
         )}
 
         {/* ── ROSTER TAB ── */}
-        {activeTab === "roster" && <RosterView />}
+        {activeTab === "roster" && <RosterView isAdmin={isAdmin} />}
 
         {/* ── PROFILE TAB ── */}
         {activeTab === "profile" && (
@@ -363,6 +404,11 @@ export default function Home() {
                 <UserCircle className="w-12 h-12 text-muted-foreground/40" />
                 <h2 className="text-lg font-semibold text-foreground">My Profile</h2>
                 <p className="text-sm text-muted-foreground">Coming Soon</p>
+
+                <Button variant="outline" onClick={() => base44.auth.logout()} className="mt-4 gap-2 text-slate-600">
+                  <LogOut className="w-4 h-4" /> Log Out
+                </Button>
+
                 <button
                   onClick={() => setShowPinModal(true)}
                   className="absolute bottom-0 flex items-center gap-2 text-xs text-slate-400 hover:text-slate-600 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100"
@@ -374,12 +420,23 @@ export default function Home() {
             ) : (
               <div className="space-y-4">
                 {/* Back button */}
-                <button
-                  onClick={() => setIsAdminLoggedIn(false)}
-                  className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Back to Profile
-                </button>
+                {/* Admin Mode Banner */}
+                <div className="flex items-center justify-between bg-red-600 text-white rounded-xl px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    <span className="text-sm font-bold">Admin Mode: ACTIVE</span>
+                  </div>
+                  <button
+                    onClick={() => { setIsAdminLoggedIn(false); setIsAdmin(false); }}
+                    className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    <ArrowLeft className="w-3 h-3" /> Exit
+                  </button>
+                </div>
+
+                <Button variant="outline" onClick={() => base44.auth.logout()} className="w-full gap-2 text-slate-600">
+                  <LogOut className="w-4 h-4" /> Log Out
+                </Button>
 
                 {/* Admin Control Panel */}
                 <div className="bg-white rounded-2xl border border-border p-5 space-y-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
@@ -458,7 +515,7 @@ export default function Home() {
       {showPinModal && (
         <AdminPinModal
           onClose={() => setShowPinModal(false)}
-          onSuccess={() => { setShowPinModal(false); setIsAdminLoggedIn(true); }}
+          onSuccess={() => { setShowPinModal(false); setIsAdminLoggedIn(true); setIsAdmin(true); }}
         />
       )}
 
