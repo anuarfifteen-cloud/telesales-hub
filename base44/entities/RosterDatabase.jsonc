@@ -1,0 +1,37 @@
+{
+  "name": "RosterDatabase",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "The roster date (YYYY-MM-DD)"
+    },
+    "shift_type": {
+      "type": "string",
+      "enum": [
+        "AM",
+        "PM",
+        "Off"
+      ],
+      "description": "The shift assigned for this entry"
+    },
+    "employee_number": {
+      "type": "number",
+      "description": "Employee number (1\u201314)"
+    },
+    "employee_name": {
+      "type": "string",
+      "description": "Full name of the employee"
+    },
+    "daily_task": {
+      "type": "string",
+      "description": "The task assigned for the day"
+    }
+  },
+  "required": [
+    "date",
+    "shift_type",
+    "employee_number"
+  ]
+}
