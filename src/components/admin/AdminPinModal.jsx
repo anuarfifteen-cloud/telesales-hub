@@ -2,14 +2,14 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const CORRECT_PIN = "9999";
+const CORRECT_PIN = "030525";
 
 export default function AdminPinModal({ onClose, onSuccess }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
 
   const handleDigit = (d) => {
-    if (pin.length >= 4) return;
+    if (pin.length >= 6) return;
     setPin((p) => p + d);
     setError(false);
   };
@@ -47,12 +47,12 @@ export default function AdminPinModal({ onClose, onSuccess }) {
             <span className="text-2xl">⚙️</span>
           </div>
           <h2 className="text-lg font-bold text-slate-900">Admin Access</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Enter your 4-digit PIN</p>
+          <p className="text-sm text-slate-500 mt-0.5">Enter your 6-digit PIN</p>
         </div>
 
         {/* PIN dots */}
         <div className="flex justify-center gap-3 mb-2">
-          {[0, 1, 2, 3].map((i) => (
+          {[0, 1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
               className={`w-3.5 h-3.5 rounded-full border-2 transition-colors ${
@@ -97,7 +97,7 @@ export default function AdminPinModal({ onClose, onSuccess }) {
         <Button
           className="w-full mt-4 h-11 text-sm font-semibold"
           onClick={handleSubmit}
-          disabled={pin.length < 4}
+          disabled={pin.length < 6}
         >
           Confirm
         </Button>

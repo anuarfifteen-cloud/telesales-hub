@@ -9,12 +9,22 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { Coffee, LogOut, CalendarDays, ClipboardList, UserCircle, Bell, Settings } from "lucide-react";
+import { Coffee, LogOut, CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, ChevronRight } from "lucide-react";
 import AdminPinModal from "@/components/admin/AdminPinModal";
-import AdminDashboard from "@/components/admin/AdminDashboard";
 import RosterView from "@/components/roster/RosterView";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+
+const ADMIN_PIN = "030525";
+const EMPLOYEES = [
+  { value: 1, label: "Aiman" }, { value: 2, label: "Adibah" },
+  { value: 3, label: "Anil" }, { value: 4, label: "Nurul" },
+  { value: 5, label: "Kash" }, { value: 6, label: "Salwa" },
+  { value: 7, label: "Husnina" }, { value: 8, label: "Anwar" },
+  { value: 9, label: "Sasha" }, { value: 10, label: "Aziemah" },
+  { value: 11, label: "Kamaliah" }, { value: 12, label: "Atiqah" },
+  { value: 13, label: "Halimatul" }, { value: 14, label: "Afiqah" },
+];
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -22,7 +32,9 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("booking");
   const [innerTab, setInnerTab] = useState("book");
   const [showPinModal, setShowPinModal] = useState(false);
-  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [adminForm, setAdminForm] = useState({ date: "", employee: "", shift: "", task: "" });
+  const [adminSaving, setAdminSaving] = useState(false);
   const dates = getBookableDates();
   const queryClient = useQueryClient();
   const bruneiNow = useBruneiClock();
@@ -141,9 +153,25 @@ export default function Home() {
   const isMutating = createMutation.isPending || cancelMutation.isPending;
   const unlockTime = selectedDate ? getUnlockTime(selectedDate) : null;
 
-  if (showAdminDashboard) {
-    return <AdminDashboard onBack={() => setShowAdminDashboard(false)} />;
-  }
+  const handleAdminSave = async () => {
+    if (!adminForm.date || !adminForm.employee || !adminForm.shift) {
+      toast.error("Please fill in date, employee and shift.");
+      return;
+    }
+    setAdminSaving(true);
+    const emp = EMPLOYEES.find(e => String(e.value) === adminForm.employee);
+    await base44.entities.RosterDatabase.create({
+      date: adminForm.date,
+      shift_type: adminForm.shift,
+      employee_number: emp.value,
+      employee_name: emp.label,
+      daily_task: adminForm.task,
+    });
+    toast.success("Assignment saved!");
+    setAdminForm({ date: "", employee: "", shift: "", task: "" });
+    setAdminSaving(false);
+    queryClient.invalidateQueries({ queryKey: ["roster"] });
+  };
 
   return (
     <div className="min-h-screen bg-background font-inter pb-20">
@@ -329,20 +357,100 @@ export default function Home() {
 
         {/* ── PROFILE TAB ── */}
         {activeTab === "profile" && (
-          <div className="flex flex-col items-center py-20 text-center gap-3 min-h-[60vh] relative">
-            <UserCircle className="w-12 h-12 text-muted-foreground/40" />
-            <h2 className="text-lg font-semibold text-foreground">My Profile</h2>
-            <p className="text-sm text-muted-foreground">Coming Soon</p>
+          <>
+            {!isAdminLoggedIn ? (
+              <div className="flex flex-col items-center py-20 text-center gap-3 min-h-[60vh] relative">
+                <UserCircle className="w-12 h-12 text-muted-foreground/40" />
+                <h2 className="text-lg font-semibold text-foreground">My Profile</h2>
+                <p className="text-sm text-muted-foreground">Coming Soon</p>
+                <button
+                  onClick={() => setShowPinModal(true)}
+                  className="absolute bottom-0 flex items-center gap-2 text-xs text-slate-400 hover:text-slate-600 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  Admin Access
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Back button */}
+                <button
+                  onClick={() => setIsAdminLoggedIn(false)}
+                  className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back to Profile
+                </button>
 
-            {/* Admin Access button */}
-            <button
-              onClick={() => setShowPinModal(true)}
-              className="absolute bottom-0 flex items-center gap-2 text-xs text-slate-400 hover:text-slate-600 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100"
-            >
-              <Settings className="w-3.5 h-3.5" />
-              Admin Access
-            </button>
-          </div>
+                {/* Admin Control Panel */}
+                <div className="bg-white rounded-2xl border border-border p-5 space-y-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Settings className="w-4 h-4 text-blue-600" />
+                    <h2 className="font-bold text-slate-900 text-base">Admin Control Panel</h2>
+                  </div>
+                  <p className="text-xs text-slate-500 -mt-2">Assign daily shifts to the roster.</p>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Date</label>
+                      <input
+                        type="date"
+                        value={adminForm.date}
+                        onChange={e => setAdminForm(f => ({ ...f, date: e.target.value }))}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Employee</label>
+                      <select
+                        value={adminForm.employee}
+                        onChange={e => setAdminForm(f => ({ ...f, employee: e.target.value }))}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                      >
+                        <option value="">Select employee</option>
+                        {EMPLOYEES.map(emp => (
+                          <option key={emp.value} value={String(emp.value)}>{emp.value}. {emp.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Shift</label>
+                      <select
+                        value={adminForm.shift}
+                        onChange={e => setAdminForm(f => ({ ...f, shift: e.target.value }))}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                      >
+                        <option value="">Select shift</option>
+                        <option value="AM">AM Shift</option>
+                        <option value="PM">PM Shift</option>
+                        <option value="Off">OFF Day</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Daily Task</label>
+                      <input
+                        type="text"
+                        value={adminForm.task}
+                        onChange={e => setAdminForm(f => ({ ...f, task: e.target.value }))}
+                        placeholder="e.g., Online Chat, Upselling"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      />
+                    </div>
+
+                    <Button
+                      className="w-full h-11 font-semibold text-sm"
+                      onClick={handleAdminSave}
+                      disabled={adminSaving}
+                    >
+                      {adminSaving ? "Saving…" : "Save Assignment"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </main>
 
@@ -350,7 +458,7 @@ export default function Home() {
       {showPinModal && (
         <AdminPinModal
           onClose={() => setShowPinModal(false)}
-          onSuccess={() => { setShowPinModal(false); setShowAdminDashboard(true); }}
+          onSuccess={() => { setShowPinModal(false); setIsAdminLoggedIn(true); }}
         />
       )}
 
