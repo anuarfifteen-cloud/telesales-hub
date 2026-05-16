@@ -153,7 +153,7 @@ export default function Home() {
 
           {/* Center: app title */}
           <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
-            <h1 className="font-bold text-base tracking-tight text-slate-900 leading-tight">[INSERT NAME HERE]</h1>
+            <h1 className="text-xl text-slate-900 leading-tight" style={{ fontFamily: "'Pacifico', cursive" }}>Telesales Hub</h1>
             {user && (
               <p className="text-[11px] text-slate-400 leading-tight">
                 {user.full_name?.split(" ")[0] || user.email}
