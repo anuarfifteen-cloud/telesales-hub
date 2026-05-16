@@ -17,6 +17,7 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [activeTab, setActiveTab] = useState("booking");
+  const [innerTab, setInnerTab] = useState("book");
   const dates = getBookableDates();
   const queryClient = useQueryClient();
   const bruneiNow = useBruneiClock();
@@ -168,10 +169,33 @@ export default function Home() {
         {/* ── BOOKING TAB ── */}
         {activeTab === "booking" && (
           <>
-            {/* Live Brunei Clock */}
-            <LiveClock />
+            {/* Inner segmented control */}
+            <div className="flex gap-1 bg-slate-100 rounded-xl p-1.5">
+              <button
+                onClick={() => setInnerTab("book")}
+                className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                  innerTab === "book"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "bg-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <span>📆</span>
+                Book a Slot
+              </button>
+              <button
+                onClick={() => setInnerTab("schedule")}
+                className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                  innerTab === "schedule"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "bg-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <span>📋</span>
+                Daily Schedule
+              </button>
+            </div>
 
-            {/* 7-day Date picker */}
+            {/* Shared date picker */}
             <section>
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
                 Select Date
@@ -188,114 +212,102 @@ export default function Home() {
               </div>
             </section>
 
-            {selectedDate && (
-              <div>
-                <h2 className="font-semibold text-foreground text-base leading-tight">
-                  {formatDate(selectedDate)}
-                </h2>
-                {unlockTime && bruneiNow < unlockTime && (() => {
-                  const [y, mo, d] = selectedDate.split("-").map(Number);
-                  const prevDay = new Date(y, mo - 1, d - 1);
-                  const dayNum = prevDay.getDate();
-                  const monthName = prevDay.toLocaleDateString("en-US", { month: "long" });
-                  return (
-                    <div className="mt-2 bg-amber-50 border border-orange-200 rounded-lg p-3">
-                      <p className="font-bold text-orange-800 text-sm">🔒 Booking not open yet.</p>
-                      <p className="text-orange-700 text-sm mt-0.5">
-                        Bookings open on {dayNum} {monthName} 7:30 PM.
-                      </p>
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-
-            {isLoading ? (
-              <div className="space-y-2">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />
-                ))}
-              </div>
-            ) : (
+            {/* ── Book a Slot inner view ── */}
+            {innerTab === "book" && (
               <>
-                {/* AM Shift */}
-                <section>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-base">🌤</span>
-                    <p className="text-sm font-semibold text-foreground">AM Shift</p>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
-                  <div className="space-y-1.5">
-                    {amSlots.map((slot) => (
-                      <SlotCard
-                        key={slot.id}
-                        slot={slot}
-                        bookedCount={getBookedCount(slot.id)}
-                        myBooking={getMyBooking(slot.id)}
-                        onBook={handleBook}
-                        onCancel={handleCancel}
-                        unlockTime={unlockTime}
-                        now={bruneiNow}
-                        loading={isMutating}
-                      />
-                    ))}
-                  </div>
-                </section>
+                <LiveClock />
 
-                {/* PM Shift */}
-                <section>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-base">🌆</span>
-                    <p className="text-sm font-semibold text-foreground">PM Shift</p>
-                    <div className="flex-1 h-px bg-border" />
+                {selectedDate && (
+                  <div>
+                    <h2 className="font-semibold text-foreground text-base leading-tight">
+                      {formatDate(selectedDate)}
+                    </h2>
+                    {unlockTime && bruneiNow < unlockTime && (() => {
+                      const [y, mo, d] = selectedDate.split("-").map(Number);
+                      const prevDay = new Date(y, mo - 1, d - 1);
+                      const dayNum = prevDay.getDate();
+                      const monthName = prevDay.toLocaleDateString("en-US", { month: "long" });
+                      return (
+                        <div className="mt-2 bg-amber-50 border border-orange-200 rounded-lg p-3">
+                          <p className="font-bold text-orange-800 text-sm">🔒 Booking not open yet.</p>
+                          <p className="text-orange-700 text-sm mt-0.5">
+                            Bookings open on {dayNum} {monthName} 7:30 PM.
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
-                  <div className="space-y-1.5">
-                    {pmSlots.map((slot) => (
-                      <SlotCard
-                        key={slot.id}
-                        slot={slot}
-                        bookedCount={getBookedCount(slot.id)}
-                        myBooking={getMyBooking(slot.id)}
-                        onBook={handleBook}
-                        onCancel={handleCancel}
-                        unlockTime={unlockTime}
-                        now={bruneiNow}
-                        loading={isMutating}
-                      />
+                )}
+
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />
                     ))}
                   </div>
-                </section>
+                ) : (
+                  <>
+                    <section>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-base">🌤</span>
+                        <p className="text-sm font-semibold text-foreground">AM Shift</p>
+                        <div className="flex-1 h-px bg-border" />
+                      </div>
+                      <div className="space-y-1.5">
+                        {amSlots.map((slot) => (
+                          <SlotCard
+                            key={slot.id}
+                            slot={slot}
+                            bookedCount={getBookedCount(slot.id)}
+                            myBooking={getMyBooking(slot.id)}
+                            onBook={handleBook}
+                            onCancel={handleCancel}
+                            unlockTime={unlockTime}
+                            now={bruneiNow}
+                            loading={isMutating}
+                          />
+                        ))}
+                      </div>
+                    </section>
+
+                    <section>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-base">🌆</span>
+                        <p className="text-sm font-semibold text-foreground">PM Shift</p>
+                        <div className="flex-1 h-px bg-border" />
+                      </div>
+                      <div className="space-y-1.5">
+                        {pmSlots.map((slot) => (
+                          <SlotCard
+                            key={slot.id}
+                            slot={slot}
+                            bookedCount={getBookedCount(slot.id)}
+                            myBooking={getMyBooking(slot.id)}
+                            onBook={handleBook}
+                            onCancel={handleCancel}
+                            unlockTime={unlockTime}
+                            now={bruneiNow}
+                            loading={isMutating}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  </>
+                )}
               </>
             )}
-          </>
-        )}
 
-        {/* ── DAILY SCHEDULE TAB ── */}
-        {activeTab === "schedule" && (
-          <>
-            <section>
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                Select Date
-              </p>
-              <div className="grid grid-cols-7 gap-1.5">
-                {dates.map((d) => (
-                  <DateTab
-                    key={d}
-                    dateStr={d}
-                    isSelected={d === selectedDate}
-                    onClick={() => setSelectedDate(d)}
-                  />
-                ))}
-              </div>
-            </section>
-
-            {selectedDate && (
-              <h2 className="font-semibold text-foreground text-base leading-tight">
-                {formatDate(selectedDate)}
-              </h2>
+            {/* ── Daily Schedule inner view ── */}
+            {innerTab === "schedule" && (
+              <>
+                {selectedDate && (
+                  <h2 className="font-semibold text-foreground text-base leading-tight">
+                    {formatDate(selectedDate)}
+                  </h2>
+                )}
+                <MySchedule bookings={bookings} selectedDate={selectedDate} />
+              </>
             )}
-
-            <MySchedule bookings={bookings} selectedDate={selectedDate} />
           </>
         )}
 
