@@ -205,18 +205,8 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white sticky top-0 z-10" style={{ boxShadow: "0 1px 12px 0 rgba(0,0,0,0.08)" }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          {/* Left: spacer */}
-          <div className="w-9" />
-
-          {/* Center: app title */}
-          <div className="flex flex-col items-center">
-            <h1 className="text-xl text-slate-900 leading-tight" style={{ fontFamily: "'Pacifico', cursive" }}>Telesales Hub</h1>
-            {user && (
-              <p className="text-[11px] text-slate-400 leading-tight">
-                {user.full_name?.split(" ")[0] || user.email}
-              </p>
-            )}
-          </div>
+          {/* Left: app title */}
+          <h1 className="text-xl text-slate-900 leading-tight" style={{ fontFamily: "'Pacifico', cursive" }}>Telesales Hub</h1>
 
           {/* Right: admin badge or bell */}
           {isAdmin ? (

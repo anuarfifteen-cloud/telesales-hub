@@ -16,6 +16,11 @@ const EMPLOYEES = [
   { value: 13, label: "Halimatul" }, { value: 14, label: "Afiqah" },
 ];
 
+// Fixed slot counts per section
+const AM_SLOTS = 5;
+const PM_SLOTS = 5;
+const OFF_SLOTS = 4;
+
 function formatFullDate(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("en-US", {
@@ -23,7 +28,46 @@ function formatFullDate(dateStr) {
   });
 }
 
-function ShiftCard({ emoji, title, subtitle, entries, color, isAdmin, onDelete }) {
+function EntryRow({ entry, color, isAdmin, onDelete }) {
+  const name = entry ? (entry.employee_name || `Employee ${entry.employee_number}`) : null;
+  const task = entry ? (entry.daily_task || "") : null;
+  const isEmpty = !entry;
+
+  return (
+    <div className="grid grid-cols-[1fr_auto] gap-2 items-center bg-white/70 rounded-xl px-3 py-2.5">
+      {/* Left: name */}
+      <span className={`text-sm font-semibold truncate ${isEmpty ? "text-slate-300 italic" : "text-slate-800"}`}>
+        {isEmpty ? "Empty" : name}
+      </span>
+
+      {/* Right: task badge + delete */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-col items-end min-w-0">
+          <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wide leading-none mb-0.5">Task</span>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full max-w-[140px] text-right leading-snug ${
+            isEmpty || !task
+              ? "bg-slate-100 text-slate-300 italic"
+              : color.badge
+          }`}
+            style={{ wordBreak: "break-word", whiteSpace: "normal" }}
+          >
+            {isEmpty || !task ? "Empty" : task}
+          </span>
+        </div>
+        {isAdmin && entry && (
+          <button onClick={() => onDelete(entry.id)} className="text-red-400 hover:text-red-600 transition-colors flex-shrink-0">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ShiftCard({ emoji, title, subtitle, entries, slotCount, color, isAdmin, onDelete }) {
+  // Pad entries with nulls to always show slotCount rows
+  const rows = Array.from({ length: slotCount }, (_, i) => entries[i] || null);
+
   return (
     <div className={`rounded-2xl border p-5 space-y-3 ${color.bg} ${color.border}`}>
       <div className="flex items-center gap-2">
@@ -32,35 +76,22 @@ function ShiftCard({ emoji, title, subtitle, entries, color, isAdmin, onDelete }
           <p className={`font-bold text-sm ${color.title}`}>{title}</p>
           <p className={`text-xs ${color.sub}`}>{subtitle}</p>
         </div>
+        <span className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-full ${color.badge}`}>
+          {entries.length}/{slotCount}
+        </span>
       </div>
-      {entries.length === 0 ? (
-        <p className="text-xs text-slate-400 italic">No staff assigned</p>
-      ) : (
-        <div className="space-y-2">
-          {entries.map((e, i) => (
-            <div key={i} className="flex items-center justify-between bg-white/70 rounded-xl px-3 py-2">
-              <span className="text-sm font-semibold text-slate-800">{e.employee_name || `Employee ${e.employee_number}`}</span>
-              <div className="flex items-center gap-2">
-                {e.daily_task && (
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${color.badge}`}>
-                    {e.daily_task}
-                  </span>
-                )}
-                {isAdmin && (
-                  <button onClick={() => onDelete(e.id)} className="text-red-400 hover:text-red-600 transition-colors">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="space-y-2">
+        {rows.map((entry, i) => (
+          <EntryRow key={entry?.id || `empty-${i}`} entry={entry} color={color} isAdmin={isAdmin} onDelete={onDelete} />
+        ))}
+      </div>
     </div>
   );
 }
 
 function OffDayCard({ entries, isAdmin, onDelete }) {
+  const rows = Array.from({ length: OFF_SLOTS }, (_, i) => entries[i] || null);
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 space-y-3">
       <div className="flex items-center gap-2">
@@ -69,23 +100,24 @@ function OffDayCard({ entries, isAdmin, onDelete }) {
           <p className="font-bold text-sm text-slate-700">Off Day</p>
           <p className="text-xs text-slate-400">Resting today</p>
         </div>
+        <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-500">
+          {entries.length}/{OFF_SLOTS}
+        </span>
       </div>
-      {entries.length === 0 ? (
-        <p className="text-xs text-slate-400 italic">No one off today</p>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          {entries.map((e, i) => (
-            <div key={i} className="flex items-center gap-1 bg-white border border-slate-200 px-3 py-1 rounded-full">
-              <span className="text-xs font-medium text-slate-600">{e.employee_name || `Employee ${e.employee_number}`}</span>
-              {isAdmin && (
-                <button onClick={() => onDelete(e.id)} className="text-red-400 hover:text-red-600 ml-1">
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="space-y-2">
+        {rows.map((entry, i) => (
+          <div key={entry?.id || `off-empty-${i}`} className="flex items-center justify-between bg-white/80 rounded-xl px-3 py-2.5">
+            <span className={`text-sm font-semibold ${!entry ? "text-slate-300 italic" : "text-slate-700"}`}>
+              {entry ? (entry.employee_name || `Employee ${entry.employee_number}`) : "Empty"}
+            </span>
+            {isAdmin && entry && (
+              <button onClick={() => onDelete(entry.id)} className="text-red-400 hover:text-red-600 transition-colors">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -105,7 +137,6 @@ export default function RosterView({ isAdmin = false }) {
   const amEntries  = entries.filter((e) => e.shift_type === "AM");
   const pmEntries  = entries.filter((e) => e.shift_type === "PM");
   const offEntries = entries.filter((e) => e.shift_type === "Off");
-  const hasData    = entries.length > 0;
 
   const handleDelete = async (id) => {
     await base44.entities.RosterDatabase.delete(id);
@@ -145,25 +176,19 @@ export default function RosterView({ isAdmin = false }) {
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 rounded-2xl bg-muted animate-pulse" />
+            <div key={i} className="h-40 rounded-2xl bg-muted animate-pulse" />
           ))}
-        </div>
-      ) : !hasData ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-          <ClipboardList className="w-10 h-10 text-muted-foreground/30" />
-          <p className="font-semibold text-slate-500">No roster uploaded for this date yet.</p>
-          <p className="text-xs text-slate-400">Ask your admin to upload the monthly CSV.</p>
         </div>
       ) : (
         <>
           <ShiftCard
             emoji="🌅" title="AM Shift" subtitle="9:00 AM – 6:00 PM"
-            entries={amEntries} isAdmin={isAdmin} onDelete={handleDelete}
+            entries={amEntries} slotCount={AM_SLOTS} isAdmin={isAdmin} onDelete={handleDelete}
             color={{ bg: "bg-amber-50", border: "border-amber-200", title: "text-amber-800", sub: "text-amber-500", badge: "bg-amber-100 text-amber-700" }}
           />
           <ShiftCard
             emoji="🌆" title="PM Shift" subtitle="1:00 PM – 9:00 PM"
-            entries={pmEntries} isAdmin={isAdmin} onDelete={handleDelete}
+            entries={pmEntries} slotCount={PM_SLOTS} isAdmin={isAdmin} onDelete={handleDelete}
             color={{ bg: "bg-violet-50", border: "border-violet-200", title: "text-violet-800", sub: "text-violet-500", badge: "bg-violet-100 text-violet-700" }}
           />
           <OffDayCard entries={offEntries} isAdmin={isAdmin} onDelete={handleDelete} />
