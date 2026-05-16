@@ -81,7 +81,7 @@ export default function AdminDashboard({ onBack }) {
     for (const d of uniqueDates) {
       const existing = await base44.entities.RosterDatabase.filter({ date: d });
       for (const e of existing) {
-        await base44.entities.RosterDatabase.delete(e.id);
+        try { await base44.entities.RosterDatabase.delete(e.id); } catch (_) {}
       }
     }
 
