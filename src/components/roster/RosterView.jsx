@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { todayInBrunei } from "@/lib/slots";
-import { Trash2, Plus, Pencil, Check, X } from "lucide-react";
+import { Trash2, Plus, Pencil, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -234,30 +234,27 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate }) {
   );
 }
 
-function getRosterDates() {
-  const today = todayInBrunei();
-  const [y, m, d] = today.split("-").map(Number);
-  return Array.from({ length: 4 }, (_, i) => {
-    const dt = new Date(y, m - 1, d + i);
-    return dt.toISOString().slice(0, 10);
-  });
+function offsetDate(dateStr, days) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + days);
+  return dt.toISOString().slice(0, 10);
 }
 
-function formatShortDate(dateStr) {
+function formatMediumDate(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
-  const dt = new Date(y, m - 1, d);
-  return {
-    day: dt.toLocaleDateString("en-US", { weekday: "short" }),
-    date: dt.getDate(),
-    isToday: dateStr === todayInBrunei(),
-  };
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    day: "numeric", month: "long", year: "numeric",
+  });
 }
 
 export default function RosterView({ isAdmin = false }) {
   const today = todayInBrunei();
-  const rosterDates = getRosterDates();
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(today);
+  const yesterday = offsetDate(today, -1);
+  const tomorrow = offsetDate(today, 1);
+  const canGoBack = selectedDate > yesterday;
+  const canGoForward = selectedDate < tomorrow;
   const [showQuickAssign, setShowQuickAssign] = useState(false);
   const [qaForm, setQaForm] = useState({ date: today, employee: "", shift: "", task: "", caption: "" });
   const [qaSaving, setQaSaving] = useState(false);
@@ -304,30 +301,28 @@ export default function RosterView({ isAdmin = false }) {
   };
 
   return (
-    <div className="space-y-2.5 pb-20">
-      {/* Date picker */}
-      <div className="grid grid-cols-4 gap-1.5">
-        {rosterDates.map((d) => {
-          const { day, date, isToday } = formatShortDate(d);
-          const isSelected = d === selectedDate;
-          return (
-            <button
-              key={d}
-              onClick={() => setSelectedDate(d)}
-              className={`flex flex-col items-center py-2 rounded-xl text-sm font-semibold transition-all border ${
-                isSelected
-                  ? "bg-blue-600 text-white border-blue-600 shadow"
-                  : "bg-white text-slate-500 border-slate-200 hover:border-blue-300"
-              }`}
-            >
-              <span className="text-[10px] font-medium uppercase tracking-wide opacity-70">{day}</span>
-              <span className="text-base font-bold leading-tight">{date}</span>
-              {isToday && <span className={`text-[9px] mt-0.5 ${isSelected ? "text-blue-200" : "text-blue-500"}`}>Today</span>}
-            </button>
-          );
-        })}
+    <div className="space-y-2 pb-20">
+      {/* Minimalist date navigator */}
+      <div className="flex items-center justify-between py-0.5">
+        <button
+          onClick={() => setSelectedDate(offsetDate(selectedDate, -1))}
+          disabled={!canGoBack}
+          className={`p-1 rounded-md transition-colors ${canGoBack ? "text-slate-600 hover:bg-slate-100" : "text-slate-200 pointer-events-none"}`}
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <div className="text-center">
+          <span className="text-sm font-bold text-slate-800">{formatMediumDate(selectedDate)}</span>
+          {selectedDate === today && <span className="ml-1.5 text-[10px] text-blue-500 font-semibold">Today</span>}
+        </div>
+        <button
+          onClick={() => setSelectedDate(offsetDate(selectedDate, 1))}
+          disabled={!canGoForward}
+          className={`p-1 rounded-md transition-colors ${canGoForward ? "text-slate-600 hover:bg-slate-100" : "text-slate-200 pointer-events-none"}`}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
-      <p className="text-[10px] text-slate-400 -mt-1">{formatFullDate(selectedDate)}</p>
 
       {isLoading ? (
         <div className="space-y-2">
