@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { todayInBrunei } from "@/lib/slots";
-import { ClipboardList, Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -16,7 +16,6 @@ const EMPLOYEES = [
   { value: 13, label: "Halimatul" }, { value: 14, label: "Afiqah" },
 ];
 
-// Fixed slot counts per section
 const AM_SLOTS = 5;
 const PM_SLOTS = 5;
 const OFF_SLOTS = 4;
@@ -28,44 +27,101 @@ function formatFullDate(dateStr) {
   });
 }
 
-function EntryRow({ entry, color, isAdmin, onDelete }) {
-  const name = entry ? (entry.employee_name || `Employee ${entry.employee_number}`) : null;
-  const task = entry ? (entry.daily_task || "") : null;
+function EntryRow({ entry, shiftColor, isAdmin, onDelete, onUpdate }) {
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editTask, setEditTask] = useState("");
+  const [saving, setSaving] = useState(false);
+
   const isEmpty = !entry;
+  const name = entry?.employee_name || `Employee ${entry?.employee_number}`;
+  const task = entry?.daily_task || "";
+
+  const startEdit = () => {
+    setEditName(name);
+    setEditTask(task);
+    setEditing(true);
+  };
+
+  const cancelEdit = () => setEditing(false);
+
+  const saveEdit = async () => {
+    setSaving(true);
+    await base44.entities.RosterDatabase.update(entry.id, {
+      employee_name: editName,
+      daily_task: editTask,
+    });
+    onUpdate();
+    setSaving(false);
+    setEditing(false);
+    toast.success("Entry updated.");
+  };
+
+  if (isEmpty) {
+    return (
+      <div className="flex items-center px-3 py-2.5 rounded-xl bg-white/50 border border-dashed border-slate-200">
+        <span className="text-sm italic text-slate-300">Empty</span>
+      </div>
+    );
+  }
+
+  if (editing) {
+    return (
+      <div className="flex flex-col gap-2 px-3 py-2.5 rounded-xl bg-white border border-blue-200 shadow-sm">
+        <input
+          value={editName}
+          onChange={e => setEditName(e.target.value)}
+          placeholder="Employee name"
+          className="w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        />
+        <input
+          value={editTask}
+          onChange={e => setEditTask(e.target.value)}
+          placeholder="Task (optional)"
+          className="w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        />
+        <div className="flex gap-2 justify-end">
+          <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-600 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+          <button onClick={saveEdit} disabled={saving} className="text-blue-500 hover:text-blue-700 transition-colors">
+            <Check className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-[1fr_auto] gap-2 items-center bg-white/70 rounded-xl px-3 py-2.5">
-      {/* Left: name */}
-      <span className={`text-sm font-semibold truncate ${isEmpty ? "text-slate-300 italic" : "text-slate-800"}`}>
-        {isEmpty ? "Empty" : name}
-      </span>
+    <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/80 border border-white shadow-sm gap-3">
+      {/* Name */}
+      <span className="text-sm font-bold text-slate-800 flex-shrink-0">{name}</span>
 
-      {/* Right: task badge + delete */}
+      {/* Task + actions */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        <div className="flex flex-col items-end min-w-0">
-          <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wide leading-none mb-0.5">Task</span>
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full max-w-[140px] text-right leading-snug ${
-            isEmpty || !task
-              ? "bg-slate-100 text-slate-300 italic"
-              : color.badge
-          }`}
-            style={{ wordBreak: "break-word", whiteSpace: "normal" }}
-          >
-            {isEmpty || !task ? "Empty" : task}
+        {task ? (
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${shiftColor.taskBg} ${shiftColor.taskText}`}>
+            {task}
           </span>
-        </div>
-        {isAdmin && entry && (
-          <button onClick={() => onDelete(entry.id)} className="text-red-400 hover:text-red-600 transition-colors flex-shrink-0">
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+        ) : (
+          <span className="text-xs italic text-slate-300">No task</span>
+        )}
+        {isAdmin && (
+          <>
+            <button onClick={startEdit} className="text-slate-300 hover:text-blue-500 transition-colors">
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => onDelete(entry.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </>
         )}
       </div>
     </div>
   );
 }
 
-function ShiftCard({ emoji, title, subtitle, entries, slotCount, color, isAdmin, onDelete }) {
-  // Pad entries with nulls to always show slotCount rows
+function ShiftCard({ emoji, title, subtitle, entries, slotCount, color, isAdmin, onDelete, onUpdate }) {
   const rows = Array.from({ length: slotCount }, (_, i) => entries[i] || null);
 
   return (
@@ -76,20 +132,24 @@ function ShiftCard({ emoji, title, subtitle, entries, slotCount, color, isAdmin,
           <p className={`font-bold text-sm ${color.title}`}>{title}</p>
           <p className={`text-xs ${color.sub}`}>{subtitle}</p>
         </div>
-        <span className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-full ${color.badge}`}>
-          {entries.length}/{slotCount}
-        </span>
       </div>
       <div className="space-y-2">
         {rows.map((entry, i) => (
-          <EntryRow key={entry?.id || `empty-${i}`} entry={entry} color={color} isAdmin={isAdmin} onDelete={onDelete} />
+          <EntryRow
+            key={entry?.id || `empty-${i}`}
+            entry={entry}
+            shiftColor={color}
+            isAdmin={isAdmin}
+            onDelete={onDelete}
+            onUpdate={onUpdate}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function OffDayCard({ entries, isAdmin, onDelete }) {
+function OffDayCard({ entries, isAdmin, onDelete, onUpdate }) {
   const rows = Array.from({ length: OFF_SLOTS }, (_, i) => entries[i] || null);
 
   return (
@@ -100,22 +160,17 @@ function OffDayCard({ entries, isAdmin, onDelete }) {
           <p className="font-bold text-sm text-slate-700">Off Day</p>
           <p className="text-xs text-slate-400">Resting today</p>
         </div>
-        <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-500">
-          {entries.length}/{OFF_SLOTS}
-        </span>
       </div>
       <div className="space-y-2">
         {rows.map((entry, i) => (
-          <div key={entry?.id || `off-empty-${i}`} className="flex items-center justify-between bg-white/80 rounded-xl px-3 py-2.5">
-            <span className={`text-sm font-semibold ${!entry ? "text-slate-300 italic" : "text-slate-700"}`}>
-              {entry ? (entry.employee_name || `Employee ${entry.employee_number}`) : "Empty"}
-            </span>
-            {isAdmin && entry && (
-              <button onClick={() => onDelete(entry.id)} className="text-red-400 hover:text-red-600 transition-colors">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          <EntryRow
+            key={entry?.id || `off-empty-${i}`}
+            entry={entry}
+            shiftColor={{ taskBg: "bg-slate-100", taskText: "text-slate-600" }}
+            isAdmin={isAdmin}
+            onDelete={onDelete}
+            onUpdate={onUpdate}
+          />
         ))}
       </div>
     </div>
@@ -144,6 +199,10 @@ export default function RosterView({ isAdmin = false }) {
     toast.success("Entry removed.");
   };
 
+  const handleUpdate = () => {
+    queryClient.invalidateQueries({ queryKey: ["roster"] });
+  };
+
   const handleQuickAssign = async () => {
     if (!qaForm.date || !qaForm.employee || !qaForm.shift) {
       toast.error("Please fill in date, employee and shift.");
@@ -167,7 +226,6 @@ export default function RosterView({ isAdmin = false }) {
 
   return (
     <div className="space-y-5 pb-20">
-      {/* Date header */}
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">Today's Roster</p>
         <h2 className="text-base font-bold text-foreground">{formatFullDate(today)}</h2>
@@ -183,19 +241,18 @@ export default function RosterView({ isAdmin = false }) {
         <>
           <ShiftCard
             emoji="🌅" title="AM Shift" subtitle="9:00 AM – 6:00 PM"
-            entries={amEntries} slotCount={AM_SLOTS} isAdmin={isAdmin} onDelete={handleDelete}
-            color={{ bg: "bg-amber-50", border: "border-amber-200", title: "text-amber-800", sub: "text-amber-500", badge: "bg-amber-100 text-amber-700" }}
+            entries={amEntries} slotCount={AM_SLOTS} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate}
+            color={{ bg: "bg-amber-50", border: "border-amber-200", title: "text-amber-800", sub: "text-amber-500", taskBg: "bg-amber-100", taskText: "text-amber-800" }}
           />
           <ShiftCard
             emoji="🌆" title="PM Shift" subtitle="1:00 PM – 9:00 PM"
-            entries={pmEntries} slotCount={PM_SLOTS} isAdmin={isAdmin} onDelete={handleDelete}
-            color={{ bg: "bg-violet-50", border: "border-violet-200", title: "text-violet-800", sub: "text-violet-500", badge: "bg-violet-100 text-violet-700" }}
+            entries={pmEntries} slotCount={PM_SLOTS} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate}
+            color={{ bg: "bg-violet-50", border: "border-violet-200", title: "text-violet-800", sub: "text-violet-500", taskBg: "bg-violet-100", taskText: "text-violet-800" }}
           />
-          <OffDayCard entries={offEntries} isAdmin={isAdmin} onDelete={handleDelete} />
+          <OffDayCard entries={offEntries} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} />
         </>
       )}
 
-      {/* Quick Assign floating button + form (admin only) */}
       {isAdmin && (
         <div className="fixed bottom-20 right-4 z-30">
           {showQuickAssign ? (
