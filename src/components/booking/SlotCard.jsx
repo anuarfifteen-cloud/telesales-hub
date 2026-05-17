@@ -8,9 +8,7 @@ function formatCountdown(ms) {
   const d = Math.floor(totalMins / 1440);
   const h = Math.floor((totalMins % 1440) / 60);
   const m = totalMins % 60;
-  if (d >= 1) {
-    return `${d}D ${h}h ${String(m).padStart(2, "0")}m`;
-  }
+  if (d >= 1) return `${d}D ${h}h ${String(m).padStart(2, "0")}m`;
   return `${h}h ${String(m).padStart(2, "0")}m`;
 }
 

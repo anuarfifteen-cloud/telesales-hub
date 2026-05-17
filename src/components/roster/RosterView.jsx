@@ -36,14 +36,19 @@ function Avatar({ name }) {
   );
 }
 
+// Default template slots
+const AM_DEFAULTS  = ["SIMPACK", "ONLINE ORDER", "INBOUND (MB)", "OUTBOUND", "INBOUND (MB)"];
+const PM_DEFAULTS  = ["INBOUND (MB)", "UPSELLING", "OUTBOUND", "SIMPACK", "OUTBOUND"];
+const OFF_DEFAULTS = ["EMPTY", "EMPTY", "EMPTY", "EMPTY"];
+
 // Map task keywords to badge color classes
 const TASK_COLORS = [
+  { match: /simpack/i,       bg: "bg-red-600",     text: "text-white"       },
   { match: /inbound/i,       bg: "bg-green-100",   text: "text-green-800"   },
   { match: /outbound/i,      bg: "bg-blue-100",    text: "text-blue-800"    },
   { match: /chat/i,          bg: "bg-cyan-100",    text: "text-cyan-800"    },
   { match: /upsell/i,        bg: "bg-purple-100",  text: "text-purple-800"  },
   { match: /yayasan/i,       bg: "bg-orange-100",  text: "text-orange-800"  },
-  { match: /simpack/i,       bg: "bg-violet-100",  text: "text-violet-800"  },
   { match: /online.order/i,  bg: "bg-amber-100",   text: "text-amber-900"   },
   { match: /mb\b|mobile.bundle/i, bg: "bg-teal-100", text: "text-teal-800"  },
   { match: /bundle/i,        bg: "bg-indigo-100",  text: "text-indigo-800"  },
@@ -69,76 +74,128 @@ function formatFullDate(dateStr) {
   });
 }
 
-function EntryRow({ entry, shiftColor, isAdmin, onDelete, onUpdate }) {
+// Template row: shown when no DB entry exists for this slot
+function TemplateRow({ defaultTask, isAdmin, slotIndex, shiftType, selectedDate, onUpdate }) {
+  const [assigning, setAssigning] = useState(false);
+  const [selectedEmp, setSelectedEmp] = useState("");
+  const [editingTask, setEditingTask] = useState(false);
+  const [taskVal, setTaskVal] = useState(defaultTask);
+  const [saving, setSaving] = useState(false);
+
+  const badge = taskBadgeColor(taskVal);
+
+  const saveAssign = async () => {
+    if (!selectedEmp) return;
+    setSaving(true);
+    const emp = EMPLOYEES.find(e => String(e.value) === selectedEmp);
+    await base44.entities.RosterDatabase.create({
+      date: selectedDate,
+      shift_type: shiftType,
+      employee_number: emp.value,
+      employee_name: emp.label,
+      daily_task: taskVal,
+    });
+    onUpdate();
+    setSaving(false);
+    setAssigning(false);
+    setSelectedEmp("");
+    toast.success("Assigned!");
+  };
+
+  return (
+    <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/40 border border-dashed border-slate-200 gap-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
+          <span className="text-[9px] text-slate-400 font-bold">?</span>
+        </div>
+        <span className="text-[11px] italic text-slate-400">Empty</span>
+      </div>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {editingTask ? (
+          <>
+            <input
+              value={taskVal}
+              onChange={e => setTaskVal(e.target.value)}
+              className="text-[10px] border border-slate-300 rounded px-1 py-0.5 w-24 focus:outline-none focus:ring-1 focus:ring-blue-300"
+            />
+            <button onClick={() => setEditingTask(false)} className="text-blue-500">
+              <Check className="w-3 h-3" />
+            </button>
+          </>
+        ) : (
+          <span
+            onClick={() => isAdmin && setEditingTask(true)}
+            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badge.bg} ${badge.text} ${isAdmin ? "cursor-pointer hover:opacity-80" : ""}`}
+          >
+            {taskVal}
+          </span>
+        )}
+        {isAdmin && !assigning && (
+          <button
+            onClick={() => setAssigning(true)}
+            className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded hover:bg-blue-100 transition-colors"
+          >
+            Assign
+          </button>
+        )}
+        {isAdmin && assigning && (
+          <div className="flex items-center gap-1">
+            <select
+              value={selectedEmp}
+              onChange={e => setSelectedEmp(e.target.value)}
+              className="text-[10px] border border-slate-200 rounded px-1 py-0.5 bg-white focus:outline-none"
+            >
+              <option value="">Pick…</option>
+              {EMPLOYEES.map(emp => <option key={emp.value} value={String(emp.value)}>{emp.label}</option>)}
+            </select>
+            <button onClick={saveAssign} disabled={saving} className="text-blue-500 hover:text-blue-700">
+              <Check className="w-3 h-3" />
+            </button>
+            <button onClick={() => setAssigning(false)} className="text-slate-400 hover:text-slate-600">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EntryRow({ entry, isAdmin, onDelete, onUpdate }) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editTask, setEditTask] = useState("");
   const [editCaption, setEditCaption] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const isEmpty = !entry;
   const name = entry?.employee_name || `Employee ${entry?.employee_number}`;
   const task = entry?.daily_task || "";
   const caption = entry?.caption || "";
 
-  const startEdit = () => {
-    setEditName(name);
-    setEditTask(task);
-    setEditCaption(caption);
-    setEditing(true);
-  };
-
+  const startEdit = () => { setEditName(name); setEditTask(task); setEditCaption(caption); setEditing(true); };
   const cancelEdit = () => setEditing(false);
 
   const saveEdit = async () => {
     setSaving(true);
     await base44.entities.RosterDatabase.update(entry.id, {
-      employee_name: editName,
-      daily_task: editTask,
-      caption: editCaption,
+      employee_name: editName, daily_task: editTask, caption: editCaption,
     });
-    onUpdate();
-    setSaving(false);
-    setEditing(false);
+    onUpdate(); setSaving(false); setEditing(false);
     toast.success("Entry updated.");
   };
-
-  if (isEmpty) {
-    return (
-      <div className="flex items-center px-2 py-1 rounded-lg bg-white/40 border border-dashed border-slate-200">
-        <span className="text-[11px] italic text-slate-300">Empty</span>
-      </div>
-    );
-  }
 
   if (editing) {
     return (
       <div className="flex flex-col gap-2 px-3 py-2.5 rounded-xl bg-white border border-blue-200 shadow-sm">
-        <input
-          value={editName}
-          onChange={e => setEditName(e.target.value)}
-          placeholder="Employee name"
-          className="w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
-        />
-        <input
-          value={editTask}
-          onChange={e => setEditTask(e.target.value)}
-          placeholder="Task (optional)"
-          className="w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
-        />
-        <input
-          value={editCaption}
-          onChange={e => setEditCaption(e.target.value)}
-          placeholder="Caption (optional, e.g. Seat 3, Ext. 101)"
-          className="w-full text-[11px] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300 text-slate-500"
-        />
+        <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Employee name"
+          className="w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+        <input value={editTask} onChange={e => setEditTask(e.target.value)} placeholder="Task (optional)"
+          className="w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+        <input value={editCaption} onChange={e => setEditCaption(e.target.value)} placeholder="Caption (optional)"
+          className="w-full text-[11px] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300 text-slate-500" />
         <div className="flex gap-2 justify-end">
-          <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-600 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-          <button onClick={saveEdit} disabled={saving} className="text-blue-500 hover:text-blue-700 transition-colors">
-            <Check className="w-4 h-4" />
-          </button>
+          <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+          <button onClick={saveEdit} disabled={saving} className="text-blue-500 hover:text-blue-700"><Check className="w-4 h-4" /></button>
         </div>
       </div>
     );
@@ -148,7 +205,6 @@ function EntryRow({ entry, shiftColor, isAdmin, onDelete, onUpdate }) {
 
   return (
     <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/80 border border-white shadow-sm gap-2">
-      {/* Avatar + Name + caption */}
       <div className="flex items-center gap-2 min-w-0">
         <Avatar name={name} />
         <div className="min-w-0">
@@ -156,24 +212,16 @@ function EntryRow({ entry, shiftColor, isAdmin, onDelete, onUpdate }) {
           {caption && <p className="text-[9px] text-slate-400 leading-none truncate mt-0.5">{caption}</p>}
         </div>
       </div>
-
-      {/* Task badge + admin actions */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {task ? (
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badge.bg} ${badge.text}`}>
-            {task}
-          </span>
+          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badge.bg} ${badge.text}`}>{task}</span>
         ) : (
           <span className="text-[10px] italic text-slate-300">—</span>
         )}
         {isAdmin && (
           <>
-            <button onClick={startEdit} className="text-slate-300 hover:text-blue-500 transition-colors">
-              <Pencil className="w-3 h-3" />
-            </button>
-            <button onClick={() => onDelete(entry.id)} className="text-slate-300 hover:text-red-500 transition-colors">
-              <Trash2 className="w-3 h-3" />
-            </button>
+            <button onClick={startEdit} className="text-slate-300 hover:text-blue-500 transition-colors"><Pencil className="w-3 h-3" /></button>
+            <button onClick={() => onDelete(entry.id)} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 className="w-3 h-3" /></button>
           </>
         )}
       </div>
@@ -181,36 +229,37 @@ function EntryRow({ entry, shiftColor, isAdmin, onDelete, onUpdate }) {
   );
 }
 
-function ShiftCard({ emoji, title, subtitle, entries, slotCount, color, isAdmin, onDelete, onUpdate }) {
-  const rows = Array.from({ length: slotCount }, (_, i) => entries[i] || null);
-
+function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, shiftType, color, isAdmin, onDelete, onUpdate, selectedDate }) {
   return (
     <div className={`rounded-xl border px-3 pt-2 pb-2.5 ${color.bg} ${color.border}`}>
-      {/* Compact inline header */}
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className="text-sm">{emoji}</span>
         <span className={`text-xs font-bold ${color.title}`}>{title}</span>
         <span className={`text-[10px] ${color.sub}`}>· {subtitle}</span>
       </div>
       <div className="space-y-1">
-        {rows.map((entry, i) => (
-          <EntryRow
-            key={entry?.id || `empty-${i}`}
-            entry={entry}
-            shiftColor={color}
-            isAdmin={isAdmin}
-            onDelete={onDelete}
-            onUpdate={onUpdate}
-          />
-        ))}
+        {Array.from({ length: slotCount }, (_, i) => {
+          const entry = entries[i];
+          return entry ? (
+            <EntryRow key={entry.id} entry={entry} isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} />
+          ) : (
+            <TemplateRow
+              key={`tmpl-${i}`}
+              defaultTask={defaultTasks[i] || ""}
+              isAdmin={isAdmin}
+              slotIndex={i}
+              shiftType={shiftType}
+              selectedDate={selectedDate}
+              onUpdate={onUpdate}
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function OffDayCard({ entries, isAdmin, onDelete, onUpdate }) {
-  const rows = Array.from({ length: OFF_SLOTS }, (_, i) => entries[i] || null);
-
+function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 pt-2 pb-2.5">
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -219,16 +268,22 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate }) {
         <span className="text-[10px] text-slate-400">· Resting today</span>
       </div>
       <div className="space-y-1">
-        {rows.map((entry, i) => (
-          <EntryRow
-            key={entry?.id || `off-empty-${i}`}
-            entry={entry}
-            shiftColor={{ taskBg: "bg-slate-100", taskText: "text-slate-600" }}
-            isAdmin={isAdmin}
-            onDelete={onDelete}
-            onUpdate={onUpdate}
-          />
-        ))}
+        {Array.from({ length: OFF_SLOTS }, (_, i) => {
+          const entry = entries[i];
+          return entry ? (
+            <EntryRow key={entry.id} entry={entry} isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} />
+          ) : (
+            <TemplateRow
+              key={`off-tmpl-${i}`}
+              defaultTask={OFF_DEFAULTS[i]}
+              isAdmin={isAdmin}
+              slotIndex={i}
+              shiftType="Off"
+              selectedDate={selectedDate}
+              onUpdate={onUpdate}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -253,8 +308,8 @@ export default function RosterView({ isAdmin = false }) {
   const [selectedDate, setSelectedDate] = useState(today);
   const yesterday = offsetDate(today, -1);
   const tomorrow = offsetDate(today, 1);
-  const canGoBack = selectedDate > yesterday;
-  const canGoForward = selectedDate < tomorrow;
+  const canGoBack = selectedDate > yesterday;   // can go back if not already on yesterday
+  const canGoForward = selectedDate < tomorrow; // can go forward if not already on tomorrow
   const [showQuickAssign, setShowQuickAssign] = useState(false);
   const [qaForm, setQaForm] = useState({ date: today, employee: "", shift: "", task: "", caption: "" });
   const [qaSaving, setQaSaving] = useState(false);
@@ -334,15 +389,17 @@ export default function RosterView({ isAdmin = false }) {
         <>
           <ShiftCard
             emoji="🌅" title="AM Shift" subtitle="9:00 AM – 6:00 PM"
-            entries={amEntries} slotCount={AM_SLOTS} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate}
-            color={{ bg: "bg-amber-50", border: "border-amber-200", title: "text-amber-800", sub: "text-amber-500", taskBg: "bg-amber-100", taskText: "text-amber-800" }}
+            entries={amEntries} slotCount={AM_SLOTS} defaultTasks={AM_DEFAULTS} shiftType="AM"
+            isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate}
+            color={{ bg: "bg-amber-50", border: "border-amber-200", title: "text-amber-800", sub: "text-amber-500" }}
           />
           <ShiftCard
             emoji="🌆" title="PM Shift" subtitle="1:00 PM – 9:00 PM"
-            entries={pmEntries} slotCount={PM_SLOTS} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate}
-            color={{ bg: "bg-violet-50", border: "border-violet-200", title: "text-violet-800", sub: "text-violet-500", taskBg: "bg-violet-100", taskText: "text-violet-800" }}
+            entries={pmEntries} slotCount={PM_SLOTS} defaultTasks={PM_DEFAULTS} shiftType="PM"
+            isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate}
+            color={{ bg: "bg-violet-50", border: "border-violet-200", title: "text-violet-800", sub: "text-violet-500" }}
           />
-          <OffDayCard entries={offEntries} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} />
+          <OffDayCard entries={offEntries} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate} />
         </>
       )}
 
