@@ -25,8 +25,12 @@ export default function SlotCard({
   const isFull = bookedCount >= slot.maxBookings;
   const isAM = slot.shift === "AM";
 
-  const shiftBg = isAM ? "bg-amber-50 border-amber-200" : "bg-violet-50 border-violet-200";
-  const shiftBadge = isAM ? "bg-amber-100 text-amber-700" : "bg-violet-100 text-violet-700";
+  const shiftBg = isAM
+    ? "bg-amber-50 dark:bg-slate-800 border-amber-200 dark:border-slate-700 shadow-sm"
+    : "bg-violet-50 dark:bg-slate-800 border-violet-200 dark:border-slate-700 shadow-sm";
+  const shiftBadge = isAM
+    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
+    : "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300";
   const shiftDot = isAM ? "bg-amber-400" : "bg-violet-400";
 
   const msUntilOpen = unlockTime - now;
@@ -120,16 +124,15 @@ export default function SlotCard({
       <div className="flex items-center gap-3 min-w-0">
         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${shiftDot}`} />
         <div className="min-w-0">
-          <p className="font-semibold text-sm text-foreground truncate">{slot.label}</p>
+          <p className="font-semibold text-sm text-foreground dark:text-gray-200 truncate">{slot.label}</p>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className={`text-xs font-medium px-1.5 py-0.5 rounded-md ${shiftBadge}`}>
               {slot.shift} Shift
             </span>
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1 text-xs text-muted-foreground dark:text-gray-400">
               <Users className="w-3 h-3" />
               {bookedCount}/{slot.maxBookings}
             </span>
-
           </div>
         </div>
       </div>

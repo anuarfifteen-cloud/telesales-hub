@@ -258,7 +258,7 @@ export default function Home() {
         {activeTab === "booking" && (
           <>
             {/* Inner segmented control */}
-            <div className="flex gap-1 bg-slate-100 rounded-xl p-1.5">
+            <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1.5">
               <button
                 onClick={() => setInnerTab("book")}
                 className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
@@ -327,9 +327,9 @@ export default function Home() {
                       const dayNum = prevDay.getDate();
                       const monthName = prevDay.toLocaleDateString("en-US", { month: "long" });
                       return (
-                        <div className="mt-2 bg-amber-50 border border-orange-200 rounded-lg p-3">
-                          <p className="font-bold text-orange-800 text-sm">🔒 Booking not open yet.</p>
-                          <p className="text-orange-700 text-sm mt-0.5">
+                        <div className="mt-2 bg-amber-50 dark:bg-amber-950/40 border border-orange-200 dark:border-orange-800 rounded-lg p-3">
+                          <p className="font-bold text-orange-800 dark:text-orange-300 text-sm">🔒 Booking not open yet.</p>
+                          <p className="text-orange-700 dark:text-orange-400 text-sm mt-0.5">
                             Bookings open on {dayNum} {monthName} 7:30 PM.
                           </p>
                         </div>
@@ -431,111 +431,125 @@ export default function Home() {
         {activeTab === "roster" && <RosterView isAdmin={isAdmin} />}
 
         {/* ── PROFILE TAB ── */}
-        {activeTab === "profile" && (
-          <div className="relative min-h-[70vh] flex flex-col">
-            {isAdminLoggedIn && (
-              <div className="flex items-center justify-between bg-red-600 text-white rounded-xl px-4 py-2 mb-3">
-                <div className="flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  <span className="text-sm font-bold">Admin Mode: ACTIVE</span>
-                </div>
-                <button
-                  onClick={() => { setIsAdminLoggedIn(false); setIsAdmin(false); }}
-                  className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors flex items-center gap-1"
-                >
-                  <ArrowLeft className="w-3 h-3" /> Exit
-                </button>
-              </div>
-            )}
+        {activeTab === "profile" && (() => {
+          const thisMonth = new Date().toISOString().slice(0, 7);
+          const myBookings = weekBookings.filter(b => b.user_email === user?.email);
+          const myMonthBookings = myBookings.filter(b => b.date?.startsWith(thisMonth));
+          const amCount = myMonthBookings.filter(b => b.shift === "AM").length;
+          const pmCount = myMonthBookings.filter(b => b.shift === "PM").length;
+          const totalCount = myMonthBookings.length;
+          const initials = user?.full_name
+            ? user.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+            : (user?.email?.[0] || "?").toUpperCase();
 
-            {/* User Header */}
-            <div className="flex flex-col items-center pt-6 pb-4 gap-2">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg">
-                <UserCircle className="w-12 h-12 text-white" />
-              </div>
-              <h2 className="text-lg font-bold text-slate-800 mt-1">
-                {user?.full_name || user?.email || "My Telesales Profile"}
-              </h2>
-              {user?.email && user?.full_name && (
-                <p className="text-xs text-muted-foreground">{user.email}</p>
+          return (
+            <div className="relative flex flex-col gap-4 pb-4">
+              {/* Admin Banner */}
+              {isAdminLoggedIn && (
+                <div className="flex items-center justify-between bg-red-600 text-white rounded-xl px-4 py-2">
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    <span className="text-sm font-bold">Admin Mode: ACTIVE</span>
+                  </div>
+                  <button
+                    onClick={() => { setIsAdminLoggedIn(false); setIsAdmin(false); }}
+                    className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    <ArrowLeft className="w-3 h-3" /> Exit
+                  </button>
+                </div>
               )}
-            </div>
 
-            {/* Stats Row */}
-            <div className="flex justify-center mb-4">
-              <div className="bg-white rounded-2xl border border-border px-6 py-3 flex flex-col items-center shadow-sm">
-                <span className="text-2xl font-bold text-slate-800">
-                  {weekBookings.filter(b => b.user_email === user?.email && b.date?.startsWith(new Date().toISOString().slice(0,7))).length}
-                </span>
-                <span className="text-[11px] text-muted-foreground mt-0.5 text-center">Breaks Booked<br/>This Month</span>
-              </div>
-            </div>
-
-            {/* Shift Reminders Card */}
-            <div className="bg-white rounded-2xl border border-border p-4 shadow-sm mb-4 mx-0">
-              <p className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wide">⏰ Shift Reminders</p>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between bg-amber-50 rounded-xl px-3 py-2.5 border border-amber-100">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">🌅</span>
-                    <span className="text-sm font-semibold text-amber-800">AM Shift</span>
-                  </div>
-                  <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">09:00 – 18:00</span>
+              {/* Avatar + Name */}
+              <div className="flex flex-col items-center pt-4 gap-2">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg ring-4 ring-blue-100 dark:ring-blue-900">
+                  <span className="text-2xl font-bold text-white">{initials}</span>
                 </div>
-                <div className="flex items-center justify-between bg-violet-50 rounded-xl px-3 py-2.5 border border-violet-100">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">🌆</span>
-                    <span className="text-sm font-semibold text-violet-800">PM Shift</span>
-                  </div>
-                  <span className="text-xs font-medium text-violet-700 bg-violet-100 px-2 py-0.5 rounded-full">13:00 – 21:00</span>
+                <div className="text-center">
+                  <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100 leading-tight">
+                    {user?.full_name || "My Profile"}
+                  </h2>
+                  <p className="text-xs text-muted-foreground dark:text-gray-400 mt-0.5">{user?.email}</p>
                 </div>
               </div>
-            </div>
 
-            {/* App Settings Card */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-border p-4 shadow-sm mb-4">
-              <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wide">⚙️ App Settings</p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Moon className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Dark Mode</span>
+              {/* Stats Bar */}
+              <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 text-center">This Month</p>
+                <div className="grid grid-cols-3 divide-x divide-border">
+                  {[
+                    { label: "Breaks", value: totalCount },
+                    { label: "AM", value: amCount },
+                    { label: "PM", value: pmCount },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex flex-col items-center gap-0.5 px-2">
+                      <span className="text-2xl font-bold text-slate-800 dark:text-gray-100">{value}</span>
+                      <span className="text-[11px] text-muted-foreground dark:text-gray-400">{label}</span>
+                    </div>
+                  ))}
                 </div>
-                <button
-                  onClick={() => handleToggleDarkMode(!isDarkMode)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                    isDarkMode ? "bg-blue-600" : "bg-slate-200"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                      isDarkMode ? "translate-x-6" : "translate-x-1"
+              </div>
+
+              {/* Official Work Hours */}
+              <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+                <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">⏰ Official Work Hours</p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 rounded-xl px-3 py-2.5 border border-amber-100 dark:border-amber-800">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🌅</span>
+                      <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">AM Shift</span>
+                    </div>
+                    <span className="text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-full">09:00 – 18:00</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-violet-50 dark:bg-violet-950/40 rounded-xl px-3 py-2.5 border border-violet-100 dark:border-violet-800">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🌆</span>
+                      <span className="text-sm font-semibold text-violet-800 dark:text-violet-300">PM Shift</span>
+                    </div>
+                    <span className="text-xs font-medium text-violet-700 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/50 px-2 py-0.5 rounded-full">13:00 – 21:00</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* App Settings */}
+              <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+                <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">⚙️ App Settings</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Moon className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Dark Mode</span>
+                  </div>
+                  <button
+                    onClick={() => handleToggleDarkMode(!isDarkMode)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                      isDarkMode ? "bg-blue-600" : "bg-slate-200"
                     }`}
-                  />
-                </button>
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isDarkMode ? "translate-x-6" : "translate-x-1"}`} />
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Log Out */}
-            <div className="flex justify-center mt-2">
+              {/* Log Out */}
               <Button
                 variant="outline"
                 onClick={() => base44.auth.logout()}
-                className="gap-2 text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400 px-8"
+                className="gap-2 text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:border-red-400 w-full"
               >
                 <LogOut className="w-4 h-4" /> Log Out
               </Button>
-            </div>
 
-            {/* Stealth Admin Gear — bottom right, low opacity, no text */}
-            <button
-              onClick={() => setShowPinModal(true)}
-              className="absolute bottom-0 right-0 p-2 opacity-20 hover:opacity-40 transition-opacity"
-              aria-label=""
-            >
-              <Settings className="w-4 h-4 text-slate-500" />
-            </button>
-          </div>
-        )}
+              {/* Stealth Admin Gear */}
+              <button
+                onClick={() => setShowPinModal(true)}
+                className="absolute bottom-0 right-0 p-2 opacity-20 hover:opacity-40 transition-opacity"
+                aria-label=""
+              >
+                <Settings className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+          );
+        })()}
       </main>
 
       {/* PIN Modal */}
