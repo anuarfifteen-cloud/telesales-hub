@@ -103,12 +103,12 @@ function TemplateRow({ defaultTask, isAdmin, slotIndex, shiftType, selectedDate,
   };
 
   return (
-    <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/40 border border-dashed border-slate-200 gap-2">
+    <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/40 dark:bg-slate-700/30 border border-dashed border-slate-200 dark:border-slate-600 gap-2">
       <div className="flex items-center gap-2 min-w-0">
         <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
           <span className="text-[9px] text-slate-400 font-bold">?</span>
         </div>
-        <span className="text-[11px] italic text-slate-400">Empty</span>
+        <span className="text-[11px] italic text-slate-400 dark:text-slate-500">Empty</span>
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {editingTask ? (
@@ -204,12 +204,12 @@ function EntryRow({ entry, isAdmin, onDelete, onUpdate }) {
   const badge = taskBadgeColor(task);
 
   return (
-    <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/80 border border-white shadow-sm gap-2">
+    <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/80 dark:bg-slate-700/60 border border-white dark:border-slate-600 shadow-sm gap-2">
       <div className="flex items-center gap-2 min-w-0">
         <Avatar name={name} />
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-slate-800 leading-tight truncate">{name}</p>
-          {caption && <p className="text-[9px] text-slate-400 leading-none truncate mt-0.5">{caption}</p>}
+          <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-tight truncate">{name}</p>
+          {caption && <p className="text-[9px] text-slate-400 dark:text-slate-500 leading-none truncate mt-0.5">{caption}</p>}
         </div>
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -230,6 +230,10 @@ function EntryRow({ entry, isAdmin, onDelete, onUpdate }) {
 }
 
 function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, shiftType, color, isAdmin, onDelete, onUpdate, selectedDate }) {
+  // Build a strict fixed-index array: entries are matched by their order in DB
+  // (sorted by created_date so slot index = insertion order). Never reorder.
+  const slots = Array.from({ length: slotCount }, (_, i) => entries[i] || null);
+
   return (
     <div className={`rounded-xl border px-3 pt-2 pb-2.5 ${color.bg} ${color.border}`}>
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -238,13 +242,12 @@ function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, s
         <span className={`text-[10px] ${color.sub}`}>· {subtitle}</span>
       </div>
       <div className="space-y-1">
-        {Array.from({ length: slotCount }, (_, i) => {
-          const entry = entries[i];
-          return entry ? (
+        {slots.map((entry, i) =>
+          entry ? (
             <EntryRow key={entry.id} entry={entry} isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} />
           ) : (
             <TemplateRow
-              key={`tmpl-${i}`}
+              key={`tmpl-${shiftType}-${i}`}
               defaultTask={defaultTasks[i] || ""}
               isAdmin={isAdmin}
               slotIndex={i}
@@ -252,25 +255,25 @@ function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, s
               selectedDate={selectedDate}
               onUpdate={onUpdate}
             />
-          );
-        })}
+          )
+        )}
       </div>
     </div>
   );
 }
 
 function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate }) {
+  const slots = Array.from({ length: OFF_SLOTS }, (_, i) => entries[i] || null);
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 pt-2 pb-2.5">
+    <div className="rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 px-3 pt-2 pb-2.5">
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className="text-sm">🌴</span>
-        <span className="text-xs font-bold text-slate-600">Off Day</span>
-        <span className="text-[10px] text-slate-400">· Resting today</span>
+        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Off Day</span>
+        <span className="text-[10px] text-slate-400 dark:text-slate-500">· Resting today</span>
       </div>
       <div className="space-y-1">
-        {Array.from({ length: OFF_SLOTS }, (_, i) => {
-          const entry = entries[i];
-          return entry ? (
+        {slots.map((entry, i) =>
+          entry ? (
             <EntryRow key={entry.id} entry={entry} isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} />
           ) : (
             <TemplateRow
@@ -282,8 +285,8 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate }) {
               selectedDate={selectedDate}
               onUpdate={onUpdate}
             />
-          );
-        })}
+          )
+        )}
       </div>
     </div>
   );
@@ -319,9 +322,11 @@ export default function RosterView({ isAdmin = false }) {
     queryFn: () => base44.entities.RosterDatabase.filter({ date: selectedDate }),
   });
 
-  const amEntries  = entries.filter((e) => e.shift_type === "AM");
-  const pmEntries  = entries.filter((e) => e.shift_type === "PM");
-  const offEntries = entries.filter((e) => e.shift_type === "Off");
+  // Sort by created_date ascending so insertion order = slot index
+  const sorted = [...entries].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+  const amEntries  = sorted.filter((e) => e.shift_type === "AM");
+  const pmEntries  = sorted.filter((e) => e.shift_type === "PM");
+  const offEntries = sorted.filter((e) => e.shift_type === "Off");
 
   const handleDelete = async (id) => {
     await base44.entities.RosterDatabase.delete(id);
@@ -370,7 +375,7 @@ export default function RosterView({ isAdmin = false }) {
           <div className="w-6" />
         )}
         <div className="text-center">
-          <span className="text-sm font-bold text-slate-800">{formatMediumDate(selectedDate)}</span>
+          <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{formatMediumDate(selectedDate)}</span>
           {dayOffset === 0 && <span className="ml-1.5 text-[10px] text-blue-500 font-semibold">Today</span>}
         </div>
         {(isAdmin || dayOffset < 1) ? (
@@ -397,13 +402,13 @@ export default function RosterView({ isAdmin = false }) {
             emoji="🌅" title="AM Shift" subtitle="9:00 AM – 6:00 PM"
             entries={amEntries} slotCount={AM_SLOTS} defaultTasks={AM_DEFAULTS} shiftType="AM"
             isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate}
-            color={{ bg: "bg-amber-50", border: "border-amber-200", title: "text-amber-800", sub: "text-amber-500" }}
+            color={{ bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-amber-200 dark:border-amber-800", title: "text-amber-800 dark:text-amber-300", sub: "text-amber-500 dark:text-amber-600" }}
           />
           <ShiftCard
             emoji="🌆" title="PM Shift" subtitle="1:00 PM – 9:00 PM"
             entries={pmEntries} slotCount={PM_SLOTS} defaultTasks={PM_DEFAULTS} shiftType="PM"
             isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate}
-            color={{ bg: "bg-violet-50", border: "border-violet-200", title: "text-violet-800", sub: "text-violet-500" }}
+            color={{ bg: "bg-violet-50 dark:bg-violet-950/40", border: "border-violet-200 dark:border-violet-800", title: "text-violet-800 dark:text-violet-300", sub: "text-violet-500 dark:text-violet-600" }}
           />
           <OffDayCard entries={offEntries} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate} />
         </>

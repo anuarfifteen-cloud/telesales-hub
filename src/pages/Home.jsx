@@ -9,7 +9,8 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus } from "lucide-react";
+import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon } from "lucide-react";
+import { getStoredTheme, applyTheme } from "@/lib/theme";
 import AdminPinModal from "@/components/admin/AdminPinModal";
 import AdminBookingSettings from "@/components/admin/AdminBookingSettings";
 import RosterView from "@/components/roster/RosterView";
@@ -41,6 +42,7 @@ export default function Home() {
   const [customSlots, setCustomSlots] = useState(null); // null = use defaults
   const [unlockHour, setUnlockHour] = useState(19);
   const [unlockMinute, setUnlockMinute] = useState(30);
+  const [isDarkMode, setIsDarkMode] = useState(() => getStoredTheme());
   const dates = getBookableDates();
   const queryClient = useQueryClient();
   const bruneiNow = useBruneiClock();
@@ -48,7 +50,14 @@ export default function Home() {
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
     setSelectedDate(dates[0]);
+    // Apply persisted theme on mount
+    applyTheme(getStoredTheme());
   }, []);
+
+  const handleToggleDarkMode = (val) => {
+    setIsDarkMode(val);
+    applyTheme(val);
+  };
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookings", selectedDate],
@@ -220,10 +229,17 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background font-inter pb-20">
       {/* Header */}
-      <header className="bg-white sticky top-0 z-10" style={{ boxShadow: "0 1px 12px 0 rgba(0,0,0,0.08)" }}>
+      <header className="bg-white dark:bg-slate-900 sticky top-0 z-10" style={{ boxShadow: "0 1px 12px 0 rgba(0,0,0,0.08)" }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          {/* Left: app title */}
-          <h1 className="text-xl text-slate-900 leading-tight" style={{ fontFamily: "'Pacifico', cursive" }}>Telesales Hub</h1>
+          {/* Left: logo + app title */}
+          <div className="flex items-center gap-2">
+            <img
+              src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/a6f4605c6_generated_image.png"
+              alt="Telesales Hub logo"
+              className="h-9 w-9 rounded-xl object-cover flex-shrink-0"
+            />
+            <h1 className="text-xl text-slate-900 dark:text-white leading-tight" style={{ fontFamily: "'Pacifico', cursive" }}>Telesales Hub</h1>
+          </div>
 
           {/* Right: admin badge or bell */}
           {isAdmin ? (
@@ -473,6 +489,29 @@ export default function Home() {
                   </div>
                   <span className="text-xs font-medium text-violet-700 bg-violet-100 px-2 py-0.5 rounded-full">13:00 – 21:00</span>
                 </div>
+              </div>
+            </div>
+
+            {/* App Settings Card */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-border p-4 shadow-sm mb-4">
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wide">⚙️ App Settings</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Moon className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Dark Mode</span>
+                </div>
+                <button
+                  onClick={() => handleToggleDarkMode(!isDarkMode)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                    isDarkMode ? "bg-blue-600" : "bg-slate-200"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                      isDarkMode ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
               </div>
             </div>
 
