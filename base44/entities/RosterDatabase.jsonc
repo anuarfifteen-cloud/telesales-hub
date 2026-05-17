@@ -27,6 +27,10 @@
     "daily_task": {
       "type": "string",
       "description": "The task assigned for the day"
+    },
+    "caption": {
+      "type": "string",
+      "description": "Optional small caption shown below the employee name (e.g. seat, note, extension)"
     }
   },
   "required": [

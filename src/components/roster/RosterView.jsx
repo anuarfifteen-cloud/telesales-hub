@@ -70,15 +70,18 @@ function EntryRow({ entry, shiftColor, isAdmin, onDelete, onUpdate }) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editTask, setEditTask] = useState("");
+  const [editCaption, setEditCaption] = useState("");
   const [saving, setSaving] = useState(false);
 
   const isEmpty = !entry;
   const name = entry?.employee_name || `Employee ${entry?.employee_number}`;
   const task = entry?.daily_task || "";
+  const caption = entry?.caption || "";
 
   const startEdit = () => {
     setEditName(name);
     setEditTask(task);
+    setEditCaption(caption);
     setEditing(true);
   };
 
@@ -89,6 +92,7 @@ function EntryRow({ entry, shiftColor, isAdmin, onDelete, onUpdate }) {
     await base44.entities.RosterDatabase.update(entry.id, {
       employee_name: editName,
       daily_task: editTask,
+      caption: editCaption,
     });
     onUpdate();
     setSaving(false);
@@ -119,6 +123,12 @@ function EntryRow({ entry, shiftColor, isAdmin, onDelete, onUpdate }) {
           placeholder="Task (optional)"
           className="w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
+        <input
+          value={editCaption}
+          onChange={e => setEditCaption(e.target.value)}
+          placeholder="Caption (optional, e.g. Seat 3, Ext. 101)"
+          className="w-full text-[11px] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300 text-slate-500"
+        />
         <div className="flex gap-2 justify-end">
           <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-600 transition-colors">
             <X className="w-4 h-4" />
@@ -140,7 +150,7 @@ function EntryRow({ entry, shiftColor, isAdmin, onDelete, onUpdate }) {
         <Avatar name={name} />
         <div className="min-w-0">
           <p className="text-sm font-bold text-slate-800 leading-tight truncate">{name}</p>
-          {task && <p className="text-xs text-slate-400 leading-tight truncate">{task}</p>}
+          {caption && <p className="text-[10px] text-slate-400 leading-tight truncate">{caption}</p>}
         </div>
       </div>
 
@@ -224,16 +234,37 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate }) {
   );
 }
 
+function getRosterDates() {
+  const today = todayInBrunei();
+  const [y, m, d] = today.split("-").map(Number);
+  return Array.from({ length: 4 }, (_, i) => {
+    const dt = new Date(y, m - 1, d + i);
+    return dt.toISOString().slice(0, 10);
+  });
+}
+
+function formatShortDate(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  return {
+    day: dt.toLocaleDateString("en-US", { weekday: "short" }),
+    date: dt.getDate(),
+    isToday: dateStr === todayInBrunei(),
+  };
+}
+
 export default function RosterView({ isAdmin = false }) {
   const today = todayInBrunei();
+  const rosterDates = getRosterDates();
   const queryClient = useQueryClient();
+  const [selectedDate, setSelectedDate] = useState(today);
   const [showQuickAssign, setShowQuickAssign] = useState(false);
-  const [qaForm, setQaForm] = useState({ date: today, employee: "", shift: "", task: "" });
+  const [qaForm, setQaForm] = useState({ date: today, employee: "", shift: "", task: "", caption: "" });
   const [qaSaving, setQaSaving] = useState(false);
 
   const { data: entries = [], isLoading } = useQuery({
-    queryKey: ["roster", today],
-    queryFn: () => base44.entities.RosterDatabase.filter({ date: today }),
+    queryKey: ["roster", selectedDate],
+    queryFn: () => base44.entities.RosterDatabase.filter({ date: selectedDate }),
   });
 
   const amEntries  = entries.filter((e) => e.shift_type === "AM");
@@ -263,19 +294,41 @@ export default function RosterView({ isAdmin = false }) {
       employee_number: emp.value,
       employee_name: emp.label,
       daily_task: qaForm.task,
+      caption: qaForm.caption,
     });
     queryClient.invalidateQueries({ queryKey: ["roster"] });
     toast.success("Assignment saved!");
-    setQaForm({ date: today, employee: "", shift: "", task: "" });
+    setQaForm({ date: today, employee: "", shift: "", task: "", caption: "" });
     setShowQuickAssign(false);
     setQaSaving(false);
   };
 
   return (
-    <div className="space-y-5 pb-20">
+    <div className="space-y-4 pb-20">
+      {/* Date picker */}
+      <div className="grid grid-cols-4 gap-1.5">
+        {rosterDates.map((d) => {
+          const { day, date, isToday } = formatShortDate(d);
+          const isSelected = d === selectedDate;
+          return (
+            <button
+              key={d}
+              onClick={() => setSelectedDate(d)}
+              className={`flex flex-col items-center py-2 rounded-xl text-sm font-semibold transition-all border ${
+                isSelected
+                  ? "bg-blue-600 text-white border-blue-600 shadow"
+                  : "bg-white text-slate-500 border-slate-200 hover:border-blue-300"
+              }`}
+            >
+              <span className="text-[10px] font-medium uppercase tracking-wide opacity-70">{day}</span>
+              <span className="text-base font-bold leading-tight">{date}</span>
+              {isToday && <span className={`text-[9px] mt-0.5 ${isSelected ? "text-blue-200" : "text-blue-500"}`}>Today</span>}
+            </button>
+          );
+        })}
+      </div>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">Today's Roster</p>
-        <h2 className="text-base font-bold text-foreground">{formatFullDate(today)}</h2>
+        <h2 className="text-sm font-bold text-foreground">{formatFullDate(selectedDate)}</h2>
       </div>
 
       {isLoading ? (
@@ -308,7 +361,7 @@ export default function RosterView({ isAdmin = false }) {
                 <span className="text-sm font-bold text-slate-800">Quick Assign</span>
                 <button onClick={() => setShowQuickAssign(false)} className="text-slate-400 hover:text-slate-600 text-lg leading-none">✕</button>
               </div>
-              <input type="date" value={qaForm.date} onChange={e => setQaForm(f => ({ ...f, date: e.target.value }))}
+              <input type="date" value={qaForm.date || selectedDate} onChange={e => setQaForm(f => ({ ...f, date: e.target.value }))}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
               <select value={qaForm.employee} onChange={e => setQaForm(f => ({ ...f, employee: e.target.value }))}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -324,6 +377,8 @@ export default function RosterView({ isAdmin = false }) {
               </select>
               <input type="text" value={qaForm.task} onChange={e => setQaForm(f => ({ ...f, task: e.target.value }))}
                 placeholder="Task (optional)" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              <input type="text" value={qaForm.caption} onChange={e => setQaForm(f => ({ ...f, caption: e.target.value }))}
+                placeholder="Caption (optional, e.g. Seat 3)" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
               <Button className="w-full h-9 text-sm font-semibold" onClick={handleQuickAssign} disabled={qaSaving}>
                 {qaSaving ? "Saving…" : "Save"}
               </Button>
