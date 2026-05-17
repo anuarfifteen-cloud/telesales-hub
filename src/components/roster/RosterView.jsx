@@ -305,11 +305,8 @@ function formatMediumDate(dateStr) {
 export default function RosterView({ isAdmin = false }) {
   const today = todayInBrunei();
   const queryClient = useQueryClient();
-  const [selectedDate, setSelectedDate] = useState(today);
-  const yesterday = offsetDate(today, -1);
-  const tomorrow = offsetDate(today, 1);
-  const canGoBack = selectedDate > yesterday;   // can go back if not already on yesterday
-  const canGoForward = selectedDate < tomorrow; // can go forward if not already on tomorrow
+  const [dayOffset, setDayOffset] = useState(0);
+  const selectedDate = offsetDate(today, dayOffset);
   const [showQuickAssign, setShowQuickAssign] = useState(false);
   const [qaForm, setQaForm] = useState({ date: today, employee: "", shift: "", task: "", caption: "" });
   const [qaSaving, setQaSaving] = useState(false);
@@ -359,24 +356,30 @@ export default function RosterView({ isAdmin = false }) {
     <div className="space-y-2 pb-20">
       {/* Minimalist date navigator */}
       <div className="flex items-center justify-between py-0.5">
-        <button
-          onClick={() => setSelectedDate(offsetDate(selectedDate, -1))}
-          disabled={!canGoBack}
-          className={`p-1 rounded-md transition-colors ${canGoBack ? "text-slate-600 hover:bg-slate-100" : "text-slate-200 pointer-events-none"}`}
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
+        {dayOffset > -1 ? (
+          <button
+            onClick={() => setDayOffset(d => d - 1)}
+            className="p-1 rounded-md text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        ) : (
+          <div className="w-6" />
+        )}
         <div className="text-center">
           <span className="text-sm font-bold text-slate-800">{formatMediumDate(selectedDate)}</span>
-          {selectedDate === today && <span className="ml-1.5 text-[10px] text-blue-500 font-semibold">Today</span>}
+          {dayOffset === 0 && <span className="ml-1.5 text-[10px] text-blue-500 font-semibold">Today</span>}
         </div>
-        <button
-          onClick={() => setSelectedDate(offsetDate(selectedDate, 1))}
-          disabled={!canGoForward}
-          className={`p-1 rounded-md transition-colors ${canGoForward ? "text-slate-600 hover:bg-slate-100" : "text-slate-200 pointer-events-none"}`}
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
+        {dayOffset < 1 ? (
+          <button
+            onClick={() => setDayOffset(d => d + 1)}
+            className="p-1 rounded-md text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        ) : (
+          <div className="w-6" />
+        )}
       </div>
 
       {isLoading ? (
