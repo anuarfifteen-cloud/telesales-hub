@@ -327,9 +327,7 @@ export default function RosterView({ isAdmin = false }) {
           );
         })}
       </div>
-      <div>
-        <p className="text-[11px] text-muted-foreground">{formatFullDate(selectedDate)}</p>
-      </div>
+      <p className="text-[10px] text-slate-400 -mt-1">{formatFullDate(selectedDate)}</p>
 
       {isLoading ? (
         <div className="space-y-2">
