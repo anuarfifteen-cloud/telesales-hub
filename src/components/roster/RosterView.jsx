@@ -28,7 +28,7 @@ function Avatar({ name }) {
   const hue = nameToHue(name);
   return (
     <div
-      className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+      className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
       style={{ background: `hsl(${hue}, 60%, 52%)` }}
     >
       {initials}
@@ -38,15 +38,18 @@ function Avatar({ name }) {
 
 // Map task keywords to badge color classes
 const TASK_COLORS = [
-  { match: /inbound/i,   bg: "bg-green-100",  text: "text-green-700"  },
-  { match: /outbound/i,  bg: "bg-blue-100",   text: "text-blue-700"   },
-  { match: /chat/i,      bg: "bg-cyan-100",   text: "text-cyan-700"   },
-  { match: /upsell/i,    bg: "bg-purple-100", text: "text-purple-700" },
-  { match: /yayasan/i,   bg: "bg-orange-100", text: "text-orange-700" },
-  { match: /bundle/i,    bg: "bg-indigo-100", text: "text-indigo-700" },
-  { match: /pl\b/i,      bg: "bg-pink-100",   text: "text-pink-700"   },
-  { match: /al\b/i,      bg: "bg-red-100",    text: "text-red-700"    },
-  { match: /lead/i,      bg: "bg-teal-100",   text: "text-teal-700"   },
+  { match: /inbound/i,       bg: "bg-green-100",   text: "text-green-800"   },
+  { match: /outbound/i,      bg: "bg-blue-100",    text: "text-blue-800"    },
+  { match: /chat/i,          bg: "bg-cyan-100",    text: "text-cyan-800"    },
+  { match: /upsell/i,        bg: "bg-purple-100",  text: "text-purple-800"  },
+  { match: /yayasan/i,       bg: "bg-orange-100",  text: "text-orange-800"  },
+  { match: /simpack/i,       bg: "bg-violet-100",  text: "text-violet-800"  },
+  { match: /online.order/i,  bg: "bg-amber-100",   text: "text-amber-900"   },
+  { match: /mb\b|mobile.bundle/i, bg: "bg-teal-100", text: "text-teal-800"  },
+  { match: /bundle/i,        bg: "bg-indigo-100",  text: "text-indigo-800"  },
+  { match: /pl\b/i,          bg: "bg-pink-100",    text: "text-pink-800"    },
+  { match: /al\b/i,          bg: "bg-red-100",     text: "text-red-800"     },
+  { match: /lead/i,          bg: "bg-emerald-100", text: "text-emerald-800" },
 ];
 
 function taskBadgeColor(task) {
@@ -102,8 +105,8 @@ function EntryRow({ entry, shiftColor, isAdmin, onDelete, onUpdate }) {
 
   if (isEmpty) {
     return (
-      <div className="flex items-center px-3 py-2.5 rounded-xl bg-white/50 border border-dashed border-slate-200">
-        <span className="text-sm italic text-slate-300">Empty</span>
+      <div className="flex items-center px-2 py-1 rounded-lg bg-white/40 border border-dashed border-slate-200">
+        <span className="text-[11px] italic text-slate-300">Empty</span>
       </div>
     );
   }
@@ -144,32 +147,32 @@ function EntryRow({ entry, shiftColor, isAdmin, onDelete, onUpdate }) {
   const badge = taskBadgeColor(task);
 
   return (
-    <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/80 border border-white shadow-sm gap-3">
-      {/* Avatar + Name + task caption */}
-      <div className="flex items-center gap-2.5 min-w-0">
+    <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/80 border border-white shadow-sm gap-2">
+      {/* Avatar + Name + caption */}
+      <div className="flex items-center gap-2 min-w-0">
         <Avatar name={name} />
         <div className="min-w-0">
-          <p className="text-sm font-bold text-slate-800 leading-tight truncate">{name}</p>
-          {caption && <p className="text-[10px] text-slate-400 leading-tight truncate">{caption}</p>}
+          <p className="text-xs font-semibold text-slate-800 leading-tight truncate">{name}</p>
+          {caption && <p className="text-[9px] text-slate-400 leading-none truncate mt-0.5">{caption}</p>}
         </div>
       </div>
 
       {/* Task badge + admin actions */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         {task ? (
-          <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${badge.bg} ${badge.text}`}>
+          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badge.bg} ${badge.text}`}>
             {task}
           </span>
         ) : (
-          <span className="text-xs italic text-slate-300">—</span>
+          <span className="text-[10px] italic text-slate-300">—</span>
         )}
         {isAdmin && (
           <>
             <button onClick={startEdit} className="text-slate-300 hover:text-blue-500 transition-colors">
-              <Pencil className="w-3.5 h-3.5" />
+              <Pencil className="w-3 h-3" />
             </button>
             <button onClick={() => onDelete(entry.id)} className="text-slate-300 hover:text-red-500 transition-colors">
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-3 h-3" />
             </button>
           </>
         )}
@@ -182,15 +185,14 @@ function ShiftCard({ emoji, title, subtitle, entries, slotCount, color, isAdmin,
   const rows = Array.from({ length: slotCount }, (_, i) => entries[i] || null);
 
   return (
-    <div className={`rounded-2xl border p-5 space-y-3 ${color.bg} ${color.border}`}>
-      <div className="flex items-center gap-2">
-        <span className="text-xl">{emoji}</span>
-        <div>
-          <p className={`font-bold text-sm ${color.title}`}>{title}</p>
-          <p className={`text-xs ${color.sub}`}>{subtitle}</p>
-        </div>
+    <div className={`rounded-xl border px-3 pt-2 pb-2.5 ${color.bg} ${color.border}`}>
+      {/* Compact inline header */}
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="text-sm">{emoji}</span>
+        <span className={`text-xs font-bold ${color.title}`}>{title}</span>
+        <span className={`text-[10px] ${color.sub}`}>· {subtitle}</span>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-1">
         {rows.map((entry, i) => (
           <EntryRow
             key={entry?.id || `empty-${i}`}
@@ -210,15 +212,13 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate }) {
   const rows = Array.from({ length: OFF_SLOTS }, (_, i) => entries[i] || null);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="text-xl">🌴</span>
-        <div>
-          <p className="font-bold text-sm text-slate-700">Off Day</p>
-          <p className="text-xs text-slate-400">Resting today</p>
-        </div>
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 pt-2 pb-2.5">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="text-sm">🌴</span>
+        <span className="text-xs font-bold text-slate-600">Off Day</span>
+        <span className="text-[10px] text-slate-400">· Resting today</span>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-1">
         {rows.map((entry, i) => (
           <EntryRow
             key={entry?.id || `off-empty-${i}`}
@@ -304,7 +304,7 @@ export default function RosterView({ isAdmin = false }) {
   };
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-2.5 pb-20">
       {/* Date picker */}
       <div className="grid grid-cols-4 gap-1.5">
         {rosterDates.map((d) => {
@@ -328,13 +328,13 @@ export default function RosterView({ isAdmin = false }) {
         })}
       </div>
       <div>
-        <h2 className="text-sm font-bold text-foreground">{formatFullDate(selectedDate)}</h2>
+        <p className="text-[11px] text-muted-foreground">{formatFullDate(selectedDate)}</p>
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-40 rounded-2xl bg-muted animate-pulse" />
+            <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
           ))}
         </div>
       ) : (
