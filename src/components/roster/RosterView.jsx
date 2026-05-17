@@ -16,6 +16,45 @@ const EMPLOYEES = [
   { value: 13, label: "Halimatul" }, { value: 14, label: "Afiqah" },
 ];
 
+// Generate a consistent hue from a name string
+function nameToHue(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return Math.abs(hash) % 360;
+}
+
+function Avatar({ name }) {
+  const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  const hue = nameToHue(name);
+  return (
+    <div
+      className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+      style={{ background: `hsl(${hue}, 60%, 52%)` }}
+    >
+      {initials}
+    </div>
+  );
+}
+
+// Map task keywords to badge color classes
+const TASK_COLORS = [
+  { match: /inbound/i,   bg: "bg-green-100",  text: "text-green-700"  },
+  { match: /outbound/i,  bg: "bg-blue-100",   text: "text-blue-700"   },
+  { match: /chat/i,      bg: "bg-cyan-100",   text: "text-cyan-700"   },
+  { match: /upsell/i,    bg: "bg-purple-100", text: "text-purple-700" },
+  { match: /yayasan/i,   bg: "bg-orange-100", text: "text-orange-700" },
+  { match: /bundle/i,    bg: "bg-indigo-100", text: "text-indigo-700" },
+  { match: /pl\b/i,      bg: "bg-pink-100",   text: "text-pink-700"   },
+  { match: /al\b/i,      bg: "bg-red-100",    text: "text-red-700"    },
+  { match: /lead/i,      bg: "bg-teal-100",   text: "text-teal-700"   },
+];
+
+function taskBadgeColor(task) {
+  if (!task) return { bg: "bg-slate-100", text: "text-slate-500" };
+  const match = TASK_COLORS.find(c => c.match.test(task));
+  return match || { bg: "bg-slate-100", text: "text-slate-600" };
+}
+
 const AM_SLOTS = 5;
 const PM_SLOTS = 5;
 const OFF_SLOTS = 4;
@@ -92,19 +131,27 @@ function EntryRow({ entry, shiftColor, isAdmin, onDelete, onUpdate }) {
     );
   }
 
-  return (
-    <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/80 border border-white shadow-sm gap-3">
-      {/* Name */}
-      <span className="text-sm font-bold text-slate-800 flex-shrink-0">{name}</span>
+  const badge = taskBadgeColor(task);
 
-      {/* Task + actions */}
+  return (
+    <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/80 border border-white shadow-sm gap-3">
+      {/* Avatar + Name + task caption */}
+      <div className="flex items-center gap-2.5 min-w-0">
+        <Avatar name={name} />
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-slate-800 leading-tight truncate">{name}</p>
+          {task && <p className="text-xs text-slate-400 leading-tight truncate">{task}</p>}
+        </div>
+      </div>
+
+      {/* Task badge + admin actions */}
       <div className="flex items-center gap-2 flex-shrink-0">
         {task ? (
-          <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${shiftColor.taskBg} ${shiftColor.taskText}`}>
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${badge.bg} ${badge.text}`}>
             {task}
           </span>
         ) : (
-          <span className="text-xs italic text-slate-300">No task</span>
+          <span className="text-xs italic text-slate-300">—</span>
         )}
         {isAdmin && (
           <>
