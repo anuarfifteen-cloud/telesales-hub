@@ -7,9 +7,13 @@ function nowInBrunei() {
   return toZonedTime(new Date(), TZ);
 }
 
-/** Returns today's date string (YYYY-MM-DD) in Brunei time */
+/** Returns today's date string (YYYY-MM-DD) using local system date (avoids UTC off-by-one) */
 export function todayInBrunei() {
-  return tzFormat(toZonedTime(new Date(), TZ), "yyyy-MM-dd", { timeZone: TZ });
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 // Standard break slot definitions

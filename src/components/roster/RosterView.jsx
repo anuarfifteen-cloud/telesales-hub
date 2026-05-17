@@ -292,7 +292,10 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate }) {
 function offsetDate(dateStr, days) {
   const [y, m, d] = dateStr.split("-").map(Number);
   const dt = new Date(y, m - 1, d + days);
-  return dt.toISOString().slice(0, 10);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
 }
 
 function formatMediumDate(dateStr) {
@@ -370,7 +373,7 @@ export default function RosterView({ isAdmin = false }) {
           <span className="text-sm font-bold text-slate-800">{formatMediumDate(selectedDate)}</span>
           {dayOffset === 0 && <span className="ml-1.5 text-[10px] text-blue-500 font-semibold">Today</span>}
         </div>
-        {dayOffset < 1 ? (
+        {(isAdmin || dayOffset < 1) ? (
           <button
             onClick={() => setDayOffset(d => d + 1)}
             className="p-1 rounded-md text-slate-600 hover:bg-slate-100 transition-colors"

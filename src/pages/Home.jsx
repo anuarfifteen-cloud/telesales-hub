@@ -11,6 +11,7 @@ import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
 import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus } from "lucide-react";
 import AdminPinModal from "@/components/admin/AdminPinModal";
+import AdminBookingSettings from "@/components/admin/AdminBookingSettings";
 import RosterView from "@/components/roster/RosterView";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -37,6 +38,9 @@ export default function Home() {
   const [adminSaving, setAdminSaving] = useState(false);
   const [forceBookSlot, setForceBookSlot] = useState(null);
   const [forceBookEmployee, setForceBookEmployee] = useState("");
+  const [customSlots, setCustomSlots] = useState(null); // null = use defaults
+  const [unlockHour, setUnlockHour] = useState(19);
+  const [unlockMinute, setUnlockMinute] = useState(30);
   const dates = getBookableDates();
   const queryClient = useQueryClient();
   const bruneiNow = useBruneiClock();
@@ -145,15 +149,28 @@ export default function Home() {
     cancelMutation.mutate(booking);
   };
 
-  const amSlots = getAmSlots(selectedDate);
-  const pmSlots = SLOTS.filter((s) => s.shift === "PM");
+  const baseAmSlots = getAmSlots(selectedDate);
+  const basePmSlots = SLOTS.filter((s) => s.shift === "PM");
+  const activeSlots = customSlots || SLOTS;
+  const amSlots = customSlots ? activeSlots.filter(s => s.shift === "AM") : baseAmSlots;
+  const pmSlots = customSlots ? activeSlots.filter(s => s.shift === "PM") : basePmSlots;
 
   const getBookedCount = (slotId) => bookings.filter((b) => b.slot_id === slotId).length;
   const getMyBooking = (slotId) =>
     bookings.find((b) => b.slot_id === slotId && b.user_email === user?.email);
 
   const isMutating = createMutation.isPending || cancelMutation.isPending;
-  const unlockTime = selectedDate ? getUnlockTime(selectedDate) : null;
+
+  // Build unlock time from admin-configurable hour/minute (Brunei TZ = UTC+8)
+  const unlockTime = selectedDate ? (() => {
+    const [y, mo, d] = selectedDate.split("-").map(Number);
+    // previous day at unlockHour:unlockMinute Brunei time → subtract 8h for UTC
+    const localMs = new Date(y, mo - 1, d - 1, unlockHour, unlockMinute, 0, 0).getTime();
+    return new Date(localMs - 8 * 60 * 60 * 1000);
+  })() : null;
+
+  // Admin bypasses the lock entirely
+  const effectiveUnlockTime = isAdmin ? new Date(0) : unlockTime;
 
   const handleAdminDeleteBooking = async (bookingId) => {
     await base44.entities.Booking.delete(bookingId);
@@ -250,6 +267,17 @@ export default function Home() {
               </button>
             </div>
 
+            {/* Admin Booking Settings */}
+            {isAdmin && (
+              <AdminBookingSettings
+                slots={customSlots || SLOTS}
+                unlockHour={unlockHour}
+                unlockMinute={unlockMinute}
+                onSlotsChange={(s) => setCustomSlots(s)}
+                onUnlockTimeChange={(h, m) => { setUnlockHour(h); setUnlockMinute(m); }}
+              />
+            )}
+
             {/* Shared date picker */}
             <section>
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
@@ -277,7 +305,7 @@ export default function Home() {
                     <h2 className="font-semibold text-foreground text-base leading-tight">
                       {formatDate(selectedDate)}
                     </h2>
-                    {unlockTime && bruneiNow < unlockTime && (() => {
+                    {effectiveUnlockTime && bruneiNow < effectiveUnlockTime && (() => {
                       const [y, mo, d] = selectedDate.split("-").map(Number);
                       const prevDay = new Date(y, mo - 1, d - 1);
                       const dayNum = prevDay.getDate();
@@ -322,7 +350,7 @@ export default function Home() {
                                   myBooking={myBooking}
                                   onBook={handleBook}
                                   onCancel={handleCancel}
-                                  unlockTime={unlockTime}
+                                  unlockTime={effectiveUnlockTime}
                                   now={bruneiNow}
                                   loading={isMutating}
                                 />
