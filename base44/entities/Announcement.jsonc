@@ -2,6 +2,10 @@
   "name": "Announcement",
   "type": "object",
   "properties": {
+    "subject": {
+      "type": "string",
+      "description": "Optional subject/title for the announcement"
+    },
     "message": {
       "type": "string",
       "description": "The announcement message to broadcast to all agents"

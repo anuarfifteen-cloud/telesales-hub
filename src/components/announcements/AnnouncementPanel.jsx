@@ -1,15 +1,11 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Megaphone } from "lucide-react";
-import { format } from "date-fns";
+import { formatBruneiTime } from "@/lib/bruneiTime";
 
 const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
 function isActive(announcement) {
   return Date.now() - new Date(announcement.created_date).getTime() < TWENTY_FOUR_HOURS;
-}
-
-function formatTimestamp(dateStr) {
-  return format(new Date(dateStr), "d MMM, h:mm aa");
 }
 
 export default function AnnouncementPanel({ announcements, onClose }) {
@@ -68,11 +64,14 @@ export default function AnnouncementPanel({ announcements, onClose }) {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-3 space-y-1"
               >
+                {a.subject && (
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{a.subject}</p>
+                )}
                 <p className="text-sm text-slate-800 dark:text-slate-100 leading-relaxed">{a.message}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground font-medium">— Admin</span>
                   <span className="text-[10px] text-muted-foreground">
-                    {formatTimestamp(a.created_date)}
+                    {formatBruneiTime(a.created_date)}
                   </span>
                 </div>
               </motion.div>
