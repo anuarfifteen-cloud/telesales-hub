@@ -207,21 +207,21 @@ export default function Home() {
   };
 
   const handleForceBook = async (slot) => {
-    if (!forceBookEmployee) return;
-    const emp = EMPLOYEES.find(e => String(e.value) === forceBookEmployee);
+    if (!forceBookEmployee.trim()) return;
+    const name = forceBookEmployee.trim();
     await base44.entities.Booking.create({
       date: selectedDate,
       slot_id: slot.id,
       slot_label: slot.label,
       shift: slot.shift,
-      user_email: `emp${emp.value}@telesales.local`,
-      user_name: emp.label,
+      user_email: `forcebook_${Date.now()}@telesales.local`,
+      user_name: name,
       booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ }),
     });
     queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
     setForceBookSlot(null);
     setForceBookEmployee("");
-    toast.success(`${emp.label} force-booked!`);
+    toast.success(`${name} force-booked!`);
   };
 
   const handleAdminSave = async () => {
@@ -401,14 +401,13 @@ export default function Home() {
                                     {!isFull && !slot.restriction && (
                                       forceBookSlot?.id === slot.id ? (
                                         <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
-                                          <select
+                                          <input
+                                            type="text"
                                             value={forceBookEmployee}
                                             onChange={e => setForceBookEmployee(e.target.value)}
-                                            className="flex-1 text-xs border-0 bg-transparent text-slate-700 focus:outline-none"
-                                          >
-                                            <option value="">Select employee…</option>
-                                            {EMPLOYEES.map(emp => <option key={emp.value} value={String(emp.value)}>{emp.label}</option>)}
-                                          </select>
+                                            placeholder="Type any name…"
+                                            className="flex-1 text-xs border-0 bg-transparent text-slate-700 focus:outline-none placeholder:text-slate-400"
+                                          />
                                           <button onClick={() => handleForceBook(slot)} className="text-xs font-bold text-blue-600 hover:text-blue-800">Book</button>
                                           <button onClick={() => { setForceBookSlot(null); setForceBookEmployee(""); }} className="text-xs text-slate-400">✕</button>
                                         </div>
