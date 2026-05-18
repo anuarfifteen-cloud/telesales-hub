@@ -15,13 +15,20 @@ export default function AnnouncementPanel({ announcements, onClose }) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
+      <motion.div
+        className="fixed inset-0 z-50 bg-black/40"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <div className="fixed inset-0 z-50 flex justify-end pointer-events-none">
         <motion.div
           initial={{ x: "100%" }}
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
           transition={{ type: "spring", damping: 28, stiffness: 260 }}
-          className="relative w-full max-w-sm h-full bg-white dark:bg-slate-900 shadow-2xl flex flex-col"
+          className="relative w-full max-w-sm h-full bg-white dark:bg-slate-900 shadow-2xl flex flex-col pointer-events-auto"
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
@@ -68,4 +75,5 @@ export default function AnnouncementPanel({ announcements, onClose }) {
       </div>
     </AnimatePresence>
   );
+
 }
