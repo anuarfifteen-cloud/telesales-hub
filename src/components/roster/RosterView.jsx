@@ -39,7 +39,7 @@ function Avatar({ name }) {
 // Default template slots
 const AM_DEFAULTS  = ["SIMPACK", "ONLINE ORDER", "INBOUND (MB)", "OUTBOUND", "INBOUND (MB)"];
 const PM_DEFAULTS  = ["INBOUND (MB)", "UPSELLING", "OUTBOUND", "SIMPACK", "OUTBOUND"];
-const OFF_DEFAULTS = ["EMPTY", "EMPTY", "EMPTY", "EMPTY"];
+const OFF_DEFAULTS = ["", "", "", ""];
 
 // Map task keywords to badge color classes
 const TASK_COLORS = [
@@ -322,8 +322,8 @@ export default function RosterView({ isAdmin = false }) {
     queryFn: () => base44.entities.RosterDatabase.filter({ date: selectedDate }),
   });
 
-  // Sort by created_date ascending so insertion order = slot index
-  const sorted = [...entries].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+  // Sort by employee_number ascending — stable slot order that never changes on edit
+  const sorted = [...entries].sort((a, b) => (a.employee_number ?? 999) - (b.employee_number ?? 999));
   const amEntries  = sorted.filter((e) => e.shift_type === "AM");
   const pmEntries  = sorted.filter((e) => e.shift_type === "PM");
   const offEntries = sorted.filter((e) => e.shift_type === "Off");
