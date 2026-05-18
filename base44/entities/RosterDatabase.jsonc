@@ -31,6 +31,10 @@
     "caption": {
       "type": "string",
       "description": "Optional small caption shown below the employee name (e.g. seat, note, extension)"
+    },
+    "sort_order": {
+      "type": "number",
+      "description": "Custom sort order set by admin via drag-and-drop"
     }
   },
   "required": [

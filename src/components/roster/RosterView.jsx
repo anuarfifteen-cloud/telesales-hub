@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { todayInBrunei } from "@/lib/slots";
-import { Trash2, Plus, Pencil, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trash2, Plus, Pencil, Check, X, ChevronLeft, ChevronRight, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -161,7 +161,7 @@ function TemplateRow({ defaultTask, isAdmin, slotIndex, shiftType, selectedDate,
   );
 }
 
-function EntryRow({ entry, isAdmin, onDelete, onUpdate }) {
+function EntryRow({ entry, isAdmin, onDelete, onUpdate, onMoveUp, onMoveDown }) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editTask, setEditTask] = useState("");
@@ -220,6 +220,8 @@ function EntryRow({ entry, isAdmin, onDelete, onUpdate }) {
         )}
         {isAdmin && (
           <>
+            {onMoveUp && <button onClick={onMoveUp} className="text-slate-300 hover:text-blue-400 transition-colors"><ArrowUp className="w-3 h-3" /></button>}
+            {onMoveDown && <button onClick={onMoveDown} className="text-slate-300 hover:text-blue-400 transition-colors"><ArrowDown className="w-3 h-3" /></button>}
             <button onClick={startEdit} className="text-slate-300 hover:text-blue-500 transition-colors"><Pencil className="w-3 h-3" /></button>
             <button onClick={() => onDelete(entry.id)} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 className="w-3 h-3" /></button>
           </>
@@ -229,9 +231,7 @@ function EntryRow({ entry, isAdmin, onDelete, onUpdate }) {
   );
 }
 
-function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, shiftType, color, isAdmin, onDelete, onUpdate, selectedDate }) {
-  // Build a strict fixed-index array: entries are matched by their order in DB
-  // (sorted by created_date so slot index = insertion order). Never reorder.
+function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, shiftType, color, isAdmin, onDelete, onUpdate, onReorder, selectedDate }) {
   const slots = Array.from({ length: slotCount }, (_, i) => entries[i] || null);
 
   return (
@@ -244,7 +244,15 @@ function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, s
       <div className="space-y-1">
         {slots.map((entry, i) =>
           entry ? (
-            <EntryRow key={entry.id} entry={entry} isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} />
+            <EntryRow
+              key={entry.id}
+              entry={entry}
+              isAdmin={isAdmin}
+              onDelete={onDelete}
+              onUpdate={onUpdate}
+              onMoveUp={i > 0 ? () => onReorder(entries.filter(Boolean), entries.filter(Boolean).indexOf(entry), -1) : null}
+              onMoveDown={i < entries.filter(Boolean).length - 1 ? () => onReorder(entries.filter(Boolean), entries.filter(Boolean).indexOf(entry), 1) : null}
+            />
           ) : (
             <TemplateRow
               key={`tmpl-${shiftType}-${i}`}
@@ -262,7 +270,7 @@ function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, s
   );
 }
 
-function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate }) {
+function OffDayCard({ entries, isAdmin, onDelete, onUpdate, onReorder, selectedDate }) {
   const slots = Array.from({ length: OFF_SLOTS }, (_, i) => entries[i] || null);
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 px-3 pt-2 pb-2.5">
@@ -274,7 +282,15 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate }) {
       <div className="space-y-1">
         {slots.map((entry, i) =>
           entry ? (
-            <EntryRow key={entry.id} entry={entry} isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} />
+            <EntryRow
+              key={entry.id}
+              entry={entry}
+              isAdmin={isAdmin}
+              onDelete={onDelete}
+              onUpdate={onUpdate}
+              onMoveUp={i > 0 ? () => onReorder(entries.filter(Boolean), entries.filter(Boolean).indexOf(entry), -1) : null}
+              onMoveDown={i < entries.filter(Boolean).length - 1 ? () => onReorder(entries.filter(Boolean), entries.filter(Boolean).indexOf(entry), 1) : null}
+            />
           ) : (
             <TemplateRow
               key={`off-tmpl-${i}`}
@@ -304,7 +320,7 @@ function offsetDate(dateStr, days) {
 function formatMediumDate(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-    day: "numeric", month: "long", year: "numeric",
+    weekday: "long", day: "numeric", month: "long",
   });
 }
 
@@ -322,11 +338,30 @@ export default function RosterView({ isAdmin = false }) {
     queryFn: () => base44.entities.RosterDatabase.filter({ date: selectedDate }),
   });
 
-  // Sort by employee_number ascending — stable slot order that never changes on edit
-  const sorted = [...entries].sort((a, b) => (a.employee_number ?? 999) - (b.employee_number ?? 999));
+  // Sort by sort_order (admin-defined), falling back to employee_number for unset entries
+  const sorted = [...entries].sort((a, b) => {
+    const aOrder = a.sort_order ?? 9999;
+    const bOrder = b.sort_order ?? 9999;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return (a.employee_number ?? 999) - (b.employee_number ?? 999);
+  });
   const amEntries  = sorted.filter((e) => e.shift_type === "AM");
   const pmEntries  = sorted.filter((e) => e.shift_type === "PM");
   const offEntries = sorted.filter((e) => e.shift_type === "Off");
+
+  const handleReorder = async (shiftEntries, index, direction) => {
+    const swapIndex = index + direction;
+    if (swapIndex < 0 || swapIndex >= shiftEntries.length) return;
+    const a = shiftEntries[index];
+    const b = shiftEntries[swapIndex];
+    // Assign sort_order based on current positions, then swap
+    const orders = shiftEntries.map((e, i) => e.sort_order ?? i * 10);
+    await Promise.all([
+      base44.entities.RosterDatabase.update(a.id, { sort_order: orders[swapIndex] }),
+      base44.entities.RosterDatabase.update(b.id, { sort_order: orders[index] }),
+    ]);
+    queryClient.invalidateQueries({ queryKey: ["roster"] });
+  };
 
   const handleDelete = async (id) => {
     await base44.entities.RosterDatabase.delete(id);
@@ -401,16 +436,16 @@ export default function RosterView({ isAdmin = false }) {
           <ShiftCard
             emoji="🌅" title="AM Shift" subtitle="9:00 AM – 6:00 PM"
             entries={amEntries} slotCount={AM_SLOTS} defaultTasks={AM_DEFAULTS} shiftType="AM"
-            isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate}
+            isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} onReorder={handleReorder} selectedDate={selectedDate}
             color={{ bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-amber-200 dark:border-amber-800", title: "text-amber-800 dark:text-amber-300", sub: "text-amber-500 dark:text-amber-600" }}
           />
           <ShiftCard
             emoji="🌆" title="PM Shift" subtitle="1:00 PM – 9:00 PM"
             entries={pmEntries} slotCount={PM_SLOTS} defaultTasks={PM_DEFAULTS} shiftType="PM"
-            isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate}
+            isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} onReorder={handleReorder} selectedDate={selectedDate}
             color={{ bg: "bg-violet-50 dark:bg-violet-950/40", border: "border-violet-200 dark:border-violet-800", title: "text-violet-800 dark:text-violet-300", sub: "text-violet-500 dark:text-violet-600" }}
           />
-          <OffDayCard entries={offEntries} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate} />
+          <OffDayCard entries={offEntries} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} onReorder={handleReorder} selectedDate={selectedDate} />
         </>
       )}
 
