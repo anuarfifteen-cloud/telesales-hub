@@ -104,7 +104,7 @@ export default function Home() {
         shift: slot.shift,
         user_email: user.email,
         user_name: user.full_name,
-        booked_at: tzFormat(new Date(), "hh:mm:ss aa", { timeZone: TZ }),
+        booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ }),
       });
     },
     onMutate: async (slot) => {
@@ -216,7 +216,7 @@ export default function Home() {
       shift: slot.shift,
       user_email: `emp${emp.value}@telesales.local`,
       user_name: emp.label,
-      booked_at: tzFormat(new Date(), "hh:mm:ss aa", { timeZone: TZ }),
+      booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ }),
     });
     queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
     setForceBookSlot(null);
