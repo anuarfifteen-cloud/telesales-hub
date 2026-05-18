@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { todayInBrunei } from "@/lib/slots";
-import { Trash2, Plus, Pencil, Check, X, ChevronLeft, ChevronRight, ArrowUp, ArrowDown } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { Trash2, Plus, Pencil, Check, X, ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -16,7 +17,6 @@ const EMPLOYEES = [
   { value: 13, label: "Halimatul" }, { value: 14, label: "Afiqah" },
 ];
 
-// Generate a consistent hue from a name string
 function nameToHue(name) {
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -36,12 +36,10 @@ function Avatar({ name }) {
   );
 }
 
-// Default template slots
 const AM_DEFAULTS  = ["SIMPACK", "ONLINE ORDER", "INBOUND (MB)", "OUTBOUND", "INBOUND (MB)"];
 const PM_DEFAULTS  = ["INBOUND (MB)", "UPSELLING", "OUTBOUND", "SIMPACK", "OUTBOUND"];
 const OFF_DEFAULTS = ["", "", "", ""];
 
-// Map task keywords to badge color classes
 const TASK_COLORS = [
   { match: /simpack/i,       bg: "bg-red-600",     text: "text-white"       },
   { match: /inbound/i,       bg: "bg-green-100",   text: "text-green-800"   },
@@ -67,21 +65,19 @@ const AM_SLOTS = 5;
 const PM_SLOTS = 5;
 const OFF_SLOTS = 4;
 
-function formatFullDate(dateStr) {
+function formatMediumDate(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    weekday: "long", day: "numeric", month: "long",
   });
 }
 
-// Template row: shown when no DB entry exists for this slot
-function TemplateRow({ defaultTask, isAdmin, slotIndex, shiftType, selectedDate, onUpdate }) {
+function TemplateRow({ defaultTask, isAdmin, shiftType, selectedDate, onUpdate }) {
   const [assigning, setAssigning] = useState(false);
   const [selectedEmp, setSelectedEmp] = useState("");
   const [editingTask, setEditingTask] = useState(false);
   const [taskVal, setTaskVal] = useState(defaultTask);
   const [saving, setSaving] = useState(false);
-
   const badge = taskBadgeColor(taskVal);
 
   const saveAssign = async () => {
@@ -89,16 +85,10 @@ function TemplateRow({ defaultTask, isAdmin, slotIndex, shiftType, selectedDate,
     setSaving(true);
     const emp = EMPLOYEES.find(e => String(e.value) === selectedEmp);
     await base44.entities.RosterDatabase.create({
-      date: selectedDate,
-      shift_type: shiftType,
-      employee_number: emp.value,
-      employee_name: emp.label,
-      daily_task: taskVal,
+      date: selectedDate, shift_type: shiftType,
+      employee_number: emp.value, employee_name: emp.label, daily_task: taskVal,
     });
-    onUpdate();
-    setSaving(false);
-    setAssigning(false);
-    setSelectedEmp("");
+    onUpdate(); setSaving(false); setAssigning(false); setSelectedEmp("");
     toast.success("Assigned!");
   };
 
@@ -113,47 +103,31 @@ function TemplateRow({ defaultTask, isAdmin, slotIndex, shiftType, selectedDate,
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {editingTask ? (
           <>
-            <input
-              value={taskVal}
-              onChange={e => setTaskVal(e.target.value)}
-              className="text-[10px] border border-slate-300 rounded px-1 py-0.5 w-24 focus:outline-none focus:ring-1 focus:ring-blue-300"
-            />
-            <button onClick={() => setEditingTask(false)} className="text-blue-500">
-              <Check className="w-3 h-3" />
-            </button>
+            <input value={taskVal} onChange={e => setTaskVal(e.target.value)}
+              className="text-[10px] border border-slate-300 rounded px-1 py-0.5 w-24 focus:outline-none focus:ring-1 focus:ring-blue-300" />
+            <button onClick={() => setEditingTask(false)} className="text-blue-500"><Check className="w-3 h-3" /></button>
           </>
         ) : (
-          <span
-            onClick={() => isAdmin && setEditingTask(true)}
-            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badge.bg} ${badge.text} ${isAdmin ? "cursor-pointer hover:opacity-80" : ""}`}
-          >
+          <span onClick={() => isAdmin && setEditingTask(true)}
+            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badge.bg} ${badge.text} ${isAdmin ? "cursor-pointer hover:opacity-80" : ""}`}>
             {taskVal}
           </span>
         )}
         {isAdmin && !assigning && (
-          <button
-            onClick={() => setAssigning(true)}
-            className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded hover:bg-blue-100 transition-colors"
-          >
+          <button onClick={() => setAssigning(true)}
+            className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded hover:bg-blue-100 transition-colors">
             Assign
           </button>
         )}
         {isAdmin && assigning && (
           <div className="flex items-center gap-1">
-            <select
-              value={selectedEmp}
-              onChange={e => setSelectedEmp(e.target.value)}
-              className="text-[10px] border border-slate-200 rounded px-1 py-0.5 bg-white focus:outline-none"
-            >
+            <select value={selectedEmp} onChange={e => setSelectedEmp(e.target.value)}
+              className="text-[10px] border border-slate-200 rounded px-1 py-0.5 bg-white focus:outline-none">
               <option value="">Pick…</option>
               {EMPLOYEES.map(emp => <option key={emp.value} value={String(emp.value)}>{emp.label}</option>)}
             </select>
-            <button onClick={saveAssign} disabled={saving} className="text-blue-500 hover:text-blue-700">
-              <Check className="w-3 h-3" />
-            </button>
-            <button onClick={() => setAssigning(false)} className="text-slate-400 hover:text-slate-600">
-              <X className="w-3 h-3" />
-            </button>
+            <button onClick={saveAssign} disabled={saving} className="text-blue-500 hover:text-blue-700"><Check className="w-3 h-3" /></button>
+            <button onClick={() => setAssigning(false)} className="text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>
           </div>
         )}
       </div>
@@ -161,7 +135,7 @@ function TemplateRow({ defaultTask, isAdmin, slotIndex, shiftType, selectedDate,
   );
 }
 
-function EntryRow({ entry, isAdmin, onDelete, onUpdate, onMoveUp, onMoveDown }) {
+function EntryRow({ entry, isAdmin, onDelete, onUpdate, dragHandleProps }) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editTask, setEditTask] = useState("");
@@ -206,6 +180,11 @@ function EntryRow({ entry, isAdmin, onDelete, onUpdate, onMoveUp, onMoveDown }) 
   return (
     <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/80 dark:bg-slate-700/60 border border-white dark:border-slate-600 shadow-sm gap-2">
       <div className="flex items-center gap-2 min-w-0">
+        {isAdmin && (
+          <span {...dragHandleProps} className="text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing flex-shrink-0 touch-none">
+            <GripVertical className="w-3.5 h-3.5" />
+          </span>
+        )}
         <Avatar name={name} />
         <div className="min-w-0">
           <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-tight truncate">{name}</p>
@@ -220,8 +199,6 @@ function EntryRow({ entry, isAdmin, onDelete, onUpdate, onMoveUp, onMoveDown }) 
         )}
         {isAdmin && (
           <>
-            {onMoveUp && <button onClick={onMoveUp} className="text-slate-300 hover:text-blue-400 transition-colors"><ArrowUp className="w-3 h-3" /></button>}
-            {onMoveDown && <button onClick={onMoveDown} className="text-slate-300 hover:text-blue-400 transition-colors"><ArrowDown className="w-3 h-3" /></button>}
             <button onClick={startEdit} className="text-slate-300 hover:text-blue-500 transition-colors"><Pencil className="w-3 h-3" /></button>
             <button onClick={() => onDelete(entry.id)} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 className="w-3 h-3" /></button>
           </>
@@ -231,9 +208,39 @@ function EntryRow({ entry, isAdmin, onDelete, onUpdate, onMoveUp, onMoveDown }) 
   );
 }
 
-function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, shiftType, color, isAdmin, onDelete, onUpdate, onReorder, selectedDate }) {
-  const slots = Array.from({ length: slotCount }, (_, i) => entries[i] || null);
+function DraggableShiftList({ entries, shiftKey, isAdmin, onDelete, onUpdate }) {
+  return (
+    <Droppable droppableId={shiftKey}>
+      {(provided) => (
+        <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-1">
+          {entries.map((entry, i) => (
+            <Draggable key={entry.id} draggableId={entry.id} index={i} isDragDisabled={!isAdmin}>
+              {(prov, snapshot) => (
+                <div
+                  ref={prov.innerRef}
+                  {...prov.draggableProps}
+                  className={snapshot.isDragging ? "opacity-80 shadow-lg" : ""}
+                >
+                  <EntryRow
+                    entry={entry}
+                    isAdmin={isAdmin}
+                    onDelete={onDelete}
+                    onUpdate={onUpdate}
+                    dragHandleProps={prov.dragHandleProps}
+                  />
+                </div>
+              )}
+            </Draggable>
+          ))}
+          {provided.placeholder}
+        </div>
+      )}
+    </Droppable>
+  );
+}
 
+function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, shiftType, color, isAdmin, onDelete, onUpdate, selectedDate }) {
+  const emptyCount = Math.max(0, slotCount - entries.length);
   return (
     <div className={`rounded-xl border px-3 pt-2 pb-2.5 ${color.bg} ${color.border}`}>
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -242,36 +249,24 @@ function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, s
         <span className={`text-[10px] ${color.sub}`}>· {subtitle}</span>
       </div>
       <div className="space-y-1">
-        {slots.map((entry, i) =>
-          entry ? (
-            <EntryRow
-              key={entry.id}
-              entry={entry}
-              isAdmin={isAdmin}
-              onDelete={onDelete}
-              onUpdate={onUpdate}
-              onMoveUp={i > 0 ? () => onReorder(entries.filter(Boolean), entries.filter(Boolean).indexOf(entry), -1) : null}
-              onMoveDown={i < entries.filter(Boolean).length - 1 ? () => onReorder(entries.filter(Boolean), entries.filter(Boolean).indexOf(entry), 1) : null}
-            />
-          ) : (
-            <TemplateRow
-              key={`tmpl-${shiftType}-${i}`}
-              defaultTask={defaultTasks[i] || ""}
-              isAdmin={isAdmin}
-              slotIndex={i}
-              shiftType={shiftType}
-              selectedDate={selectedDate}
-              onUpdate={onUpdate}
-            />
-          )
-        )}
+        <DraggableShiftList entries={entries} shiftKey={shiftType} isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} />
+        {Array.from({ length: emptyCount }, (_, i) => (
+          <TemplateRow
+            key={`tmpl-${shiftType}-${i}`}
+            defaultTask={defaultTasks[entries.length + i] || ""}
+            isAdmin={isAdmin}
+            shiftType={shiftType}
+            selectedDate={selectedDate}
+            onUpdate={onUpdate}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-function OffDayCard({ entries, isAdmin, onDelete, onUpdate, onReorder, selectedDate }) {
-  const slots = Array.from({ length: OFF_SLOTS }, (_, i) => entries[i] || null);
+function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate }) {
+  const emptyCount = Math.max(0, OFF_SLOTS - entries.length);
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 px-3 pt-2 pb-2.5">
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -280,29 +275,17 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate, onReorder, selectedD
         <span className="text-[10px] text-slate-400 dark:text-slate-500">· Resting today</span>
       </div>
       <div className="space-y-1">
-        {slots.map((entry, i) =>
-          entry ? (
-            <EntryRow
-              key={entry.id}
-              entry={entry}
-              isAdmin={isAdmin}
-              onDelete={onDelete}
-              onUpdate={onUpdate}
-              onMoveUp={i > 0 ? () => onReorder(entries.filter(Boolean), entries.filter(Boolean).indexOf(entry), -1) : null}
-              onMoveDown={i < entries.filter(Boolean).length - 1 ? () => onReorder(entries.filter(Boolean), entries.filter(Boolean).indexOf(entry), 1) : null}
-            />
-          ) : (
-            <TemplateRow
-              key={`off-tmpl-${i}`}
-              defaultTask={OFF_DEFAULTS[i]}
-              isAdmin={isAdmin}
-              slotIndex={i}
-              shiftType="Off"
-              selectedDate={selectedDate}
-              onUpdate={onUpdate}
-            />
-          )
-        )}
+        <DraggableShiftList entries={entries} shiftKey="Off" isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} />
+        {Array.from({ length: emptyCount }, (_, i) => (
+          <TemplateRow
+            key={`off-tmpl-${i}`}
+            defaultTask={OFF_DEFAULTS[entries.length + i] || ""}
+            isAdmin={isAdmin}
+            shiftType="Off"
+            selectedDate={selectedDate}
+            onUpdate={onUpdate}
+          />
+        ))}
       </div>
     </div>
   );
@@ -311,17 +294,7 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate, onReorder, selectedD
 function offsetDate(dateStr, days) {
   const [y, m, d] = dateStr.split("-").map(Number);
   const dt = new Date(y, m - 1, d + days);
-  const yy = dt.getFullYear();
-  const mm = String(dt.getMonth() + 1).padStart(2, "0");
-  const dd = String(dt.getDate()).padStart(2, "0");
-  return `${yy}-${mm}-${dd}`;
-}
-
-function formatMediumDate(dateStr) {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-    weekday: "long", day: "numeric", month: "long",
-  });
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 }
 
 export default function RosterView({ isAdmin = false }) {
@@ -338,28 +311,38 @@ export default function RosterView({ isAdmin = false }) {
     queryFn: () => base44.entities.RosterDatabase.filter({ date: selectedDate }),
   });
 
-  // Sort by sort_order (admin-defined), falling back to employee_number for unset entries
   const sorted = [...entries].sort((a, b) => {
-    const aOrder = a.sort_order ?? 9999;
-    const bOrder = b.sort_order ?? 9999;
-    if (aOrder !== bOrder) return aOrder - bOrder;
+    const aO = a.sort_order ?? 9999;
+    const bO = b.sort_order ?? 9999;
+    if (aO !== bO) return aO - bO;
     return (a.employee_number ?? 999) - (b.employee_number ?? 999);
   });
-  const amEntries  = sorted.filter((e) => e.shift_type === "AM");
-  const pmEntries  = sorted.filter((e) => e.shift_type === "PM");
-  const offEntries = sorted.filter((e) => e.shift_type === "Off");
+  const amEntries  = sorted.filter(e => e.shift_type === "AM");
+  const pmEntries  = sorted.filter(e => e.shift_type === "PM");
+  const offEntries = sorted.filter(e => e.shift_type === "Off");
 
-  const handleReorder = async (shiftEntries, index, direction) => {
-    const swapIndex = index + direction;
-    if (swapIndex < 0 || swapIndex >= shiftEntries.length) return;
-    const a = shiftEntries[index];
-    const b = shiftEntries[swapIndex];
-    // Assign sort_order based on current positions, then swap
-    const orders = shiftEntries.map((e, i) => e.sort_order ?? i * 10);
-    await Promise.all([
-      base44.entities.RosterDatabase.update(a.id, { sort_order: orders[swapIndex] }),
-      base44.entities.RosterDatabase.update(b.id, { sort_order: orders[index] }),
-    ]);
+  const getShiftEntries = (shiftKey) => {
+    if (shiftKey === "AM") return amEntries;
+    if (shiftKey === "PM") return pmEntries;
+    return offEntries;
+  };
+
+  const handleDragEnd = async (result) => {
+    if (!result.destination) return;
+    const { source, destination } = result;
+    if (source.droppableId !== destination.droppableId) return;
+    if (source.index === destination.index) return;
+
+    const shiftEntries = getShiftEntries(source.droppableId);
+    const reordered = Array.from(shiftEntries);
+    const [moved] = reordered.splice(source.index, 1);
+    reordered.splice(destination.index, 0, moved);
+
+    await Promise.all(
+      reordered.map((entry, i) =>
+        base44.entities.RosterDatabase.update(entry.id, { sort_order: i * 10 })
+      )
+    );
     queryClient.invalidateQueries({ queryKey: ["roster"] });
   };
 
@@ -369,9 +352,7 @@ export default function RosterView({ isAdmin = false }) {
     toast.success("Entry removed.");
   };
 
-  const handleUpdate = () => {
-    queryClient.invalidateQueries({ queryKey: ["roster"] });
-  };
+  const handleUpdate = () => queryClient.invalidateQueries({ queryKey: ["roster"] });
 
   const handleQuickAssign = async () => {
     if (!qaForm.date || !qaForm.employee || !qaForm.shift) {
@@ -381,12 +362,9 @@ export default function RosterView({ isAdmin = false }) {
     setQaSaving(true);
     const emp = EMPLOYEES.find(e => String(e.value) === qaForm.employee);
     await base44.entities.RosterDatabase.create({
-      date: qaForm.date,
-      shift_type: qaForm.shift,
-      employee_number: emp.value,
-      employee_name: emp.label,
-      daily_task: qaForm.task,
-      caption: qaForm.caption,
+      date: qaForm.date, shift_type: qaForm.shift,
+      employee_number: emp.value, employee_name: emp.label,
+      daily_task: qaForm.task, caption: qaForm.caption,
     });
     queryClient.invalidateQueries({ queryKey: ["roster"] });
     toast.success("Assignment saved!");
@@ -396,97 +374,86 @@ export default function RosterView({ isAdmin = false }) {
   };
 
   return (
-    <div className="space-y-2 pb-20">
-      {/* Minimalist date navigator */}
-      <div className="flex items-center justify-between py-0.5">
-        {dayOffset > -1 ? (
-          <button
-            onClick={() => setDayOffset(d => d - 1)}
-            className="p-1 rounded-md text-slate-600 hover:bg-slate-100 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-        ) : (
-          <div className="w-6" />
-        )}
-        <div className="text-center">
-          <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{formatMediumDate(selectedDate)}</span>
-          {dayOffset === 0 && <span className="ml-1.5 text-[10px] text-blue-500 font-semibold">Today</span>}
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="space-y-2 pb-20">
+        <div className="flex items-center justify-between py-0.5">
+          {dayOffset > -1 ? (
+            <button onClick={() => setDayOffset(d => d - 1)} className="p-1 rounded-md text-slate-600 hover:bg-slate-100 transition-colors">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          ) : <div className="w-6" />}
+          <div className="text-center">
+            <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{formatMediumDate(selectedDate)}</span>
+            {dayOffset === 0 && <span className="ml-1.5 text-[10px] text-blue-500 font-semibold">Today</span>}
+          </div>
+          {(isAdmin || dayOffset < 1) ? (
+            <button onClick={() => setDayOffset(d => d + 1)} className="p-1 rounded-md text-slate-600 hover:bg-slate-100 transition-colors">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          ) : <div className="w-6" />}
         </div>
-        {(isAdmin || dayOffset < 1) ? (
-          <button
-            onClick={() => setDayOffset(d => d + 1)}
-            className="p-1 rounded-md text-slate-600 hover:bg-slate-100 transition-colors"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
+
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map(i => <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />)}
+          </div>
         ) : (
-          <div className="w-6" />
+          <>
+            <ShiftCard
+              emoji="🌅" title="AM Shift" subtitle="9:00 AM – 6:00 PM"
+              entries={amEntries} slotCount={AM_SLOTS} defaultTasks={AM_DEFAULTS} shiftType="AM"
+              isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate}
+              color={{ bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-amber-200 dark:border-amber-800", title: "text-amber-800 dark:text-amber-300", sub: "text-amber-500 dark:text-amber-600" }}
+            />
+            <ShiftCard
+              emoji="🌆" title="PM Shift" subtitle="1:00 PM – 9:00 PM"
+              entries={pmEntries} slotCount={PM_SLOTS} defaultTasks={PM_DEFAULTS} shiftType="PM"
+              isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate}
+              color={{ bg: "bg-violet-50 dark:bg-violet-950/40", border: "border-violet-200 dark:border-violet-800", title: "text-violet-800 dark:text-violet-300", sub: "text-violet-500 dark:text-violet-600" }}
+            />
+            <OffDayCard entries={offEntries} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate} />
+          </>
+        )}
+
+        {isAdmin && (
+          <div className="fixed bottom-20 right-4 z-30">
+            {showQuickAssign ? (
+              <div className="bg-white rounded-2xl border border-border shadow-xl p-4 w-72 space-y-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-bold text-slate-800">Quick Assign</span>
+                  <button onClick={() => setShowQuickAssign(false)} className="text-slate-400 hover:text-slate-600 text-lg leading-none">✕</button>
+                </div>
+                <input type="date" value={qaForm.date || selectedDate} onChange={e => setQaForm(f => ({ ...f, date: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                <select value={qaForm.employee} onChange={e => setQaForm(f => ({ ...f, employee: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+                  <option value="">Select employee</option>
+                  {EMPLOYEES.map(emp => <option key={emp.value} value={String(emp.value)}>{emp.value}. {emp.label}</option>)}
+                </select>
+                <select value={qaForm.shift} onChange={e => setQaForm(f => ({ ...f, shift: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+                  <option value="">Select shift</option>
+                  <option value="AM">AM Shift</option>
+                  <option value="PM">PM Shift</option>
+                  <option value="Off">OFF Day</option>
+                </select>
+                <input type="text" value={qaForm.task} onChange={e => setQaForm(f => ({ ...f, task: e.target.value }))}
+                  placeholder="Task (optional)" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                <input type="text" value={qaForm.caption} onChange={e => setQaForm(f => ({ ...f, caption: e.target.value }))}
+                  placeholder="Caption (optional, e.g. Seat 3)" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                <Button className="w-full h-9 text-sm font-semibold" onClick={handleQuickAssign} disabled={qaSaving}>
+                  {qaSaving ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            ) : (
+              <button onClick={() => setShowQuickAssign(true)}
+                className="w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors">
+                <Plus className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         )}
       </div>
-
-      {isLoading ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
-          ))}
-        </div>
-      ) : (
-        <>
-          <ShiftCard
-            emoji="🌅" title="AM Shift" subtitle="9:00 AM – 6:00 PM"
-            entries={amEntries} slotCount={AM_SLOTS} defaultTasks={AM_DEFAULTS} shiftType="AM"
-            isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} onReorder={handleReorder} selectedDate={selectedDate}
-            color={{ bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-amber-200 dark:border-amber-800", title: "text-amber-800 dark:text-amber-300", sub: "text-amber-500 dark:text-amber-600" }}
-          />
-          <ShiftCard
-            emoji="🌆" title="PM Shift" subtitle="1:00 PM – 9:00 PM"
-            entries={pmEntries} slotCount={PM_SLOTS} defaultTasks={PM_DEFAULTS} shiftType="PM"
-            isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} onReorder={handleReorder} selectedDate={selectedDate}
-            color={{ bg: "bg-violet-50 dark:bg-violet-950/40", border: "border-violet-200 dark:border-violet-800", title: "text-violet-800 dark:text-violet-300", sub: "text-violet-500 dark:text-violet-600" }}
-          />
-          <OffDayCard entries={offEntries} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} onReorder={handleReorder} selectedDate={selectedDate} />
-        </>
-      )}
-
-      {isAdmin && (
-        <div className="fixed bottom-20 right-4 z-30">
-          {showQuickAssign ? (
-            <div className="bg-white rounded-2xl border border-border shadow-xl p-4 w-72 space-y-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-bold text-slate-800">Quick Assign</span>
-                <button onClick={() => setShowQuickAssign(false)} className="text-slate-400 hover:text-slate-600 text-lg leading-none">✕</button>
-              </div>
-              <input type="date" value={qaForm.date || selectedDate} onChange={e => setQaForm(f => ({ ...f, date: e.target.value }))}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-              <select value={qaForm.employee} onChange={e => setQaForm(f => ({ ...f, employee: e.target.value }))}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
-                <option value="">Select employee</option>
-                {EMPLOYEES.map(emp => <option key={emp.value} value={String(emp.value)}>{emp.value}. {emp.label}</option>)}
-              </select>
-              <select value={qaForm.shift} onChange={e => setQaForm(f => ({ ...f, shift: e.target.value }))}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
-                <option value="">Select shift</option>
-                <option value="AM">AM Shift</option>
-                <option value="PM">PM Shift</option>
-                <option value="Off">OFF Day</option>
-              </select>
-              <input type="text" value={qaForm.task} onChange={e => setQaForm(f => ({ ...f, task: e.target.value }))}
-                placeholder="Task (optional)" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-              <input type="text" value={qaForm.caption} onChange={e => setQaForm(f => ({ ...f, caption: e.target.value }))}
-                placeholder="Caption (optional, e.g. Seat 3)" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-              <Button className="w-full h-9 text-sm font-semibold" onClick={handleQuickAssign} disabled={qaSaving}>
-                {qaSaving ? "Saving…" : "Save"}
-              </Button>
-            </div>
-          ) : (
-            <button onClick={() => setShowQuickAssign(true)}
-              className="w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors">
-              <Plus className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+    </DragDropContext>
   );
 }
