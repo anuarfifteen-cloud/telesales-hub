@@ -13,6 +13,8 @@ import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, Log
 import { getStoredTheme, applyTheme } from "@/lib/theme";
 import AdminPinModal from "@/components/admin/AdminPinModal";
 import AdminBookingSettings from "@/components/admin/AdminBookingSettings";
+import AdminAnnouncement from "@/components/admin/AdminAnnouncement";
+import AnnouncementPanel from "@/components/announcements/AnnouncementPanel";
 import RosterView from "@/components/roster/RosterView";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -43,6 +45,10 @@ export default function Home() {
   const [unlockHour, setUnlockHour] = useState(19);
   const [unlockMinute, setUnlockMinute] = useState(30);
   const [isDarkMode, setIsDarkMode] = useState(() => getStoredTheme());
+  const [showAnnouncementPanel, setShowAnnouncementPanel] = useState(false);
+  const [seenAnnouncementIds, setSeenAnnouncementIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("seenAnnouncements") || "[]"); } catch { return []; }
+  });
   const dates = getBookableDates();
   const queryClient = useQueryClient();
   const bruneiNow = useBruneiClock();
@@ -71,6 +77,26 @@ export default function Home() {
     queryFn: () => base44.entities.Booking.list(),
     enabled: !!user,
   });
+
+  const { data: announcements = [] } = useQuery({
+    queryKey: ["announcements"],
+    queryFn: () => base44.entities.Announcement.list("-created_date", 50),
+    refetchInterval: 60000,
+  });
+
+  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+  const activeAnnouncements = announcements.filter(
+    a => Date.now() - new Date(a.created_date).getTime() < TWENTY_FOUR_HOURS
+  );
+  const hasUnread = activeAnnouncements.some(a => !seenAnnouncementIds.includes(a.id));
+
+  const handleOpenAnnouncements = () => {
+    const ids = activeAnnouncements.map(a => a.id);
+    const merged = [...new Set([...seenAnnouncementIds, ...ids])];
+    setSeenAnnouncementIds(merged);
+    try { localStorage.setItem("seenAnnouncements", JSON.stringify(merged)); } catch {}
+    setShowAnnouncementPanel(true);
+  };
 
   useEffect(() => {
     const unsub = base44.entities.Booking.subscribe(() => {
@@ -260,13 +286,20 @@ export default function Home() {
           </div>
 
           {/* Right: admin badge or bell */}
-          {isAdmin ? (
-            <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-1 rounded-full border border-red-200">ADMIN</span>
-          ) : (
-            <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors relative">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleOpenAnnouncements}
+              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative"
+            >
               <Bell className="w-5 h-5 text-slate-500" />
+              {hasUnread && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-slate-900" />
+              )}
             </button>
-          )}
+            {isAdmin && (
+              <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-1 rounded-full border border-red-200">ADMIN</span>
+            )}
+          </div>
         </div>
       </header>
 
@@ -300,6 +333,11 @@ export default function Home() {
                 Daily Schedule
               </button>
             </div>
+
+            {/* Admin Tools */}
+            {isAdmin && (
+              <AdminAnnouncement adminName={user?.full_name} />
+            )}
 
             {/* Admin Booking Settings */}
             {isAdmin && (
@@ -584,6 +622,13 @@ export default function Home() {
         <AdminPinModal
           onClose={() => setShowPinModal(false)}
           onSuccess={() => { setShowPinModal(false); setIsAdminLoggedIn(true); setIsAdmin(true); }}
+        />
+      )}
+
+      {showAnnouncementPanel && (
+        <AnnouncementPanel
+          announcements={announcements}
+          onClose={() => setShowAnnouncementPanel(false)}
         />
       )}
 

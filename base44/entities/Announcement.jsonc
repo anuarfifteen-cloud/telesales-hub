@@ -1,0 +1,17 @@
+{
+  "name": "Announcement",
+  "type": "object",
+  "properties": {
+    "message": {
+      "type": "string",
+      "description": "The announcement message to broadcast to all agents"
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Name of the admin who sent the announcement"
+    }
+  },
+  "required": [
+    "message"
+  ]
+}
