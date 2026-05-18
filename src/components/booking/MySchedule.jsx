@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { CalendarCheck } from "lucide-react";
 import { SLOTS, getAmSlots, isFriday } from "@/lib/slots";
 
-function SlotRow({ slot, bookings }) {
+function SlotRow({ slot, bookings, globalRankMap }) {
   const isAM = slot.shift === "AM";
 
   // Friday restricted slot: show static gender badge only
@@ -34,20 +34,14 @@ function SlotRow({ slot, bookings }) {
   }
 
   const slotBookings = bookings.filter((b) => b.slot_id === slot.id);
-
-  // Sort by created_date ascending (millisecond precision) to get definitive rank order
-  const ranked = [...slotBookings].sort(
-    (a, b) => new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
-  );
-
-  const remaining = slot.maxBookings - ranked.length;
+  const remaining = slot.maxBookings - slotBookings.length;
 
   const items = [
-    ...ranked.map((b, i) => ({
+    ...slotBookings.map((b) => ({
       type: "booked",
       name: b.user_name || b.user_email?.split("@")[0],
       booked_at: b.booked_at,
-      rank: i + 1,
+      globalRank: globalRankMap[b.id],
     })),
     ...Array(Math.max(0, remaining)).fill({ type: "available" }),
   ];
@@ -68,12 +62,12 @@ function SlotRow({ slot, bookings }) {
       <div className="flex flex-row flex-wrap gap-1.5 items-start pl-4 sm:pl-0 sm:justify-end">
         {items.map((item, idx) =>
           item.type === "booked" ? (
-            <div key={idx} className={`flex flex-col items-start px-2 py-1 rounded-md min-w-0 ${item.rank === 1 ? "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800" : "bg-secondary"}`}>
+            <div key={idx} className={`flex flex-col items-start px-2 py-1 rounded-md min-w-0 ${item.globalRank === 1 ? "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800" : "bg-secondary"}`}>
               <span className="text-xs font-semibold text-foreground break-words whitespace-normal">
                 {item.name}
               </span>
-              <span className={`text-[10px] leading-tight mt-0.5 font-medium ${item.rank === 1 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
-                #{item.rank}{item.booked_at ? ` · ${item.booked_at}` : ""}
+              <span className={`text-[10px] leading-tight mt-0.5 font-medium ${item.globalRank === 1 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                Daily #{item.globalRank}{item.booked_at ? ` · ${item.booked_at}` : ""}
               </span>
             </div>
           ) : (
@@ -87,7 +81,7 @@ function SlotRow({ slot, bookings }) {
   );
 }
 
-function ShiftSection({ label, emoji, slots, bookings }) {
+function ShiftSection({ label, emoji, slots, bookings, globalRankMap }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
@@ -97,7 +91,7 @@ function ShiftSection({ label, emoji, slots, bookings }) {
       </div>
       <div className="space-y-1.5">
         {slots.map((slot) => (
-          <SlotRow key={slot.id} slot={slot} bookings={bookings} />
+          <SlotRow key={slot.id} slot={slot} bookings={bookings} globalRankMap={globalRankMap} />
         ))}
       </div>
     </div>
@@ -108,14 +102,20 @@ export default function MySchedule({ bookings, selectedDate }) {
   const amSlots = getAmSlots(selectedDate);
   const pmSlots = SLOTS.filter((s) => s.shift === "PM");
 
+  // Build a global daily rank map: sort ALL bookings for the day by created_date ms
+  const globalRankMap = {};
+  [...bookings]
+    .sort((a, b) => new Date(a.created_date).getTime() - new Date(b.created_date).getTime())
+    .forEach((b, i) => { globalRankMap[b.id] = i + 1; });
+
   return (
     <section className="rounded-xl border border-primary/20 bg-accent p-4 space-y-4">
       <div className="flex items-center gap-2">
         <CalendarCheck className="w-4 h-4 text-accent-foreground" />
         <p className="text-sm font-semibold text-accent-foreground">Daily Master Schedule</p>
       </div>
-      <ShiftSection label="AM Shift" emoji="🌤" slots={amSlots} bookings={bookings} />
-      <ShiftSection label="PM Shift" emoji="🌆" slots={pmSlots} bookings={bookings} />
+      <ShiftSection label="AM Shift" emoji="🌤" slots={amSlots} bookings={bookings} globalRankMap={globalRankMap} />
+      <ShiftSection label="PM Shift" emoji="🌆" slots={pmSlots} bookings={bookings} globalRankMap={globalRankMap} />
     </section>
   );
 }
