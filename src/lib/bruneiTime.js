@@ -8,5 +8,5 @@ const TZ = "Asia/Brunei";
  */
 export function formatBruneiTime(dateStr) {
   const zoned = toZonedTime(new Date(dateStr), TZ);
-  return format(zoned, "d MMM, h:mm aa", { timeZone: TZ });
+  return format(zoned, "d MMM, h:mm aaa", { timeZone: TZ });
 }

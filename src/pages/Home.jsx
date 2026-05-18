@@ -292,8 +292,10 @@ export default function Home() {
               className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative"
             >
               <Bell className="w-5 h-5 text-slate-500" />
-              {hasUnread && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-slate-900" />
+              {hasUnread && activeAnnouncements.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 border border-white dark:border-slate-900">
+                  {activeAnnouncements.length}
+                </span>
               )}
             </button>
             {isAdmin && (
