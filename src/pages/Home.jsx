@@ -348,7 +348,7 @@ export default function Home() {
                         <div className="mt-2 bg-amber-50 dark:bg-amber-950/40 border border-orange-200 dark:border-orange-800 rounded-lg p-3">
                           <p className="font-bold text-orange-800 dark:text-orange-300 text-sm">🔒 Booking not open yet.</p>
                           <p className="text-orange-700 dark:text-orange-400 text-sm mt-0.5">
-                            Bookings open on {dayNum} {monthName} 7:30 PM.
+                            Bookings open on {dayNum} {monthName} {unlockHour % 12 === 0 ? 12 : unlockHour % 12}:{String(unlockMinute).padStart(2, "0")} {unlockHour >= 12 ? "PM" : "AM"}.
                           </p>
                         </div>
                       );
