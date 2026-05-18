@@ -81,8 +81,23 @@ export default function Home() {
   }, [selectedDate]);
 
   const createMutation = useMutation({
-    mutationFn: (slot) =>
-      base44.entities.Booking.create({
+    mutationFn: async (slot) => {
+      // Re-fetch the latest bookings for this slot atomically before writing
+      const freshBookings = await base44.entities.Booking.filter({ date: selectedDate, slot_id: slot.id });
+
+      // Check if user already has a booking for this date
+      const dateBookings = await base44.entities.Booking.filter({ date: selectedDate, user_email: user.email });
+      if (dateBookings.length > 0) {
+        throw new Error("ALREADY_BOOKED");
+      }
+
+      // Check capacity with fresh data
+      if (freshBookings.length >= slot.maxBookings) {
+        throw new Error("SLOT_FULL");
+      }
+
+      // Slot is still available — write the booking
+      return base44.entities.Booking.create({
         date: selectedDate,
         slot_id: slot.id,
         slot_label: slot.label,
@@ -90,7 +105,8 @@ export default function Home() {
         user_email: user.email,
         user_name: user.full_name,
         booked_at: tzFormat(new Date(), "hh:mm:ss aa", { timeZone: TZ }),
-      }),
+      });
+    },
     onMutate: async (slot) => {
       await queryClient.cancelQueries({ queryKey: ["bookings", selectedDate] });
       const prev = queryClient.getQueryData(["bookings", selectedDate]);
@@ -110,12 +126,19 @@ export default function Home() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
       queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
-      toast.success("Break booked successfully!");
+      toast.success("Booking successful! Your slot is confirmed.");
     },
     onError: (err, slot, context) => {
+      // Roll back optimistic update
       queryClient.setQueryData(["bookings", selectedDate], context.prev);
+      queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
       queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
-      toast.error("Failed to book. Please try again.");
+
+      if (err.message === "SLOT_FULL" || err.message === "ALREADY_BOOKED") {
+        toast.error("This time slot is no longer available. Please select an alternative open slot.");
+      } else {
+        toast.error("Failed to book. Please try again.");
+      }
     },
   });
 
@@ -146,11 +169,6 @@ export default function Home() {
 
   const handleBook = (slot) => {
     if (!user) return;
-    const existing = bookings.find((b) => b.user_email === user.email);
-    if (existing) {
-      toast.error("You already have a break booked for this day.");
-      return;
-    }
     createMutation.mutate(slot);
   };
 
