@@ -12,6 +12,17 @@ import LiveClock from "@/components/booking/LiveClock";
 import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon } from "lucide-react";
 import { getStoredTheme, applyTheme } from "@/lib/theme";
 import AdminPinModal from "@/components/admin/AdminPinModal";
+import AdminBookingTotals from "@/components/admin/AdminBookingTotals";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import AdminBookingSettings from "@/components/admin/AdminBookingSettings";
 import AdminAnnouncement from "@/components/admin/AdminAnnouncement";
 import AnnouncementPanel from "@/components/announcements/AnnouncementPanel";
@@ -46,6 +57,7 @@ export default function Home() {
   const [unlockMinute, setUnlockMinute] = useState(30);
   const [isDarkMode, setIsDarkMode] = useState(() => getStoredTheme());
   const [showAnnouncementPanel, setShowAnnouncementPanel] = useState(false);
+  const [showDstConfirm, setShowDstConfirm] = useState(false);
   const [seenAnnouncementIds, setSeenAnnouncementIds] = useState(() => {
     try {return JSON.parse(localStorage.getItem("seenAnnouncements") || "[]");} catch {return [];}
   });
@@ -438,29 +450,47 @@ export default function Home() {
                           ✓ Logged
                         </span>
                       ) : (
-                        <button
-                          disabled={!user || isMutating}
-                          onClick={async () => {
-                            if (!user) return;
-                            const existing = await base44.entities.Booking.filter({ date: selectedDate, slot_id: "DST_POPUP", user_email: user.email });
-                            if (existing.length > 0) { toast.error("Already logged for today."); return; }
-                            await base44.entities.Booking.create({
-                              date: selectedDate,
-                              slot_id: "DST_POPUP",
-                              slot_label: "Off-Day / Duty Outside",
-                              shift: "AM",
-                              user_email: user.email,
-                              user_name: user.full_name,
-                              booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ })
-                            });
-                            queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
-                            queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
-                            toast.success("Off-Day/Duty logged! Credit earned.");
-                          }}
-                          className="flex-shrink-0 text-[11px] font-bold bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50"
-                        >
-                          Log Activity
-                        </button>
+                        <>
+                          <button
+                            disabled={!user || isMutating}
+                            onClick={() => setShowDstConfirm(true)}
+                            className="flex-shrink-0 text-[11px] font-bold bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50"
+                          >
+                            Log Activity
+                          </button>
+                          <AlertDialog open={showDstConfirm} onOpenChange={setShowDstConfirm}>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Log Off-Day / DST Pop Up?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will count as your activity for <strong>{selectedDate}</strong> and earn you 1 booking credit. You cannot undo this action once logged.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={async () => {
+                                  if (!user) return;
+                                  const existing = await base44.entities.Booking.filter({ date: selectedDate, slot_id: "DST_POPUP", user_email: user.email });
+                                  if (existing.length > 0) { toast.error("Already logged for today."); return; }
+                                  await base44.entities.Booking.create({
+                                    date: selectedDate,
+                                    slot_id: "DST_POPUP",
+                                    slot_label: "Off-Day / Duty Outside",
+                                    shift: "AM",
+                                    user_email: user.email,
+                                    user_name: user.full_name,
+                                    booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ })
+                                  });
+                                  queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+                                  queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
+                                  toast.success("Off-Day/Duty logged! Credit earned.");
+                                }}>
+                                  Confirm & Log
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </>
                       )}
                     </div>
                   );
@@ -701,6 +731,9 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+
+              {/* Admin: Booking Totals */}
+              {isAdmin && <AdminBookingTotals />}
 
               {/* Log Out */}
               <Button
