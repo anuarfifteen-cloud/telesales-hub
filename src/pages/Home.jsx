@@ -214,13 +214,7 @@ export default function Home() {
 
   const isMutating = createMutation.isPending || cancelMutation.isPending;
 
-  // Build unlock time from admin-configurable hour/minute (Brunei TZ = UTC+8)
-  const unlockTime = selectedDate ? (() => {
-    const [y, mo, d] = selectedDate.split("-").map(Number);
-    // previous day at unlockHour:unlockMinute Brunei time → subtract 8h for UTC
-    const localMs = new Date(y, mo - 1, d - 1, unlockHour, unlockMinute, 0, 0).getTime();
-    return new Date(localMs - 8 * 60 * 60 * 1000);
-  })() : null;
+  const unlockTime = selectedDate ? getUnlockTime(selectedDate) : null;
 
   // Admin bypasses the lock entirely
   const effectiveUnlockTime = isAdmin ? new Date(0) : unlockTime;
@@ -379,7 +373,7 @@ export default function Home() {
                     <h2 className="font-semibold text-foreground text-base leading-tight">
                       {formatDate(selectedDate)}
                     </h2>
-                    {effectiveUnlockTime && bruneiNow < effectiveUnlockTime && (() => {
+                    {effectiveUnlockTime && bruneiNow.getTime() < effectiveUnlockTime.getTime() && (() => {
                       const [y, mo, d] = selectedDate.split("-").map(Number);
                       const prevDay = new Date(y, mo - 1, d - 1);
                       const dayNum = prevDay.getDate();
