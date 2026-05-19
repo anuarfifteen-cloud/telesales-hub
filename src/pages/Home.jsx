@@ -429,7 +429,7 @@ export default function Home() {
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-base">🏖️</span>
                         <div>
-                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Off-Day / Duty Outside</p>
+                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Off-Day / DST Pop Up</p>
                           <p className="text-[11px] text-muted-foreground">Log activity &amp; earn booking credit</p>
                         </div>
                       </div>
