@@ -609,7 +609,7 @@ export default function Home() {
                       <span className={`text-base mt-0.5 ${earlyAccessUnlocked ? "" : "grayscale opacity-50"}`}>⚡</span>
                       <div>
                         <span className={`text-sm font-medium ${earlyAccessUnlocked ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
-                          30-Min Early Booking
+                          👑 VIP Booking Pass
                         </span>
                         {earlyAccessUnlocked ? (
                           <p className="text-[10px] text-emerald-600 dark:text-emerald-400 leading-none mt-0.5 font-semibold">
