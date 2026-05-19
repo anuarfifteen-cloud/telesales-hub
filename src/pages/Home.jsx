@@ -463,7 +463,7 @@ export default function Home() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Log Off-Day / DST Pop Up?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will count as your activity for <strong>{selectedDate}</strong> and earn you 1 booking credit. You cannot undo this action once logged.
+                                  This will count as your activity for <strong>{selectedDate}</strong> (INCLUDING PL) and earn you 1 booking credit. You cannot undo this action once logged.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
