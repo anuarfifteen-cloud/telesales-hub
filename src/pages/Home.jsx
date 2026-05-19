@@ -573,6 +573,7 @@ export default function Home() {
               <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
                 <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">⚙️ App Settings</p>
                 <div className="space-y-4">
+                <p   </p>
                   {/* Tier 1: Dark Mode */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
