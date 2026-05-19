@@ -617,7 +617,7 @@ export default function Home() {
                           </p>
                         ) : (
                           <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-none mt-0.5">
-                            🔒 Locked ({totalCount}/15 bookings)
+                            Hit 15 Boooking to Unlock! ({totalCount}/15 bookings)
                           </p>
                         )}
                       </div>
