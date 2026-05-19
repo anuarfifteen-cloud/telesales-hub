@@ -108,22 +108,20 @@ export default function Home() {
 
   const createMutation = useMutation({
     mutationFn: async (slot) => {
-      // Re-fetch the latest bookings for this slot atomically before writing
-      const freshBookings = await base44.entities.Booking.filter({ date: selectedDate, slot_id: slot.id });
-
-      // Check if user already has a booking for this date
+      // Pre-flight: check if user already has a booking for this date
       const dateBookings = await base44.entities.Booking.filter({ date: selectedDate, user_email: user.email });
       if (dateBookings.length > 0) {
         throw new Error("ALREADY_BOOKED");
       }
 
-      // Check capacity with fresh data
+      // Pre-flight: check capacity
+      const freshBookings = await base44.entities.Booking.filter({ date: selectedDate, slot_id: slot.id });
       if (freshBookings.length >= slot.maxBookings) {
         throw new Error("SLOT_FULL");
       }
 
-      // Slot is still available — write the booking
-      return base44.entities.Booking.create({
+      // Write the booking
+      const newBooking = await base44.entities.Booking.create({
         date: selectedDate,
         slot_id: slot.id,
         slot_label: slot.label,
@@ -132,6 +130,26 @@ export default function Home() {
         user_name: user.full_name,
         booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ })
       });
+
+      // --- POST-WRITE TIMESTAMP TIE-BREAKER ---
+      // Re-fetch ALL bookings for this slot now that we've written
+      const allSlotBookings = await base44.entities.Booking.filter({ date: selectedDate, slot_id: slot.id });
+
+      // Sort by database creation timestamp ascending (earliest = winner)
+      const sorted = [...allSlotBookings].sort((a, b) =>
+        new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
+      );
+
+      const myIndex = sorted.findIndex(b => b.id === newBooking.id);
+
+      if (myIndex >= slot.maxBookings) {
+        // LOSER — rolled past capacity, delete our booking and surface the error
+        await base44.entities.Booking.delete(newBooking.id);
+        throw new Error("RACE_CONDITION");
+      }
+
+      // WINNER — return the confirmed booking
+      return newBooking;
     },
     onMutate: async (slot) => {
       await queryClient.cancelQueries({ queryKey: ["bookings", selectedDate] });
@@ -160,7 +178,9 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
       queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
 
-      if (err.message === "SLOT_FULL" || err.message === "ALREADY_BOOKED") {
+      if (err.message === "RACE_CONDITION") {
+        toast.error("Someone beat you to this slot by a millisecond. Your booking was voided — please select another slot.");
+      } else if (err.message === "SLOT_FULL" || err.message === "ALREADY_BOOKED") {
         toast.error("This time slot is no longer available. Please select an alternative open slot.");
       } else {
         toast.error("Failed to book. Please try again.");
