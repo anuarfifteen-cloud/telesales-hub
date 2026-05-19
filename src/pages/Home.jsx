@@ -465,7 +465,7 @@ export default function Home() {
                                 <AlertDialogDescription>
                                   This will count as your activity for <strong>{selectedDate}</strong> and earn you 1 booking credit. You cannot undo this action once logged.
                                   <br /><br />
-                                     <strong>⚠️ NOTE: This includes PL!</strong>
+                                     <strong>⚠️ NOTE: This includes PL</strong>
                               </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
