@@ -419,6 +419,53 @@ export default function Home() {
                   </div>
             }
 
+                {/* ── Off-Day / Duty Outside Office Log ── */}
+                {(() => {
+                  const dstBooking = bookings.find(
+                    (b) => b.slot_id === "DST_POPUP" && b.user_email === user?.email
+                  );
+                  return (
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-4 py-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-base">🏖️</span>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Off-Day / Duty Outside</p>
+                          <p className="text-[11px] text-muted-foreground">Log activity &amp; earn booking credit</p>
+                        </div>
+                      </div>
+                      {dstBooking ? (
+                        <span className="flex-shrink-0 text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
+                          ✓ Logged
+                        </span>
+                      ) : (
+                        <button
+                          disabled={!user || isMutating}
+                          onClick={async () => {
+                            if (!user) return;
+                            const existing = await base44.entities.Booking.filter({ date: selectedDate, slot_id: "DST_POPUP", user_email: user.email });
+                            if (existing.length > 0) { toast.error("Already logged for today."); return; }
+                            await base44.entities.Booking.create({
+                              date: selectedDate,
+                              slot_id: "DST_POPUP",
+                              slot_label: "Off-Day / Duty Outside",
+                              shift: "AM",
+                              user_email: user.email,
+                              user_name: user.full_name,
+                              booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ })
+                            });
+                            queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+                            queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
+                            toast.success("Off-Day/Duty logged! Credit earned.");
+                          }}
+                          className="flex-shrink-0 text-[11px] font-bold bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50"
+                        >
+                          Log Activity
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {isLoading ?
             <div className="space-y-2">
                     {[1, 2, 3, 4, 5, 6].map((i) =>
