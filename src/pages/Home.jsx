@@ -452,7 +452,7 @@ export default function Home() {
                       ) : (
                         <>
                           <button
-                            disabled={!user || isMutating}
+                            disabled={!user || isMutating || (effectiveUnlockTime && bruneiNow.getTime() < effectiveUnlockTime.getTime())}
                             onClick={() => setShowDstConfirm(true)}
                             className="flex-shrink-0 text-[11px] font-bold bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50"
                           >
