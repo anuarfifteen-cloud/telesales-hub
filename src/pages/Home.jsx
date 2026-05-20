@@ -177,6 +177,10 @@ export default function Home() {
     onMutate: async (slot) => {
       await queryClient.cancelQueries({ queryKey: ["bookings", selectedDate] });
       const prev = queryClient.getQueryData(["bookings", selectedDate]);
+       const prevWeekBookings = queryClient.getQueryData(["bookings-week", dates[0]]) || [];
+      const prevMyBookings = prevWeekBookings.filter((b) => b.user_email === user?.email);
+      const prevTotalBookingCount = prevMyBookings.length;
+
       const optimistic = {
         id: "__optimistic__",
         date: selectedDate,
@@ -186,14 +190,26 @@ export default function Home() {
         user_email: user.email,
         user_name: user.full_name
       };
-      queryClient.setQueryData(["bookings", selectedDate], (old = []) => [...old, optimistic]);
-      queryClient.setQueryData(["bookings-week", dates[0]], (old = []) => [...old, optimistic]);
-      return { prev };
+      queryClient.setQueryData([\"bookings\", selectedDate], (old = []) => [...old, optimistic]);
+      queryClient.setQueryData([\"bookings-week\", dates[0]], (old = []) => [...old, optimistic]);
+      return { prev, prevTotalBookingCount };
     },
-    onSuccess: () => {
+    onSuccess: (newBooking, variables, context) => {
       queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
       queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
       toast.success("Booking successful! Your slot is confirmed.");
+
+      // Add these lines for feature unlock notifications
+      const currentWeekBookings = queryClient.getQueryData(["bookings-week", dates[0]]) || [];
+      const currentMyBookings = currentWeekBookings.filter((b) => b.user_email === user?.email);
+      const currentTotalBookingCount = currentMyBookings.length;
+
+      if (currentTotalBookingCount >= 5 && context.prevTotalBookingCount < 5) {
+        toast.success("🎉 Dark Mode Unlocked! Check your profile settings.", { duration: 5000 });
+      }
+      if (currentTotalBookingCount >= 15 && context.prevTotalBookingCount < 15) {
+        toast.success("👑 VIP Booking Pass Unlocked! You can now book 30 minutes earlier.", { duration: 5000 });
+      }
     },
     onError: (err, slot, context) => {
       // Roll back optimistic update
