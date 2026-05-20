@@ -26,6 +26,7 @@ import {
 import AdminBookingSettings from "@/components/admin/AdminBookingSettings";
 import AdminAnnouncement from "@/components/admin/AdminAnnouncement";
 import AnnouncementPanel from "@/components/announcements/AnnouncementPanel";
+import AnnouncementPopup from "@/components/announcements/AnnouncementPopup";
 import RosterView from "@/components/roster/RosterView";
 import { Button } from "@/components/ui/button";
 import FeatureUnlockModal from "@/components/FeatureUnlockModal";
@@ -70,6 +71,7 @@ export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(() => getStoredTheme());
   const [showAnnouncementPanel, setShowAnnouncementPanel] = useState(false);
   const [showDstConfirm, setShowDstConfirm] = useState(false);
+  const [activePopup, setActivePopup] = useState(null);
   const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
 
   const checkMilestones = (totalCount) => {
@@ -138,6 +140,15 @@ export default function Home() {
     (a) => Date.now() - new Date(a.created_date).getTime() < TWENTY_FOUR_HOURS
   );
   const hasUnread = activeAnnouncements.some((a) => !seenAnnouncementIds.includes(a.id));
+
+  // Show popup for any active popup announcement the user hasn't dismissed yet
+  useEffect(() => {
+    if (!user) return;
+    const pending = activeAnnouncements.find(
+      (a) => a.isPopup && !localStorage.getItem(`seen_popup_${a.id}`)
+    );
+    if (pending) setActivePopup(pending);
+  }, [announcements, user]);
 
   const handleOpenAnnouncements = () => {
     const ids = activeAnnouncements.map((a) => a.id);
@@ -828,6 +839,10 @@ export default function Home() {
         announcements={announcements}
         onClose={() => setShowAnnouncementPanel(false)} />
       }
+
+      <AnnouncementPopup
+        announcement={activePopup}
+        onDismiss={() => setActivePopup(null)} />
 
       <FeatureUnlockModal
         isOpen={unlockModal.open}

@@ -13,6 +13,11 @@
     "created_by_name": {
       "type": "string",
       "description": "Name of the admin who sent the announcement"
+    },
+    "isPopup": {
+      "type": "boolean",
+      "description": "If true, this announcement will also appear as a pop-up alert for each agent",
+      "default": false
     }
   },
   "required": [

@@ -11,10 +11,12 @@ const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 export default function AdminAnnouncement({ adminName }) {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [isPopup, setIsPopup] = useState(false);
   const [sending, setSending] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editSubject, setEditSubject] = useState("");
   const [editValue, setEditValue] = useState("");
+  const [editIsPopup, setEditIsPopup] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: announcements = [] } = useQuery({
@@ -33,10 +35,12 @@ export default function AdminAnnouncement({ adminName }) {
       subject: subject.trim() || undefined,
       message: message.trim(),
       created_by_name: adminName || "Admin",
+      isPopup,
     });
     queryClient.invalidateQueries({ queryKey: ["announcements"] });
     setSubject("");
     setMessage("");
+    setIsPopup(false);
     setSending(false);
     toast.success("Announcement sent!");
   };
@@ -51,6 +55,7 @@ export default function AdminAnnouncement({ adminName }) {
     setEditingId(a.id);
     setEditSubject(a.subject || "");
     setEditValue(a.message);
+    setEditIsPopup(!!a.isPopup);
   };
 
   const saveEdit = async (id) => {
@@ -58,6 +63,7 @@ export default function AdminAnnouncement({ adminName }) {
     await base44.entities.Announcement.update(id, {
       subject: editSubject.trim() || undefined,
       message: editValue.trim(),
+      isPopup: editIsPopup,
     });
     queryClient.invalidateQueries({ queryKey: ["announcements"] });
     setEditingId(null);
@@ -84,6 +90,20 @@ export default function AdminAnnouncement({ adminName }) {
         rows={3}
         className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
       />
+
+      {/* Pop-up toggle */}
+      <label className="flex items-center gap-2.5 cursor-pointer select-none">
+        <div
+          onClick={() => setIsPopup(v => !v)}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isPopup ? "bg-orange-500" : "bg-slate-200 dark:bg-slate-700"}`}
+        >
+          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${isPopup ? "translate-x-4" : "translate-x-0.5"}`} />
+        </div>
+        <span className="text-sm text-slate-600 dark:text-slate-300">
+          Send as Pop-Up Alert <span className="text-orange-500">📢</span>
+        </span>
+      </label>
+
       <Button
         onClick={handleSend}
         disabled={sending || !message.trim()}
@@ -116,6 +136,16 @@ export default function AdminAnnouncement({ adminName }) {
                         rows={2}
                         className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
                       />
+                      {/* Edit pop-up toggle */}
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <div
+                          onClick={() => setEditIsPopup(v => !v)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${editIsPopup ? "bg-orange-500" : "bg-slate-200 dark:bg-slate-700"}`}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${editIsPopup ? "translate-x-4" : "translate-x-0.5"}`} />
+                        </div>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Pop-Up Alert 📢</span>
+                      </label>
                     </div>
                     <div className="flex flex-col gap-1">
                       <button onClick={() => saveEdit(a.id)} className="text-blue-500 hover:text-blue-700 transition-colors"><Check className="w-3.5 h-3.5" /></button>
@@ -124,8 +154,17 @@ export default function AdminAnnouncement({ adminName }) {
                   </div>
                 ) : (
                   <>
-                    {a.subject && <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{a.subject}</p>}
-                    <p className="text-sm text-slate-800 dark:text-slate-100 leading-relaxed">{a.message}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        {a.subject && <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{a.subject}</p>}
+                        <p className="text-sm text-slate-800 dark:text-slate-100 leading-relaxed">{a.message}</p>
+                      </div>
+                      {a.isPopup && (
+                        <span className="flex-shrink-0 text-[9px] font-bold bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-300 px-1.5 py-0.5 rounded-full border border-orange-200 dark:border-orange-700">
+                          POP-UP
+                        </span>
+                      )}
+                    </div>
                   </>
                 )}
                 <div className="flex items-center justify-between gap-2">
