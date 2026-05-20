@@ -494,23 +494,38 @@ export default function Home() {
                   const dstBooking = bookings.find(
                     (b) => b.slot_id === "DST_POPUP" && b.user_email === user?.email
                   );
+                  // Check if user already has a real break slot booking for this date
+                  const hasBreakBookingToday = bookings.some(
+                    (b) => b.user_email === user?.email && b.slot_id !== "DST_POPUP"
+                  );
+                  const isLocked = !bookingOpen && !dstBooking;
+                  const isDisabled = !user || isMutating || isLocked || hasBreakBookingToday;
+
                   return (
                     <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-4 py-3 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-base">🏖️</span>
                         <div>
                           <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Off-Day / DST Pop Up</p>
-                          <p className="text-[11px] text-muted-foreground">Log activity &amp; earn one booking credit today </p>
+                          {hasBreakBookingToday && !dstBooking ? (
+                            <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Already booked a slot today</p>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground">Log activity &amp; earn one booking credit today</p>
+                          )}
                         </div>
                       </div>
                       {dstBooking ? (
                         <span className="flex-shrink-0 text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
                           ✓ Logged
                         </span>
+                      ) : hasBreakBookingToday ? (
+                        <span className="flex-shrink-0 text-[11px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-600 cursor-not-allowed">
+                          🔒 Locked
+                        </span>
                       ) : (
                         <>
                           <button
-                            disabled={!user || isMutating || (effectiveUnlockTime && bruneiNow.getTime() < effectiveUnlockTime.getTime())}
+                            disabled={isDisabled}
                             onClick={() => setShowDstConfirm(true)}
                             className="flex-shrink-0 text-[11px] font-bold bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 flex items-center gap-1 tabular-nums"
                           >
@@ -530,13 +545,22 @@ export default function Home() {
                                 <AlertDialogDescription>
                                   This will count as your activity for <strong>{selectedDate}</strong> and earn you 1 booking credit. Please note that you will not be able to book another break slot once this is logged, and this action cannot be undone.
                                   <br /><br />
-                                     <strong>⚠️ NOTE: This includes PL</strong>
-                              </AlertDialogDescription>
+                                  <strong>⚠️ NOTE: This includes PL</strong>
+                                </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction onClick={async () => {
                                   if (!user) return;
+                                  // Safety net: re-check for existing break slot bookings
+                                  const existingBreak = bookings.filter(
+                                    (b) => b.user_email === user.email && b.slot_id !== "DST_POPUP"
+                                  );
+                                  if (existingBreak.length > 0) {
+                                    setShowDstConfirm(false);
+                                    toast.error("Request Denied: You have already booked a break slot for this date. You cannot log off-day / DST Pop Up activity as well.");
+                                    return;
+                                  }
                                   const existing = await base44.entities.Booking.filter({ date: selectedDate, slot_id: "DST_POPUP", user_email: user.email });
                                   if (existing.length > 0) { toast.error("Already logged for today."); return; }
                                   await base44.entities.Booking.create({
