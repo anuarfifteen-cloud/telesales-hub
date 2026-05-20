@@ -199,10 +199,8 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
       toast.success("Booking successful! Your slot is confirmed.");
 
-      // Add these lines for feature unlock notifications
-      const currentWeekBookings = queryClient.getQueryData(["bookings-week", dates[0]]) || [];
-      const currentMyBookings = currentWeekBookings.filter((b) => b.user_email === user?.email);
-      const currentTotalBookingCount = currentMyBookings.length;
+        // Calculate current total booking count based on the count before this booking + 1
+      const currentTotalBookingCount = context.prevTotalBookingCount + 1;
 
       if (currentTotalBookingCount >= 5 && context.prevTotalBookingCount < 5) {
         toast.success("🎉 Dark Mode Unlocked! Check your profile settings.", { duration: 5000 });
