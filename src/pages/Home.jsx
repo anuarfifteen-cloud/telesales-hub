@@ -39,13 +39,13 @@ const EMPLOYEES = [
 { value: 11, label: "Kamaliah" }, { value: 12, label: "Atiqah" },
 { value: 13, label: "Halimatul" }, { value: 14, label: "Afiqah" }];
 
-function formatCountdownHMS(ms) {
+function formatCountdownHM(ms) {
   if (ms <= 0) return null;
   const totalSecs = Math.floor(ms / 1000);
   const h = Math.floor(totalSecs / 3600);
   const m = Math.floor((totalSecs % 3600) / 60);
-  const s = totalSecs % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  // Remove the seconds calculation: const s = totalSecs % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`; // Remove ':${String(s).padStart(2, "0")}'
 }
 
 export default function Home() {
@@ -296,7 +296,7 @@ export default function Home() {
   // Countdown for Log Activity button
   const msUntilOpen = effectiveUnlockTime ? effectiveUnlockTime.getTime() - bruneiNow.getTime() : 0;
   const bookingOpen = msUntilOpen <= 0;
-  const dstCountdown = !bookingOpen ? formatCountdownHMS(msUntilOpen) : null;
+  const dstCountdown = !bookingOpen ? formatCountdownHM(msUntilOpen) : null;
 
   const handleAdminSave = async () => {
     if (!adminForm.date || !adminForm.employee || !adminForm.shift) {
