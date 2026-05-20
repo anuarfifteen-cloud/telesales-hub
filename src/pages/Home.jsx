@@ -71,6 +71,24 @@ export default function Home() {
   const [showAnnouncementPanel, setShowAnnouncementPanel] = useState(false);
   const [showDstConfirm, setShowDstConfirm] = useState(false);
   const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
+
+  const checkMilestones = (totalCount) => {
+    if (totalCount >= 15 && !localStorage.getItem("hasSeenVIPModal")) {
+      localStorage.setItem("hasSeenVIPModal", "true");
+      setUnlockModal({
+        open: true,
+        title: "🏆 VIP Status Unlocked!",
+        message: "Incredible job! You just hit 15 successful bookings and reached VIP Status. You now have Early Access and can start booking your breaks at 7:00 PM before the standard 7:30 PM rush. Enjoy your VIP perk!",
+      });
+    } else if (totalCount >= 5 && !localStorage.getItem("hasSeenDarkModeModal")) {
+      localStorage.setItem("hasSeenDarkModeModal", "true");
+      setUnlockModal({
+        open: true,
+        title: "🎉 Achievement Unlocked!",
+        message: "Congratulations! You just hit 5 successful bookings and unlocked Dark Mode. You can now toggle your app theme in the Profile tab. Keep up the great work!",
+      });
+    }
+  };
   const [seenAnnouncementIds, setSeenAnnouncementIds] = useState(() => {
     try {return JSON.parse(localStorage.getItem("seenAnnouncements") || "[]");} catch {return [];}
   });
@@ -81,7 +99,6 @@ export default function Home() {
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
     setSelectedDate(dates[0]);
-    // Apply persisted theme on mount
     applyTheme(getStoredTheme());
   }, []);
 
@@ -102,6 +119,13 @@ export default function Home() {
     queryFn: () => base44.entities.Booking.list(),
     enabled: !!user
   });
+
+  // Check milestones when booking data loads (for veterans opening the app)
+  useEffect(() => {
+    if (!user) return;
+    const myCount = weekBookings.filter((b) => b.user_email === user.email).length;
+    checkMilestones(myCount);
+  }, [weekBookings, user]);
 
   const { data: announcements = [] } = useQuery({
     queryKey: ["announcements"],
@@ -202,20 +226,7 @@ export default function Home() {
       toast.success("Booking successful! Your slot is confirmed.");
 
       const currentTotalBookingCount = context.prevTotalBookingCount + 1;
-
-      if (currentTotalBookingCount >= 15) {
-        setUnlockModal({
-          open: true,
-          title: "👑 VIP Booking Pass Active!",
-          message: "You have 15+ bookings. Your VIP Booking Pass is active — you can now book slots 30 minutes earlier!",
-        });
-      } else if (currentTotalBookingCount >= 5) {
-        setUnlockModal({
-          open: true,
-          title: "🎉 Dark Mode Unlocked!",
-          message: "You have 5+ bookings. Dark Mode is now available in your profile settings!",
-        });
-      }
+      checkMilestones(currentTotalBookingCount);
     },
     onError: (err, slot, context) => {
       // Roll back optimistic update
