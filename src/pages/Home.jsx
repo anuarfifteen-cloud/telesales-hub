@@ -9,7 +9,7 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon } from "lucide-react";
+import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock } from "lucide-react";
 import { getStoredTheme, applyTheme } from "@/lib/theme";
 import AdminPinModal from "@/components/admin/AdminPinModal";
 import AdminBookingTotals from "@/components/admin/AdminBookingTotals";
@@ -39,6 +39,14 @@ const EMPLOYEES = [
 { value: 11, label: "Kamaliah" }, { value: 12, label: "Atiqah" },
 { value: 13, label: "Halimatul" }, { value: 14, label: "Afiqah" }];
 
+function formatCountdownHMS(ms) {
+  if (ms <= 0) return null;
+  const totalSecs = Math.floor(ms / 1000);
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -225,6 +233,31 @@ export default function Home() {
     }
   });
 
+  const handleAdminDeleteBooking = async (bookingId) => {
+    await base44.entities.Booking.delete(bookingId);
+    queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+    queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
+    toast.success("Booking removed.");
+  };
+
+  const handleForceBook = async (slot) => {
+    if (!forceBookEmployee.trim()) return;
+    const name = forceBookEmployee.trim();
+    await base44.entities.Booking.create({
+      date: selectedDate,
+      slot_id: slot.id,
+      slot_label: slot.label,
+      shift: slot.shift,
+      user_email: `forcebook_${Date.now()}@telesales.local`,
+      user_name: name,
+      booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ })
+    });
+    queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+    setForceBookSlot(null);
+    setForceBookEmployee("");
+    toast.success(`${name} force-booked!`);
+  };
+
   const handleBook = (slot) => {
     if (!user) return;
     createMutation.mutate(slot);
@@ -260,30 +293,10 @@ export default function Home() {
   // Admin bypasses the lock entirely
   const effectiveUnlockTime = isAdmin ? new Date(0) : unlockTime;
 
-  const handleAdminDeleteBooking = async (bookingId) => {
-    await base44.entities.Booking.delete(bookingId);
-    queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
-    queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
-    toast.success("Booking removed.");
-  };
-
-  const handleForceBook = async (slot) => {
-    if (!forceBookEmployee.trim()) return;
-    const name = forceBookEmployee.trim();
-    await base44.entities.Booking.create({
-      date: selectedDate,
-      slot_id: slot.id,
-      slot_label: slot.label,
-      shift: slot.shift,
-      user_email: `forcebook_${Date.now()}@telesales.local`,
-      user_name: name,
-      booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ })
-    });
-    queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
-    setForceBookSlot(null);
-    setForceBookEmployee("");
-    toast.success(`${name} force-booked!`);
-  };
+  // Countdown for Log Activity button
+  const msUntilOpen = effectiveUnlockTime ? effectiveUnlockTime.getTime() - bruneiNow.getTime() : 0;
+  const bookingOpen = msUntilOpen <= 0;
+  const dstCountdown = !bookingOpen ? formatCountdownHMS(msUntilOpen) : null;
 
   const handleAdminSave = async () => {
     if (!adminForm.date || !adminForm.employee || !adminForm.shift) {
@@ -454,9 +467,16 @@ export default function Home() {
                           <button
                             disabled={!user || isMutating || (effectiveUnlockTime && bruneiNow.getTime() < effectiveUnlockTime.getTime())}
                             onClick={() => setShowDstConfirm(true)}
-                            className="flex-shrink-0 text-[11px] font-bold bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50"
+                            className="flex-shrink-0 text-[11px] font-bold bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 flex items-center gap-1 tabular-nums"
                           >
-                            Log Activity
+                            {dstCountdown ? (
+                              <>
+                                <Clock className="w-3 h-3 flex-shrink-0" />
+                                {dstCountdown}
+                              </>
+                            ) : (
+                              'Log Activity'
+                            )}
                           </button>
                           <AlertDialog open={showDstConfirm} onOpenChange={setShowDstConfirm}>
                             <AlertDialogContent>
