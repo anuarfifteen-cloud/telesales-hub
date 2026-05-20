@@ -28,6 +28,7 @@ import AdminAnnouncement from "@/components/admin/AdminAnnouncement";
 import AnnouncementPanel from "@/components/announcements/AnnouncementPanel";
 import RosterView from "@/components/roster/RosterView";
 import { Button } from "@/components/ui/button";
+import FeatureUnlockModal from "@/components/FeatureUnlockModal";
 import { toast } from "sonner";
 
 const EMPLOYEES = [
@@ -69,6 +70,7 @@ export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(() => getStoredTheme());
   const [showAnnouncementPanel, setShowAnnouncementPanel] = useState(false);
   const [showDstConfirm, setShowDstConfirm] = useState(false);
+  const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
   const [seenAnnouncementIds, setSeenAnnouncementIds] = useState(() => {
     try {return JSON.parse(localStorage.getItem("seenAnnouncements") || "[]");} catch {return [];}
   });
@@ -199,14 +201,20 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
       toast.success("Booking successful! Your slot is confirmed.");
 
-        // Calculate current total booking count based on the count before this booking + 1
       const currentTotalBookingCount = context.prevTotalBookingCount + 1;
 
-      if (currentTotalBookingCount >= 5 && context.prevTotalBookingCount < 5) {
-        toast.success("🎉 Dark Mode Unlocked! Check your profile settings.", { duration: 5000 });
-      }
-      if (currentTotalBookingCount >= 15 && context.prevTotalBookingCount < 15) {
-        toast.success("👑 VIP Booking Pass Unlocked! You can now book 30 minutes earlier.", { duration: 5000 });
+      if (currentTotalBookingCount >= 15) {
+        setUnlockModal({
+          open: true,
+          title: "👑 VIP Booking Pass Active!",
+          message: "You have 15+ bookings. Your VIP Booking Pass is active — you can now book slots 30 minutes earlier!",
+        });
+      } else if (currentTotalBookingCount >= 5) {
+        setUnlockModal({
+          open: true,
+          title: "🎉 Dark Mode Unlocked!",
+          message: "You have 5+ bookings. Dark Mode is now available in your profile settings!",
+        });
       }
     },
     onError: (err, slot, context) => {
@@ -808,8 +816,13 @@ export default function Home() {
       <AnnouncementPanel
         announcements={announcements}
         onClose={() => setShowAnnouncementPanel(false)} />
-
       }
+
+      <FeatureUnlockModal
+        isOpen={unlockModal.open}
+        onClose={() => setUnlockModal(m => ({ ...m, open: false }))}
+        title={unlockModal.title}
+        message={unlockModal.message} />
 
       {/* ── FIXED BOTTOM NAVIGATION ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-20 bg-card border-t border-border shadow-lg">
