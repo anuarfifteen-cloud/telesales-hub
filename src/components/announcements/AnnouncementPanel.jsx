@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Megaphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { formatBruneiTime } from "@/lib/bruneiTime";
 
 const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
@@ -77,6 +78,13 @@ export default function AnnouncementPanel({ announcements, onClose }) {
               </motion.div>
             ))
           )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 py-3 border-t border-border flex justify-end">
+          <Button variant="secondary" onClick={onClose} className="w-full">
+            Close
+          </Button>
         </div>
       </motion.div>
     </AnimatePresence>
