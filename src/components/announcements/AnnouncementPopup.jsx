@@ -33,7 +33,7 @@ export default function AnnouncementPopup({ announcement, onDismiss }) {
             onClick={handleDismiss}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-6 py-2.5 text-sm font-semibold transition-colors"
           >
-            I Understand ✓
+            Close
           </button>
         </AlertDialogFooter>
       </AlertDialogContent>
