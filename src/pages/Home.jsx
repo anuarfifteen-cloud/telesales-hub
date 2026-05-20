@@ -190,8 +190,8 @@ export default function Home() {
         user_email: user.email,
         user_name: user.full_name
       };
-      queryClient.setQueryData([\"bookings\", selectedDate], (old = []) => [...old, optimistic]);
-      queryClient.setQueryData([\"bookings-week\", dates[0]], (old = []) => [...old, optimistic]);
+      queryClient.setQueryData(["bookings", selectedDate], (old = []) => [...old, optimistic]);
+      queryClient.setQueryData(["bookings-week", dates[0]], (old = []) => [...old, optimistic]);
       return { prev, prevTotalBookingCount };
     },
     onSuccess: (newBooking, variables, context) => {
