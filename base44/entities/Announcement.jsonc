@@ -18,6 +18,10 @@
       "type": "boolean",
       "description": "If true, this announcement will also appear as a pop-up alert for each agent",
       "default": false
+    },
+    "targetUserId": {
+      "type": "string",
+      "description": "If set, only the user with this ID will see this announcement. If null/empty, it's a global broadcast."
     }
   },
   "required": [

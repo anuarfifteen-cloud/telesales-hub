@@ -134,9 +134,11 @@ export default function Home() {
   });
 
   const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
-  const activeAnnouncements = announcements.filter(
-    (a) => Date.now() - new Date(a.created_date).getTime() < TWENTY_FOUR_HOURS
-  );
+  const activeAnnouncements = announcements.filter((a) => {
+    if (Date.now() - new Date(a.created_date).getTime() >= TWENTY_FOUR_HOURS) return false;
+    if (!a.targetUserId) return true; // global
+    return user && a.targetUserId === user.id; // targeted
+  });
   const hasUnread = activeAnnouncements.some((a) => !seenAnnouncementIds.includes(a.id));
 
   // Show popup for any active popup announcement the user hasn't dismissed yet
