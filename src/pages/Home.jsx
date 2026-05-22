@@ -524,20 +524,23 @@ export default function Home() {
                         </span>
                       ) : (
                         <>
-                          <button
-                            disabled={isDisabled}
-                            onClick={() => setShowDstConfirm(true)}
-                            className="flex-shrink-0 text-[11px] font-bold bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 flex items-center gap-1 tabular-nums"
-                          >
-                            {dstCountdown ? (
-                              <>
-                                <Clock className="w-3 h-3 flex-shrink-0" />
-                                {dstCountdown}
-                              </>
-                            ) : (
-                              'Log Activity'
-                            )}
-                          </button>
+                          <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+                            <button
+                              disabled={isDisabled}
+                              onClick={() => setShowDstConfirm(true)}
+                              className="flex-shrink-0 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 disabled:bg-slate-400 flex items-center gap-1 tabular-nums"
+                            >
+                              {dstCountdown ? (
+                                <>
+                                  <Clock className="w-3 h-3 flex-shrink-0" />
+                                  {dstCountdown}
+                                </>
+                              ) : (
+                                'Claim Credit'
+                              )}
+                            </button>
+                            <span className="text-[9px] text-slate-500 dark:text-slate-400">For Off-Days, PL, or Pop-Ups</span>
+                          </div>
                           <AlertDialog open={showDstConfirm} onOpenChange={setShowDstConfirm}>
                             <AlertDialogContent>
                               <AlertDialogHeader>
