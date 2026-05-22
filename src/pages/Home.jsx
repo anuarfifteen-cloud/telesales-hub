@@ -539,7 +539,7 @@ export default function Home() {
                         'Claim Credit'
                         }
                             </button>
-                            <span className="text-[9px] text-slate-500 dark:text-slate-400 hidden">For Off-Days, PL, or Pop-Ups</span>
+                            
                           </div>
                           <AlertDialog open={showDstConfirm} onOpenChange={setShowDstConfirm}>
                             <AlertDialogContent>
