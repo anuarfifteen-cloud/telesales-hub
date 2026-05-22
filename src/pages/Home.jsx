@@ -21,8 +21,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  AlertDialogTitle } from
+"@/components/ui/alert-dialog";
 import AdminBookingSettings from "@/components/admin/AdminBookingSettings";
 import AdminAnnouncement from "@/components/admin/AdminAnnouncement";
 import AnnouncementPanel from "@/components/announcements/AnnouncementPanel";
@@ -45,7 +45,7 @@ function formatCountdownHM(ms) {
   if (ms <= 0) return null;
   const totalMins = Math.floor(ms / 60000);
   const d = Math.floor(totalMins / 1440);
-  const h = Math.floor((totalMins % 1440) / 60);
+  const h = Math.floor(totalMins % 1440 / 60);
   const m = totalMins % 60;
   if (d >= 1) return `${d}D ${h}h ${String(m).padStart(2, "0")}m`;
   return `${h}h ${String(m).padStart(2, "0")}m`;
@@ -78,14 +78,14 @@ export default function Home() {
       setUnlockModal({
         open: true,
         title: "🏆 VIP Status Unlocked!",
-        message: "Incredible job! You just hit 15 successful bookings and reached VIP Status. You now have Early Access and can start booking your breaks at 7:00 PM before the standard 7:30 PM rush. Enjoy your VIP perk!",
+        message: "Incredible job! You just hit 15 successful bookings and reached VIP Status. You now have Early Access and can start booking your breaks at 7:00 PM before the standard 7:30 PM rush. Enjoy your VIP perk!"
       });
     } else if (totalCount >= 5 && !localStorage.getItem("hasSeenDarkModeModal")) {
       localStorage.setItem("hasSeenDarkModeModal", "true");
       setUnlockModal({
         open: true,
         title: "🎉 Achievement Unlocked!",
-        message: "Congratulations! You just hit 5 successful bookings and unlocked Dark Mode. You can now toggle your app theme in the Profile tab. Keep up the great work!",
+        message: "Congratulations! You just hit 5 successful bookings and unlocked Dark Mode. You can now toggle your app theme in the Profile tab. Keep up the great work!"
       });
     }
   };
@@ -195,10 +195,10 @@ export default function Home() {
 
       // Sort by database creation timestamp ascending (earliest = winner)
       const sorted = [...allSlotBookings].sort((a, b) =>
-        new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
+      new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
       );
 
-      const myIndex = sorted.findIndex(b => b.id === newBooking.id);
+      const myIndex = sorted.findIndex((b) => b.id === newBooking.id);
 
       if (myIndex >= slot.maxBookings) {
         // LOSER — rolled past capacity, delete our booking and surface the error
@@ -212,7 +212,7 @@ export default function Home() {
     onMutate: async (slot) => {
       await queryClient.cancelQueries({ queryKey: ["bookings", selectedDate] });
       const prev = queryClient.getQueryData(["bookings", selectedDate]);
-       const prevWeekBookings = queryClient.getQueryData(["bookings-week", dates[0]]) || [];
+      const prevWeekBookings = queryClient.getQueryData(["bookings-week", dates[0]]) || [];
       const prevMyBookings = prevWeekBookings.filter((b) => b.user_email === user?.email);
       const prevTotalBookingCount = prevMyBookings.length;
 
@@ -491,55 +491,55 @@ export default function Home() {
 
                 {/* ── Off-Day / Duty Outside Office Log ── */}
                 {(() => {
-                  const dstBooking = bookings.find(
-                    (b) => b.slot_id === "DST_POPUP" && b.user_email === user?.email
-                  );
-                  // Check if user already has a real break slot booking for this date
-                  const hasBreakBookingToday = bookings.some(
-                    (b) => b.user_email === user?.email && b.slot_id !== "DST_POPUP"
-                  );
-                  const isLocked = !bookingOpen && !dstBooking;
-                  const isDisabled = !user || isMutating || isLocked || hasBreakBookingToday;
+              const dstBooking = bookings.find(
+                (b) => b.slot_id === "DST_POPUP" && b.user_email === user?.email
+              );
+              // Check if user already has a real break slot booking for this date
+              const hasBreakBookingToday = bookings.some(
+                (b) => b.user_email === user?.email && b.slot_id !== "DST_POPUP"
+              );
+              const isLocked = !bookingOpen && !dstBooking;
+              const isDisabled = !user || isMutating || isLocked || hasBreakBookingToday;
 
-                  return (
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-4 py-3 flex items-center justify-between gap-3">
+              return (
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-4 py-3 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-base">🏖️</span>
                         <div>
                           <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Off-Day / DST Pop Up</p>
-                          {hasBreakBookingToday && !dstBooking ? (
-                            <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Already booked a slot today</p>
-                          ) : (
-                            <p className="text-[11px] text-muted-foreground">Log activity &amp; earn one booking credit today</p>
-                          )}
+                          {hasBreakBookingToday && !dstBooking ?
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Already booked a slot today</p> :
+
+                      <p className="text-[11px] text-muted-foreground">Log activity &amp; earn one booking credit today</p>
+                      }
                         </div>
                       </div>
-                      {dstBooking ? (
-                        <span className="flex-shrink-0 text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
+                      {dstBooking ?
+                  <span className="flex-shrink-0 text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
                           ✓ Logged
-                        </span>
-                      ) : hasBreakBookingToday ? (
-                        <span className="flex-shrink-0 text-[11px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-600 cursor-not-allowed">
+                        </span> :
+                  hasBreakBookingToday ?
+                  <span className="flex-shrink-0 text-[11px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-600 cursor-not-allowed">
                           🔒 Locked
-                        </span>
-                      ) : (
-                        <>
+                        </span> :
+
+                  <>
                           <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
                             <button
-                              disabled={isDisabled}
-                              onClick={() => setShowDstConfirm(true)}
-                              className="flex-shrink-0 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 disabled:bg-slate-400 flex items-center gap-1 tabular-nums"
-                            >
-                              {dstCountdown ? (
-                                <>
+                        disabled={isDisabled}
+                        onClick={() => setShowDstConfirm(true)}
+                        className="flex-shrink-0 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 disabled:bg-slate-400 flex items-center gap-1 tabular-nums">
+                        
+                              {dstCountdown ?
+                        <>
                                   <Clock className="w-3 h-3 flex-shrink-0" />
                                   {dstCountdown}
-                                </>
-                              ) : (
-                                'Claim Credit'
-                              )}
+                                </> :
+
+                        'Claim Credit'
+                        }
                             </button>
-                            <span className="text-[9px] text-slate-500 dark:text-slate-400">For Off-Days, PL, or Pop-Ups</span>
+                            <span className="text-[9px] text-slate-500 dark:text-slate-400 hidden">For Off-Days, PL, or Pop-Ups</span>
                           </div>
                           <AlertDialog open={showDstConfirm} onOpenChange={setShowDstConfirm}>
                             <AlertDialogContent>
@@ -554,41 +554,41 @@ export default function Home() {
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction onClick={async () => {
-                                  if (!user) return;
-                                  // Safety net: re-check for existing break slot bookings
-                                  const existingBreak = bookings.filter(
-                                    (b) => b.user_email === user.email && b.slot_id !== "DST_POPUP"
-                                  );
-                                  if (existingBreak.length > 0) {
-                                    setShowDstConfirm(false);
-                                    toast.error("Request Denied: You have already booked a break slot for this date. You cannot log off-day / DST Pop Up activity as well.");
-                                    return;
-                                  }
-                                  const existing = await base44.entities.Booking.filter({ date: selectedDate, slot_id: "DST_POPUP", user_email: user.email });
-                                  if (existing.length > 0) { toast.error("Already logged for today."); return; }
-                                  await base44.entities.Booking.create({
-                                    date: selectedDate,
-                                    slot_id: "DST_POPUP",
-                                    slot_label: "Off-Day / Duty Outside",
-                                    shift: "AM",
-                                    user_email: user.email,
-                                    user_name: user.full_name,
-                                    booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ })
-                                  });
-                                  queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
-                                  queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
-                                  toast.success("Off-Day/Duty logged! Credit earned.");
-                                }}>
+                            if (!user) return;
+                            // Safety net: re-check for existing break slot bookings
+                            const existingBreak = bookings.filter(
+                              (b) => b.user_email === user.email && b.slot_id !== "DST_POPUP"
+                            );
+                            if (existingBreak.length > 0) {
+                              setShowDstConfirm(false);
+                              toast.error("Request Denied: You have already booked a break slot for this date. You cannot log off-day / DST Pop Up activity as well.");
+                              return;
+                            }
+                            const existing = await base44.entities.Booking.filter({ date: selectedDate, slot_id: "DST_POPUP", user_email: user.email });
+                            if (existing.length > 0) {toast.error("Already logged for today.");return;}
+                            await base44.entities.Booking.create({
+                              date: selectedDate,
+                              slot_id: "DST_POPUP",
+                              slot_label: "Off-Day / Duty Outside",
+                              shift: "AM",
+                              user_email: user.email,
+                              user_name: user.full_name,
+                              booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ })
+                            });
+                            queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+                            queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
+                            toast.success("Off-Day/Duty logged! Credit earned.");
+                          }}>
                                   Confirm & Log
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
                         </>
-                      )}
-                    </div>
-                  );
-                })()}
+                  }
+                    </div>);
+
+            })()}
 
                 {isLoading ?
             <div className="space-y-2">
@@ -871,7 +871,7 @@ export default function Home() {
 
       <FeatureUnlockModal
         isOpen={unlockModal.open}
-        onClose={() => setUnlockModal(m => ({ ...m, open: false }))}
+        onClose={() => setUnlockModal((m) => ({ ...m, open: false }))}
         title={unlockModal.title}
         message={unlockModal.message} />
 
