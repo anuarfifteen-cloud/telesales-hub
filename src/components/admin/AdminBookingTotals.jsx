@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Trash2, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Plus, ChevronDown, ChevronUp, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { format as tzFormat } from "date-fns-tz";
@@ -14,6 +14,7 @@ export default function AdminBookingTotals() {
   const [addingFor, setAddingFor] = useState(null);
   const [newBooking, setNewBooking] = useState({ date: "", slot_id: "", slot_label: "", shift: "AM" });
   const [saving, setSaving] = useState(false);
+  const [editingRotation, setEditingRotation] = useState({}); // { [userId]: draftValue }
 
   const { data: allBookings = [], isLoading } = useQuery({
     queryKey: ["all-bookings-admin"],
@@ -44,10 +45,22 @@ export default function AdminBookingTotals() {
     return {
       email,
       name: userEntity?.full_name || bookings[0]?.user_name || email,
+      userId: userEntity?.id || null,
+      rotationNumber: userEntity?.rotationNumber ?? null,
       bookings,
       total: bookings.length,
     };
   }).sort((a, b) => b.total - a.total);
+
+  const handleSaveRotation = async (userId, value) => {
+    if (!userId) return;
+    const parsed = value === "" ? null : parseInt(value, 10);
+    await base44.entities.User.update(userId, { rotationNumber: parsed });
+    queryClient.invalidateQueries({ queryKey: ["all-users-admin"] });
+    queryClient.invalidateQueries({ queryKey: ["all-users-roster"] });
+    setEditingRotation(prev => { const n = { ...prev }; delete n[userId]; return n; });
+    toast.success("Rotation number saved.");
+  };
 
   const handleDelete = async (bookingId) => {
     await base44.entities.Booking.delete(bookingId);
@@ -87,8 +100,9 @@ export default function AdminBookingTotals() {
     <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 space-y-3">
       <p className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wide">📊 All Users Booking Totals</p>
       <div className="space-y-2">
-        {userList.map(({ email, name, bookings, total }) => {
+        {userList.map(({ email, name, userId, rotationNumber, bookings, total }) => {
           const isExpanded = expandedUser === email;
+          const draftRotation = editingRotation[userId] ?? String(rotationNumber ?? "");
           return (
             <div key={email} className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               {/* User Row */}
@@ -99,7 +113,7 @@ export default function AdminBookingTotals() {
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0">
                     <span className="text-[10px] font-bold text-white">
-                      {name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                      {rotationNumber != null ? rotationNumber : "—"}
                     </span>
                   </div>
                   <div className="text-left min-w-0">
@@ -118,6 +132,27 @@ export default function AdminBookingTotals() {
               {/* Expanded Bookings */}
               {isExpanded && (
                 <div className="px-3 py-2 space-y-1.5 bg-white dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-700">
+                  {/* Rotation Number Editor */}
+                  {userId && (
+                    <div className="flex items-center gap-2 py-1.5 border-b border-slate-100 dark:border-slate-700 mb-1">
+                      <Hash className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                      <span className="text-xs text-slate-600 dark:text-slate-300 font-medium flex-1">Rotation #</span>
+                      <input
+                        type="number"
+                        min="1" max="99"
+                        value={draftRotation}
+                        onChange={e => setEditingRotation(prev => ({ ...prev, [userId]: e.target.value }))}
+                        placeholder="—"
+                        className="w-16 text-xs text-center border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:bg-slate-800"
+                      />
+                      <button
+                        onClick={() => handleSaveRotation(userId, draftRotation)}
+                        className="text-[10px] font-bold bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  )}
                   {bookings.length === 0 && (
                     <p className="text-xs text-muted-foreground italic text-center py-1">No bookings yet.</p>
                   )}
