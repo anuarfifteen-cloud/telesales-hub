@@ -12,7 +12,11 @@
     },
     "rotationNumber": {
       "type": "integer",
-      "description": "Rotation number for the agent (1-11), shown in roster avatars"
+      "description": "Rotation number for the agent, shown in roster avatars"
+    },
+    "shortName": {
+      "type": "string",
+      "description": "Short display name for the agent shown in the roster (e.g. 'Kamaliah \ud83d\udd11')"
     }
   },
   "required": [

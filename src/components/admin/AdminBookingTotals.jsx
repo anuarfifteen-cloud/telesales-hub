@@ -15,6 +15,7 @@ export default function AdminBookingTotals() {
   const [newBooking, setNewBooking] = useState({ date: "", slot_id: "", slot_label: "", shift: "AM" });
   const [saving, setSaving] = useState(false);
   const [editingRotation, setEditingRotation] = useState({}); // { [userId]: draftValue }
+  const [editingShortName, setEditingShortName] = useState({}); // { [userId]: draftValue }
 
   const { data: allBookings = [], isLoading } = useQuery({
     queryKey: ["all-bookings-admin"],
@@ -47,6 +48,7 @@ export default function AdminBookingTotals() {
       name: userEntity?.full_name || bookings[0]?.user_name || email,
       userId: userEntity?.id || null,
       rotationNumber: userEntity?.rotationNumber ?? null,
+      shortName: userEntity?.shortName ?? "",
       bookings,
       total: bookings.length,
     };
@@ -60,6 +62,15 @@ export default function AdminBookingTotals() {
     queryClient.invalidateQueries({ queryKey: ["all-users-roster"] });
     setEditingRotation(prev => { const n = { ...prev }; delete n[userId]; return n; });
     toast.success("Rotation number saved.");
+  };
+
+  const handleSaveShortName = async (userId, value) => {
+    if (!userId) return;
+    await base44.entities.User.update(userId, { shortName: value.trim() || null });
+    queryClient.invalidateQueries({ queryKey: ["all-users-admin"] });
+    queryClient.invalidateQueries({ queryKey: ["all-users-roster"] });
+    setEditingShortName(prev => { const n = { ...prev }; delete n[userId]; return n; });
+    toast.success("Short name saved.");
   };
 
   const handleDelete = async (bookingId) => {
@@ -100,9 +111,10 @@ export default function AdminBookingTotals() {
     <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 space-y-3">
       <p className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wide">📊 All Users Booking Totals</p>
       <div className="space-y-2">
-        {userList.map(({ email, name, userId, rotationNumber, bookings, total }) => {
+        {userList.map(({ email, name, userId, rotationNumber, shortName, bookings, total }) => {
           const isExpanded = expandedUser === email;
           const draftRotation = editingRotation[userId] ?? String(rotationNumber ?? "");
+          const draftShortName = editingShortName[userId] ?? (shortName || "");
           return (
             <div key={email} className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               {/* User Row */}
@@ -132,25 +144,44 @@ export default function AdminBookingTotals() {
               {/* Expanded Bookings */}
               {isExpanded && (
                 <div className="px-3 py-2 space-y-1.5 bg-white dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-700">
-                  {/* Rotation Number Editor */}
+                  {/* User Fields Editor */}
                   {userId && (
-                    <div className="flex items-center gap-2 py-1.5 border-b border-slate-100 dark:border-slate-700 mb-1">
-                      <Hash className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                      <span className="text-xs text-slate-600 dark:text-slate-300 font-medium flex-1">Rotation #</span>
-                      <input
-                        type="number"
-                        min="1" max="99"
-                        value={draftRotation}
-                        onChange={e => setEditingRotation(prev => ({ ...prev, [userId]: e.target.value }))}
-                        placeholder="—"
-                        className="w-16 text-xs text-center border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:bg-slate-800"
-                      />
-                      <button
-                        onClick={() => handleSaveRotation(userId, draftRotation)}
-                        className="text-[10px] font-bold bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors"
-                      >
-                        Save
-                      </button>
+                    <div className="space-y-1.5 pb-2 mb-1 border-b border-slate-100 dark:border-slate-700">
+                      {/* Short Name */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium w-20 flex-shrink-0">Short Name</span>
+                        <input
+                          type="text"
+                          value={draftShortName}
+                          onChange={e => setEditingShortName(prev => ({ ...prev, [userId]: e.target.value }))}
+                          placeholder="e.g. Kamaliah 🔑"
+                          className="flex-1 text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:bg-slate-800"
+                        />
+                        <button
+                          onClick={() => handleSaveShortName(userId, draftShortName)}
+                          className="text-[10px] font-bold bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex-shrink-0"
+                        >
+                          Save
+                        </button>
+                      </div>
+                      {/* Rotation Number */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium w-20 flex-shrink-0">Rotation #</span>
+                        <input
+                          type="number"
+                          min="1" max="99"
+                          value={draftRotation}
+                          onChange={e => setEditingRotation(prev => ({ ...prev, [userId]: e.target.value }))}
+                          placeholder="—"
+                          className="w-20 text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:bg-slate-800"
+                        />
+                        <button
+                          onClick={() => handleSaveRotation(userId, draftRotation)}
+                          className="text-[10px] font-bold bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex-shrink-0"
+                        >
+                          Save
+                        </button>
+                      </div>
                     </div>
                   )}
                   {bookings.length === 0 && (

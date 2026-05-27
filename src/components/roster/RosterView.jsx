@@ -20,7 +20,7 @@ const EMPLOYEES = [
 function Avatar({ rotationNumber }) {
   return (
     <div className="w-7 h-7 rounded-full bg-slate-400 dark:bg-slate-600 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
-      {rotationNumber != null ? rotationNumber : <span className="text-slate-200">—</span>}
+      {rotationNumber != null ? rotationNumber : <span className="text-slate-300 font-normal">-</span>}
     </div>
   );
 }
@@ -67,11 +67,15 @@ function TemplateRow({ slotIndex, defaultTask, isAdmin, pendingEmp, onPendingCha
   const [taskVal, setTaskVal] = useState(defaultTask);
   const badge = taskBadgeColor(taskVal);
 
+  const pendingEmpLabel = EMPLOYEES.find(e => String(e.value) === pendingEmp)?.label;
+  const pendingUserData = pendingEmpLabel ? userRotationMap?.[pendingEmpLabel] : null;
+  const displayName = pendingUserData?.shortName || pendingEmpLabel || null;
+
   return (
     <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/40 dark:bg-slate-700/30 border border-dashed border-slate-200 dark:border-slate-600 gap-2">
       <div className="flex items-center gap-2 min-w-0">
         {pendingEmp ? (
-          <Avatar rotationNumber={userRotationMap?.[EMPLOYEES.find(e => String(e.value) === pendingEmp)?.label] ?? null} />
+          <Avatar rotationNumber={pendingUserData?.rotationNumber ?? null} />
         ) : (
           <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
             <UserIcon className="w-3.5 h-3.5 text-slate-400" />
@@ -79,7 +83,7 @@ function TemplateRow({ slotIndex, defaultTask, isAdmin, pendingEmp, onPendingCha
         )}
         {pendingEmp ? (
           <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-            {EMPLOYEES.find(e => String(e.value) === pendingEmp)?.label}
+            {displayName}
           </span>
         ) : (
           <span className="text-[11px] italic text-slate-400 dark:text-slate-500">Empty</span>
@@ -105,7 +109,11 @@ function TemplateRow({ slotIndex, defaultTask, isAdmin, pendingEmp, onPendingCha
             className="text-[10px] border border-slate-200 rounded px-1 py-0.5 bg-white dark:bg-slate-800 dark:border-slate-600 focus:outline-none"
           >
             <option value="">Assign…</option>
-            {EMPLOYEES.map(emp => <option key={emp.value} value={String(emp.value)}>{emp.label}</option>)}
+            {EMPLOYEES.map(emp => {
+              const userData = userRotationMap?.[emp.label];
+              const label = userData?.shortName || emp.label;
+              return <option key={emp.value} value={String(emp.value)}>{label}</option>;
+            })}
           </select>
         )}
       </div>
@@ -113,14 +121,16 @@ function TemplateRow({ slotIndex, defaultTask, isAdmin, pendingEmp, onPendingCha
   );
 }
 
-function EntryRow({ entry, isAdmin, onDelete, onUpdate, dragHandleProps, rotationNumber }) {
+function EntryRow({ entry, isAdmin, onDelete, onUpdate, dragHandleProps, rotationNumber, userRotationMap }) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editTask, setEditTask] = useState("");
   const [editCaption, setEditCaption] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const name = entry?.employee_name || `Employee ${entry?.employee_number}`;
+  const rawName = entry?.employee_name || `Employee ${entry?.employee_number}`;
+  const userData = userRotationMap?.[rawName];
+  const name = userData?.shortName || rawName;
   const task = entry?.daily_task || "";
   const caption = entry?.caption || "";
 
@@ -205,7 +215,8 @@ function DraggableShiftList({ entries, shiftKey, isAdmin, onDelete, onUpdate, us
                     onDelete={onDelete}
                     onUpdate={onUpdate}
                     dragHandleProps={prov.dragHandleProps}
-                    rotationNumber={userRotationMap?.[entry.employee_name] ?? null}
+                    rotationNumber={userRotationMap?.[entry.employee_name]?.rotationNumber ?? null}
+                    userRotationMap={userRotationMap}
                   />
                 </div>
               )}
@@ -222,13 +233,10 @@ function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, s
   const [pendingAssignments, setPendingAssignments] = useState({});
   const [saving, setSaving] = useState(false);
 
-  // Stable slot order: sort entries by sort_order, then created_date, then id — never re-sort on save
-  const stableEntries = [...entries].sort((a, b) => {
-    const aO = a.sort_order ?? 9999;
-    const bO = b.sort_order ?? 9999;
-    if (aO !== bO) return aO - bO;
-    return new Date(a.created_date).getTime() - new Date(b.created_date).getTime();
-  });
+  // Lock slot order strictly by created_date — never jumps on save
+  const stableEntries = [...entries].sort((a, b) =>
+    new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
+  );
 
   const emptyCount = Math.max(0, slotCount - stableEntries.length);
   const hasPending = Object.keys(pendingAssignments).some(k => pendingAssignments[k]?.empValue);
@@ -300,12 +308,9 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate, userRo
   const [pendingAssignments, setPendingAssignments] = useState({});
   const [saving, setSaving] = useState(false);
 
-  const stableEntries = [...entries].sort((a, b) => {
-    const aO = a.sort_order ?? 9999;
-    const bO = b.sort_order ?? 9999;
-    if (aO !== bO) return aO - bO;
-    return new Date(a.created_date).getTime() - new Date(b.created_date).getTime();
-  });
+  const stableEntries = [...entries].sort((a, b) =>
+    new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
+  );
 
   const emptyCount = Math.max(0, OFF_SLOTS - stableEntries.length);
   const hasPending = Object.keys(pendingAssignments).some(k => pendingAssignments[k]?.empValue);
@@ -398,9 +403,14 @@ export default function RosterView({ isAdmin = false }) {
     queryFn: () => base44.entities.User.list(),
   });
 
-  // Map employee_name → rotationNumber for avatar display
+  // Map full_name → { rotationNumber, shortName } for roster display
   const userRotationMap = allUsers.reduce((acc, u) => {
-    if (u.full_name && u.rotationNumber != null) acc[u.full_name] = u.rotationNumber;
+    if (u.full_name) {
+      acc[u.full_name] = {
+        rotationNumber: u.rotationNumber ?? null,
+        shortName: u.shortName ?? null,
+      };
+    }
     return acc;
   }, {});
 
@@ -410,12 +420,9 @@ export default function RosterView({ isAdmin = false }) {
 
   const getSortedShiftEntries = (shiftKey) => {
     const list = shiftKey === "AM" ? amEntries : shiftKey === "PM" ? pmEntries : offEntries;
-    return [...list].sort((a, b) => {
-      const aO = a.sort_order ?? 9999;
-      const bO = b.sort_order ?? 9999;
-      if (aO !== bO) return aO - bO;
-      return new Date(a.created_date).getTime() - new Date(b.created_date).getTime();
-    });
+    return [...list].sort((a, b) =>
+      new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
+    );
   };
 
   const handleDragEnd = async (result) => {
