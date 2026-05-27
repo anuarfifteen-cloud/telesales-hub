@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { todayInBrunei } from "@/lib/slots";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { Trash2, Plus, Pencil, Check, X, ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
+import { Trash2, Plus, Pencil, Check, X, ChevronLeft, ChevronRight, GripVertical, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -72,33 +72,29 @@ function formatMediumDate(dateStr) {
   });
 }
 
-function TemplateRow({ defaultTask, isAdmin, shiftType, selectedDate, onUpdate }) {
-  const [assigning, setAssigning] = useState(false);
-  const [selectedEmp, setSelectedEmp] = useState("");
+// Draft-mode TemplateRow: reports selection changes upward, no per-row save button
+function TemplateRow({ slotIndex, defaultTask, isAdmin, pendingEmp, onPendingChange }) {
   const [editingTask, setEditingTask] = useState(false);
   const [taskVal, setTaskVal] = useState(defaultTask);
-  const [saving, setSaving] = useState(false);
   const badge = taskBadgeColor(taskVal);
-
-  const saveAssign = async () => {
-    if (!selectedEmp) return;
-    setSaving(true);
-    const emp = EMPLOYEES.find(e => String(e.value) === selectedEmp);
-    await base44.entities.RosterDatabase.create({
-      date: selectedDate, shift_type: shiftType,
-      employee_number: emp.value, employee_name: emp.label, daily_task: taskVal,
-    });
-    onUpdate(); setSaving(false); setAssigning(false); setSelectedEmp("");
-    toast.success("Assigned!");
-  };
 
   return (
     <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/40 dark:bg-slate-700/30 border border-dashed border-slate-200 dark:border-slate-600 gap-2">
       <div className="flex items-center gap-2 min-w-0">
-        <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-          <span className="text-[9px] text-slate-400 font-bold">?</span>
-        </div>
-        <span className="text-[11px] italic text-slate-400 dark:text-slate-500">Empty</span>
+        {pendingEmp ? (
+          <Avatar name={EMPLOYEES.find(e => String(e.value) === pendingEmp)?.label || "?"} />
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
+            <span className="text-[9px] text-slate-400 font-bold">?</span>
+          </div>
+        )}
+        {pendingEmp ? (
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+            {EMPLOYEES.find(e => String(e.value) === pendingEmp)?.label}
+          </span>
+        ) : (
+          <span className="text-[11px] italic text-slate-400 dark:text-slate-500">Empty</span>
+        )}
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {editingTask ? (
@@ -113,22 +109,15 @@ function TemplateRow({ defaultTask, isAdmin, shiftType, selectedDate, onUpdate }
             {taskVal}
           </span>
         )}
-        {isAdmin && !assigning && (
-          <button onClick={() => setAssigning(true)}
-            className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded hover:bg-blue-100 transition-colors">
-            Assign
-          </button>
-        )}
-        {isAdmin && assigning && (
-          <div className="flex items-center gap-1">
-            <select value={selectedEmp} onChange={e => setSelectedEmp(e.target.value)}
-              className="text-[10px] border border-slate-200 rounded px-1 py-0.5 bg-white focus:outline-none">
-              <option value="">Pick…</option>
-              {EMPLOYEES.map(emp => <option key={emp.value} value={String(emp.value)}>{emp.label}</option>)}
-            </select>
-            <button onClick={saveAssign} disabled={saving} className="text-blue-500 hover:text-blue-700"><Check className="w-3 h-3" /></button>
-            <button onClick={() => setAssigning(false)} className="text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>
-          </div>
+        {isAdmin && (
+          <select
+            value={pendingEmp || ""}
+            onChange={e => onPendingChange(slotIndex, e.target.value, taskVal)}
+            className="text-[10px] border border-slate-200 rounded px-1 py-0.5 bg-white dark:bg-slate-800 dark:border-slate-600 focus:outline-none"
+          >
+            <option value="">Assign…</option>
+            {EMPLOYEES.map(emp => <option key={emp.value} value={String(emp.value)}>{emp.label}</option>)}
+          </select>
         )}
       </div>
     </div>
@@ -240,7 +229,38 @@ function DraggableShiftList({ entries, shiftKey, isAdmin, onDelete, onUpdate }) 
 }
 
 function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, shiftType, color, isAdmin, onDelete, onUpdate, selectedDate }) {
+  // pendingAssignments: { [slotIndex]: { empValue: string, task: string } }
+  const [pendingAssignments, setPendingAssignments] = useState({});
+  const [saving, setSaving] = useState(false);
+
   const emptyCount = Math.max(0, slotCount - entries.length);
+  const hasPending = Object.keys(pendingAssignments).some(k => pendingAssignments[k]?.empValue);
+
+  const handlePendingChange = (slotIndex, empValue, task) => {
+    setPendingAssignments(prev => ({
+      ...prev,
+      [slotIndex]: empValue ? { empValue, task } : undefined,
+    }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const toSave = Object.values(pendingAssignments).filter(Boolean);
+    await Promise.all(
+      toSave.map(({ empValue, task }) => {
+        const emp = EMPLOYEES.find(e => String(e.value) === empValue);
+        return base44.entities.RosterDatabase.create({
+          date: selectedDate, shift_type: shiftType,
+          employee_number: emp.value, employee_name: emp.label, daily_task: task,
+        });
+      })
+    );
+    setPendingAssignments({});
+    setSaving(false);
+    onUpdate();
+    toast.success("Shift schedule updated!");
+  };
+
   return (
     <div className={`rounded-xl border px-3 pt-2 pb-2.5 ${color.bg} ${color.border}`}>
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -253,20 +273,63 @@ function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, s
         {Array.from({ length: emptyCount }, (_, i) => (
           <TemplateRow
             key={`tmpl-${shiftType}-${i}`}
+            slotIndex={i}
             defaultTask={defaultTasks[entries.length + i] || ""}
             isAdmin={isAdmin}
-            shiftType={shiftType}
-            selectedDate={selectedDate}
-            onUpdate={onUpdate}
+            pendingEmp={pendingAssignments[i]?.empValue || ""}
+            onPendingChange={handlePendingChange}
           />
         ))}
       </div>
+      {isAdmin && hasPending && (
+        <div className="mt-2">
+          <Button
+            size="sm"
+            className="w-full h-8 text-xs font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            <Save className="w-3.5 h-3.5" />
+            {saving ? "Saving…" : "Save Changes"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
 
 function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate }) {
+  const [pendingAssignments, setPendingAssignments] = useState({});
+  const [saving, setSaving] = useState(false);
+
   const emptyCount = Math.max(0, OFF_SLOTS - entries.length);
+  const hasPending = Object.keys(pendingAssignments).some(k => pendingAssignments[k]?.empValue);
+
+  const handlePendingChange = (slotIndex, empValue, task) => {
+    setPendingAssignments(prev => ({
+      ...prev,
+      [slotIndex]: empValue ? { empValue, task } : undefined,
+    }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const toSave = Object.values(pendingAssignments).filter(Boolean);
+    await Promise.all(
+      toSave.map(({ empValue, task }) => {
+        const emp = EMPLOYEES.find(e => String(e.value) === empValue);
+        return base44.entities.RosterDatabase.create({
+          date: selectedDate, shift_type: "Off",
+          employee_number: emp.value, employee_name: emp.label, daily_task: task,
+        });
+      })
+    );
+    setPendingAssignments({});
+    setSaving(false);
+    onUpdate();
+    toast.success("Shift schedule updated!");
+  };
+
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 px-3 pt-2 pb-2.5">
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -279,14 +342,27 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate }) {
         {Array.from({ length: emptyCount }, (_, i) => (
           <TemplateRow
             key={`off-tmpl-${i}`}
+            slotIndex={i}
             defaultTask={OFF_DEFAULTS[entries.length + i] || ""}
             isAdmin={isAdmin}
-            shiftType="Off"
-            selectedDate={selectedDate}
-            onUpdate={onUpdate}
+            pendingEmp={pendingAssignments[i]?.empValue || ""}
+            onPendingChange={handlePendingChange}
           />
         ))}
       </div>
+      {isAdmin && hasPending && (
+        <div className="mt-2">
+          <Button
+            size="sm"
+            className="w-full h-8 text-xs font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            <Save className="w-3.5 h-3.5" />
+            {saving ? "Saving…" : "Save Changes"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
