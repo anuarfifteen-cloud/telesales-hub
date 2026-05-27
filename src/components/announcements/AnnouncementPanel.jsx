@@ -45,7 +45,6 @@ export default function AnnouncementPanel({ announcements, onClose }) {
             onClick={onClose}
             className="w-7 h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
-            <X className="w-4 h-4" />
           </button>
         </div>
 
