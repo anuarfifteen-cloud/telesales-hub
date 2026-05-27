@@ -403,13 +403,17 @@ export default function RosterView({ isAdmin = false }) {
     queryFn: () => base44.entities.User.list(),
   });
 
-  // Map full_name → { rotationNumber, shortName } for roster display
+  // Map full_name and employee name → { rotationNumber, shortName } for roster display
   const userRotationMap = allUsers.reduce((acc, u) => {
     if (u.full_name) {
-      acc[u.full_name] = {
+      const userData = {
         rotationNumber: u.rotationNumber ?? null,
         shortName: u.shortName ?? null,
       };
+      acc[u.full_name] = userData;
+      // Also map by first name (e.g., "Kamaliah") to match RosterDatabase entries
+      const firstName = u.full_name.split(" ")[0];
+      if (firstName) acc[firstName] = userData;
     }
     return acc;
   }, {});
