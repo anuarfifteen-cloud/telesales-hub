@@ -69,6 +69,7 @@ export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(() => getStoredTheme());
   const [showAnnouncementPanel, setShowAnnouncementPanel] = useState(false);
   const [showDstConfirm, setShowDstConfirm] = useState(false);
+  const [showCancelDstConfirm, setShowCancelDstConfirm] = useState(false);
   const [activePopup, setActivePopup] = useState(null);
   const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
 
@@ -517,9 +518,40 @@ export default function Home() {
                         </div>
                       </div>
                       {dstBooking ?
-                  <span className="flex-shrink-0 text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
-                          ✓ Logged
-                        </span> :
+                  <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+                          <span className="text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
+                            ✓ Logged
+                          </span>
+                          <button
+                            onClick={() => setShowCancelDstConfirm(true)}
+                            className="text-[10px] font-semibold text-red-500 hover:text-red-700 underline underline-offset-2 transition-colors">
+                            Cancel Log
+                          </button>
+                          <AlertDialog open={showCancelDstConfirm} onOpenChange={setShowCancelDstConfirm}>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Cancel Logged Activity?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  You can only claim <strong>one activity per day</strong> — either a break slot or an off-day/DST log, not both.<br /><br />
+                                  Cancelling this log will remove your activity credit for <strong>{selectedDate}</strong> and allow you to book a break slot instead.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Keep Log</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                  onClick={async () => {
+                                    await base44.entities.Booking.delete(dstBooking.id);
+                                    queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+                                    queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
+                                    toast.success("Activity log cancelled. You can now book a break slot.");
+                                  }}>
+                                  Yes, Cancel Log
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div> :
                   hasBreakBookingToday ?
                   <span className="flex-shrink-0 text-[11px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-600 cursor-not-allowed">
                           🔒 Locked
@@ -591,6 +623,22 @@ export default function Home() {
                     </div>);
 
             })()}
+
+                {/* ── Inform user why slots are locked due to DST log ── */}
+                {(() => {
+                  const hasDstLog = bookings.some(
+                    (b) => b.slot_id === "DST_POPUP" && b.user_email === user?.email
+                  );
+                  if (!hasDstLog) return null;
+                  return (
+                    <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 flex items-start gap-2">
+                      <span className="text-base flex-shrink-0">ℹ️</span>
+                      <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                        <strong>Break slots are locked.</strong> You've already logged an Off-Day / DST activity today. Only one activity credit is allowed per day. To book a break slot instead, cancel your activity log above.
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 {isLoading ?
             <div className="space-y-2">
