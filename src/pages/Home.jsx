@@ -12,7 +12,7 @@ import LiveClock from "@/components/booking/LiveClock";
 import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock } from "lucide-react";
 import { getStoredTheme, applyTheme } from "@/lib/theme";
 import AdminPinModal from "@/components/admin/AdminPinModal";
-import AdminBookingTotals from "@/components/admin/AdminBookingTotals.jsx";
+import AdminBookingTotals from "@/components/admin/AdminBookingTotals";
 import {
   AlertDialog,
   AlertDialogAction,
