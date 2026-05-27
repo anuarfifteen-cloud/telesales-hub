@@ -81,7 +81,7 @@ export default function AnnouncementPanel({ announcements, onClose }) {
 
         {/* Footer */}
         <div className="px-4 py-3 border-t border-border flex justify-end">
-          <Button variant="secondary" onClick={onClose} className="w-full bg-[hsl(var(--destructive))]">
+          <Button variant="secondary" onClick={onClose} className="w-full bg-[#a3c0ff]">
             Close
           </Button>
         </div>
