@@ -580,7 +580,7 @@ export default function Home() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Log Off-Day / DST Pop Up?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will count as your activity for <strong>{selectedDate}</strong> and earn you 1 booking credit. Please note that you will not be able to book another break slot once this is logged, and this action cannot be undone.
+                                  This will count as your activity for <strong>{selectedDate}</strong> and earn you 1 booking credit.
                                   <br /><br />
                                   <strong>⚠️ NOTE: This includes PL</strong>
                                 </AlertDialogDescription>
