@@ -67,7 +67,7 @@ function SlotRow({ slot, bookings, globalRankMap }) {
                 {item.name}
               </span>
               <span className={`text-[10px] leading-tight mt-0.5 font-medium ${item.globalRank === 1 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
-                #{item.globalRank}{item.booked_at ? ` · ${item.booked_at}` : ""}
+                #{item.globalRank}{item.booked_at ? ` · ${item.booked_at.replace(/:\d{2}\.\d{3}/, "")}` : ""}
               </span>
             </div>
           ) : (
