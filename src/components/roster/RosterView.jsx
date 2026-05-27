@@ -398,21 +398,21 @@ export default function RosterView({ isAdmin = false }) {
     queryFn: () => base44.entities.RosterDatabase.filter({ date: selectedDate }),
   });
 
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ["all-users-roster"],
-    queryFn: () => base44.entities.User.list(),
+  const { data: employeeProfiles = [] } = useQuery({
+    queryKey: ["employee-profiles"],
+    queryFn: () => base44.entities.EmployeeProfile.list(),
   });
 
-  // Map full_name and employee name → { rotationNumber, shortName } for roster display
-  const userRotationMap = allUsers.reduce((acc, u) => {
-    if (u.full_name) {
+  // Map employee name → { rotationNumber, shortName } from EmployeeProfile entity
+  const userRotationMap = employeeProfiles.reduce((acc, p) => {
+    if (p.employeeName) {
       const userData = {
-        rotationNumber: u.rotationNumber ?? null,
-        shortName: u.shortName ?? null,
+        rotationNumber: p.rotationNumber ?? null,
+        shortName: p.shortName ?? null,
       };
-      acc[u.full_name] = userData;
-      // Also map by first name (e.g., "Kamaliah") to match RosterDatabase entries
-      const firstName = u.full_name.split(" ")[0];
+      acc[p.employeeName] = userData;
+      // Also map by first name
+      const firstName = p.employeeName.split(" ")[0];
       if (firstName) acc[firstName] = userData;
     }
     return acc;
