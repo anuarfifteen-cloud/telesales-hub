@@ -8,18 +8,21 @@
         "admin",
         "user"
       ],
-      "default": "user",
-      "description": "User role in the app"
+      "default": "user"
     },
     "earlyAccessTokens": {
       "type": "integer",
       "default": 0,
-      "description": "Number of early access tokens the user has available"
+      "description": "Number of early access tokens the user has available to spend"
     },
     "vipExpiresAt": {
       "type": "string",
-      "format": "date-time",
-      "description": "Timestamp (ISO string) when the VIP early access expires. Null if not active."
+      "description": "ISO timestamp of when the current early access session expires"
+    },
+    "milestoneTokensAwarded": {
+      "type": "object",
+      "description": "Tracks which booking milestones have already been awarded tokens (e.g. { '15': true, '30': true })",
+      "default": {}
     }
   }
 }

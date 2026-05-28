@@ -74,21 +74,54 @@ export default function Home() {
   const [activePopup, setActivePopup] = useState(null);
   const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
 
-  const checkMilestones = (totalCount) => {
-    if (totalCount >= 15 && !localStorage.getItem("hasSeenVIPModal")) {
-      localStorage.setItem("hasSeenVIPModal", "true");
-      setUnlockModal({
-        open: true,
-        title: "🏆 VIP Status Unlocked!",
-        message: "Incredible job! You just hit 15 successful bookings and reached VIP Status. You now have Early Access and can start booking your breaks at 7:00 PM before the standard 7:30 PM rush. Enjoy your VIP perk!"
-      });
-    } else if (totalCount >= 5 && !localStorage.getItem("hasSeenDarkModeModal")) {
+  const checkMilestones = async (totalCount) => {
+    // Dark mode unlock at 5 bookings
+    if (totalCount >= 5 && !localStorage.getItem("hasSeenDarkModeModal")) {
       localStorage.setItem("hasSeenDarkModeModal", "true");
       setUnlockModal({
         open: true,
         title: "🎉 Achievement Unlocked!",
         message: "Congratulations! You just hit 5 successful bookings and unlocked Dark Mode. You can now toggle your app theme in the Profile tab. Keep up the great work!"
       });
+    }
+
+    // Token milestone at 15 bookings: award 3 tokens
+    if (totalCount >= 15) {
+      const freshUser = await base44.auth.me();
+      const awarded = freshUser?.milestoneTokensAwarded || {};
+      if (!awarded["15"]) {
+        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
+        await base44.auth.updateMe({
+          earlyAccessTokens: currentTokens + 3,
+          milestoneTokensAwarded: { ...awarded, "15": true }
+        });
+        await refreshUser();
+        setUnlockModal({
+          open: true,
+          title: "🏆 Early Access Unlocked!",
+          message: "Amazing! You've hit 15 bookings and earned 3 Early Access tokens. Spend a token to book your breaks 30 minutes early for 24 hours. Keep booking to earn more!"
+        });
+        return;
+      }
+    }
+
+    // Token milestone at 30 bookings: award 5 additional tokens
+    if (totalCount >= 30) {
+      const freshUser = await base44.auth.me();
+      const awarded = freshUser?.milestoneTokensAwarded || {};
+      if (!awarded["30"]) {
+        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
+        await base44.auth.updateMe({
+          earlyAccessTokens: currentTokens + 5,
+          milestoneTokensAwarded: { ...awarded, "30": true }
+        });
+        await refreshUser();
+        setUnlockModal({
+          open: true,
+          title: "🌟 Bonus Tokens Awarded!",
+          message: "Incredible! You've hit 30 bookings and earned 5 extra Early Access tokens on top of your remaining balance. Keep it up!"
+        });
+      }
     }
   };
   const [seenAnnouncementIds, setSeenAnnouncementIds] = useState(() => {
@@ -341,7 +374,6 @@ export default function Home() {
 
   const myBookings = weekBookings.filter((b) => b.user_email === user?.email);
   const totalBookingCount = myBookings.length;
-  const earlyAccessUnlocked = totalBookingCount >= 15;
 
   // Token-based VIP early access check
   const vipExpiresAt = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
@@ -349,8 +381,7 @@ export default function Home() {
 
   const unlockTime = selectedDate ? (() => {
     const base = getUnlockTime(selectedDate);
-    // VIP token early access OR milestone-based early access: subtract 30 minutes
-    if (isVipTokenActive || earlyAccessUnlocked) return new Date(base.getTime() - 30 * 60 * 1000);
+    if (isVipTokenActive) return new Date(base.getTime() - 30 * 60 * 1000);
     return base;
   })() : null;
 
@@ -860,35 +891,47 @@ export default function Home() {
                   {/* Divider */}
                   <div className="h-px bg-border" />
 
-                  {/* Tier 2: Early Booking Access (milestone) */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-2">
-                      <span className={`text-base mt-0.5 ${earlyAccessUnlocked ? "" : "grayscale opacity-50"}`}>⚡</span>
-                      <div>
-                        <span className={`text-sm font-medium ${earlyAccessUnlocked ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
-                          👑 VIP Booking Pass
-                        </span>
-                        {earlyAccessUnlocked ?
-                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 leading-none mt-0.5 font-semibold">
-                            ⚡ Unlocked — You can now book slots 30 minutes earlier!
-                          </p> :
-
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-none mt-0.5">
-                            Hit 15 bookings to unlock your 30-min early access. ({totalCount}/15 bookings)
-                          </p>
-                        }
+                  {/* Tier 2: VIP Booking Pass milestones */}
+                  {(() => {
+                    const milestone15Done = totalCount >= 15;
+                    const milestone30Done = totalCount >= 30;
+                    return (
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-2">
+                          <span className={`text-base mt-0.5 ${milestone15Done ? "" : "grayscale opacity-50"}`}>👑</span>
+                          <div>
+                            <span className={`text-sm font-medium ${milestone15Done ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
+                              VIP Booking Pass
+                            </span>
+                            {!milestone15Done && (
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-none mt-0.5">
+                                Hit 15 bookings to unlock your 30-min early access. ({totalCount}/15 bookings)
+                              </p>
+                            )}
+                            {milestone15Done && !milestone30Done && (
+                              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 leading-none mt-0.5 font-semibold">
+                                ⚡ Unlocked! Hit 30 to earn 5 extra tokens. ({totalCount}/30 bookings)
+                              </p>
+                            )}
+                            {milestone30Done && (
+                              <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-none mt-0.5 font-semibold">
+                                🌟 Max milestone reached! All tokens earned.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {milestone15Done ? (
+                          <span className="flex-shrink-0 text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
+                            ACTIVE
+                          </span>
+                        ) : (
+                          <span className="flex-shrink-0 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+                            LOCKED
+                          </span>
+                        )}
                       </div>
-                    </div>
-                    {earlyAccessUnlocked ?
-                    <span className="flex-shrink-0 text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
-                        ACTIVE
-                      </span> :
-
-                    <span className="flex-shrink-0 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700">
-                        LOCKED
-                      </span>
-                    }
-                  </div>
+                    );
+                  })()}
 
                   {/* Divider */}
                   <div className="h-px bg-border" />
