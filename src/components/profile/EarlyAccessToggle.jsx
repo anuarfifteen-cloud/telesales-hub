@@ -98,7 +98,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
           <Zap className={`w-4 h-4 flex-shrink-0 ${isVipActive ? "text-amber-500" : tokens > 0 ? "text-blue-500" : "text-slate-300 dark:text-slate-600"}`} />
           <div>
             <p className={`text-sm font-medium ${isVipActive || tokens > 0 ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
-              Spend a Token
+              ACTIVATE EARLY 30-MINS BOOKING ACCESS
             </p>
             {isVipActive ? (
               <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-none mt-0.5 font-semibold">
