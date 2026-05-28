@@ -31,25 +31,6 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
         <EarlyAccessToggle user={user} onUserUpdate={onUserUpdate} totalBookingCount={totalBookingCount} showMilestones={false} />
       </div>
 
-      {/* How to Earn */}
-      <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
-        <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">📖 How to Earn Tokens</p>
-        <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
-          <div className="flex items-start gap-2">
-            <span className="text-amber-500 font-bold mt-0.5">1.</span>
-            <p>Book your daily break slot to accumulate bookings.</p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-amber-500 font-bold mt-0.5">2.</span>
-            <p>Reach milestone thresholds (15, 30, 50, 100 bookings) to automatically earn tokens.</p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-amber-500 font-bold mt-0.5">3.</span>
-            <p>Spend a token to activate <strong>30-minute Early Access</strong> — book your breaks ahead of everyone else for 24 hours!</p>
-          </div>
-        </div>
-      </div>
-
       {/* Milestones */}
       <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
         <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">🏆 Milestones</p>
