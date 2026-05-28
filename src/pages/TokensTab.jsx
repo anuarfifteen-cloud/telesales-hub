@@ -22,7 +22,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
           <p className="text-3xl font-bold text-amber-500">{tokens}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">token{tokens !== 1 ? "s" : ""} available</p>
         </div>
-        <div className="text-5xl">🪙</div>
+        <Coins className="w-16 h-16 text-amber-500" />
       </div>
 
       {/* Early Access Toggle */}
