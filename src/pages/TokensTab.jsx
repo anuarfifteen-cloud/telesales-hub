@@ -1,0 +1,54 @@
+import { Zap } from "lucide-react";
+import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
+
+export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
+  const tokens = user?.earlyAccessTokens ?? 0;
+
+  return (
+    <div className="flex flex-col gap-4 pb-4">
+      {/* Header */}
+      <div className="flex flex-col items-center pt-4 gap-1">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg ring-4 ring-amber-100 dark:ring-amber-900">
+          <Zap className="w-8 h-8 text-white" />
+        </div>
+        <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100 mt-1">Token Rewards</h2>
+        <p className="text-xs text-muted-foreground">Earn tokens by reaching booking milestones</p>
+      </div>
+
+      {/* Token Balance */}
+      <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Your Balance</p>
+          <p className="text-3xl font-bold text-amber-500">{tokens}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">token{tokens !== 1 ? "s" : ""} available</p>
+        </div>
+        <div className="text-5xl">🪙</div>
+      </div>
+
+      {/* How to Earn */}
+      <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+        <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">📖 How to Earn Tokens</p>
+        <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+          <div className="flex items-start gap-2">
+            <span className="text-amber-500 font-bold mt-0.5">1.</span>
+            <p>Book your daily break slot to accumulate bookings.</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-amber-500 font-bold mt-0.5">2.</span>
+            <p>Reach milestone thresholds (15, 30, 50, 100 bookings) to automatically earn tokens.</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-amber-500 font-bold mt-0.5">3.</span>
+            <p>Spend a token to activate <strong>30-minute Early Access</strong> — book your breaks ahead of everyone else for 24 hours!</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Milestones + Spend */}
+      <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+        <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">🏆 Milestones & Early Access</p>
+        <EarlyAccessToggle user={user} onUserUpdate={onUserUpdate} totalBookingCount={totalBookingCount} />
+      </div>
+    </div>
+  );
+}

@@ -9,7 +9,8 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock } from "lucide-react";
+import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Zap } from "lucide-react";
+import TokensTab from "./TokensTab";
 import { getStoredTheme, applyTheme } from "@/lib/theme";
 import AdminPinModal from "@/components/admin/AdminPinModal";
 import AdminBookingTotals from "@/components/admin/AdminBookingTotals";
@@ -30,7 +31,6 @@ import AnnouncementPopup from "@/components/announcements/AnnouncementPopup";
 import RosterView from "@/components/roster/RosterView";
 import { Button } from "@/components/ui/button";
 import FeatureUnlockModal from "@/components/FeatureUnlockModal";
-import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
 import { toast } from "sonner";
 
 const EMPLOYEES = [
@@ -815,6 +815,11 @@ export default function Home() {
           </>
         }
 
+        {/* ── TOKENS TAB ── */}
+        {activeTab === "tokens" && (
+          <TokensTab user={user} onUserUpdate={refreshUser} totalBookingCount={totalBookingCount} />
+        )}
+
         {/* ── ROSTER TAB ── */}
         {activeTab === "roster" && <RosterView isAdmin={isAdmin} />}
 
@@ -927,13 +932,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Early Access — Milestones + Token Spend */}
-              <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
-                <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">🪙 VIP TOKEN REWARDS</p>
-                <div className="space-y-4">
-                  <EarlyAccessToggle user={user} onUserUpdate={refreshUser} totalBookingCount={totalCount} />
-                </div>
-              </div>
+
 
               {/* Admin: Booking Totals */}
               {isAdmin && <AdminBookingTotals />}
@@ -989,8 +988,8 @@ export default function Home() {
         <div
           className="pointer-events-auto flex items-center justify-around px-3 py-1.5 rounded-full"
           style={{
-            width: "78%",
-            maxWidth: "340px",
+            width: "90%",
+            maxWidth: "420px",
             background: isDarkMode
               ? "rgba(15, 23, 42, 0.92)"
               : "rgba(255, 255, 255, 0.92)",
@@ -1005,6 +1004,7 @@ export default function Home() {
           {[
             { id: "booking", label: "Booking", icon: CalendarDays },
             { id: "roster", label: "Roster", icon: ClipboardList },
+            { id: "tokens", label: "Tokens", icon: Zap },
             { id: "profile", label: "Profile", icon: UserCircle },
           ].map(({ id, label, icon: Icon }) => {
             const isActive = activeTab === id;
