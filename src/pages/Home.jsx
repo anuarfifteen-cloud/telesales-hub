@@ -861,83 +861,37 @@ export default function Home() {
               <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
                 <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">⚙️ APP SETTINGS</p>
                 <div className="space-y-4">
-                  {/* Tier 1: Dark Mode */}
+                  {/* Dark Mode */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Moon className={`w-4 h-4 ${darkModeUnlocked ? "text-slate-500 dark:text-slate-400" : "text-slate-300 dark:text-slate-600"}`} />
                       <div>
-                        <span className={`text-sm font-medium my-2 py-5 ${darkModeUnlocked ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>Dark Mode</span>
+                        <span className={`text-sm font-medium ${darkModeUnlocked ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>Dark Mode</span>
                         {!darkModeUnlocked &&
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-none mt-0.5">🔒 Unlocks at 5 Bookings</p>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-none mt-0.5">🔒 Unlocks at 5 Bookings</p>
                         }
                       </div>
                     </div>
-                    {darkModeUnlocked ?
-                    <button
-                      onClick={() => handleToggleDarkMode(!isDarkMode)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                      isDarkMode ? "bg-blue-600" : "bg-slate-200"}`
-                      }>
-                      
+                    {darkModeUnlocked ? (
+                      <button
+                        onClick={() => handleToggleDarkMode(!isDarkMode)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isDarkMode ? "bg-blue-600" : "bg-slate-200"}`}>
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isDarkMode ? "translate-x-6" : "translate-x-1"}`} />
-                      </button> :
-
-                    <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-slate-100 cursor-not-allowed opacity-50">
+                      </button>
+                    ) : (
+                      <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-slate-100 cursor-not-allowed opacity-50">
                         <span className="inline-block h-4 w-4 transform rounded-full bg-white shadow translate-x-1" />
                       </div>
-                    }
+                    )}
                   </div>
+                </div>
+              </div>
 
-                  {/* Divider */}
-                  <div className="h-px bg-border" />
-
-                  {/* Tier 2: VIP Booking Pass milestones */}
-                  {(() => {
-                    const milestone15Done = totalCount >= 15;
-                    const milestone30Done = totalCount >= 30;
-                    return (
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-2">
-                          <span className={`text-base mt-0.5 ${milestone15Done ? "" : "grayscale opacity-50"}`}>👑</span>
-                          <div>
-                            <span className={`text-sm font-medium ${milestone15Done ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
-                              VIP Booking Pass
-                            </span>
-                            {!milestone15Done && (
-                              <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-none mt-0.5">
-                                Hit 15 bookings to unlock your 30-min early access. ({totalCount}/15 bookings)
-                              </p>
-                            )}
-                            {milestone15Done && !milestone30Done && (
-                              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 leading-none mt-0.5 font-semibold">
-                                ⚡ Unlocked! Hit 30 to earn 5 extra tokens. ({totalCount}/30 bookings)
-                              </p>
-                            )}
-                            {milestone30Done && (
-                              <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-none mt-0.5 font-semibold">
-                                🌟 Max milestone reached! All tokens earned.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        {milestone15Done ? (
-                          <span className="flex-shrink-0 text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
-                            ACTIVE
-                          </span>
-                        ) : (
-                          <span className="flex-shrink-0 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700">
-                            LOCKED
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                  {/* Divider */}
-                  <div className="h-px bg-border" />
-
-                  {/* Token-based Early Access Toggle */}
-                  <EarlyAccessToggle user={user} onUserUpdate={refreshUser} />
+              {/* Early Access — Milestones + Token Spend */}
+              <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+                <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">⚡ EARLY BOOKING ACCESS</p>
+                <div className="space-y-4">
+                  <EarlyAccessToggle user={user} onUserUpdate={refreshUser} totalBookingCount={totalCount} />
                 </div>
               </div>
 
