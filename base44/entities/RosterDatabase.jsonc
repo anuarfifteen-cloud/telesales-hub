@@ -35,6 +35,10 @@
     "sort_order": {
       "type": "number",
       "description": "Custom sort order set by admin via drag-and-drop"
+    },
+    "abbreviation": {
+      "type": "string",
+      "description": "Optional custom 1-2 letter abbreviation shown in the avatar circle"
     }
   },
   "required": [

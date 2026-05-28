@@ -23,8 +23,8 @@ function nameToHue(name) {
   return Math.abs(hash) % 360;
 }
 
-function Avatar({ name }) {
-  const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+function Avatar({ name, abbreviation }) {
+  const initials = abbreviation ? abbreviation.toUpperCase().slice(0, 2) : name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   const hue = nameToHue(name);
   return (
     <div
@@ -129,19 +129,28 @@ function EntryRow({ entry, isAdmin, onDelete, onUpdate, dragHandleProps }) {
   const [editName, setEditName] = useState("");
   const [editTask, setEditTask] = useState("");
   const [editCaption, setEditCaption] = useState("");
+  const [editAbbreviation, setEditAbbreviation] = useState("");
   const [saving, setSaving] = useState(false);
 
   const name = entry?.employee_name || `Employee ${entry?.employee_number}`;
   const task = entry?.daily_task || "";
   const caption = entry?.caption || "";
+  const abbreviation = entry?.abbreviation || "";
 
-  const startEdit = () => { setEditName(name); setEditTask(task); setEditCaption(caption); setEditing(true); };
+  const startEdit = () => {
+    setEditName(name);
+    setEditTask(task);
+    setEditCaption(caption);
+    setEditAbbreviation(abbreviation);
+    setEditing(true);
+  };
   const cancelEdit = () => setEditing(false);
 
   const saveEdit = async () => {
     setSaving(true);
     await base44.entities.RosterDatabase.update(entry.id, {
       employee_name: editName, daily_task: editTask, caption: editCaption,
+      abbreviation: editAbbreviation.trim() || undefined,
     });
     onUpdate(); setSaving(false); setEditing(false);
     toast.success("Entry updated.");
@@ -156,6 +165,9 @@ function EntryRow({ entry, isAdmin, onDelete, onUpdate, dragHandleProps }) {
           className="w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300" />
         <input value={editCaption} onChange={e => setEditCaption(e.target.value)} placeholder="Caption (optional)"
           className="w-full text-[11px] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300 text-slate-500" />
+        <input value={editAbbreviation} onChange={e => setEditAbbreviation(e.target.value)} placeholder="Avatar letters (optional, e.g. AJ)"
+          maxLength={2}
+          className="w-full text-[11px] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300 text-slate-500 uppercase" />
         <div className="flex gap-2 justify-end">
           <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
           <button onClick={saveEdit} disabled={saving} className="text-blue-500 hover:text-blue-700"><Check className="w-4 h-4" /></button>
@@ -174,7 +186,7 @@ function EntryRow({ entry, isAdmin, onDelete, onUpdate, dragHandleProps }) {
             <GripVertical className="w-3.5 h-3.5" />
           </span>
         )}
-        <Avatar name={name} />
+        <Avatar name={name} abbreviation={abbreviation} />
         <div className="min-w-0">
           <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-tight truncate">{name}</p>
           {caption && <p className="text-[9px] text-slate-400 dark:text-slate-500 leading-none truncate mt-0.5">{caption}</p>}
