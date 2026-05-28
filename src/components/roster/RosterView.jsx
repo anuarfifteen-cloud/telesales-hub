@@ -257,13 +257,22 @@ function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, s
 
   const handleSave = async () => {
     setSaving(true);
-    const toSave = Object.values(pendingAssignments).filter(Boolean);
+    // Sort pending by slot index to preserve visual order
+    const toSave = Object.entries(pendingAssignments)
+      .filter(([, v]) => v?.empValue)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([, v]) => v);
+
+    // Base sort_order: after the last existing entry
+    const maxExistingSortOrder = entries.reduce((max, e) => Math.max(max, e.sort_order ?? 0), 0);
+
     await Promise.all(
-      toSave.map(({ empValue, task }) => {
+      toSave.map(({ empValue, task }, idx) => {
         const emp = EMPLOYEES.find(e => String(e.value) === empValue);
         return base44.entities.RosterDatabase.create({
           date: selectedDate, shift_type: shiftType,
           employee_number: emp.value, employee_name: emp.label, daily_task: task,
+          sort_order: maxExistingSortOrder + (idx + 1) * 10,
         });
       })
     );
@@ -326,13 +335,20 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate }) {
 
   const handleSave = async () => {
     setSaving(true);
-    const toSave = Object.values(pendingAssignments).filter(Boolean);
+    const toSave = Object.entries(pendingAssignments)
+      .filter(([, v]) => v?.empValue)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([, v]) => v);
+
+    const maxExistingSortOrder = entries.reduce((max, e) => Math.max(max, e.sort_order ?? 0), 0);
+
     await Promise.all(
-      toSave.map(({ empValue, task }) => {
+      toSave.map(({ empValue, task }, idx) => {
         const emp = EMPLOYEES.find(e => String(e.value) === empValue);
         return base44.entities.RosterDatabase.create({
           date: selectedDate, shift_type: "Off",
           employee_number: emp.value, employee_name: emp.label, daily_task: task,
+          sort_order: maxExistingSortOrder + (idx + 1) * 10,
         });
       })
     );
