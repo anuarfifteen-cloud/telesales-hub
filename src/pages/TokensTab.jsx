@@ -1,4 +1,3 @@
-import { Coins } from "lucide-react";
 import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
@@ -8,9 +7,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
     <div className="flex flex-col gap-4 pb-4">
       {/* Header */}
       <div className="flex flex-col items-center pt-4 gap-1">
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg ring-4 ring-amber-100 dark:ring-amber-900">
-          <Coins className="w-8 h-8 text-white" />
-        </div>
+        <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="Token" className="w-16 h-16" />
         <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100 mt-1">Token Rewards</h2>
         <p className="text-xs text-muted-foreground">Earn tokens by reaching booking milestones</p>
       </div>
@@ -22,7 +19,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
           <p className="text-3xl font-bold text-amber-500">{tokens}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">token{tokens !== 1 ? "s" : ""} available</p>
         </div>
-        <Coins className="w-16 h-16 text-amber-500" />
+        <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="Token" className="w-16 h-16" />
       </div>
 
       {/* Early Access Toggle */}
