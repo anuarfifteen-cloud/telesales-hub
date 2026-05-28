@@ -75,7 +75,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
           <span className={`text-lg ${milestone30Done ? "" : "grayscale opacity-40"}`}>🌟</span>
           <div className="flex-1 min-w-0">
             <p className={`text-xs font-semibold ${milestone30Done ? "text-amber-800 dark:text-amber-300" : "text-slate-500 dark:text-slate-400"}`}>
-              30 Bookings — Earn 5 Bonus Tokens
+              30 Bookings — Earn 5 Tokens
             </p>
             {milestone30Done ? (
               <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">✓ Milestone reached</p>
