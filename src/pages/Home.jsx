@@ -468,12 +468,18 @@ export default function Home() {
             <h1 className="text-xl text-slate-900 dark:text-white leading-tight" style={{ fontFamily: "'Pacifico', cursive" }}>Telesales Hub</h1>
           </div>
 
-          {/* Right: admin badge or bell */}
+          {/* Right: token balance, admin badge, bell */}
           <div className="flex items-center gap-2">
+            {/* Token balance pill */}
+            <button
+              onClick={() => setActiveTab("tokens")}
+              className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2.5 py-1 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors">
+              <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="Token" className="w-4 h-4" />
+              <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{user?.earlyAccessTokens ?? 0}</span>
+            </button>
             <button
               onClick={handleOpenAnnouncements}
               className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative">
-              
               <Bell className="w-5 h-5 text-slate-500" />
               {hasUnread && activeAnnouncements.length > 0 &&
               <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 border border-white dark:border-slate-900">
