@@ -889,7 +889,7 @@ export default function Home() {
 
               {/* Early Access — Milestones + Token Spend */}
               <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
-                <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">⚡ EARLY BOOKING ACCESS</p>
+                <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">⚡ EARLY 30-MINS BOOKING ACCESS</p>
                 <div className="space-y-4">
                   <EarlyAccessToggle user={user} onUserUpdate={refreshUser} totalBookingCount={totalCount} />
                 </div>
