@@ -1,4 +1,4 @@
-import { Zap } from "lucide-react";
+import { Coins } from "lucide-react";
 import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
@@ -9,7 +9,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
       {/* Header */}
       <div className="flex flex-col items-center pt-4 gap-1">
         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg ring-4 ring-amber-100 dark:ring-amber-900">
-          <Zap className="w-8 h-8 text-white" />
+          <Coins className="w-8 h-8 text-white" />
         </div>
         <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100 mt-1">Token Rewards</h2>
         <p className="text-xs text-muted-foreground">Earn tokens by reaching booking milestones</p>
@@ -23,6 +23,12 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
           <p className="text-[11px] text-muted-foreground mt-0.5">token{tokens !== 1 ? "s" : ""} available</p>
         </div>
         <div className="text-5xl">🪙</div>
+      </div>
+
+      {/* Early Access Toggle */}
+      <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+        <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">⚡ Activate Early Access</p>
+        <EarlyAccessToggle user={user} onUserUpdate={onUserUpdate} totalBookingCount={totalBookingCount} showMilestones={false} />
       </div>
 
       {/* How to Earn */}
@@ -44,10 +50,10 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
         </div>
       </div>
 
-      {/* Milestones + Spend */}
+      {/* Milestones */}
       <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
-        <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">🏆 Milestones & Early Access</p>
-        <EarlyAccessToggle user={user} onUserUpdate={onUserUpdate} totalBookingCount={totalBookingCount} />
+        <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">🏆 Milestones</p>
+        <EarlyAccessToggle user={user} onUserUpdate={onUserUpdate} totalBookingCount={totalBookingCount} showMilestones={true} />
       </div>
     </div>
   );

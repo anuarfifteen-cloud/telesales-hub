@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
-export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCount = 0 }) {
+export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCount = 0, showMilestones = true }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -51,6 +51,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
   return (
     <>
       {/* ── Milestones ── */}
+      {showMilestones && (
       <div className="space-y-2">
         {/* Milestone 1 — 15 bookings */}
         <div className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border ${milestone15Done ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800" : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"}`}>
@@ -132,9 +133,10 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
           )}
         </div>
       </div>
+      )}
 
       {/* ── Spend Tokens ── */}
-      <div className="h-px bg-border" />
+      {showMilestones && <div className="h-px bg-border" />}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Zap className={`w-4 h-4 flex-shrink-0 ${isVipActive ? "text-amber-500" : tokens > 0 ? "text-blue-500" : "text-slate-300 dark:text-slate-600"}`} />

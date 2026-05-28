@@ -9,7 +9,7 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Zap } from "lucide-react";
+import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins } from "lucide-react";
 import TokensTab from "./TokensTab";
 import { getStoredTheme, applyTheme } from "@/lib/theme";
 import AdminPinModal from "@/components/admin/AdminPinModal";
@@ -1004,7 +1004,7 @@ export default function Home() {
           {[
             { id: "booking", label: "Booking", icon: CalendarDays },
             { id: "roster", label: "Roster", icon: ClipboardList },
-            { id: "tokens", label: "Tokens", icon: Zap },
+            { id: "tokens", label: "Tokens", icon: Coins },
             { id: "profile", label: "Profile", icon: UserCircle },
           ].map(({ id, label, icon: Icon }) => {
             const isActive = activeTab === id;
