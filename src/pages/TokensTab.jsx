@@ -24,7 +24,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
 
       {/* Early Access Toggle */}
       <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
-        <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">👑 Activate VIP Booking Pass 👑</p>
+        <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">👑 VIP Booking Pass 👑</p>
         <EarlyAccessToggle user={user} onUserUpdate={onUserUpdate} totalBookingCount={totalBookingCount} showMilestones={false} />
       </div>
 
