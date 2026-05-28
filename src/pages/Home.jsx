@@ -454,7 +454,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background font-inter pb-20">
+    <div className="min-h-screen bg-background font-inter pb-32">
       {/* Header */}
       <header className="bg-white dark:bg-slate-900 sticky top-0 z-10" style={{ boxShadow: "0 1px 12px 0 rgba(0,0,0,0.08)" }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -984,27 +984,44 @@ export default function Home() {
         title={unlockModal.title}
         message={unlockModal.message} />
 
-      {/* ── FIXED BOTTOM NAVIGATION ── */}
-      <nav className="fixed bottom-0 left-0 right-0 z-20 bg-card border-t border-border shadow-lg">
-        <div className="max-w-2xl mx-auto flex">
+      {/* ── FLOATING PILL BOTTOM NAVIGATION ── */}
+      <nav className="fixed bottom-14 left-0 right-0 z-20 flex justify-center pointer-events-none">
+        <div
+          className="pointer-events-auto flex items-center justify-around gap-1 px-6 py-2.5 rounded-full"
+          style={{
+            width: "90%",
+            maxWidth: "420px",
+            background: isDarkMode
+              ? "rgba(15, 23, 42, 0.85)"
+              : "rgba(255, 255, 255, 0.88)",
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.13), 0 1.5px 6px rgba(0,0,0,0.07)",
+            border: isDarkMode
+              ? "1px solid rgba(255,255,255,0.08)"
+              : "1px solid rgba(0,0,0,0.07)",
+          }}
+        >
           {[
-          { id: "booking", label: "Booking", icon: CalendarDays },
-          { id: "roster", label: "Roster", icon: ClipboardList },
-          { id: "profile", label: "Profile", icon: UserCircle }].
-          map(({ id, label, icon: Icon }) => {
+            { id: "booking", label: "Booking", icon: CalendarDays },
+            { id: "roster", label: "Roster", icon: ClipboardList },
+            { id: "profile", label: "Profile", icon: UserCircle },
+          ].map(({ id, label, icon: Icon }) => {
             const isActive = activeTab === id;
             return (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 text-xs font-medium transition-colors ${
-                isActive ? "text-blue-600" : "text-slate-400 hover:text-slate-600"}`
-                }>
-                
-                <Icon className={`w-5 h-5 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
-                <span>{label}</span>
-              </button>);
-
+                className={`flex flex-col items-center justify-center gap-0.5 px-5 py-2 rounded-full transition-all ${
+                  isActive
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="text-[10px] font-semibold">{label}</span>
+              </button>
+            );
           })}
         </div>
       </nav>
