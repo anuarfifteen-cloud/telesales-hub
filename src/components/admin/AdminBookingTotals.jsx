@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Trash2, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Plus, ChevronDown, ChevronUp, Zap, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { format as tzFormat } from "date-fns-tz";
@@ -14,6 +14,8 @@ export default function AdminBookingTotals() {
   const [addingFor, setAddingFor] = useState(null);
   const [newBooking, setNewBooking] = useState({ date: "", slot_id: "", slot_label: "", shift: "AM" });
   const [saving, setSaving] = useState(false);
+  const [editingTokensFor, setEditingTokensFor] = useState(null);
+  const [tokenEditValue, setTokenEditValue] = useState("");
 
   const { data: allBookings = [], isLoading } = useQuery({
     queryKey: ["all-bookings-admin"],
@@ -44,10 +46,21 @@ export default function AdminBookingTotals() {
     return {
       email,
       name: userEntity?.full_name || bookings[0]?.user_name || email,
+      userId: userEntity?.id || null,
+      tokens: userEntity?.earlyAccessTokens ?? 0,
       bookings,
       total: bookings.length,
     };
   }).sort((a, b) => b.total - a.total);
+
+  const handleSaveTokens = async (userId, newVal) => {
+    const parsed = parseInt(newVal, 10);
+    if (isNaN(parsed) || parsed < 0) { toast.error("Enter a valid token count."); return; }
+    await base44.entities.User.update(userId, { earlyAccessTokens: parsed });
+    queryClient.invalidateQueries({ queryKey: ["all-users-admin"] });
+    setEditingTokensFor(null);
+    toast.success("Tokens updated.");
+  };
 
   const handleDelete = async (bookingId) => {
     await base44.entities.Booking.delete(bookingId);
@@ -87,8 +100,9 @@ export default function AdminBookingTotals() {
     <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 space-y-3">
       <p className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wide">📊 All Users Booking Totals</p>
       <div className="space-y-2">
-        {userList.map(({ email, name, bookings, total }) => {
+        {userList.map(({ email, name, bookings, total, tokens, userId }) => {
           const isExpanded = expandedUser === email;
+          const isEditingTokens = editingTokensFor === email;
           return (
             <div key={email} className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               {/* User Row */}
@@ -108,6 +122,9 @@ export default function AdminBookingTotals() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-700 flex items-center gap-1">
+                    <Zap className="w-2.5 h-2.5" />{tokens}
+                  </span>
                   <span className="text-xs font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-700">
                     {total} bookings
                   </span>
@@ -118,6 +135,35 @@ export default function AdminBookingTotals() {
               {/* Expanded Bookings */}
               {isExpanded && (
                 <div className="px-3 py-2 space-y-1.5 bg-white dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-700">
+                  {/* Token Editor */}
+                  {userId && (
+                    <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg px-2.5 py-2 mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-amber-500" />
+                        <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">Early Access Tokens</span>
+                      </div>
+                      {isEditingTokens ? (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number" min="0" value={tokenEditValue}
+                            onChange={e => setTokenEditValue(e.target.value)}
+                            className="w-16 text-xs border border-amber-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 text-center"
+                            autoFocus
+                          />
+                          <button onClick={() => handleSaveTokens(userId, tokenEditValue)} className="text-emerald-500 hover:text-emerald-700"><Check className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setEditingTokensFor(null)} className="text-slate-400 hover:text-slate-600"><X className="w-3.5 h-3.5" /></button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{tokens} tokens</span>
+                          <button onClick={e => { e.stopPropagation(); setEditingTokensFor(email); setTokenEditValue(String(tokens)); }} className="text-slate-300 hover:text-amber-500 transition-colors">
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {bookings.length === 0 && (
                     <p className="text-xs text-muted-foreground italic text-center py-1">No bookings yet.</p>
                   )}

@@ -121,6 +121,46 @@ export default function Home() {
           title: "🌟 Bonus Tokens Awarded!",
           message: "Incredible! You've hit 30 bookings and earned 5 extra Early Access tokens on top of your remaining balance. Keep it up!"
         });
+        return;
+      }
+    }
+
+    // Token milestone at 50 bookings: award 10 tokens
+    if (totalCount >= 50) {
+      const freshUser = await base44.auth.me();
+      const awarded = freshUser?.milestoneTokensAwarded || {};
+      if (!awarded["50"]) {
+        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
+        await base44.auth.updateMe({
+          earlyAccessTokens: currentTokens + 10,
+          milestoneTokensAwarded: { ...awarded, "50": true }
+        });
+        await refreshUser();
+        setUnlockModal({
+          open: true,
+          title: "💎 Elite Milestone!",
+          message: "Wow! You've hit 50 bookings and earned 10 Early Access tokens! You're on fire — keep going!"
+        });
+        return;
+      }
+    }
+
+    // Token milestone at 100 bookings: award 20 tokens
+    if (totalCount >= 100) {
+      const freshUser = await base44.auth.me();
+      const awarded = freshUser?.milestoneTokensAwarded || {};
+      if (!awarded["100"]) {
+        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
+        await base44.auth.updateMe({
+          earlyAccessTokens: currentTokens + 20,
+          milestoneTokensAwarded: { ...awarded, "100": true }
+        });
+        await refreshUser();
+        setUnlockModal({
+          open: true,
+          title: "🚀 Legend Status!",
+          message: "INCREDIBLE! 100 bookings! You've earned a massive 20 Early Access tokens. You are a true Telesales legend!"
+        });
       }
     }
   };

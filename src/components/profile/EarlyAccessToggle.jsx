@@ -24,6 +24,8 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
 
   const milestone15Done = totalBookingCount >= 15;
   const milestone30Done = totalBookingCount >= 30;
+  const milestone50Done = totalBookingCount >= 50;
+  const milestone100Done = totalBookingCount >= 100;
 
   const handleActivate = async () => {
     setSaving(true);
@@ -85,6 +87,46 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
           </div>
           {milestone30Done ? (
             <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-700">DONE</span>
+          ) : (
+            <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-600">LOCKED</span>
+          )}
+        </div>
+
+        {/* Milestone 3 — 50 bookings */}
+        <div className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border ${milestone50Done ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800" : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"}`}>
+          <span className={`text-lg ${milestone50Done ? "" : "grayscale opacity-40"}`}>💎</span>
+          <div className="flex-1 min-w-0">
+            <p className={`text-xs font-semibold ${milestone50Done ? "text-blue-800 dark:text-blue-300" : "text-slate-500 dark:text-slate-400"}`}>
+              50 Bookings — Earn 10 Tokens
+            </p>
+            {milestone50Done ? (
+              <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">✓ Milestone reached</p>
+            ) : (
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">{totalBookingCount}/50 bookings</p>
+            )}
+          </div>
+          {milestone50Done ? (
+            <span className="text-[10px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-700">DONE</span>
+          ) : (
+            <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-600">LOCKED</span>
+          )}
+        </div>
+
+        {/* Milestone 4 — 100 bookings */}
+        <div className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border ${milestone100Done ? "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800" : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"}`}>
+          <span className={`text-lg ${milestone100Done ? "" : "grayscale opacity-40"}`}>🚀</span>
+          <div className="flex-1 min-w-0">
+            <p className={`text-xs font-semibold ${milestone100Done ? "text-purple-800 dark:text-purple-300" : "text-slate-500 dark:text-slate-400"}`}>
+              100 Bookings — Earn 20 Tokens
+            </p>
+            {milestone100Done ? (
+              <p className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">✓ Milestone reached</p>
+            ) : (
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">{totalBookingCount}/100 bookings</p>
+            )}
+          </div>
+          {milestone100Done ? (
+            <span className="text-[10px] font-bold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-700">DONE</span>
           ) : (
             <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-600">LOCKED</span>
           )}
