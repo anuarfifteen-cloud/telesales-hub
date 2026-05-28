@@ -136,61 +136,61 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
       )}
 
       {/* ── Spend Tokens ── */}
-      {showMilestones && <div className="h-px bg-border" />}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Zap className={`w-4 h-4 flex-shrink-0 ${isVipActive ? "text-amber-500" : tokens > 0 ? "text-blue-500" : "text-slate-300 dark:text-slate-600"}`} />
-          <div>
-            <p className={`text-sm font-medium ${isVipActive || tokens > 0 ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
-              ACTIVATE EARLY 30-MINS BOOKING ACCESS
-            </p>
-            {isVipActive ? (
-              <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-none mt-0.5 font-semibold">
-                ⚡ Active — expires {formatExpiry()}
-              </p>
-            ) : tokens > 0 ? (
-              <p className="text-[10px] text-blue-600 dark:text-blue-400 leading-none mt-0.5 font-semibold">
-                {tokens} token{tokens !== 1 ? "s" : ""} available — book 30 min early for 24h
-              </p>
-            ) : (
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-none mt-0.5">
-                No tokens available
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Toggle */}
-        <button
-          disabled={!canActivate || saving}
-          onClick={() => setShowConfirm(true)}
-          className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
-            ${isVipActive ? "bg-amber-500" : canActivate ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300" : "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-40"}`}
-        >
-          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isVipActive ? "translate-x-6" : "translate-x-1"}`} />
-        </button>
-      </div>
-
-      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>⚡ Activate Early Access?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will consume <strong>1 token</strong> ({tokens} remaining) and grant you <strong>30-minute early booking access</strong> for the next <strong>24 hours</strong> or until your next successful booking, whichever comes first.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={saving}
-              onClick={handleActivate}
-              className="bg-amber-500 hover:bg-amber-600 text-white"
+      {!showMilestones && (
+        <>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Zap className={`w-4 h-4 flex-shrink-0 ${isVipActive ? "text-amber-500" : tokens > 0 ? "text-blue-500" : "text-slate-300 dark:text-slate-600"}`} />
+              <div>
+                <p className={`text-sm font-medium ${isVipActive || tokens > 0 ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
+                  ACTIVATE EARLY 30-MINS BOOKING ACCESS
+                </p>
+                {isVipActive ? (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-none mt-0.5 font-semibold">
+                    ⚡ Active — expires {formatExpiry()}
+                  </p>
+                ) : tokens > 0 ? (
+                  <p className="text-[10px] text-blue-600 dark:text-blue-400 leading-none mt-0.5 font-semibold">
+                    {tokens} token{tokens !== 1 ? "s" : ""} available — book 30 min early for 24h
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-none mt-0.5">
+                    No tokens available
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              disabled={!canActivate || saving}
+              onClick={() => setShowConfirm(true)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
+                ${isVipActive ? "bg-amber-500" : canActivate ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300" : "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-40"}`}
             >
-              {saving ? "Activating…" : "Activate"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isVipActive ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+          </div>
+          <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>⚡ Activate Early Access?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will consume <strong>1 token</strong> ({tokens} remaining) and grant you <strong>30-minute early booking access</strong> for the next <strong>24 hours</strong> or until your next successful booking, whichever comes first.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={saving}
+                  onClick={handleActivate}
+                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  {saving ? "Activating…" : "Activate"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
     </>
   );
 }
