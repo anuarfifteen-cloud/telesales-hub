@@ -30,6 +30,7 @@ import AnnouncementPopup from "@/components/announcements/AnnouncementPopup";
 import RosterView from "@/components/roster/RosterView";
 import { Button } from "@/components/ui/button";
 import FeatureUnlockModal from "@/components/FeatureUnlockModal";
+import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
 import { toast } from "sonner";
 
 const EMPLOYEES = [
@@ -96,6 +97,12 @@ export default function Home() {
   const dates = getBookableDates();
   const queryClient = useQueryClient();
   const bruneiNow = useBruneiClock();
+
+  const refreshUser = async () => {
+    const u = await base44.auth.me();
+    setUser(u);
+    return u;
+  };
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
@@ -239,6 +246,11 @@ export default function Home() {
 
       const currentTotalBookingCount = context.prevTotalBookingCount + 1;
       checkMilestones(currentTotalBookingCount);
+
+      // Reset VIP early access after a successful booking
+      if (user?.vipExpiresAt) {
+        base44.auth.updateMe({ vipExpiresAt: null }).then(refreshUser);
+      }
     },
     onError: (err, slot, context) => {
       // Roll back optimistic update
@@ -331,10 +343,14 @@ export default function Home() {
   const totalBookingCount = myBookings.length;
   const earlyAccessUnlocked = totalBookingCount >= 15;
 
+  // Token-based VIP early access check
+  const vipExpiresAt = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
+  const isVipTokenActive = vipExpiresAt && vipExpiresAt.getTime() > Date.now();
+
   const unlockTime = selectedDate ? (() => {
     const base = getUnlockTime(selectedDate);
-    // Tier 2: 30-min early access — subtract 30 minutes from unlock time
-    if (earlyAccessUnlocked) return new Date(base.getTime() - 30 * 60 * 1000);
+    // VIP token early access OR milestone-based early access: subtract 30 minutes
+    if (isVipTokenActive || earlyAccessUnlocked) return new Date(base.getTime() - 30 * 60 * 1000);
     return base;
   })() : null;
 
@@ -844,7 +860,7 @@ export default function Home() {
                   {/* Divider */}
                   <div className="h-px bg-border" />
 
-                  {/* Tier 2: Early Booking Access */}
+                  {/* Tier 2: Early Booking Access (milestone) */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-2">
                       <span className={`text-base mt-0.5 ${earlyAccessUnlocked ? "" : "grayscale opacity-50"}`}>⚡</span>
@@ -873,6 +889,12 @@ export default function Home() {
                       </span>
                     }
                   </div>
+
+                  {/* Divider */}
+                  <div className="h-px bg-border" />
+
+                  {/* Token-based Early Access Toggle */}
+                  <EarlyAccessToggle user={user} onUserUpdate={refreshUser} />
                 </div>
               </div>
 

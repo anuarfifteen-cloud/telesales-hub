@@ -1,0 +1,25 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user"
+      ],
+      "default": "user",
+      "description": "User role in the app"
+    },
+    "earlyAccessTokens": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of early access tokens the user has available"
+    },
+    "vipExpiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp (ISO string) when the VIP early access expires. Null if not active."
+    }
+  }
+}
