@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { todayInBrunei } from "@/lib/slots";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { Trash2, Plus, Pencil, Check, X, ChevronLeft, ChevronRight, GripVertical, Save, User as UserIcon } from "lucide-react";
+import { Trash2, Plus, Pencil, Check, X, ChevronLeft, ChevronRight, GripVertical, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -17,10 +17,21 @@ const EMPLOYEES = [
   { value: 13, label: "Halimatul" }, { value: 14, label: "Afiqah" },
 ];
 
-function Avatar({ rotationNumber }) {
+function nameToHue(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return Math.abs(hash) % 360;
+}
+
+function Avatar({ name }) {
+  const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  const hue = nameToHue(name);
   return (
-    <div className="w-7 h-7 rounded-full bg-slate-400 dark:bg-slate-600 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
-      {rotationNumber != null ? rotationNumber : <span className="text-slate-300 font-normal">-</span>}
+    <div
+      className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+      style={{ background: `hsl(${hue}, 60%, 52%)` }}
+    >
+      {initials}
     </div>
   );
 }
@@ -62,28 +73,24 @@ function formatMediumDate(dateStr) {
 }
 
 // Draft-mode TemplateRow: reports selection changes upward, no per-row save button
-function TemplateRow({ slotIndex, defaultTask, isAdmin, pendingEmp, onPendingChange, userRotationMap }) {
+function TemplateRow({ slotIndex, defaultTask, isAdmin, pendingEmp, onPendingChange }) {
   const [editingTask, setEditingTask] = useState(false);
   const [taskVal, setTaskVal] = useState(defaultTask);
   const badge = taskBadgeColor(taskVal);
-
-  const pendingEmpLabel = EMPLOYEES.find(e => String(e.value) === pendingEmp)?.label;
-  const pendingUserData = pendingEmpLabel ? userRotationMap?.[pendingEmpLabel] : null;
-  const displayName = pendingUserData?.shortName || pendingEmpLabel || null;
 
   return (
     <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/40 dark:bg-slate-700/30 border border-dashed border-slate-200 dark:border-slate-600 gap-2">
       <div className="flex items-center gap-2 min-w-0">
         {pendingEmp ? (
-          <Avatar rotationNumber={pendingUserData?.rotationNumber ?? null} />
+          <Avatar name={EMPLOYEES.find(e => String(e.value) === pendingEmp)?.label || "?"} />
         ) : (
-          <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-            <UserIcon className="w-3.5 h-3.5 text-slate-400" />
+          <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
+            <span className="text-[9px] text-slate-400 font-bold">?</span>
           </div>
         )}
         {pendingEmp ? (
           <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-            {displayName}
+            {EMPLOYEES.find(e => String(e.value) === pendingEmp)?.label}
           </span>
         ) : (
           <span className="text-[11px] italic text-slate-400 dark:text-slate-500">Empty</span>
@@ -109,11 +116,7 @@ function TemplateRow({ slotIndex, defaultTask, isAdmin, pendingEmp, onPendingCha
             className="text-[10px] border border-slate-200 rounded px-1 py-0.5 bg-white dark:bg-slate-800 dark:border-slate-600 focus:outline-none"
           >
             <option value="">Assign…</option>
-            {EMPLOYEES.map(emp => {
-              const userData = userRotationMap?.[emp.label];
-              const label = userData?.shortName || emp.label;
-              return <option key={emp.value} value={String(emp.value)}>{label}</option>;
-            })}
+            {EMPLOYEES.map(emp => <option key={emp.value} value={String(emp.value)}>{emp.label}</option>)}
           </select>
         )}
       </div>
@@ -121,16 +124,14 @@ function TemplateRow({ slotIndex, defaultTask, isAdmin, pendingEmp, onPendingCha
   );
 }
 
-function EntryRow({ entry, isAdmin, onDelete, onUpdate, dragHandleProps, rotationNumber, userRotationMap }) {
+function EntryRow({ entry, isAdmin, onDelete, onUpdate, dragHandleProps }) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editTask, setEditTask] = useState("");
   const [editCaption, setEditCaption] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const rawName = entry?.employee_name || `Employee ${entry?.employee_number}`;
-  const userData = userRotationMap?.[rawName];
-  const name = userData?.shortName || rawName;
+  const name = entry?.employee_name || `Employee ${entry?.employee_number}`;
   const task = entry?.daily_task || "";
   const caption = entry?.caption || "";
 
@@ -173,7 +174,7 @@ function EntryRow({ entry, isAdmin, onDelete, onUpdate, dragHandleProps, rotatio
             <GripVertical className="w-3.5 h-3.5" />
           </span>
         )}
-        <Avatar rotationNumber={rotationNumber ?? null} />
+        <Avatar name={name} />
         <div className="min-w-0">
           <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-tight truncate">{name}</p>
           {caption && <p className="text-[9px] text-slate-400 dark:text-slate-500 leading-none truncate mt-0.5">{caption}</p>}
@@ -196,7 +197,7 @@ function EntryRow({ entry, isAdmin, onDelete, onUpdate, dragHandleProps, rotatio
   );
 }
 
-function DraggableShiftList({ entries, shiftKey, isAdmin, onDelete, onUpdate, userRotationMap }) {
+function DraggableShiftList({ entries, shiftKey, isAdmin, onDelete, onUpdate }) {
   return (
     <Droppable droppableId={shiftKey}>
       {(provided) => (
@@ -215,8 +216,6 @@ function DraggableShiftList({ entries, shiftKey, isAdmin, onDelete, onUpdate, us
                     onDelete={onDelete}
                     onUpdate={onUpdate}
                     dragHandleProps={prov.dragHandleProps}
-                    rotationNumber={userRotationMap?.[entry.employee_name]?.rotationNumber ?? null}
-                    userRotationMap={userRotationMap}
                   />
                 </div>
               )}
@@ -229,16 +228,12 @@ function DraggableShiftList({ entries, shiftKey, isAdmin, onDelete, onUpdate, us
   );
 }
 
-function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, shiftType, color, isAdmin, onDelete, onUpdate, selectedDate, userRotationMap }) {
+function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, shiftType, color, isAdmin, onDelete, onUpdate, selectedDate }) {
+  // pendingAssignments: { [slotIndex]: { empValue: string, task: string } }
   const [pendingAssignments, setPendingAssignments] = useState({});
   const [saving, setSaving] = useState(false);
 
-  // Lock slot order strictly by created_date — never jumps on save
-  const stableEntries = [...entries].sort((a, b) =>
-    new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
-  );
-
-  const emptyCount = Math.max(0, slotCount - stableEntries.length);
+  const emptyCount = Math.max(0, slotCount - entries.length);
   const hasPending = Object.keys(pendingAssignments).some(k => pendingAssignments[k]?.empValue);
 
   const handlePendingChange = (slotIndex, empValue, task) => {
@@ -274,16 +269,15 @@ function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, s
         <span className={`text-[10px] ${color.sub}`}>· {subtitle}</span>
       </div>
       <div className="space-y-1">
-        <DraggableShiftList entries={stableEntries} shiftKey={shiftType} isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} userRotationMap={userRotationMap} />
+        <DraggableShiftList entries={entries} shiftKey={shiftType} isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} />
         {Array.from({ length: emptyCount }, (_, i) => (
           <TemplateRow
             key={`tmpl-${shiftType}-${i}`}
             slotIndex={i}
-            defaultTask={defaultTasks[stableEntries.length + i] || ""}
+            defaultTask={defaultTasks[entries.length + i] || ""}
             isAdmin={isAdmin}
             pendingEmp={pendingAssignments[i]?.empValue || ""}
             onPendingChange={handlePendingChange}
-            userRotationMap={userRotationMap}
           />
         ))}
       </div>
@@ -304,15 +298,11 @@ function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, s
   );
 }
 
-function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate, userRotationMap }) {
+function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate }) {
   const [pendingAssignments, setPendingAssignments] = useState({});
   const [saving, setSaving] = useState(false);
 
-  const stableEntries = [...entries].sort((a, b) =>
-    new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
-  );
-
-  const emptyCount = Math.max(0, OFF_SLOTS - stableEntries.length);
+  const emptyCount = Math.max(0, OFF_SLOTS - entries.length);
   const hasPending = Object.keys(pendingAssignments).some(k => pendingAssignments[k]?.empValue);
 
   const handlePendingChange = (slotIndex, empValue, task) => {
@@ -348,16 +338,15 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate, userRo
         <span className="text-[10px] text-slate-400 dark:text-slate-500">· Resting today</span>
       </div>
       <div className="space-y-1">
-        <DraggableShiftList entries={stableEntries} shiftKey="Off" isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} userRotationMap={userRotationMap} />
+        <DraggableShiftList entries={entries} shiftKey="Off" isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} />
         {Array.from({ length: emptyCount }, (_, i) => (
           <TemplateRow
             key={`off-tmpl-${i}`}
             slotIndex={i}
-            defaultTask={OFF_DEFAULTS[stableEntries.length + i] || ""}
+            defaultTask={OFF_DEFAULTS[entries.length + i] || ""}
             isAdmin={isAdmin}
             pendingEmp={pendingAssignments[i]?.empValue || ""}
             onPendingChange={handlePendingChange}
-            userRotationMap={userRotationMap}
           />
         ))}
       </div>
@@ -398,35 +387,20 @@ export default function RosterView({ isAdmin = false }) {
     queryFn: () => base44.entities.RosterDatabase.filter({ date: selectedDate }),
   });
 
-  const { data: employeeProfiles = [] } = useQuery({
-    queryKey: ["employee-profiles"],
-    queryFn: () => base44.entities.EmployeeProfile.list(),
+  const sorted = [...entries].sort((a, b) => {
+    const aO = a.sort_order ?? 9999;
+    const bO = b.sort_order ?? 9999;
+    if (aO !== bO) return aO - bO;
+    return (a.employee_number ?? 999) - (b.employee_number ?? 999);
   });
+  const amEntries  = sorted.filter(e => e.shift_type === "AM");
+  const pmEntries  = sorted.filter(e => e.shift_type === "PM");
+  const offEntries = sorted.filter(e => e.shift_type === "Off");
 
-  // Map employee name → { rotationNumber, shortName } from EmployeeProfile entity
-  const userRotationMap = employeeProfiles.reduce((acc, p) => {
-    if (p.employeeName) {
-      const userData = {
-        rotationNumber: p.rotationNumber ?? null,
-        shortName: p.shortName ?? null,
-      };
-      acc[p.employeeName] = userData;
-      // Also map by first name
-      const firstName = p.employeeName.split(" ")[0];
-      if (firstName) acc[firstName] = userData;
-    }
-    return acc;
-  }, {});
-
-  const amEntries  = entries.filter(e => e.shift_type === "AM");
-  const pmEntries  = entries.filter(e => e.shift_type === "PM");
-  const offEntries = entries.filter(e => e.shift_type === "Off");
-
-  const getSortedShiftEntries = (shiftKey) => {
-    const list = shiftKey === "AM" ? amEntries : shiftKey === "PM" ? pmEntries : offEntries;
-    return [...list].sort((a, b) =>
-      new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
-    );
+  const getShiftEntries = (shiftKey) => {
+    if (shiftKey === "AM") return amEntries;
+    if (shiftKey === "PM") return pmEntries;
+    return offEntries;
   };
 
   const handleDragEnd = async (result) => {
@@ -435,7 +409,7 @@ export default function RosterView({ isAdmin = false }) {
     if (source.droppableId !== destination.droppableId) return;
     if (source.index === destination.index) return;
 
-    const shiftEntries = getSortedShiftEntries(source.droppableId);
+    const shiftEntries = getShiftEntries(source.droppableId);
     const reordered = Array.from(shiftEntries);
     const [moved] = reordered.splice(source.index, 1);
     reordered.splice(destination.index, 0, moved);
@@ -505,17 +479,15 @@ export default function RosterView({ isAdmin = false }) {
               emoji="🌅" title="AM Shift" subtitle="9:00 AM – 6:00 PM"
               entries={amEntries} slotCount={AM_SLOTS} defaultTasks={AM_DEFAULTS} shiftType="AM"
               isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate}
-              userRotationMap={userRotationMap}
               color={{ bg: "bg-amber-50 dark:bg-amber-950/40", border: "border-amber-200 dark:border-amber-800", title: "text-amber-800 dark:text-amber-300", sub: "text-amber-500 dark:text-amber-600" }}
             />
             <ShiftCard
               emoji="🌆" title="PM Shift" subtitle="1:00 PM – 9:00 PM"
               entries={pmEntries} slotCount={PM_SLOTS} defaultTasks={PM_DEFAULTS} shiftType="PM"
               isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate}
-              userRotationMap={userRotationMap}
               color={{ bg: "bg-violet-50 dark:bg-violet-950/40", border: "border-violet-200 dark:border-violet-800", title: "text-violet-800 dark:text-violet-300", sub: "text-violet-500 dark:text-violet-600" }}
             />
-            <OffDayCard entries={offEntries} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate} userRotationMap={userRotationMap} />
+            <OffDayCard entries={offEntries} isAdmin={isAdmin} onDelete={handleDelete} onUpdate={handleUpdate} selectedDate={selectedDate} />
           </>
         )}
 

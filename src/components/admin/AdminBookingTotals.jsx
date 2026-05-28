@@ -14,8 +14,6 @@ export default function AdminBookingTotals() {
   const [addingFor, setAddingFor] = useState(null);
   const [newBooking, setNewBooking] = useState({ date: "", slot_id: "", slot_label: "", shift: "AM" });
   const [saving, setSaving] = useState(false);
-  const [editingRotation, setEditingRotation] = useState({});
-  const [editingShortName, setEditingShortName] = useState({});
 
   const { data: allBookings = [], isLoading } = useQuery({
     queryKey: ["all-bookings-admin"],
@@ -25,11 +23,6 @@ export default function AdminBookingTotals() {
   const { data: users = [] } = useQuery({
     queryKey: ["all-users-admin"],
     queryFn: () => base44.entities.User.list(),
-  });
-
-  const { data: employeeProfiles = [] } = useQuery({
-    queryKey: ["employee-profiles"],
-    queryFn: () => base44.entities.EmployeeProfile.list(),
   });
 
   // Group bookings by user email
@@ -48,45 +41,13 @@ export default function AdminBookingTotals() {
   const userList = Array.from(userEmails).map(email => {
     const userEntity = users.find(u => u.email === email);
     const bookings = bookingsByUser[email] || [];
-    const name = userEntity?.full_name || bookings[0]?.user_name || email;
-    const firstName = name.split(" ")[0];
-    const profile = employeeProfiles.find(p =>
-      p.employeeName === name || p.employeeName === firstName
-    );
     return {
       email,
-      name,
-      profileId: profile?.id || null,
-      profileName: profile?.employeeName || firstName,
-      rotationNumber: profile?.rotationNumber ?? null,
-      shortName: profile?.shortName ?? "",
+      name: userEntity?.full_name || bookings[0]?.user_name || email,
       bookings,
       total: bookings.length,
     };
   }).sort((a, b) => b.total - a.total);
-
-  const handleSaveProfile = async (profileId, profileName, rotationValue, shortNameValue) => {
-    const parsed = rotationValue === "" ? null : parseInt(rotationValue, 10);
-    const data = { rotationNumber: parsed, shortName: shortNameValue.trim() || null };
-    if (profileId) {
-      await base44.entities.EmployeeProfile.update(profileId, data);
-    } else {
-      await base44.entities.EmployeeProfile.create({ employeeName: profileName, ...data });
-    }
-    queryClient.invalidateQueries({ queryKey: ["employee-profiles"] });
-  };
-
-  const handleSaveRotation = async (profileId, profileName, value, currentShortName) => {
-    await handleSaveProfile(profileId, profileName, value, currentShortName);
-    setEditingRotation(prev => { const n = { ...prev }; delete n[profileId || profileName]; return n; });
-    toast.success("Rotation number saved.");
-  };
-
-  const handleSaveShortName = async (profileId, profileName, value, currentRotation) => {
-    await handleSaveProfile(profileId, profileName, String(currentRotation ?? ""), value);
-    setEditingShortName(prev => { const n = { ...prev }; delete n[profileId || profileName]; return n; });
-    toast.success("Short name saved.");
-  };
 
   const handleDelete = async (bookingId) => {
     await base44.entities.Booking.delete(bookingId);
@@ -126,13 +87,11 @@ export default function AdminBookingTotals() {
     <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 space-y-3">
       <p className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wide">📊 All Users Booking Totals</p>
       <div className="space-y-2">
-        {userList.map(({ email, name, profileId, profileName, rotationNumber, shortName, bookings, total }) => {
+        {userList.map(({ email, name, bookings, total }) => {
           const isExpanded = expandedUser === email;
-          const key = profileId || profileName;
-          const draftRotation = editingRotation[key] ?? String(rotationNumber ?? "");
-          const draftShortName = editingShortName[key] ?? (shortName || "");
           return (
             <div key={email} className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+              {/* User Row */}
               <button
                 onClick={() => setExpandedUser(isExpanded ? null : email)}
                 className="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
@@ -140,11 +99,11 @@ export default function AdminBookingTotals() {
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0">
                     <span className="text-[10px] font-bold text-white">
-                      {rotationNumber != null ? rotationNumber : "—"}
+                      {name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
                     </span>
                   </div>
                   <div className="text-left min-w-0">
-                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">{shortName || name}</p>
+                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">{name}</p>
                     <p className="text-[10px] text-muted-foreground truncate">{email}</p>
                   </div>
                 </div>
@@ -156,44 +115,9 @@ export default function AdminBookingTotals() {
                 </div>
               </button>
 
+              {/* Expanded Bookings */}
               {isExpanded && (
                 <div className="px-3 py-2 space-y-1.5 bg-white dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-700">
-                  <div className="space-y-1.5 pb-2 mb-1 border-b border-slate-100 dark:border-slate-700">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium w-20 flex-shrink-0">Short Name</span>
-                      <input
-                        type="text"
-                        value={draftShortName}
-                        onChange={e => setEditingShortName(prev => ({ ...prev, [key]: e.target.value }))}
-                        placeholder="e.g. Kamaliah 🔑"
-                        className="flex-1 text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:bg-slate-800"
-                      />
-                      <button
-                        onClick={() => handleSaveShortName(profileId, profileName, draftShortName, rotationNumber)}
-                        className="text-[10px] font-bold bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        Save
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium w-20 flex-shrink-0">Rotation #</span>
-                      <input
-                        type="number"
-                        min="1" max="99"
-                        value={draftRotation}
-                        onChange={e => setEditingRotation(prev => ({ ...prev, [key]: e.target.value }))}
-                        placeholder="—"
-                        className="w-20 text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:bg-slate-800"
-                      />
-                      <button
-                        onClick={() => handleSaveRotation(profileId, profileName, draftRotation, shortName)}
-                        className="text-[10px] font-bold bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
-
                   {bookings.length === 0 && (
                     <p className="text-xs text-muted-foreground italic text-center py-1">No bookings yet.</p>
                   )}
@@ -213,6 +137,7 @@ export default function AdminBookingTotals() {
                     </div>
                   ))}
 
+                  {/* Add Booking */}
                   {addingFor === email ? (
                     <div className="border border-dashed border-blue-300 rounded-lg p-2.5 space-y-2 bg-blue-50 dark:bg-blue-950/20">
                       <p className="text-[10px] font-bold text-blue-600 uppercase">Add Booking Credit</p>
