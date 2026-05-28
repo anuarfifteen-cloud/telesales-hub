@@ -600,7 +600,7 @@ export default function Home() {
                           {hasBreakBookingToday && !dstBooking ?
                       <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Already booked a slot today</p> :
 
-                      <p className="text-[11px] text-muted-foreground">Log activity &amp; earn one booking credit today</p>
+                      <p className="text-[11px] text-muted-foreground">Friday AM Shift may &amp; earn one booking credit here</p>
                       }
                         </div>
                       </div>
