@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { SLOTS, getBookableDates, formatDate, getUnlockTime, getAmSlots } from "@/lib/slots";
+import { SLOTS, FRIDAY_AM_SLOTS, getBookableDates, formatDate, getUnlockTime, getAmSlots, isFriday } from "@/lib/slots";
 import { format as tzFormat } from "date-fns-tz";
 const TZ = "Asia/Brunei";
 import { useBruneiClock } from "@/hooks/useBruneiClock";
@@ -64,7 +64,8 @@ export default function Home() {
   const [adminSaving, setAdminSaving] = useState(false);
   const [forceBookSlot, setForceBookSlot] = useState(null);
   const [forceBookEmployee, setForceBookEmployee] = useState("");
-  const [customSlots, setCustomSlots] = useState(null); // null = use defaults
+  const [customSlots, setCustomSlots] = useState(null); // null = use defaults for regular days
+  const [customFridaySlots, setCustomFridaySlots] = useState(null); // null = use defaults for Fridays
   const [unlockHour, setUnlockHour] = useState(19);
   const [unlockMinute, setUnlockMinute] = useState(30);
   const [isDarkMode, setIsDarkMode] = useState(() => getStoredTheme());
@@ -400,11 +401,27 @@ export default function Home() {
     cancelMutation.mutate(booking);
   };
 
-  const baseAmSlots = getAmSlots(selectedDate);
-  const basePmSlots = SLOTS.filter((s) => s.shift === "PM");
-  const activeSlots = customSlots || SLOTS;
-  const amSlots = customSlots ? activeSlots.filter((s) => s.shift === "AM") : baseAmSlots;
-  const pmSlots = customSlots ? activeSlots.filter((s) => s.shift === "PM") : basePmSlots;
+  // Slot resolution: Friday uses its own custom/default slots; other days use standard custom/default
+  const isSelectedFriday = selectedDate ? isFriday(selectedDate) : false;
+  const amSlots = isSelectedFriday
+    ? (customFridaySlots || FRIDAY_AM_SLOTS)
+    : (customSlots ? customSlots.filter((s) => s.shift === "AM") : SLOTS.filter((s) => s.shift === "AM"));
+  const pmSlots = customSlots
+    ? customSlots.filter((s) => s.shift === "PM")
+    : SLOTS.filter((s) => s.shift === "PM");
+
+  // Admin settings: show the correct slots for the currently selected date
+  const adminSettingsSlots = isSelectedFriday
+    ? (customFridaySlots || FRIDAY_AM_SLOTS)
+    : (customSlots || SLOTS);
+
+  const handleAdminSlotsChange = (s) => {
+    if (isSelectedFriday) {
+      setCustomFridaySlots(s);
+    } else {
+      setCustomSlots(s);
+    }
+  };
 
   const getBookedCount = (slotId) => bookings.filter((b) => b.slot_id === slotId).length;
   const getMyBooking = (slotId) =>
@@ -531,15 +548,21 @@ export default function Home() {
           }
 
             {/* Admin Booking Settings */}
-            {isAdmin &&
-          <AdminBookingSettings
-            slots={customSlots || SLOTS}
-            unlockHour={unlockHour}
-            unlockMinute={unlockMinute}
-            onSlotsChange={(s) => setCustomSlots(s)}
-            onUnlockTimeChange={(h, m) => {setUnlockHour(h);setUnlockMinute(m);}} />
-
-          }
+            {isAdmin && (
+              <div>
+                {isSelectedFriday && (
+                  <p className="text-[10px] font-bold text-amber-600 mb-1 flex items-center gap-1">
+                    🕌 Friday selected — editing Friday AM slots
+                  </p>
+                )}
+                <AdminBookingSettings
+                  slots={adminSettingsSlots}
+                  unlockHour={unlockHour}
+                  unlockMinute={unlockMinute}
+                  onSlotsChange={handleAdminSlotsChange}
+                  onUnlockTimeChange={(h, m) => { setUnlockHour(h); setUnlockMinute(m); }} />
+              </div>
+            )}
 
             {/* Shared date picker */}
             <section>
