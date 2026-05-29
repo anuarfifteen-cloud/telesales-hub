@@ -42,6 +42,7 @@ function SlotRow({ slot, bookings, globalRankMap }) {
       name: b.user_name || b.user_email?.split("@")[0],
       booked_at: b.booked_at,
       globalRank: globalRankMap[b.id],
+      vip_used: b.vip_used,
     })),
     ...Array(Math.max(0, remaining)).fill({ type: "available" }),
   ];
@@ -62,12 +63,13 @@ function SlotRow({ slot, bookings, globalRankMap }) {
       <div className="flex flex-row flex-wrap gap-1.5 items-start pl-4 sm:pl-0 sm:justify-end">
         {items.map((item, idx) =>
           item.type === "booked" ? (
-            <div key={idx} className={`flex flex-col items-start px-2 py-1 rounded-md min-w-0 ${item.globalRank === 1 ? "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800" : "bg-secondary"}`}>
-              <span className="text-xs font-semibold text-foreground break-words whitespace-normal">
+            <div key={idx} className={`flex flex-col items-start px-2 py-1 rounded-md min-w-0 ${item.globalRank === 1 ? "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800" : item.vip_used ? "bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800" : "bg-secondary"}`}>
+              <span className="text-xs font-semibold text-foreground break-words whitespace-normal flex items-center gap-1">
+                {item.vip_used && <span className="text-amber-500 text-[11px]">⚡</span>}
                 {item.name}
               </span>
-              <span className={`text-[10px] leading-tight mt-0.5 font-medium ${item.globalRank === 1 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
-                #{item.globalRank}{item.booked_at ? ` · ${item.booked_at.replace(/:\d{2}\.\d{3}/, "")}` : ""}
+              <span className={`text-[10px] leading-tight mt-0.5 font-medium ${item.globalRank === 1 ? "text-emerald-600 dark:text-emerald-400" : item.vip_used ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+                {item.vip_used ? "VIP Early Access" : `#${item.globalRank}${item.booked_at ? ` · ${item.booked_at.replace(/:\d{2}\.\d{3}/, "")}` : ""}`}
               </span>
             </div>
           ) : (

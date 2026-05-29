@@ -34,6 +34,11 @@
     "booked_at": {
       "type": "string",
       "description": "Exact time the booking was made, e.g. '6:02 AM'"
+    },
+    "vip_used": {
+      "type": "boolean",
+      "description": "True if the user activated their VIP early access token for this booking",
+      "default": false
     }
   },
   "required": [

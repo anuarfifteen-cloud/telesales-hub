@@ -261,6 +261,11 @@ export default function Home() {
         throw new Error("SLOT_FULL");
       }
 
+      // Check if user has active VIP token
+      const freshUserForVip = await base44.auth.me();
+      const vipExp = freshUserForVip?.vipExpiresAt ? new Date(freshUserForVip.vipExpiresAt) : null;
+      const usingVip = vipExp && vipExp.getTime() > Date.now();
+
       // Write the booking
       const newBooking = await base44.entities.Booking.create({
         date: selectedDate,
@@ -269,7 +274,8 @@ export default function Home() {
         shift: slot.shift,
         user_email: user.email,
         user_name: user.full_name,
-        booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ })
+        booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ }),
+        vip_used: !!usingVip
       });
 
       // --- POST-WRITE TIMESTAMP TIE-BREAKER ---
