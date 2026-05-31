@@ -1,4 +1,5 @@
 import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
+import CoinFlipArena from "@/components/coinflip/CoinFlipArena";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
   const tokens = user?.earlyAccessTokens ?? 0;
@@ -32,6 +33,11 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
       <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
         <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">🏆 Milestones</p>
         <EarlyAccessToggle user={user} onUserUpdate={onUserUpdate} totalBookingCount={totalBookingCount} showMilestones={true} />
+      </div>
+
+      {/* Coin Flip Arena */}
+      <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+        <CoinFlipArena user={user} onUserUpdate={onUserUpdate} />
       </div>
     </div>
   );

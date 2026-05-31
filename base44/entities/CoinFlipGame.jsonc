@@ -1,0 +1,53 @@
+{
+  "name": "CoinFlipGame",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user who played"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user"
+    },
+    "choice": {
+      "type": "string",
+      "enum": [
+        "heads",
+        "tails"
+      ],
+      "description": "What the user chose"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "heads",
+        "tails"
+      ],
+      "description": "Actual flip result"
+    },
+    "wager": {
+      "type": "number",
+      "description": "Number of tokens wagered"
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "win",
+        "loss"
+      ],
+      "description": "Win or loss"
+    },
+    "tokens_delta": {
+      "type": "number",
+      "description": "Token change (positive = won, negative = lost)"
+    }
+  },
+  "required": [
+    "user_id",
+    "choice",
+    "outcome",
+    "wager",
+    "result"
+  ]
+}
