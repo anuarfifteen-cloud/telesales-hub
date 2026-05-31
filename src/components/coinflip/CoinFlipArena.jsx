@@ -1,19 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import CoinAnimation from "./CoinAnimation";
 import FlipResult from "./FlipResult";
 import FlipHistory from "./FlipHistory";
-import FlipStats from "./FlipStats";
 import { toast } from "sonner";
+import { Crown, Zap } from "lucide-react";
+
+const QUICK_BETS = [1, 2, 5, 10];
 
 export default function CoinFlipArena({ user, onUserUpdate }) {
-  const [choice, setChoice] = useState("heads");
+  const [choice, setChoice] = useState(null); // null = not chosen yet
   const [wager, setWager] = useState(1);
   const [flipping, setFlipping] = useState(false);
-  const [lastResult, setLastResult] = useState(null); // { outcome, result, delta }
+  const [lastResult, setLastResult] = useState(null);
   const [showResult, setShowResult] = useState(false);
+  const [activeView, setActiveView] = useState("game"); // "game" | "history"
   const queryClient = useQueryClient();
 
   const tokens = user?.earlyAccessTokens ?? 0;
@@ -27,18 +30,12 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
 
   const wins = history.filter((h) => h.result === "win").length;
   const losses = history.filter((h) => h.result === "loss").length;
-
-  // Current streak
-  let streak = 0;
-  let streakType = null;
-  for (const h of history) {
-    if (streakType === null) { streakType = h.result; streak = 1; }
-    else if (h.result === streakType) streak++;
-    else break;
-  }
+  const biggestWin = history.reduce((max, h) => h.result === "win" ? Math.max(max, h.wager) : max, 0);
+  const total = history.length;
+  const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
 
   const handleFlip = async () => {
-    if (flipping) return;
+    if (flipping || !choice) return;
     if (wager < 1 || wager > tokens) {
       toast.error("Invalid wager amount.");
       return;
@@ -47,7 +44,6 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
     setFlipping(true);
     setShowResult(false);
 
-    // Simulate flip duration
     await new Promise((r) => setTimeout(r, 2000));
 
     const outcome = Math.random() < 0.5 ? "heads" : "tails";
@@ -55,7 +51,6 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
     const delta = won ? wager : -wager;
     const newTokens = tokens + delta;
 
-    // Persist game record
     await base44.entities.CoinFlipGame.create({
       user_id: user.id,
       user_email: user.email,
@@ -66,10 +61,8 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
       tokens_delta: delta,
     });
 
-    // Update token balance
     await base44.auth.updateMe({ earlyAccessTokens: newTokens });
     await onUserUpdate();
-
     queryClient.invalidateQueries({ queryKey: ["coinflip-history", user?.id] });
 
     setLastResult({ outcome, result: won ? "win" : "loss", delta, wager });
@@ -77,86 +70,207 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
     setShowResult(true);
   };
 
-  const maxWager = Math.min(tokens, 10);
+  const maxWager = Math.max(1, Math.min(tokens, 10));
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Title */}
-      <div className="text-center">
-        <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">🎰 Coin Flip Arena</h3>
-        <p className="text-xs text-muted-foreground">Wager your tokens — double or nothing!</p>
-      </div>
+    <div className="flex flex-col gap-3">
+      {/* Dark arena card */}
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-slate-700 shadow-xl overflow-hidden">
 
-      {/* Stats strip */}
-      <FlipStats wins={wins} losses={losses} streak={streak} streakType={streakType} tokens={tokens} />
-
-      {/* Coin + Controls */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 flex flex-col items-center gap-5 border border-slate-700 shadow-xl">
-        {/* Coin */}
-        <CoinAnimation flipping={flipping} outcome={lastResult?.outcome} />
-
-        {/* Choice buttons */}
-        <div className="flex gap-3 w-full">
-          {["heads", "tails"].map((side) => (
+        {/* Sub-tab: Game / Stats / History */}
+        <div className="flex border-b border-slate-700">
+          {[["game", "🎮 Game"], ["stats", "📊 Stats"], ["history", "📜 History"]].map(([id, label]) => (
             <button
-              key={side}
-              disabled={flipping}
-              onClick={() => setChoice(side)}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border-2 ${
-                choice === side
-                  ? "bg-amber-500 border-amber-400 text-white shadow-lg shadow-amber-500/30"
-                  : "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
+              key={id}
+              onClick={() => setActiveView(id)}
+              className={`flex-1 py-2 text-xs font-semibold transition-all ${
+                activeView === id
+                  ? "text-amber-400 border-b-2 border-amber-400 bg-slate-800/60"
+                  : "text-slate-400 hover:text-slate-300"
               }`}
             >
-              {side === "heads" ? "👑 Heads" : "🌀 Tails"}
+              {label}
             </button>
           ))}
         </div>
 
-        {/* Wager */}
-        <div className="w-full">
-          <div className="flex justify-between text-xs text-slate-400 mb-1.5">
-            <span>Wager</span>
-            <span>{wager} token{wager !== 1 ? "s" : ""}</span>
-          </div>
-          <input
-            type="range"
-            min={1}
-            max={Math.max(1, maxWager)}
-            value={wager}
-            disabled={flipping || tokens < 1}
-            onChange={(e) => setWager(Number(e.target.value))}
-            className="w-full accent-amber-500"
-          />
-          <div className="flex justify-between text-[10px] text-slate-500 mt-0.5">
-            <span>1</span>
-            <span>{Math.max(1, maxWager)}</span>
-          </div>
-        </div>
+        {/* ── GAME VIEW ── */}
+        {activeView === "game" && (
+          <div className="p-4 flex flex-col items-center gap-3">
+            {/* Balance */}
+            <div className="w-full flex items-center justify-between">
+              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Your Balance</span>
+              <div className="flex items-center gap-1.5 bg-slate-700/60 border border-slate-600 rounded-full px-3 py-1">
+                <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="token" className="w-4 h-4" />
+                <span className="text-amber-400 font-black text-sm">{tokens}</span>
+              </div>
+            </div>
 
-        {/* Flip Button */}
-        <button
-          onClick={handleFlip}
-          disabled={flipping || tokens < 1}
-          className="w-full py-3.5 rounded-xl font-black text-base tracking-wide bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/40 hover:from-amber-400 hover:to-orange-400 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {flipping ? "Flipping…" : tokens < 1 ? "No Tokens" : "🪙 FLIP!"}
-        </button>
-      </div>
+            {/* Coin */}
+            <CoinAnimation flipping={flipping} outcome={lastResult?.outcome} chosenSide={choice} />
 
-      {/* Result modal */}
-      <AnimatePresence>
-        {showResult && lastResult && (
-          <FlipResult
-            result={lastResult}
-            choice={choice}
-            onClose={() => setShowResult(false)}
-          />
+            {/* Side pills */}
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => !flipping && setChoice("heads")}
+                className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border transition-all ${
+                  choice === "heads"
+                    ? "bg-amber-500 border-amber-400 text-white"
+                    : "bg-slate-700 border-slate-600 text-slate-300"
+                }`}
+              >
+                <Crown className="w-3 h-3" /> Heads
+              </button>
+              <button
+                onClick={() => !flipping && setChoice("tails")}
+                className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border transition-all ${
+                  choice === "tails"
+                    ? "bg-blue-500 border-blue-400 text-white"
+                    : "bg-slate-700 border-slate-600 text-slate-300"
+                }`}
+              >
+                <Zap className="w-3 h-3" /> Tails
+              </button>
+            </div>
+
+            {/* Choose your side label */}
+            <div className="w-full">
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold mb-1.5">Choose Your Side</p>
+              <div className="flex gap-2 w-full">
+                <button
+                  disabled={flipping}
+                  onClick={() => setChoice("heads")}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border-2 flex items-center justify-center gap-1.5 ${
+                    choice === "heads"
+                      ? "bg-amber-500 border-amber-400 text-white shadow-lg"
+                      : "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
+                  }`}
+                >
+                  <Crown className="w-4 h-4" /> HEADS
+                </button>
+                <button
+                  disabled={flipping}
+                  onClick={() => setChoice("tails")}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border-2 flex items-center justify-center gap-1.5 ${
+                    choice === "tails"
+                      ? "bg-blue-500 border-blue-400 text-white shadow-lg"
+                      : "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
+                  }`}
+                >
+                  <Zap className="w-4 h-4" /> TAILS
+                </button>
+              </div>
+            </div>
+
+            {/* Bet amount */}
+            <div className="w-full">
+              <div className="flex justify-between text-[10px] text-slate-400 mb-1.5 uppercase tracking-widest font-semibold">
+                <span>Bet Amount</span>
+                <span>Min 1 · Max {maxWager}</span>
+              </div>
+              {/* Quick bets */}
+              <div className="flex gap-1.5 mb-2">
+                {QUICK_BETS.filter(b => b <= maxWager).map((b) => (
+                  <button
+                    key={b}
+                    disabled={flipping}
+                    onClick={() => setWager(b)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                      wager === b
+                        ? "bg-amber-500 border-amber-400 text-white"
+                        : "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
+                    }`}
+                  >
+                    {b}
+                  </button>
+                ))}
+                <button
+                  disabled={flipping}
+                  onClick={() => setWager(maxWager)}
+                  className={`px-2 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                    wager === maxWager
+                      ? "bg-amber-500 border-amber-400 text-white"
+                      : "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
+                  }`}
+                >
+                  MAX
+                </button>
+              </div>
+              {/* Wager display */}
+              <div className="bg-slate-700/60 border border-slate-600 rounded-xl px-4 py-2 text-center text-white font-black text-lg">
+                {wager}
+              </div>
+            </div>
+
+            {/* Flip button */}
+            <button
+              onClick={handleFlip}
+              disabled={flipping || tokens < 1 || !choice}
+              className="w-full py-3 rounded-xl font-black text-sm tracking-widest uppercase bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30 hover:from-amber-400 hover:to-orange-400 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {flipping ? "Flipping…" : !choice ? "Choose a Side" : tokens < 1 ? "No Tokens" : "🪙 Flip!"}
+            </button>
+
+            {/* Inline result */}
+            <AnimatePresence>
+              {showResult && lastResult && (
+                <FlipResult result={lastResult} choice={choice} onClose={() => setShowResult(false)} />
+              )}
+            </AnimatePresence>
+          </div>
         )}
-      </AnimatePresence>
 
-      {/* History */}
-      <FlipHistory history={history} />
+        {/* ── STATS VIEW ── */}
+        {activeView === "stats" && (
+          <div className="p-4 grid grid-cols-3 gap-2">
+            {[
+              { label: "Total Flips", value: total, color: "text-white" },
+              { label: "Wins", value: wins, color: "text-emerald-400" },
+              { label: "Losses", value: losses, color: "text-red-400" },
+              { label: "Win Rate", value: total > 0 ? `${winRate}%` : "—", color: "text-blue-400" },
+              { label: "Biggest Win", value: biggestWin || "—", color: "text-amber-400" },
+              { label: "Biggest Loss", value: losses > 0 ? Math.max(...history.filter(h => h.result === "loss").map(h => h.wager)) : "—", color: "text-orange-400" },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="bg-slate-700/60 rounded-xl p-3 flex flex-col items-center gap-0.5 border border-slate-600">
+                <span className={`text-xl font-black ${color}`}>{value}</span>
+                <span className="text-[10px] text-slate-400 text-center">{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── HISTORY VIEW ── */}
+        {activeView === "history" && (
+          <div className="p-4">
+            {history.length === 0 ? (
+              <p className="text-center text-slate-500 text-sm py-6">No flips yet. Play your first game!</p>
+            ) : (
+              <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                {history.map((flip) => (
+                  <div
+                    key={flip.id}
+                    className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs border ${
+                      flip.result === "win"
+                        ? "bg-emerald-900/30 border-emerald-800"
+                        : "bg-red-900/30 border-red-800"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="" className="w-4 h-4" />
+                      <span className="text-slate-300">
+                        Bet <strong className="text-white">{flip.wager}</strong> · chose <strong className="text-white">{flip.choice}</strong>
+                      </span>
+                    </div>
+                    <span className={`font-black text-xs ${flip.result === "win" ? "text-emerald-400" : "text-red-400"}`}>
+                      {flip.tokens_delta > 0 ? "+" : ""}{flip.tokens_delta} {flip.result === "win" ? "WIN" : "LOSS"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
