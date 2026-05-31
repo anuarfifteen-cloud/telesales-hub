@@ -13,11 +13,17 @@ export function useBruneiClock(serverTimestamp = null, localFetchTime = null) {
 
   useEffect(() => {
     if (serverTimestamp && localFetchTime) {
-      const serverDate = new Date(serverTimestamp);
-      offsetRef.current = serverDate.getTime() - new Date(localFetchTime).getTime();
+      // offset = serverTime - deviceTimeAtResponseArrival
+      // If device clock is set ahead, Date.now() is inflated → offset is negative → corrects forward manipulation
+      const serverMs = new Date(serverTimestamp).getTime();
+      const localMs = new Date(localFetchTime).getTime();
+      offsetRef.current = serverMs - localMs;
     } else {
       offsetRef.current = 0;
     }
+
+    // Immediately update now with the corrected time
+    setNow(new Date(Date.now() + offsetRef.current));
 
     const id = setInterval(() => {
       setNow(new Date(Date.now() + offsetRef.current));

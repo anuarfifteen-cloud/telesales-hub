@@ -171,15 +171,23 @@ export default function Home() {
   });
   const bruneiNow = useBruneiClock(serverTimeRef, localTimeAtFetch);
   const dates = getBookableDates(bruneiNow);
+
+  // Set selectedDate once server-corrected time is available
+  useEffect(() => {
+    if (serverTimeRef && dates.length > 0) {
+      setSelectedDate(dates[0]);
+    }
+  }, [serverTimeRef]);
   const queryClient = useQueryClient();
 
   const refreshUser = async () => {
-    const localBefore = new Date();
     const [u, timeRes] = await Promise.all([
       base44.auth.me(),
       base44.functions.invoke('getServerTime', {}).catch(() => null),
     ]);
-    setLocalTimeAtFetch(localBefore);
+    // Capture local time AFTER response arrives so offset = serverTime - localNow
+    const localAfter = new Date();
+    setLocalTimeAtFetch(localAfter);
     setServerTimeRef(timeRes?.data?.serverTime || null);
     setUser(u);
     return u;
@@ -187,7 +195,6 @@ export default function Home() {
 
   useEffect(() => {
     refreshUser().catch(() => {});
-    setSelectedDate(dates[0]);
     applyTheme(getStoredTheme());
   }, []);
 
