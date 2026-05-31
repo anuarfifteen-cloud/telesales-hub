@@ -23,8 +23,9 @@ export default function FlipResult({ result, choice, onClose }) {
           It landed on <strong>{result.outcome}</strong> — you picked <strong>{choice}</strong>
         </p>
       </div>
-      <div className={`text-2xl font-black ${won ? "text-emerald-500" : "text-red-500"}`}>
-        {won ? `+${result.wager}` : `-${result.wager}`} 🪙
+      <div className={`text-2xl font-black flex items-center gap-2 ${won ? "text-emerald-500" : "text-red-500"}`}>
+        {won ? `+${result.wager}` : `-${result.wager}`}
+        <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="token" className="w-6 h-6" />
       </div>
       <button
         onClick={onClose}

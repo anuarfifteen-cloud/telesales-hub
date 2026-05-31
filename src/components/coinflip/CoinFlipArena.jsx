@@ -198,9 +198,20 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
             <button
               onClick={handleFlip}
               disabled={!canFlip}
-              className="w-full py-3 rounded-xl font-black text-sm tracking-widest uppercase bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:from-amber-400 hover:to-orange-400 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full py-3 rounded-xl font-black text-sm tracking-widest uppercase bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:from-amber-400 hover:to-orange-400 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {flipping ? "Flipping…" : !choice ? "Choose a Side" : tokens < 1 ? "No Tokens" : "🪙 Flip It!"}
+              {flipping ? (
+                "Flipping…"
+              ) : !choice ? (
+                "Choose a Side"
+              ) : tokens < 1 ? (
+                "No Tokens"
+              ) : (
+                <>
+                  <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="token" className="w-5 h-5" />
+                  Flip It!
+                </>
+              )}
             </button>
 
             <AnimatePresence>
@@ -255,9 +266,12 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
                         Bet <strong>{flip.wager}</strong> · chose <strong>{flip.choice}</strong>
                       </span>
                     </div>
-                    <span className={`font-black text-xs ${flip.result === "win" ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
-                      {flip.tokens_delta > 0 ? "+" : ""}{flip.tokens_delta} {flip.result === "win" ? "WIN" : "LOSS"}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className={`font-black text-xs ${flip.result === "win" ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
+                        {flip.tokens_delta > 0 ? "+" : ""}{flip.tokens_delta}
+                      </span>
+                      <span className="text-muted-foreground text-[10px]">{flip.result === "win" ? "WIN" : "LOSS"}</span>
+                    </div>
                   </div>
                 ))}
               </div>
