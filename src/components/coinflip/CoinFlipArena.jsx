@@ -4,19 +4,18 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence } from "framer-motion";
 import CoinAnimation from "./CoinAnimation";
 import FlipResult from "./FlipResult";
-import FlipHistory from "./FlipHistory";
 import { toast } from "sonner";
 import { Crown, Zap } from "lucide-react";
 
 const QUICK_BETS = [1, 2, 5, 10];
 
 export default function CoinFlipArena({ user, onUserUpdate }) {
-  const [choice, setChoice] = useState(null); // null = not chosen yet
+  const [choice, setChoice] = useState(null);
   const [wager, setWager] = useState(1);
   const [flipping, setFlipping] = useState(false);
   const [lastResult, setLastResult] = useState(null);
   const [showResult, setShowResult] = useState(false);
-  const [activeView, setActiveView] = useState("game"); // "game" | "history"
+  const [activeView, setActiveView] = useState("game");
   const queryClient = useQueryClient();
 
   const tokens = user?.earlyAccessTokens ?? 0;
@@ -30,38 +29,31 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
 
   const wins = history.filter((h) => h.result === "win").length;
   const losses = history.filter((h) => h.result === "loss").length;
-  const biggestWin = history.reduce((max, h) => h.result === "win" ? Math.max(max, h.wager) : max, 0);
   const total = history.length;
   const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+  const biggestWin = history.reduce((max, h) => h.result === "win" ? Math.max(max, h.wager) : max, 0);
+  const biggestLoss = history.reduce((max, h) => h.result === "loss" ? Math.max(max, h.wager) : max, 0);
 
   const handleFlip = async () => {
     if (flipping || !choice) return;
-    if (wager < 1 || wager > tokens) {
-      toast.error("Invalid wager amount.");
-      return;
-    }
+    if (wager < 1 || wager > tokens) { toast.error("Invalid wager amount."); return; }
 
     setFlipping(true);
     setShowResult(false);
-
     await new Promise((r) => setTimeout(r, 2000));
 
     const outcome = Math.random() < 0.5 ? "heads" : "tails";
     const won = outcome === choice;
     const delta = won ? wager : -wager;
-    const newTokens = tokens + delta;
 
     await base44.entities.CoinFlipGame.create({
-      user_id: user.id,
-      user_email: user.email,
-      choice,
-      outcome,
-      wager,
+      user_id: user.id, user_email: user.email,
+      choice, outcome, wager,
       result: won ? "win" : "loss",
       tokens_delta: delta,
     });
 
-    await base44.auth.updateMe({ earlyAccessTokens: newTokens });
+    await base44.auth.updateMe({ earlyAccessTokens: tokens + delta });
     await onUserUpdate();
     queryClient.invalidateQueries({ queryKey: ["coinflip-history", user?.id] });
 
@@ -74,10 +66,10 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Dark arena card */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-slate-700 shadow-xl overflow-hidden">
+      {/* Arena card — dark always */}
+      <div className="bg-slate-900 rounded-2xl border border-slate-700 shadow-xl overflow-hidden">
 
-        {/* Sub-tab: Game / Stats / History */}
+        {/* Sub-tabs */}
         <div className="flex border-b border-slate-700">
           {[["game", "🎮 Game"], ["stats", "📊 Stats"], ["history", "📜 History"]].map(([id, label]) => (
             <button
@@ -85,7 +77,7 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
               onClick={() => setActiveView(id)}
               className={`flex-1 py-2 text-xs font-semibold transition-all ${
                 activeView === id
-                  ? "text-amber-400 border-b-2 border-amber-400 bg-slate-800/60"
+                  ? "text-amber-400 border-b-2 border-amber-400 bg-slate-800"
                   : "text-slate-400 hover:text-slate-300"
               }`}
             >
@@ -94,46 +86,25 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
           ))}
         </div>
 
-        {/* ── GAME VIEW ── */}
+        {/* ── GAME ── */}
         {activeView === "game" && (
           <div className="p-4 flex flex-col items-center gap-3">
             {/* Balance */}
             <div className="w-full flex items-center justify-between">
               <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Your Balance</span>
               <div className="flex items-center gap-1.5 bg-slate-700/60 border border-slate-600 rounded-full px-3 py-1">
-                <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="token" className="w-4 h-4" />
+                <img
+                  src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png"
+                  alt="token" className="w-4 h-4"
+                />
                 <span className="text-amber-400 font-black text-sm">{tokens}</span>
               </div>
             </div>
 
-            {/* Coin */}
+            {/* Coin animation */}
             <CoinAnimation flipping={flipping} outcome={lastResult?.outcome} chosenSide={choice} />
 
-            {/* Side pills */}
-            <div className="flex gap-1.5">
-              <button
-                onClick={() => !flipping && setChoice("heads")}
-                className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border transition-all ${
-                  choice === "heads"
-                    ? "bg-amber-500 border-amber-400 text-white"
-                    : "bg-slate-700 border-slate-600 text-slate-300"
-                }`}
-              >
-                <Crown className="w-3 h-3" /> Heads
-              </button>
-              <button
-                onClick={() => !flipping && setChoice("tails")}
-                className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border transition-all ${
-                  choice === "tails"
-                    ? "bg-blue-500 border-blue-400 text-white"
-                    : "bg-slate-700 border-slate-600 text-slate-300"
-                }`}
-              >
-                <Zap className="w-3 h-3" /> Tails
-              </button>
-            </div>
-
-            {/* Choose your side label */}
+            {/* Choose side */}
             <div className="w-full">
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold mb-1.5">Choose Your Side</p>
               <div className="flex gap-2 w-full">
@@ -168,9 +139,8 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
                 <span>Bet Amount</span>
                 <span>Min 1 · Max {maxWager}</span>
               </div>
-              {/* Quick bets */}
               <div className="flex gap-1.5 mb-2">
-                {QUICK_BETS.filter(b => b <= maxWager).map((b) => (
+                {QUICK_BETS.filter((b) => b <= maxWager).map((b) => (
                   <button
                     key={b}
                     disabled={flipping}
@@ -196,7 +166,6 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
                   MAX
                 </button>
               </div>
-              {/* Wager display */}
               <div className="bg-slate-700/60 border border-slate-600 rounded-xl px-4 py-2 text-center text-white font-black text-lg">
                 {wager}
               </div>
@@ -211,7 +180,6 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
               {flipping ? "Flipping…" : !choice ? "Choose a Side" : tokens < 1 ? "No Tokens" : "🪙 Flip!"}
             </button>
 
-            {/* Inline result */}
             <AnimatePresence>
               {showResult && lastResult && (
                 <FlipResult result={lastResult} choice={choice} onClose={() => setShowResult(false)} />
@@ -220,7 +188,7 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
           </div>
         )}
 
-        {/* ── STATS VIEW ── */}
+        {/* ── STATS ── */}
         {activeView === "stats" && (
           <div className="p-4 grid grid-cols-3 gap-2">
             {[
@@ -229,7 +197,7 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
               { label: "Losses", value: losses, color: "text-red-400" },
               { label: "Win Rate", value: total > 0 ? `${winRate}%` : "—", color: "text-blue-400" },
               { label: "Biggest Win", value: biggestWin || "—", color: "text-amber-400" },
-              { label: "Biggest Loss", value: losses > 0 ? Math.max(...history.filter(h => h.result === "loss").map(h => h.wager)) : "—", color: "text-orange-400" },
+              { label: "Biggest Loss", value: biggestLoss || "—", color: "text-orange-400" },
             ].map(({ label, value, color }) => (
               <div key={label} className="bg-slate-700/60 rounded-xl p-3 flex flex-col items-center gap-0.5 border border-slate-600">
                 <span className={`text-xl font-black ${color}`}>{value}</span>
@@ -239,7 +207,7 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
           </div>
         )}
 
-        {/* ── HISTORY VIEW ── */}
+        {/* ── HISTORY ── */}
         {activeView === "history" && (
           <div className="p-4">
             {history.length === 0 ? (
@@ -256,7 +224,10 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="" className="w-4 h-4" />
+                      <img
+                        src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png"
+                        alt="" className="w-4 h-4"
+                      />
                       <span className="text-slate-300">
                         Bet <strong className="text-white">{flip.wager}</strong> · chose <strong className="text-white">{flip.choice}</strong>
                       </span>
