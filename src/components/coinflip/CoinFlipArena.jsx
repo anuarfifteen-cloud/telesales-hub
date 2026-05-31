@@ -190,7 +190,7 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
               <span className="text-xs text-muted-foreground font-semibold">Potential Win</span>
               <div className="flex items-center gap-1.5">
                 <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="token" className="w-4 h-4" />
-                <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">+{wager || 0}</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">{tokens + (wager || 0)}</span>
               </div>
             </div>
 
