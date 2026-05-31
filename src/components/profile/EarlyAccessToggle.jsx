@@ -23,14 +23,10 @@ const MILESTONES = [
 
 function MilestoneRow({ milestone, totalBookingCount, index }) {
   const done = totalBookingCount >= milestone.target;
-  const prevTarget = index === 0 ? 0 : MILESTONES[index - 1].target;
   const isNext = !done && (index === 0 || totalBookingCount >= MILESTONES[index - 1].target);
 
-  // progress within this segment
-  const segmentStart = prevTarget;
-  const segmentEnd = milestone.target;
-  const raw = Math.min(Math.max(totalBookingCount - segmentStart, 0), segmentEnd - segmentStart);
-  const pct = done ? 100 : Math.round((raw / (segmentEnd - segmentStart)) * 100);
+  // progress = bookings so far out of this milestone's total target
+  const pct = done ? 100 : Math.round((Math.min(totalBookingCount, milestone.target) / milestone.target) * 100);
 
   const [showAnim, setShowAnim] = useState(false);
   const wasUnlocked = useRef(done);
