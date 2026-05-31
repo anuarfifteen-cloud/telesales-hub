@@ -1,19 +1,11 @@
-import { toZonedTime, fromZonedTime, format as tzFormat } from "date-fns-tz";
+import { fromZonedTime, format as tzFormat } from "date-fns-tz";
 
 const TZ = "Asia/Brunei";
 
-/** Returns a Date object representing "now" in Brunei time */
-function nowInBrunei() {
-  return toZonedTime(new Date(), TZ);
-}
-
-/** Returns today's date string (YYYY-MM-DD) using local system date (avoids UTC off-by-one) */
-export function todayInBrunei() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+/** Returns today's date string (YYYY-MM-DD) in Brunei timezone from a given Date */
+export function todayInBrunei(syncedNow = null) {
+  const base = syncedNow ?? new Date();
+  return tzFormat(base, "yyyy-MM-dd", { timeZone: TZ });
 }
 
 // Standard break slot definitions
@@ -65,16 +57,17 @@ export function getUnlockTime(dateStr) {
 
 /**
  * Returns the next 7 dates starting from today in Brunei time.
- * Accepts an optional syncedNow Date to use server-corrected time instead of device clock.
+ * Accepts an optional syncedNow Date (server-corrected) to use instead of device clock.
  */
 export function getBookableDates(syncedNow = null) {
+  const base = syncedNow ?? new Date();
+  // Get today's date string in Brunei time, then step forward day by day
+  const todayStr = tzFormat(base, "yyyy-MM-dd", { timeZone: TZ });
+  const [year, month, day] = todayStr.split("-").map(Number);
   const dates = [];
-  const bruneiNow = syncedNow ? toZonedTime(syncedNow, TZ) : nowInBrunei();
   for (let i = 0; i < 7; i++) {
-    const d = new Date(bruneiNow);
-    d.setDate(bruneiNow.getDate() + i);
-    const str = tzFormat(d, "yyyy-MM-dd", { timeZone: TZ });
-    dates.push(str);
+    const d = new Date(year, month - 1, day + i);
+    dates.push(tzFormat(fromZonedTime(d, TZ), "yyyy-MM-dd", { timeZone: TZ }));
   }
   return dates;
 }

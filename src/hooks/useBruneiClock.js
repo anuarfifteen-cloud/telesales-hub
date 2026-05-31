@@ -1,25 +1,26 @@
 import { useState, useEffect, useRef } from "react";
-import { toZonedTime } from "date-fns-tz";
 
 const TZ = "Asia/Brunei";
 
-/** Returns a live Date object ticking every second, always in Brunei timezone.
- *  Accepts an optional server timestamp + local fetch time to correct device clock drift. */
+/** Returns a live Date object ticking every second, corrected to server time.
+ *  The returned Date's UTC value is accurate — do NOT call toZonedTime() on it again. */
 export function useBruneiClock(serverTimestamp = null, localFetchTime = null) {
-  const [now, setNow] = useState(() => toZonedTime(new Date(), TZ));
   const offsetRef = useRef(0);
+
+  const getCorrectedNow = () => new Date(Date.now() + offsetRef.current);
+
+  const [now, setNow] = useState(getCorrectedNow);
 
   useEffect(() => {
     if (serverTimestamp && localFetchTime) {
       const serverDate = new Date(serverTimestamp);
-      offsetRef.current = serverDate.getTime() - localFetchTime.getTime();
+      offsetRef.current = serverDate.getTime() - new Date(localFetchTime).getTime();
     } else {
       offsetRef.current = 0;
     }
 
     const id = setInterval(() => {
-      const corrected = new Date(new Date().getTime() + offsetRef.current);
-      setNow(toZonedTime(corrected, TZ));
+      setNow(new Date(Date.now() + offsetRef.current));
     }, 1000);
 
     return () => clearInterval(id);
