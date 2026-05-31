@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Zap } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,6 +14,102 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
+const MILESTONES = [
+  { target: 15,  tokens: 3,  emoji: "👑", label: "15 Bookings — Earn 3 Tokens",   doneColor: "emerald", activeBg: "bg-emerald-50 dark:bg-emerald-950/30", activeBorder: "border-emerald-200 dark:border-emerald-800", barColor: "bg-emerald-500", textColor: "text-emerald-800 dark:text-emerald-300", subColor: "text-emerald-600 dark:text-emerald-400", badgeBg: "bg-emerald-100 dark:bg-emerald-900/40", badgeText: "text-emerald-700 dark:text-emerald-300", badgeBorder: "border-emerald-200 dark:border-emerald-700" },
+  { target: 30,  tokens: 5,  emoji: "🌟", label: "30 Bookings — Earn 5 Tokens",   doneColor: "amber",   activeBg: "bg-amber-50 dark:bg-amber-950/30",   activeBorder: "border-amber-200 dark:border-amber-800",   barColor: "bg-amber-500",   textColor: "text-amber-800 dark:text-amber-300",   subColor: "text-amber-600 dark:text-amber-400",   badgeBg: "bg-amber-100 dark:bg-amber-900/40",   badgeText: "text-amber-700 dark:text-amber-300",   badgeBorder: "border-amber-200 dark:border-amber-700" },
+  { target: 50,  tokens: 10, emoji: "💎", label: "50 Bookings — Earn 10 Tokens",  doneColor: "blue",    activeBg: "bg-blue-50 dark:bg-blue-950/30",     activeBorder: "border-blue-200 dark:border-blue-800",     barColor: "bg-blue-500",    textColor: "text-blue-800 dark:text-blue-300",     subColor: "text-blue-600 dark:text-blue-400",     badgeBg: "bg-blue-100 dark:bg-blue-900/40",     badgeText: "text-blue-700 dark:text-blue-300",     badgeBorder: "border-blue-200 dark:border-blue-700" },
+  { target: 100, tokens: 20, emoji: "🚀", label: "100 Bookings — Earn 20 Tokens", doneColor: "purple",  activeBg: "bg-purple-50 dark:bg-purple-950/30", activeBorder: "border-purple-200 dark:border-purple-800", barColor: "bg-purple-500",  textColor: "text-purple-800 dark:text-purple-300", subColor: "text-purple-600 dark:text-purple-400", badgeBg: "bg-purple-100 dark:bg-purple-900/40", badgeText: "text-purple-700 dark:text-purple-300", badgeBorder: "border-purple-200 dark:border-purple-700" },
+];
+
+function MilestoneRow({ milestone, totalBookingCount, index }) {
+  const done = totalBookingCount >= milestone.target;
+  const prevTarget = index === 0 ? 0 : MILESTONES[index - 1].target;
+  const isNext = !done && (index === 0 || totalBookingCount >= MILESTONES[index - 1].target);
+
+  // progress within this segment
+  const segmentStart = prevTarget;
+  const segmentEnd = milestone.target;
+  const raw = Math.min(Math.max(totalBookingCount - segmentStart, 0), segmentEnd - segmentStart);
+  const pct = done ? 100 : Math.round((raw / (segmentEnd - segmentStart)) * 100);
+
+  const [showAnim, setShowAnim] = useState(false);
+  const wasUnlocked = useRef(done);
+
+  useEffect(() => {
+    if (done && !wasUnlocked.current) {
+      setShowAnim(true);
+      wasUnlocked.current = true;
+      setTimeout(() => setShowAnim(false), 2500);
+    }
+  }, [done]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.06 }}
+      className={`relative rounded-xl px-3 py-2.5 border overflow-hidden ${
+        done
+          ? `${milestone.activeBg} ${milestone.activeBorder}`
+          : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
+      }`}
+    >
+      {/* Unlock burst animation */}
+      <AnimatePresence>
+        {showAnim && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1.6 }}
+            exit={{ opacity: 0, scale: 2 }}
+            transition={{ duration: 0.6 }}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
+          >
+            <span className="text-4xl">✨</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex items-center gap-3">
+        <span className={`text-lg flex-shrink-0 ${done ? "" : "grayscale opacity-40"}`}>{milestone.emoji}</span>
+        <div className="flex-1 min-w-0">
+          <p className={`text-xs font-semibold ${done ? milestone.textColor : "text-slate-500 dark:text-slate-400"}`}>
+            {milestone.label}
+          </p>
+
+          {/* Progress bar */}
+          <div className="mt-1.5 mb-0.5 h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+            <motion.div
+              className={`h-full rounded-full ${done ? milestone.barColor : isNext ? milestone.barColor + " opacity-70" : "bg-slate-400"}`}
+              initial={{ width: 0 }}
+              animate={{ width: `${pct}%` }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: index * 0.1 }}
+            />
+          </div>
+
+          {done ? (
+            <p className={`text-[10px] font-medium ${milestone.subColor}`}>✓ Milestone reached</p>
+          ) : (
+            <p className="text-[10px] text-slate-400 dark:text-slate-500">
+              {Math.min(totalBookingCount, milestone.target)}/{milestone.target} bookings
+              {isNext && <span className="ml-1 text-amber-500 font-semibold">← next!</span>}
+            </p>
+          )}
+        </div>
+
+        {done ? (
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0 ${milestone.badgeBg} ${milestone.badgeText} ${milestone.badgeBorder}`}>
+            DONE
+          </span>
+        ) : (
+          <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-600 flex-shrink-0">
+            LOCKED
+          </span>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCount = 0, showMilestones = true }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -22,18 +119,19 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
   const isVipActive = vipExpiresAt && vipExpiresAt.getTime() > Date.now();
   const canActivate = tokens > 0 && !isVipActive;
 
-  const milestone15Done = totalBookingCount >= 15;
-  const milestone30Done = totalBookingCount >= 30;
-  const milestone50Done = totalBookingCount >= 50;
-  const milestone100Done = totalBookingCount >= 100;
+  // Find next milestone target for the overall progress bar
+  const nextMilestone = MILESTONES.find((m) => totalBookingCount < m.target);
+  const prevTarget = nextMilestone
+    ? (MILESTONES[MILESTONES.indexOf(nextMilestone) - 1]?.target ?? 0)
+    : MILESTONES[MILESTONES.length - 1].target;
+  const overallPct = nextMilestone
+    ? Math.round(((totalBookingCount - prevTarget) / (nextMilestone.target - prevTarget)) * 100)
+    : 100;
 
   const handleActivate = async () => {
     setSaving(true);
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    await base44.auth.updateMe({
-      earlyAccessTokens: tokens - 1,
-      vipExpiresAt: expiresAt,
-    });
+    await base44.auth.updateMe({ earlyAccessTokens: tokens - 1, vipExpiresAt: expiresAt });
     await onUserUpdate();
     setSaving(false);
     setShowConfirm(false);
@@ -52,90 +150,39 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
     <>
       {/* ── Milestones ── */}
       {showMilestones && (
-      <div className="space-y-2">
-        {/* Milestone 1 — 15 bookings */}
-        <div className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border ${milestone15Done ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800" : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"}`}>
-          <span className={`text-lg ${milestone15Done ? "" : "grayscale opacity-40"}`}>👑</span>
-          <div className="flex-1 min-w-0">
-            <p className={`text-xs font-semibold ${milestone15Done ? "text-emerald-800 dark:text-emerald-300" : "text-slate-500 dark:text-slate-400"}`}>
-              15 Bookings — Earn 3 Tokens
-            </p>
-            {milestone15Done ? (
-              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Milestone reached</p>
-            ) : (
-              <p className="text-[10px] text-slate-400 dark:text-slate-500">{totalBookingCount}/15 bookings</p>
-            )}
-          </div>
-          {milestone15Done ? (
-            <span className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-700">DONE</span>
-          ) : (
-            <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-600">LOCKED</span>
+        <div className="space-y-3">
+          {/* Overall progress summary */}
+          {nextMilestone && (
+            <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-2.5 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                  Next Milestone
+                </span>
+                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                  {totalBookingCount} / {nextMilestone.target} bookings
+                </span>
+              </div>
+              <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-blue-500 to-amber-500 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${overallPct}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {nextMilestone.target - totalBookingCount} more booking{nextMilestone.target - totalBookingCount !== 1 ? "s" : ""} to earn {nextMilestone.tokens} tokens {nextMilestone.emoji}
+              </p>
+            </div>
           )}
-        </div>
 
-        {/* Milestone 2 — 30 bookings */}
-        <div className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border ${milestone30Done ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800" : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"}`}>
-          <span className={`text-lg ${milestone30Done ? "" : "grayscale opacity-40"}`}>🌟</span>
-          <div className="flex-1 min-w-0">
-            <p className={`text-xs font-semibold ${milestone30Done ? "text-amber-800 dark:text-amber-300" : "text-slate-500 dark:text-slate-400"}`}>
-              30 Bookings — Earn 5 Tokens
-            </p>
-            {milestone30Done ? (
-              <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">✓ Milestone reached</p>
-            ) : (
-              <p className="text-[10px] text-slate-400 dark:text-slate-500">{totalBookingCount}/30 bookings</p>
-            )}
-          </div>
-          {milestone30Done ? (
-            <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-700">DONE</span>
-          ) : (
-            <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-600">LOCKED</span>
-          )}
+          {MILESTONES.map((m, i) => (
+            <MilestoneRow key={m.target} milestone={m} totalBookingCount={totalBookingCount} index={i} />
+          ))}
         </div>
-
-        {/* Milestone 3 — 50 bookings */}
-        <div className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border ${milestone50Done ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800" : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"}`}>
-          <span className={`text-lg ${milestone50Done ? "" : "grayscale opacity-40"}`}>💎</span>
-          <div className="flex-1 min-w-0">
-            <p className={`text-xs font-semibold ${milestone50Done ? "text-blue-800 dark:text-blue-300" : "text-slate-500 dark:text-slate-400"}`}>
-              50 Bookings — Earn 10 Tokens
-            </p>
-            {milestone50Done ? (
-              <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">✓ Milestone reached</p>
-            ) : (
-              <p className="text-[10px] text-slate-400 dark:text-slate-500">{totalBookingCount}/50 bookings</p>
-            )}
-          </div>
-          {milestone50Done ? (
-            <span className="text-[10px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-700">DONE</span>
-          ) : (
-            <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-600">LOCKED</span>
-          )}
-        </div>
-
-        {/* Milestone 4 — 100 bookings */}
-        <div className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border ${milestone100Done ? "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800" : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"}`}>
-          <span className={`text-lg ${milestone100Done ? "" : "grayscale opacity-40"}`}>🚀</span>
-          <div className="flex-1 min-w-0">
-            <p className={`text-xs font-semibold ${milestone100Done ? "text-purple-800 dark:text-purple-300" : "text-slate-500 dark:text-slate-400"}`}>
-              100 Bookings — Earn 20 Tokens
-            </p>
-            {milestone100Done ? (
-              <p className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">✓ Milestone reached</p>
-            ) : (
-              <p className="text-[10px] text-slate-400 dark:text-slate-500">{totalBookingCount}/100 bookings</p>
-            )}
-          </div>
-          {milestone100Done ? (
-            <span className="text-[10px] font-bold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-700">DONE</span>
-          ) : (
-            <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-600">LOCKED</span>
-          )}
-        </div>
-      </div>
       )}
 
-      {/* ── Spend Tokens ── */}
+      {/* ── VIP Pass / Spend Tokens ── */}
       {!showMilestones && (
         <>
           <div className="flex items-center justify-between gap-3">
