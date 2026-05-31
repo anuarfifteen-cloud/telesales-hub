@@ -175,9 +175,12 @@ export default function Home() {
 
   const refreshUser = async () => {
     const localBefore = new Date();
-    const u = await base44.auth.me();
+    const [u, timeRes] = await Promise.all([
+      base44.auth.me(),
+      base44.functions.invoke('getServerTime', {}).catch(() => null),
+    ]);
     setLocalTimeAtFetch(localBefore);
-    setServerTimeRef(u?.updated_date || u?.created_date || null);
+    setServerTimeRef(timeRes?.data?.serverTime || null);
     setUser(u);
     return u;
   };
