@@ -5,7 +5,7 @@ import { AnimatePresence } from "framer-motion";
 import CoinAnimation from "./CoinAnimation";
 import FlipResult from "./FlipResult";
 import { toast } from "sonner";
-import { Crown, Zap, TrendingUp, TrendingDown } from "lucide-react";
+import { Crown, Zap } from "lucide-react";
 
 const QUICK_BETS = [1, 2, 5, 10];
 
@@ -106,20 +106,6 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
             {/* Coin animation */}
             <CoinAnimation flipping={flipping} outcome={lastResult?.outcome} chosenSide={choice} />
 
-            {/* Potential win/loss indicator */}
-            {choice && !showResult && (
-              <div className="w-full flex gap-2">
-                <div className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl py-2">
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Win +{wager} 🪙</span>
-                </div>
-                <div className="flex-1 flex items-center justify-center gap-1.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl py-2">
-                  <TrendingDown className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
-                  <span className="text-xs font-bold text-red-600 dark:text-red-400">Lose -{wager} 🪙</span>
-                </div>
-              </div>
-            )}
-
             {/* Choose side */}
             <div className="w-full">
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1.5">Choose Your Side</p>
@@ -155,7 +141,22 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
                 <span>Bet Amount</span>
                 <span>Min 1 · Max {maxWager}</span>
               </div>
-              <div className="flex gap-1.5 mb-2">
+              {/* Manual input */}
+              <input
+                type="number"
+                min={1}
+                max={maxWager}
+                disabled={flipping}
+                value={wager}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  if (isNaN(v)) { setWager(""); return; }
+                  setWager(Math.min(Math.max(v, 1), maxWager));
+                }}
+                className="w-full mb-2 bg-muted border border-border rounded-xl px-4 py-2.5 text-center text-foreground font-black text-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              {/* Quick bet chips */}
+              <div className="flex gap-1.5">
                 {QUICK_BETS.filter((b) => b <= maxWager).map((b) => (
                   <button
                     key={b}
@@ -182,8 +183,14 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
                   MAX
                 </button>
               </div>
-              <div className="bg-muted border border-border rounded-xl px-4 py-2 text-center text-foreground font-black text-lg">
-                {wager}
+            </div>
+
+            {/* Potential Win row */}
+            <div className="w-full flex items-center justify-between bg-muted border border-border rounded-xl px-4 py-2.5">
+              <span className="text-xs text-muted-foreground font-semibold">Potential Win</span>
+              <div className="flex items-center gap-1.5">
+                <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="token" className="w-4 h-4" />
+                <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">+{wager || 0}</span>
               </div>
             </div>
 
@@ -193,7 +200,7 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
               disabled={!canFlip}
               className="w-full py-3 rounded-xl font-black text-sm tracking-widest uppercase bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:from-amber-400 hover:to-orange-400 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {flipping ? "Flipping…" : !choice ? "Choose a Side" : tokens < 1 ? "No Tokens" : "🪙 Flip!"}
+              {flipping ? "Flipping…" : !choice ? "Choose a Side" : tokens < 1 ? "No Tokens" : "🪙 Flip It!"}
             </button>
 
             <AnimatePresence>
