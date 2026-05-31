@@ -69,6 +69,8 @@ export default function Home() {
   const [unlockMinute, setUnlockMinute] = useState(30);
   const [isDarkMode, setIsDarkMode] = useState(() => getStoredTheme());
   const [showAnnouncementPanel, setShowAnnouncementPanel] = useState(false);
+  const [serverTimeRef, setServerTimeRef] = useState(null);
+  const [localTimeAtFetch, setLocalTimeAtFetch] = useState(null);
   const [showDstConfirm, setShowDstConfirm] = useState(false);
   const [showCancelDstConfirm, setShowCancelDstConfirm] = useState(false);
   const [activePopup, setActivePopup] = useState(null);
@@ -169,10 +171,13 @@ export default function Home() {
   });
   const dates = getBookableDates();
   const queryClient = useQueryClient();
-  const bruneiNow = useBruneiClock();
+  const bruneiNow = useBruneiClock(serverTimeRef, localTimeAtFetch);
 
   const refreshUser = async () => {
+    const localBefore = new Date();
     const u = await base44.auth.me();
+    setLocalTimeAtFetch(localBefore);
+    setServerTimeRef(u?.updated_date || u?.created_date || null);
     setUser(u);
     return u;
   };
