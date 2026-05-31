@@ -582,7 +582,7 @@ export default function Home() {
             {/* ── Book a Slot inner view ── */}
             {innerTab === "book" &&
           <>
-                <LiveClock />
+                <LiveClock now={bruneiNow} />
 
                 {selectedDate &&
             <div>

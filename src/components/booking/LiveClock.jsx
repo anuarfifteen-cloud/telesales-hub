@@ -1,10 +1,9 @@
-import { useBruneiClock } from "@/hooks/useBruneiClock";
 import { format } from "date-fns-tz";
 
 const TZ = "Asia/Brunei";
 
-export default function LiveClock() {
-  const now = useBruneiClock();
+export default function LiveClock({ now }) {
+  if (!now) return null;
 
   const datePart = format(now, "EEEE, d MMMM yyyy", { timeZone: TZ });
   const timePart = format(now, "hh:mm aa", { timeZone: TZ });
