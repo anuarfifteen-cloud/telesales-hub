@@ -13,7 +13,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
         <div className="flex items-center gap-2">
           <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="Token" className="w-8 h-8" />
           <div>
-            <h2 className="text-base font-bold text-slate-800 dark:text-gray-100 leading-tight">Token Rewards</h2>
+            <h2 className="text-base font-bold text-slate-800 dark:text-gray-100 leading-tight">Token Balance</h2>
             <p className="text-[11px] text-muted-foreground">Earn &amp; spend your tokens</p>
           </div>
         </div>
