@@ -65,10 +65,11 @@ export function getUnlockTime(dateStr) {
 
 /**
  * Returns the next 7 dates starting from today in Brunei time.
+ * Accepts an optional syncedNow Date to use server-corrected time instead of device clock.
  */
-export function getBookableDates() {
+export function getBookableDates(syncedNow = null) {
   const dates = [];
-  const bruneiNow = nowInBrunei();
+  const bruneiNow = syncedNow ? toZonedTime(syncedNow, TZ) : nowInBrunei();
   for (let i = 0; i < 7; i++) {
     const d = new Date(bruneiNow);
     d.setDate(bruneiNow.getDate() + i);

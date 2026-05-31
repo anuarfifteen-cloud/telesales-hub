@@ -169,9 +169,9 @@ export default function Home() {
   const [seenAnnouncementIds, setSeenAnnouncementIds] = useState(() => {
     try {return JSON.parse(localStorage.getItem("seenAnnouncements") || "[]");} catch {return [];}
   });
-  const dates = getBookableDates();
-  const queryClient = useQueryClient();
   const bruneiNow = useBruneiClock(serverTimeRef, localTimeAtFetch);
+  const dates = getBookableDates(bruneiNow);
+  const queryClient = useQueryClient();
 
   const refreshUser = async () => {
     const localBefore = new Date();
@@ -183,7 +183,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    refreshUser().catch(() => {});
     setSelectedDate(dates[0]);
     applyTheme(getStoredTheme());
   }, []);
