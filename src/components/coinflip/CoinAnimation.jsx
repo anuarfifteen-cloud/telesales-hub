@@ -24,7 +24,7 @@ export default function CoinAnimation({ flipping, outcome, chosenSide }) {
         className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 border-4 border-amber-600 shadow-2xl flex items-center justify-center"
       >
         {flipping ? (
-          <span className="text-3xl">🪙</span>
+          <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/44c1b0077_tokens.png" alt="token" className="w-10 h-10" />
         ) : isHeads ? (
           <Crown className="w-9 h-9 text-amber-800" strokeWidth={2.5} />
         ) : (
