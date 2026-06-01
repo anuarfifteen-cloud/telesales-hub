@@ -89,12 +89,13 @@ export default function PerfectTen({ user, onUserUpdate }) {
       setResult({ type: "jackpot", message: `JACKPOT! PERFECT 10! +3 Tokens 💎`, time: stoppedStr });
     } else if (stopped >= 9.90 && stopped <= 10.10) {
       // Near miss
+      // Near miss always awards 1 token (refund if paid, bonus if free)
+      await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 1 });
+      await onUserUpdate();
       if (!isFreePlay) {
-        await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 1 });
-        await onUserUpdate();
         setResult({ type: "close", message: `Close call! You stopped at ${stoppedStr}s. Here is your 1 token back! 😅`, time: stoppedStr });
       } else {
-        setResult({ type: "close_free", message: `Close call! You stopped at ${stoppedStr}s. So close! 😅`, time: stoppedStr });
+        setResult({ type: "close", message: `Close call! You stopped at ${stoppedStr}s. +1 Free Token! 😅`, time: stoppedStr });
       }
     } else {
       // Miss

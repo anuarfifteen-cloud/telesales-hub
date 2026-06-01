@@ -25,7 +25,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
       </div>
 
       {/* Inner tab switcher: Milestones | Perfect 10 | Coin Flip | VIP Pass */}
-      <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 flex-wrap">
+      <div className="grid grid-cols-2 gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
         <button
           onClick={() => setInnerTab("milestones")}
           className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
