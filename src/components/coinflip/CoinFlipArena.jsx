@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence } from "framer-motion";
 import CoinAnimation from "./CoinAnimation";
 import FlipResult from "./FlipResult";
+import ActivityFeed from "./ActivityFeed";
 import { toast } from "sonner";
 import { Crown, Zap } from "lucide-react";
 import { playClick, playWin, playLoss } from "@/lib/sounds";
@@ -69,6 +70,7 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
   const canFlip = !flipping && tokens >= 1 && !!choice;
 
   return (
+    <>
     <div className="flex flex-col gap-3">
       {/* Card — theme-aware */}
       <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
@@ -283,5 +285,9 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
         )}
       </div>
     </div>
+
+    {/* Live activity feed */}
+    <ActivityFeed currentUserId={user?.id} />
+    </>
   );
 }
