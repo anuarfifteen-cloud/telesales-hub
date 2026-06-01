@@ -128,8 +128,8 @@ export default function PerfectTen({ user, onUserUpdate }) {
         <h3 className="font-black text-base text-foreground">⏱️ Perfect 10</h3>
         <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
           Stop the timer at <strong>EXACTLY 10.00 seconds</strong>.<br />
-          <span className="text-amber-600 dark:text-amber-400 font-semibold">Jackpot: 3 Tokens!</span>{" "}
-          (Stop between 9.90s–10.10s to win 1 token)
+          <span className="text-amber-600 dark:text-amber-400 font-semibold">Jackpot: 3 Tokens!</span>{" "}</p>
+           <p (Stop between 9.90s–10.10s to win 1 token)
         </p>
       </div>
 
