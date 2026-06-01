@@ -121,7 +121,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
     ? (MILESTONES[MILESTONES.indexOf(nextMilestone) - 1]?.target ?? 0)
     : MILESTONES[MILESTONES.length - 1].target;
   const overallPct = nextMilestone
-    ? Math.round(((totalBookingCount - prevTarget) / (nextMilestone.target - prevTarget)) * 100)
+    ? Math.round((totalBookingCount / nextMilestone.target) * 100)
     : 100;
 
   const handleActivate = async () => {
