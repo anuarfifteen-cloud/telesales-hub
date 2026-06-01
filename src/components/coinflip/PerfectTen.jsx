@@ -2,6 +2,76 @@ import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
 
+function PerfectTenFeed({ currentUserId }) {
+  const [feed, setFeed] = useState([]);
+
+  useEffect(() => {
+    base44.entities.PerfectTenGame.list("-created_date", 3).then((games) => {
+      setFeed(games.slice(0, 3));
+    });
+
+    const unsub = base44.entities.PerfectTenGame.subscribe((event) => {
+      if (event.type === "create") {
+        setFeed((prev) => [event.data, ...prev].slice(0, 3));
+      }
+    });
+
+    return unsub;
+  }, []);
+
+  if (feed.length === 0) return null;
+
+  const getName = (game) => {
+    if (game.user_id === currentUserId) return "You";
+    if (game.user_email) return game.user_email.split("@")[0];
+    return "Someone";
+  };
+
+  const getEmoji = (type) => ({ jackpot: "🏆", close: "😅", miss: "💨" }[type] || "⏱️");
+
+  const getLabel = (game) => {
+    const isMe = game.user_id === currentUserId;
+    const name = getName(game);
+    const time = game.stopped_time?.toFixed(2) ?? "?";
+    if (game.result_type === "jackpot") return <><strong>{name}</strong> hit <span className="text-amber-600 dark:text-amber-400 font-semibold">PERFECT 10!</span> +3 tokens 🎉</>;
+    if (game.result_type === "close") return <><strong>{name}</strong> stopped at <strong>{time}s</strong> — <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+1 token</span></>;
+    return <><strong>{name}</strong> stopped at <strong>{time}s</strong> — <span className="text-red-500 dark:text-red-400">missed!</span></>;
+  };
+
+  return (
+    <div className="bg-card rounded-2xl border border-border shadow-sm p-3 mt-0">
+      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">🔴 Live Activity</p>
+      <div className="space-y-1.5">
+        <AnimatePresence initial={false}>
+          {feed.map((game) => {
+            const isMe = game.user_id === currentUserId;
+            const colorClass =
+              game.result_type === "jackpot"
+                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
+                : game.result_type === "close"
+                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800";
+            return (
+              <motion.div
+                key={game.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.3 }}
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs border ${colorClass} ${isMe ? "ring-1 ring-blue-300 dark:ring-blue-700" : ""}`}
+              >
+                <span className="text-base">{getEmoji(game.result_type)}</span>
+                <span className="flex-1 text-foreground">{getLabel(game)}</span>
+                {isMe && <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full">YOU</span>}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
 const STORAGE_DATE_KEY = "perfect10_date";
 const STORAGE_PLAYS_KEY = "perfect10_plays";
 const FREE_PLAYS_PER_DAY = 3;
@@ -82,14 +152,18 @@ export default function PerfectTen({ user, onUserUpdate }) {
     const stopped = parseFloat((rawMs / 1000).toFixed(2));
     const stoppedStr = stopped.toFixed(2);
 
+    let resultType = "miss";
+    let tokensDelta = isFreePlay ? 0 : -1;
+
     if (stoppedStr === "10.00") {
-      // JACKPOT
+      resultType = "jackpot";
+      tokensDelta = isFreePlay ? 3 : 3;
       await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 3 });
       await onUserUpdate();
       setResult({ type: "jackpot", message: `JACKPOT! PERFECT 10! +3 Tokens 💎`, time: stoppedStr });
     } else if (stopped >= 9.90 && stopped <= 10.10) {
-      // Near miss
-      // Near miss always awards 1 token (refund if paid, bonus if free)
+      resultType = "close";
+      tokensDelta = 1;
       await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 1 });
       await onUserUpdate();
       if (!isFreePlay) {
@@ -98,9 +172,17 @@ export default function PerfectTen({ user, onUserUpdate }) {
         setResult({ type: "close", message: `Close call! You stopped at ${stoppedStr}s. +1 Free Token! 😅`, time: stoppedStr });
       }
     } else {
-      // Miss
       setResult({ type: "miss", message: `Oof, you stopped at ${stoppedStr}s! Try again! 😢`, time: stoppedStr });
     }
+
+    // Save to entity for live feed
+    await base44.entities.PerfectTenGame.create({
+      user_id: user.id,
+      user_email: user.email,
+      stopped_time: stopped,
+      result_type: resultType,
+      tokens_delta: tokensDelta,
+    });
   };
 
   const displayTime = isRunning
@@ -122,6 +204,7 @@ export default function PerfectTen({ user, onUserUpdate }) {
     : "text-foreground";
 
   return (
+    <div className="flex flex-col gap-3">
     <div className="bg-card rounded-2xl border border-border shadow-sm p-5 flex flex-col gap-5">
       {/* Header */}
       <div>
@@ -202,6 +285,8 @@ export default function PerfectTen({ user, onUserUpdate }) {
           ? "START (Free)"
           : `START (Cost: 1 Token)`}
       </button>
+    </div>
+    <PerfectTenFeed currentUserId={user?.id} />
     </div>
   );
 }

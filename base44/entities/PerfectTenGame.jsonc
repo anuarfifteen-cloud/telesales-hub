@@ -1,0 +1,36 @@
+{
+  "name": "PerfectTenGame",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user who played"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user"
+    },
+    "stopped_time": {
+      "type": "number",
+      "description": "Time in seconds when the user stopped"
+    },
+    "result_type": {
+      "type": "string",
+      "enum": [
+        "jackpot",
+        "close",
+        "miss"
+      ],
+      "description": "jackpot = exact 10.00, close = near miss, miss = too far off"
+    },
+    "tokens_delta": {
+      "type": "number",
+      "description": "Token change (positive = won, negative = lost)"
+    }
+  },
+  "required": [
+    "user_id",
+    "stopped_time",
+    "result_type"
+  ]
+}
