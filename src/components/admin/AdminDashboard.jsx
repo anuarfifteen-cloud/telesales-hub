@@ -5,6 +5,8 @@ import { base44 } from "@/api/base44Client";
 import { EMPLOYEE_MAP } from "@/lib/employeeMap";
 import { toast } from "sonner";
 
+const LIVE_FEED_KEY = "liveFeedEnabled";
+
 /**
  * Parses a CSV file into RosterDatabase records.
  * Expected CSV columns (case-insensitive): Date, ShiftType, EmployeeNumber, DailyTask
@@ -57,6 +59,15 @@ export default function AdminDashboard({ onBack }) {
   const [success, setSuccess] = useState(false);
   const [uploadedCount, setUploadedCount] = useState(0);
   const fileInputRef = useRef(null);
+  const [liveFeedEnabled, setLiveFeedEnabled] = useState(
+    () => localStorage.getItem(LIVE_FEED_KEY) !== "false"
+  );
+
+  const handleToggleLiveFeed = (val) => {
+    setLiveFeedEnabled(val);
+    localStorage.setItem(LIVE_FEED_KEY, String(val));
+    toast.success(val ? "Live Activity Feed enabled." : "Live Activity Feed disabled.");
+  };
 
   const handleFile = async (file) => {
     if (!file || !file.name.endsWith(".csv")) {
@@ -124,6 +135,26 @@ export default function AdminDashboard({ onBack }) {
           <p className="text-xs font-semibold uppercase tracking-widest opacity-75 mb-1">Admin Panel</p>
           <h2 className="text-xl font-bold">Telesales Hub</h2>
           <p className="text-sm opacity-80 mt-0.5">Manage team data and settings below.</p>
+        </div>
+
+        {/* Live Feed Toggle */}
+        <div className="bg-white rounded-2xl border border-border p-5 flex items-center justify-between gap-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+          <div>
+            <h3 className="font-bold text-slate-900 text-base">🔴 Live Activity Feed</h3>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Show real-time coin flip activity to all agents in the Coin Flip arena.
+            </p>
+            <p className={`text-xs font-semibold mt-1 ${liveFeedEnabled ? "text-emerald-600" : "text-slate-400"}`}>
+              {liveFeedEnabled ? "Currently ON" : "Currently OFF"}
+            </p>
+          </div>
+          <button
+            onClick={() => handleToggleLiveFeed(!liveFeedEnabled)}
+            className={`relative inline-flex h-7 w-13 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${liveFeedEnabled ? "bg-emerald-500" : "bg-slate-300"}`}
+            style={{ width: "52px" }}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${liveFeedEnabled ? "translate-x-7" : "translate-x-1"}`} />
+          </button>
         </div>
 
         {/* Roster upload card */}
