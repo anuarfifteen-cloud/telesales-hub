@@ -144,20 +144,23 @@ export default function PerfectTen({ user, onUserUpdate }) {
     let tokensDelta = isFreePlay ? 0 : -1;
 
     if (stoppedStr === "10.00") {
+      // Jackpot: +3 tokens for everyone (free or paid)
       resultType = "jackpot";
-      tokensDelta = isFreePlay ? 3 : 3;
+      tokensDelta = 3;
       await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 3 });
       await onUserUpdate();
       setResult({ type: "jackpot", message: `JACKPOT! PERFECT 10! +3 Tokens 💎`, time: stoppedStr });
     } else if (stopped >= 9.90 && stopped <= 10.10) {
+      // Near-miss: only rewards 1 token if it was a PAID play (token refunded back)
       resultType = "close";
-      tokensDelta = 1;
-      await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 1 });
-      await onUserUpdate();
       if (!isFreePlay) {
-        setResult({ type: "close", message: `Close call! You stopped at ${stoppedStr}s. Here is your 1 token back! 😅`, time: stoppedStr });
+        tokensDelta = 1; // net: paid 1, get 1 back = break even
+        await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 1 });
+        await onUserUpdate();
+        setResult({ type: "close", message: `Close call! You stopped at ${stoppedStr}s. Your token is refunded! 😅`, time: stoppedStr });
       } else {
-        setResult({ type: "close", message: `Close call! You stopped at ${stoppedStr}s. +1 Free Token! 😅`, time: stoppedStr });
+        tokensDelta = 0; // free play, no reward for near-miss
+        setResult({ type: "miss", message: `So close! You stopped at ${stoppedStr}s. Near-miss only rewards on paid plays. 😅`, time: stoppedStr });
       }
     } else {
       setResult({ type: "miss", message: `Oof, you stopped at ${stoppedStr}s! Try again! 😢`, time: stoppedStr });
@@ -199,8 +202,9 @@ export default function PerfectTen({ user, onUserUpdate }) {
         <h3 className="font-black text-base text-foreground">⏱️ Perfect 10</h3>
         <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
           Stop the timer at <strong>EXACTLY 10.00 seconds</strong>.<br />
-          <span className="text-amber-600 dark:text-amber-400 font-semibold">Jackpot: 3 Tokens!</span>{" "}
-          (Stop between 9.90s–10.10s to win 1 token)
+          <span className="text-amber-600 dark:text-amber-400 font-semibold">Jackpot (10.00s): +3 Tokens!</span><br />
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Near-miss (9.90–10.10s): token refunded</span>{" "}
+          <span className="text-muted-foreground">(paid plays only)</span>
         </p>
       </div>
 
