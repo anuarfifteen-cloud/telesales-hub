@@ -42,7 +42,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
               : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
           }`}
         >
-          🪙 Coin Flip
+          <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/df84002d1_coin.PNG" alt="coin" className="w-4 h-4" /> Coin Flip
         </button>
         <button
           onClick={() => setInnerTab("vip")}
