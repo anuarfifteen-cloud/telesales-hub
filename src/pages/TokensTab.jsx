@@ -1,9 +1,11 @@
 import { useState } from "react";
 import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
 import CoinFlipArena from "@/components/coinflip/CoinFlipArena";
+import PerfectTen from "@/components/coinflip/PerfectTen";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
   const [innerTab, setInnerTab] = useState("milestones");
+  // tabs: milestones | perfect10 | coinflip | vip
   const tokens = user?.earlyAccessTokens ?? 0;
 
   return (
@@ -22,8 +24,8 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
         />
       </div>
 
-      {/* Inner tab switcher: Milestones | Coin Flip | VIP Pass */}
-      <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+      {/* Inner tab switcher: Milestones | Perfect 10 | Coin Flip | VIP Pass */}
+      <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 flex-wrap">
         <button
           onClick={() => setInnerTab("milestones")}
           className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
@@ -33,6 +35,16 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
           }`}
         >
           🏆 Milestones
+        </button>
+        <button
+          onClick={() => setInnerTab("perfect10")}
+          className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+            innerTab === "perfect10"
+              ? "bg-indigo-600 text-white shadow"
+              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+          }`}
+        >
+          ⏱️ Perfect 10
         </button>
         <button
           onClick={() => setInnerTab("coinflip")}
@@ -66,6 +78,11 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
             showMilestones={true}
           />
         </div>
+      )}
+
+      {/* Perfect 10 */}
+      {innerTab === "perfect10" && (
+        <PerfectTen user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {/* Coin Flip */}
