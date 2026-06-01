@@ -25,8 +25,11 @@ function MilestoneRow({ milestone, totalBookingCount, index }) {
   const done = totalBookingCount >= milestone.target;
   const isNext = !done && (index === 0 || totalBookingCount >= MILESTONES[index - 1].target);
 
-  // progress = bookings so far out of this milestone's total target
-  const pct = done ? 100 : Math.round((Math.min(totalBookingCount, milestone.target) / milestone.target) * 100);
+  // progress relative to the previous milestone threshold
+  const prevTarget = index === 0 ? 0 : MILESTONES[index - 1].target;
+  const range = milestone.target - prevTarget;
+  const progress = Math.min(totalBookingCount, milestone.target) - prevTarget;
+  const pct = done ? 100 : Math.round((Math.max(0, progress) / range) * 100);
 
   const [showAnim, setShowAnim] = useState(false);
   const wasUnlocked = useRef(done);
@@ -86,7 +89,7 @@ function MilestoneRow({ milestone, totalBookingCount, index }) {
             <p className={`text-[10px] font-medium ${milestone.subColor}`}>✓ Milestone reached</p>
           ) : (
             <p className="text-[10px] text-slate-400 dark:text-slate-500">
-              {Math.min(totalBookingCount, milestone.target)}/{milestone.target} bookings
+              {Math.max(0, Math.min(totalBookingCount, milestone.target) - prevTarget)}/{range} bookings
               {isNext && <span className="ml-1 text-amber-500 font-semibold">← next!</span>}
             </p>
           )}
