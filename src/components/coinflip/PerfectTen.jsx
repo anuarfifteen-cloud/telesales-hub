@@ -72,35 +72,19 @@ function PerfectTenFeed({ currentUserId }) {
   );
 }
 
-const STORAGE_DATE_KEY = "perfect10_date";
-const STORAGE_PLAYS_KEY = "perfect10_plays";
 const FREE_PLAYS_PER_DAY = 3;
 
 function getTodayString() {
   return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
 }
 
-function getPlaysToday() {
-  const stored = localStorage.getItem(STORAGE_DATE_KEY);
+function getServerPlaysToday(user) {
   const today = getTodayString();
-  if (stored !== today) {
-    localStorage.setItem(STORAGE_DATE_KEY, today);
-    localStorage.setItem(STORAGE_PLAYS_KEY, "0");
-    return 0;
-  }
-  return parseInt(localStorage.getItem(STORAGE_PLAYS_KEY) ?? "0", 10);
-}
-
-function incrementPlays() {
-  const current = getPlaysToday();
-  const next = current + 1;
-  localStorage.setItem(STORAGE_PLAYS_KEY, String(next));
-  localStorage.setItem(STORAGE_DATE_KEY, getTodayString());
-  return next;
+  if (user?.perfect10PlaysDate !== today) return 0;
+  return user?.perfect10PlaysCount ?? 0;
 }
 
 export default function PerfectTen({ user, onUserUpdate }) {
-  const [playsToday, setPlaysToday] = useState(() => getPlaysToday());
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [result, setResult] = useState(null); // null | { type, message, time }
@@ -110,6 +94,7 @@ export default function PerfectTen({ user, onUserUpdate }) {
   const intervalRef = useRef(null);
 
   const tokens = user?.earlyAccessTokens ?? 0;
+  const playsToday = getServerPlaysToday(user);
   const freePlaysLeft = Math.max(0, FREE_PLAYS_PER_DAY - playsToday);
   const canStart = freePlaysLeft > 0 || tokens >= 1;
 
@@ -122,10 +107,13 @@ export default function PerfectTen({ user, onUserUpdate }) {
     setResult(null);
 
     if (playsToday < FREE_PLAYS_PER_DAY) {
-      // Free play
-      const newCount = incrementPlays();
-      setPlaysToday(newCount);
+      // Free play — increment server-side count
       setIsFreePlay(true);
+      await base44.auth.updateMe({
+        perfect10PlaysDate: getTodayString(),
+        perfect10PlaysCount: playsToday + 1,
+      });
+      await onUserUpdate();
     } else {
       // Paid play — deduct 1 token
       setIsFreePlay(false);

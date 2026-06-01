@@ -23,6 +23,18 @@
       "type": "object",
       "description": "Tracks which booking milestones have already been awarded tokens (e.g. { '15': true, '30': true })",
       "default": {}
+    },
+    "perfect10PlaysDate": {
+      "type": "string",
+      "description": "The date (YYYY-MM-DD) for which perfect10PlaysCount is tracked"
+    },
+    "perfect10PlaysCount": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of Perfect 10 free plays used on perfect10PlaysDate"
     }
-  }
+  },
+  "required": [
+    "vipExpiresAt"
+  ]
 }
