@@ -203,8 +203,8 @@ export default function PerfectTen({ user, onUserUpdate }) {
         <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
           Stop the timer at <strong>EXACTLY 10.00 seconds</strong>.<br />
           <span className="text-amber-600 dark:text-amber-400 font-semibold">Jackpot (10.00s): +3 Tokens!</span><br />
-          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Near-miss (9.90–10.10s): win token 1 back</span>{" "}
-          <span className="text-muted-foreground">(paid plays only)</span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Near-miss (9.90–10.10s): 1 token back</span>{" "}
+          <span className="text-muted-foreground">(excluding free ties)</span>
         </p>
       </div>
 
