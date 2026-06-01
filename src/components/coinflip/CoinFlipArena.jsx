@@ -6,6 +6,7 @@ import CoinAnimation from "./CoinAnimation";
 import FlipResult from "./FlipResult";
 import { toast } from "sonner";
 import { Crown, Zap } from "lucide-react";
+import { playClick, playWin, playLoss } from "@/lib/sounds";
 
 const QUICK_BETS = [1, 2, 5, 10];
 
@@ -38,6 +39,7 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
     if (flipping || !choice) return;
     if (wager < 1 || wager > tokens) { toast.error("Invalid wager amount."); return; }
 
+    playClick();
     setFlipping(true);
     setShowResult(false);
     await new Promise((r) => setTimeout(r, 2000));
@@ -59,6 +61,7 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
 
     setLastResult({ outcome, result: won ? "win" : "loss", delta, wager });
     setFlipping(false);
+    won ? playWin() : playLoss();
     setShowResult(true);
   };
 
