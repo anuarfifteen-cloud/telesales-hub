@@ -20,14 +20,14 @@ export default function ActivityFeed({ currentUserId }) {
 
   useEffect(() => {
     // Load recent activity on mount (all players, including self)
-    base44.entities.CoinFlipGame.list("-created_date", 10).then((games) => {
-      setFeed(games.slice(0, 5));
+    base44.entities.CoinFlipGame.list("-created_date", 3).then((games) => {
+      setFeed(games.slice(0, 3));
     });
 
     // Subscribe to real-time updates
     const unsub = base44.entities.CoinFlipGame.subscribe((event) => {
       if (event.type === "create") {
-        setFeed((prev) => [event.data, ...prev].slice(0, 5));
+        setFeed((prev) => [event.data, ...prev].slice(0, 3));
       }
     });
 
