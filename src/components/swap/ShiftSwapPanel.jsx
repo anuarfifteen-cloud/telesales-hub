@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, ArrowRightLeft, Users, Radio } from "lucide-react";
 import { toast } from "sonner";
+import { SLOTS, getAmSlots, isFriday } from "@/lib/slots";
 
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -25,6 +26,8 @@ function formatDate(dateStr) {
 // ── New Request Form ──────────────────────────────────────────────────────────
 function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
   const [mySlot, setMySlot] = useState("");
+  const [wantDate, setWantDate] = useState("");
+  const [wantSlotId, setWantSlotId] = useState("");
   const [targetMode, setTargetMode] = useState("broadcast");
   const [targetUserId, setTargetUserId] = useState("");
   const [tokenOffer, setTokenOffer] = useState(0);
@@ -35,13 +38,19 @@ function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
   const selectedBooking = myBookings.find((b) => b.id === mySlot);
   const targetUser = users.find((u) => u.id === targetUserId);
 
-  // Only show today + tomorrow bookings
   const today = new Date().toLocaleDateString("en-CA");
   const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString("en-CA");
   const eligibleBookings = myBookings.filter((b) => b.date === today || b.date === tomorrow);
 
+  // Slots available for the chosen "want" date
+  const wantSlots = wantDate
+    ? [...getAmSlots(wantDate), ...SLOTS.filter((s) => s.shift === "PM")]
+    : [];
+  const selectedWantSlot = wantSlots.find((s) => s.id === wantSlotId);
+
   const handleSubmit = async () => {
     if (!selectedBooking) { toast.error("Please select a slot to swap."); return; }
+    if (!wantDate || !wantSlotId) { toast.error("Please select the slot you want in return."); return; }
     setSaving(true);
     await base44.entities.ShiftSwapRequest.create({
       requester_id: user.id,
@@ -53,8 +62,8 @@ function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
       my_shift: selectedBooking.shift,
       target_user_id: targetMode === "targeted" ? targetUserId : "",
       target_user_name: targetMode === "targeted" ? (targetUser?.full_name || "") : "",
-      want_date: "",
-      want_slot_label: "",
+      want_date: wantDate,
+      want_slot_label: selectedWantSlot?.label || wantSlotId,
       token_offer: tokenOffer,
       message: message || "",
       status: "open",
@@ -95,6 +104,50 @@ function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
               </button>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Requested slot */}
+      <div>
+        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Slot You Want in Return <span className="text-red-400">*</span></label>
+        <div className="flex gap-2 mb-2">
+          {[
+            { label: "Today", value: today },
+            { label: "Tomorrow", value: tomorrow },
+          ].map(({ label, value }) => (
+            <button
+              key={value}
+              onClick={() => { setWantDate(value); setWantSlotId(""); }}
+              className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-all ${
+                wantDate === value
+                  ? "bg-slate-800 text-white border-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-300"
+                  : "bg-card border-border text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {wantDate && (
+          <div className="flex flex-col gap-1.5">
+            {wantSlots.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setWantSlotId(s.id)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-left transition-all ${
+                  wantSlotId === s.id
+                    ? "border-primary bg-accent text-accent-foreground"
+                    : "border-border bg-card text-foreground hover:bg-muted"
+                }`}
+              >
+                <span className="text-xs font-semibold">{s.label}</span>
+                <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">{s.shift}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {!wantDate && (
+          <p className="text-[11px] text-muted-foreground">Select Today or Tomorrow above to see available slots.</p>
         )}
       </div>
 
@@ -270,7 +323,14 @@ function SwapCard({ req, currentUser, onAccepted, onCancelled }) {
         <ArrowRightLeft className="w-3.5 h-3.5 text-muted-foreground/50 flex-shrink-0" />
         <div className="flex-1 min-w-0 text-right">
           <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Requesting</p>
-          <p className="text-xs text-muted-foreground italic">Any available slot</p>
+          {req.want_date && req.want_slot_label ? (
+            <>
+              <p className="text-xs font-semibold text-foreground">{formatDate(req.want_date)}</p>
+              <p className="text-[11px] text-muted-foreground">{req.want_slot_label}</p>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground italic">Any slot</p>
+          )}
         </div>
       </div>
 
