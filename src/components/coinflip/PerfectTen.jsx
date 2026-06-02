@@ -406,6 +406,19 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           </div>
         </div>
 
+        {/* Sprint countdown banner */}
+        {hasActiveSprint && !isRunning && (
+          <div className="flex items-center justify-between bg-purple-50 dark:bg-purple-950/30 rounded-xl px-4 py-2.5 border border-purple-200 dark:border-purple-800">
+            <div className="flex items-center gap-2">
+              <span className="text-base">⚡</span>
+              <span className="text-xs font-bold text-purple-700 dark:text-purple-300">Unlimited Sprint Active!</span>
+            </div>
+            <span className="text-sm font-black tabular-nums text-purple-600 dark:text-purple-400">
+              {formatSprintTime(sprintTimeLeft)} left
+            </span>
+          </div>
+        )}
+
         {/* Free plays badge */}
         <div className="flex items-center justify-between bg-muted rounded-xl px-4 py-2.5 border border-border">
           <span className="text-xs font-semibold text-muted-foreground">Free Tries Today</span>
