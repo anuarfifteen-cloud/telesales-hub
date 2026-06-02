@@ -392,8 +392,8 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           </span>
         </motion.div>
 
-        {/* Tension progress bar — only show when running */}
-        {isRunning && (
+        {/* Tension progress bar — hide in last 2s */}
+        {isRunning && elapsedTime < 8000 && (
           <TensionBar elapsedMs={elapsedTime} isRunning={isRunning} />
         )}
 
