@@ -280,7 +280,7 @@ export default function PerfectTen({ user, onUserUpdate }) {
             <div className="grid grid-cols-1 gap-1 text-xs text-muted-foreground leading-relaxed">
               <div className="flex items-start gap-1.5">
                 <span className="text-amber-500 font-black mt-0.5">★</span>
-                <span>Hit <strong className="text-amber-600 dark:text-amber-400">EXACTLY 10.00s</strong> → <strong className="text-amber-600 dark:text-amber-400">JACKPOT! +3 Tokens</strong></span>
+                <span>Hit <strong className="text-amber-600 dark:text-amber-400">EXACTLY 10.00s</strong> → <strong className="text-amber-600 dark:text-amber-400">+3 Tokens</strong></span>
               </div>
               <div className="flex items-start gap-1.5">
                 <span className="text-emerald-500 font-black mt-0.5">●</span>
@@ -288,7 +288,6 @@ export default function PerfectTen({ user, onUserUpdate }) {
               </div>
               <div className="flex items-start gap-1.5">
                 <span className="text-red-400 font-black mt-0.5">✕</span>
-                <span>Anything else → <span className="text-red-500">Miss! No reward.</span></span>
               </div>
             </div>
           </div>
