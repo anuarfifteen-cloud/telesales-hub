@@ -74,7 +74,15 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
     if (showAll) { setShowAll(false); return; }
     setLoadingAll(true);
     const all = await base44.entities.PerfectTenGame.list("-created_date", 200);
-    setAllGames(all);
+    if (isAdmin) {
+      setAllGames(all);
+    } else {
+      const todayStr = new Date().toLocaleDateString("en-CA");
+      setAllGames(all.filter((g) => {
+        const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
+        return d === todayStr;
+      }));
+    }
     setLoadingAll(false);
     setShowAll(true);
   };

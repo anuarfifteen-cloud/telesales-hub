@@ -96,7 +96,15 @@ export default function ActivityFeed({ currentUserId, isAdmin }) {
     if (showAll) { setShowAll(false); return; }
     setLoadingAll(true);
     const all = await base44.entities.CoinFlipGame.list("-created_date", 500);
-    setAllGames(all);
+    if (isAdmin) {
+      setAllGames(all);
+    } else {
+      const todayStr = new Date().toLocaleDateString("en-CA");
+      setAllGames(all.filter((g) => {
+        const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
+        return d === todayStr;
+      }));
+    }
     setLoadingAll(false);
     setShowAll(true);
   };
