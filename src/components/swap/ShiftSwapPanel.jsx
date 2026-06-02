@@ -316,24 +316,15 @@ function SwapCard({ req, currentUser, isAdmin, onAccepted, onCancelled, onDelete
         }),
       ]);
 
-      // 3. Token transfer (only if tokens were offered)
+      // 3. Token transfer (only if tokens were offered) — handled server-side
       if (req.token_offer > 0) {
-        // Fetch FRESH balances for both users right now to avoid stale data
-        const [freshMe, allUsers] = await Promise.all([
-          base44.auth.me(),
-          base44.entities.User.list(),
-        ]);
-        const userA = allUsers.find((u) => u.id === req.requester_id);
-
-        const newBalanceB = (freshMe?.earlyAccessTokens ?? 0) + req.token_offer;
-        const newBalanceA = Math.max(0, (userA?.earlyAccessTokens ?? 0) - req.token_offer);
-
-        await Promise.all([
-          base44.auth.updateMe({ earlyAccessTokens: newBalanceB }),
-          userA
-            ? base44.entities.User.update(userA.id, { earlyAccessTokens: newBalanceA })
-            : Promise.resolve(),
-        ]);
+        const result = await base44.functions.invoke('swapTokenTransfer', {
+          requester_id: req.requester_id,
+          token_offer: req.token_offer,
+        });
+        if (!result?.data?.success) {
+          throw new Error(result?.data?.error || 'Token transfer failed');
+        }
       }
 
       toast.success(`Swap complete! Slots exchanged${req.token_offer > 0 ? ` and ${req.token_offer} token${req.token_offer > 1 ? "s" : ""} transferred` : ""}.`);
