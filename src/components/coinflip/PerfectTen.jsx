@@ -257,19 +257,20 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const hasActiveSprint = sprintTimeLeft > 0;
   const canStart = freePlaysLeft > 0 || hasActiveSprint || tokens >= 1;
 
-  // Start sprint countdown tick
-  const startSprintTick = () => {
-    clearInterval(sprintTickRef.current);
-    sprintTickRef.current = setInterval(() => {
-      const left = getSprintTimeLeft();
-      setSprintTimeLeft(left);
-      if (left <= 0) clearInterval(sprintTickRef.current);
-    }, 1000);
-  };
-
-  // On mount, resume tick if sprint already active
+  // Auto-start/stop sprint countdown whenever sprint becomes active
   useEffect(() => {
-    if (getSprintTimeLeft() > 0) startSprintTick();
+    clearInterval(sprintTickRef.current);
+    if (sprintTimeLeft > 0) {
+      sprintTickRef.current = setInterval(() => {
+        const left = getSprintTimeLeft();
+        setSprintTimeLeft(left);
+        if (left <= 0) clearInterval(sprintTickRef.current);
+      }, 250);
+    }
+    return () => clearInterval(sprintTickRef.current);
+  }, [sprintTimeLeft > 0]);
+
+  useEffect(() => {
     return () => {
       clearInterval(sprintTickRef.current);
       clearInterval(intervalRef.current);
@@ -299,7 +300,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       localStorage.setItem(LS_UNLOCK_KEY, String(until));
       setSprintTimeLeft(SPRINT_DURATION_MS);
       setCurrentPlayMode("unlimited");
-      startSprintTick();
     }
 
     startTimeRef.current = Date.now();
