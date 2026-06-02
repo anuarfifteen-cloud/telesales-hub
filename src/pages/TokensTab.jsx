@@ -2,6 +2,7 @@ import { useState } from "react";
 import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
 import CoinFlipArena from "@/components/coinflip/CoinFlipArena";
 import PerfectTen from "@/components/coinflip/PerfectTen";
+import VipActivityFeed from "@/components/coinflip/VipActivityFeed";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin }) {
   const [innerTab, setInnerTab] = useState("milestones");
@@ -94,14 +95,17 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
 
       {/* VIP Pass */}
       {innerTab === "vip" && (
-        <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
-          <EarlyAccessToggle
-            user={user}
-            onUserUpdate={onUserUpdate}
-            totalBookingCount={totalBookingCount}
-            showMilestones={false}
-          />
-        </div>
+        <>
+          <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+            <EarlyAccessToggle
+              user={user}
+              onUserUpdate={onUserUpdate}
+              totalBookingCount={totalBookingCount}
+              showMilestones={false}
+            />
+          </div>
+          <VipActivityFeed user={user} isAdmin={isAdmin} />
+        </>
       )}
     </div>
   );
