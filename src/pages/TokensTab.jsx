@@ -84,12 +84,12 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
 
       {/* Perfect 10 */}
       {innerTab === "perfect10" && (
-        <PerfectTen user={user} onUserUpdate={onUserUpdate} />
+        <PerfectTen user={user} onUserUpdate={onUserUpdate} isAdmin={user?.role === "admin"} />
       )}
 
       {/* Coin Flip */}
       {innerTab === "coinflip" && (
-        <CoinFlipArena user={user} onUserUpdate={onUserUpdate} />
+        <CoinFlipArena user={user} onUserUpdate={onUserUpdate} isAdmin={user?.role === "admin"} />
       )}
 
       {/* VIP Pass */}

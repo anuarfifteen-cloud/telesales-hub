@@ -1,17 +1,27 @@
 import { useState, useEffect, useRef } from "react";
+import { Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
 import { playP10Start, playP10Stop, playP10Jackpot, playP10Close, playP10Miss } from "@/lib/sounds";
 
 // ─── Live Feed ────────────────────────────────────────────────────────────────
-function GameRow({ game, currentUserId, getEmoji, getLabel }) {
+function GameRow({ game, currentUserId, getEmoji, getLabel, isAdmin, onDeleted }) {
   const isMe = game.user_id === currentUserId;
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   const colorClass =
     game.result_type === "jackpot"
       ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
       : game.result_type === "close"
       ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
       : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800";
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    await base44.entities.PerfectTenGame.delete(game.id);
+    onDeleted(game.id);
+  };
 
   return (
     <motion.div
@@ -25,11 +35,24 @@ function GameRow({ game, currentUserId, getEmoji, getLabel }) {
       <span className="text-base">{getEmoji(game.result_type)}</span>
       <span className="flex-1 text-foreground">{getLabel(game)}</span>
       {isMe && <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full">YOU</span>}
+      {isAdmin && !confirmDel && (
+        <button onClick={() => setConfirmDel(true)} className="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0">
+          <Trash2 className="w-3 h-3" />
+        </button>
+      )}
+      {isAdmin && confirmDel && (
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button onClick={handleDelete} disabled={deleting} className="text-[9px] font-bold text-white bg-red-500 hover:bg-red-600 px-1.5 py-0.5 rounded disabled:opacity-50">
+            {deleting ? "…" : "Del"}
+          </button>
+          <button onClick={() => setConfirmDel(false)} className="text-[9px] text-slate-500 hover:text-slate-700 font-semibold">✕</button>
+        </div>
+      )}
     </motion.div>
   );
 }
 
-function PerfectTenFeed({ currentUserId }) {
+function PerfectTenFeed({ currentUserId, isAdmin }) {
   const [feed, setFeed] = useState([]);
   const [allGames, setAllGames] = useState([]);
   const [showAll, setShowAll] = useState(false);
@@ -54,6 +77,11 @@ function PerfectTenFeed({ currentUserId }) {
     setAllGames(all);
     setLoadingAll(false);
     setShowAll(true);
+  };
+
+  const handleDeleted = (id) => {
+    setFeed((prev) => prev.filter((g) => g.id !== id));
+    setAllGames((prev) => prev.filter((g) => g.id !== id));
   };
 
   if (feed.length === 0) return null;
@@ -100,6 +128,8 @@ function PerfectTenFeed({ currentUserId }) {
               currentUserId={currentUserId}
               getEmoji={getEmoji}
               getLabel={getLabel}
+              isAdmin={isAdmin}
+              onDeleted={handleDeleted}
             />
           ))}
         </AnimatePresence>
@@ -189,7 +219,7 @@ function getServerPlaysToday(user) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function PerfectTen({ user, onUserUpdate }) {
+export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [result, setResult] = useState(null);
@@ -408,7 +438,7 @@ export default function PerfectTen({ user, onUserUpdate }) {
         </button>
       </div>
 
-      <PerfectTenFeed currentUserId={user?.id} />
+      <PerfectTenFeed currentUserId={user?.id} isAdmin={isAdmin} />
     </div>
   );
 }

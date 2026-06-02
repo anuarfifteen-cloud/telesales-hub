@@ -11,7 +11,7 @@ import { playClick, playWin, playLoss } from "@/lib/sounds";
 
 const QUICK_BETS = [1, 2, 5, 10];
 
-export default function CoinFlipArena({ user, onUserUpdate }) {
+export default function CoinFlipArena({ user, onUserUpdate, isAdmin }) {
   const [choice, setChoice] = useState(null);
   const [wager, setWager] = useState(1);
   const [flipping, setFlipping] = useState(false);
@@ -287,7 +287,7 @@ export default function CoinFlipArena({ user, onUserUpdate }) {
     </div>
 
     {/* Live activity feed */}
-    <ActivityFeed currentUserId={user?.id} />
+    <ActivityFeed currentUserId={user?.id} isAdmin={isAdmin} />
     </>
   );
 }
