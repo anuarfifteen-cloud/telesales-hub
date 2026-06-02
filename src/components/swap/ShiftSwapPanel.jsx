@@ -318,18 +318,21 @@ function SwapCard({ req, currentUser, isAdmin, onAccepted, onCancelled, onDelete
 
       // 3. Token transfer (only if tokens were offered)
       if (req.token_offer > 0) {
+        // Fetch User A's current balance directly
         const allUsers = await base44.entities.User.list();
         const userA = allUsers.find((u) => u.id === req.requester_id);
-        if (userA) {
-          await Promise.all([
-            base44.entities.User.update(userA.id, {
-              earlyAccessTokens: Math.max(0, (userA.earlyAccessTokens ?? 0) - req.token_offer),
-            }),
-            base44.entities.User.update(currentUser.id, {
-              earlyAccessTokens: (currentUser.earlyAccessTokens ?? 0) + req.token_offer,
-            }),
-          ]);
-        }
+        await Promise.all([
+          // User B (current user) — use updateMe
+          base44.auth.updateMe({
+            earlyAccessTokens: (currentUser.earlyAccessTokens ?? 0) + req.token_offer,
+          }),
+          // User A (requester) — use entity update
+          userA
+            ? base44.entities.User.update(userA.id, {
+                earlyAccessTokens: Math.max(0, (userA.earlyAccessTokens ?? 0) - req.token_offer),
+              })
+            : Promise.resolve(),
+        ]);
       }
 
       toast.success(`Swap complete! Slots exchanged${req.token_offer > 0 ? ` and ${req.token_offer} token${req.token_offer > 1 ? "s" : ""} transferred` : ""}.`);
