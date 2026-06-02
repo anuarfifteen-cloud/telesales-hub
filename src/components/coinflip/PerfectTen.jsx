@@ -77,7 +77,11 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
     if (isAdmin) {
       setAllGames(all);
     } else {
-      setAllGames([]);
+      const todayStr = new Date().toLocaleDateString("en-CA");
+      setAllGames(all.filter((g) => {
+        const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
+        return d === todayStr;
+      }));
     }
     setLoadingAll(false);
     setShowAll(true);

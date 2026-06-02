@@ -74,7 +74,11 @@ export default function VipActivityFeed({ user, isAdmin }) {
     if (isAdmin) {
       setAllBookings(all);
     } else {
-      setAllBookings([]);
+      const todayStr = new Date().toLocaleDateString("en-CA");
+      setAllBookings(all.filter((b) => {
+        const d = b.created_date ? new Date(b.created_date).toLocaleDateString("en-CA") : null;
+        return d === todayStr;
+      }));
     }
     setLoadingAll(false);
     setShowAll(true);
