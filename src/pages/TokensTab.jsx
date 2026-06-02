@@ -3,7 +3,7 @@ import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
 import CoinFlipArena from "@/components/coinflip/CoinFlipArena";
 import PerfectTen from "@/components/coinflip/PerfectTen";
 
-export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
+export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin }) {
   const [innerTab, setInnerTab] = useState("milestones");
   // tabs: milestones | perfect10 | coinflip | vip
   const tokens = user?.earlyAccessTokens ?? 0;
@@ -84,12 +84,12 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount }) {
 
       {/* Perfect 10 */}
       {innerTab === "perfect10" && (
-        <PerfectTen user={user} onUserUpdate={onUserUpdate} isAdmin={user?.role === "admin"} />
+        <PerfectTen user={user} onUserUpdate={onUserUpdate} isAdmin={isAdmin} />
       )}
 
       {/* Coin Flip */}
       {innerTab === "coinflip" && (
-        <CoinFlipArena user={user} onUserUpdate={onUserUpdate} isAdmin={user?.role === "admin"} />
+        <CoinFlipArena user={user} onUserUpdate={onUserUpdate} isAdmin={isAdmin} />
       )}
 
       {/* VIP Pass */}

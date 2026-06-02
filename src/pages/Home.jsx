@@ -844,7 +844,7 @@ export default function Home() {
 
         {/* ── TOKENS TAB ── */}
         {activeTab === "tokens" && (
-          <TokensTab user={user} onUserUpdate={refreshUser} totalBookingCount={totalBookingCount} />
+          <TokensTab user={user} onUserUpdate={refreshUser} totalBookingCount={totalBookingCount} isAdmin={isAdmin} />
         )}
 
         {/* ── ROSTER TAB ── */}
