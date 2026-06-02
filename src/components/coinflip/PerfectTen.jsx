@@ -257,13 +257,19 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const hasActiveSprint = sprintTimeLeft > 0;
   const canStart = freePlaysLeft > 0 || hasActiveSprint || tokens >= 1;
 
-  // Tick down sprint timer
-  useEffect(() => {
+  // Start sprint countdown tick
+  const startSprintTick = () => {
+    clearInterval(sprintTickRef.current);
     sprintTickRef.current = setInterval(() => {
       const left = getSprintTimeLeft();
       setSprintTimeLeft(left);
       if (left <= 0) clearInterval(sprintTickRef.current);
-    }, 500);
+    }, 1000);
+  };
+
+  // On mount, resume tick if sprint already active
+  useEffect(() => {
+    if (getSprintTimeLeft() > 0) startSprintTick();
     return () => {
       clearInterval(sprintTickRef.current);
       clearInterval(intervalRef.current);
@@ -293,6 +299,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       localStorage.setItem(LS_UNLOCK_KEY, String(until));
       setSprintTimeLeft(SPRINT_DURATION_MS);
       setCurrentPlayMode("unlimited");
+      startSprintTick();
     }
 
     startTimeRef.current = Date.now();
