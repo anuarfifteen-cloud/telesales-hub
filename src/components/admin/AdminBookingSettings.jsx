@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Settings, X, Check, Plus, Trash2, Clock, AlertTriangle } from "lucide-react";
+import { Settings, X, Check, Plus, Trash2, Clock, AlertTriangle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 
@@ -13,6 +13,20 @@ export default function AdminBookingSettings({ slots, unlockHour, unlockMinute, 
   const [deletingCoinFlip, setDeletingCoinFlip] = useState(false);
   const [deletingPerfect10, setDeletingPerfect10] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null); // "coinflip" | "perfect10" | null
+
+  // Sprint purchases
+  const [sprintPurchases, setSprintPurchases] = useState([]);
+  const [loadingSprints, setLoadingSprints] = useState(false);
+  const [showSprints, setShowSprints] = useState(false);
+
+  const handleLoadSprints = async () => {
+    if (showSprints) { setShowSprints(false); return; }
+    setLoadingSprints(true);
+    const all = await base44.entities.SprintPurchase.list("-created_date", 200);
+    setSprintPurchases(all);
+    setLoadingSprints(false);
+    setShowSprints(true);
+  };
 
   const handleSave = () => {
     onSlotsChange(localSlots);
@@ -185,6 +199,36 @@ export default function AdminBookingSettings({ slots, unlockHour, unlockMinute, 
           )}
 
         </div>
+      </div>
+
+      {/* Sprint Purchases */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-semibold text-slate-600 flex items-center gap-1"><Zap className="w-3.5 h-3.5 text-purple-500" /> Sprint Purchases (⚡ Unlimited)</p>
+          <button
+            onClick={handleLoadSprints}
+            disabled={loadingSprints}
+            className="text-[10px] font-semibold text-purple-600 hover:underline disabled:opacity-50"
+          >
+            {loadingSprints ? "Loading…" : showSprints ? "Hide" : "View All"}
+          </button>
+        </div>
+        {showSprints && (
+          <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+            {sprintPurchases.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-2">No sprint purchases yet.</p>
+            ) : sprintPurchases.map((p) => (
+              <div key={p.id} className="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-lg px-3 py-1.5 text-xs">
+                <Zap className="w-3 h-3 text-purple-500 flex-shrink-0" />
+                <span className="flex-1 font-semibold text-purple-800">{p.user_name || p.user_email?.split("@")[0]}</span>
+                <span className="text-purple-500 text-[10px]">{p.user_email}</span>
+                <span className="text-slate-400 text-[10px] flex-shrink-0">
+                  {p.created_date ? new Date(p.created_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <Button className="w-full h-9 text-sm font-semibold" onClick={handleSave}>

@@ -300,6 +300,11 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       localStorage.setItem(LS_UNLOCK_KEY, String(until));
       setSprintTimeLeft(SPRINT_DURATION_MS);
       setCurrentPlayMode("unlimited");
+      base44.entities.SprintPurchase.create({
+        user_id: user.id,
+        user_email: user.email,
+        user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
+      });
     }
 
     startTimeRef.current = Date.now();

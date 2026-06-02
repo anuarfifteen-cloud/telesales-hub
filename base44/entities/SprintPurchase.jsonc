@@ -1,0 +1,22 @@
+{
+  "name": "SprintPurchase",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user who purchased the sprint"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the user"
+    }
+  },
+  "required": [
+    "user_id",
+    "user_email"
+  ]
+}
