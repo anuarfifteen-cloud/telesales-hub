@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, ArrowRightLeft, Coins, Users, Megaphone } from "lucide-react";
+import { X, Plus, ArrowRightLeft, Users, Radio } from "lucide-react";
 import { toast } from "sonner";
 
-// ── Helper ────────────────────────────────────────────────────────────────────
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
@@ -15,27 +14,35 @@ function timeAgo(dateStr) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+function formatDate(dateStr) {
+  const today = new Date().toLocaleDateString("en-CA");
+  const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString("en-CA");
+  if (dateStr === today) return "Today";
+  if (dateStr === tomorrow) return "Tomorrow";
+  return dateStr;
+}
+
 // ── New Request Form ──────────────────────────────────────────────────────────
 function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
   const [mySlot, setMySlot] = useState("");
-  const [targetMode, setTargetMode] = useState("broadcast"); // broadcast | targeted
+  const [targetMode, setTargetMode] = useState("broadcast");
   const [targetUserId, setTargetUserId] = useState("");
-  const [wantDate, setWantDate] = useState("");
-  const [wantSlot, setWantSlot] = useState("");
   const [tokenOffer, setTokenOffer] = useState(0);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
   const tokens = user?.earlyAccessTokens ?? 0;
-
   const selectedBooking = myBookings.find((b) => b.id === mySlot);
   const targetUser = users.find((u) => u.id === targetUserId);
 
-  const handleSubmit = async () => {
-    if (!selectedBooking) { toast.error("Select a slot to offer."); return; }
-    if (tokenOffer > tokens) { toast.error("Not enough tokens."); return; }
-    setSaving(true);
+  // Only show today + tomorrow bookings
+  const today = new Date().toLocaleDateString("en-CA");
+  const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString("en-CA");
+  const eligibleBookings = myBookings.filter((b) => b.date === today || b.date === tomorrow);
 
+  const handleSubmit = async () => {
+    if (!selectedBooking) { toast.error("Please select a slot to swap."); return; }
+    setSaving(true);
     await base44.entities.ShiftSwapRequest.create({
       requester_id: user.id,
       requester_email: user.email,
@@ -46,59 +53,71 @@ function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
       my_shift: selectedBooking.shift,
       target_user_id: targetMode === "targeted" ? targetUserId : "",
       target_user_name: targetMode === "targeted" ? (targetUser?.full_name || "") : "",
-      want_date: wantDate || "",
-      want_slot_label: wantSlot || "",
+      want_date: "",
+      want_slot_label: "",
       token_offer: tokenOffer,
       message: message || "",
       status: "open",
     });
-
-    toast.success("Swap request posted!");
+    toast.success("Swap request submitted.");
     setSaving(false);
     onCreated();
   };
 
   return (
-    <div className="flex flex-col gap-3 p-4">
-      <h3 className="font-bold text-foreground text-sm">📤 Post a Slot Swap Request</h3>
-
-      {/* My slot to offer */}
+    <div className="flex flex-col gap-4 p-5">
       <div>
-        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Your booking slot to swap away</label>
-        {myBookings.length === 0 ? (
-          <p className="text-xs text-muted-foreground bg-muted rounded-lg px-3 py-2">You have no booked slots to swap.</p>
+        <p className="text-xs font-semibold text-foreground mb-0.5">New Slot Swap Request</p>
+        <p className="text-[11px] text-muted-foreground">Select a slot you wish to swap. Requests are limited to today and tomorrow.</p>
+      </div>
+
+      {/* Slot selector */}
+      <div>
+        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Your Slot</label>
+        {eligibleBookings.length === 0 ? (
+          <div className="bg-muted border border-border rounded-lg px-3 py-3 text-xs text-muted-foreground">
+            No bookings available for today or tomorrow.
+          </div>
         ) : (
-          <select
-            value={mySlot}
-            onChange={(e) => setMySlot(e.target.value)}
-            className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="">— Choose a slot —</option>
-            {myBookings.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.date} · {b.slot_label} ({b.shift})
-              </option>
+          <div className="flex flex-col gap-1.5">
+            {eligibleBookings.map((b) => (
+              <button
+                key={b.id}
+                onClick={() => setMySlot(b.id)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-left transition-all ${
+                  mySlot === b.id
+                    ? "border-primary bg-accent text-accent-foreground"
+                    : "border-border bg-card text-foreground hover:bg-muted"
+                }`}
+              >
+                <span className="text-xs font-semibold">{formatDate(b.date)} — {b.slot_label}</span>
+                <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">{b.shift}</span>
+              </button>
             ))}
-          </select>
+          </div>
         )}
       </div>
 
-      {/* Broadcast or target */}
+      {/* Recipient */}
       <div>
-        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Send to</label>
+        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Send To</label>
         <div className="flex gap-2">
           <button
             onClick={() => setTargetMode("broadcast")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold border transition-all ${
-              targetMode === "broadcast" ? "bg-blue-600 text-white border-blue-500" : "bg-muted border-border text-muted-foreground"
+              targetMode === "broadcast"
+                ? "bg-slate-800 text-white border-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-300"
+                : "bg-card border-border text-muted-foreground hover:bg-muted"
             }`}
           >
-            <Megaphone className="w-3 h-3" /> Everyone
+            <Radio className="w-3 h-3" /> All Staff
           </button>
           <button
             onClick={() => setTargetMode("targeted")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold border transition-all ${
-              targetMode === "targeted" ? "bg-purple-600 text-white border-purple-500" : "bg-muted border-border text-muted-foreground"
+              targetMode === "targeted"
+                ? "bg-slate-800 text-white border-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-300"
+                : "bg-card border-border text-muted-foreground hover:bg-muted"
             }`}
           >
             <Users className="w-3 h-3" /> Specific Person
@@ -108,9 +127,9 @@ function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
           <select
             value={targetUserId}
             onChange={(e) => setTargetUserId(e.target.value)}
-            className="w-full mt-2 text-xs bg-muted border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full mt-2 text-xs bg-card border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="">— Select person —</option>
+            <option value="">— Select staff member —</option>
             {users.filter((u) => u.id !== user.id).map((u) => (
               <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
             ))}
@@ -118,87 +137,57 @@ function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
         )}
       </div>
 
-      {/* What you want in return (optional) */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Token incentive */}
+      {tokens > 0 && (
         <div>
-          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Want date (optional)</label>
-          <input
-            type="date"
-            value={wantDate}
-            onChange={(e) => setWantDate(e.target.value)}
-            className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Token Incentive (optional)</label>
+          <div className="flex items-center gap-2">
+            {[0, 1, 2, 3].filter((n) => n <= tokens).map((n) => (
+              <button
+                key={n}
+                onClick={() => setTokenOffer(n)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                  tokenOffer === n
+                    ? "bg-slate-800 text-white border-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-300"
+                    : "bg-card border-border text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {n === 0 ? "None" : `+${n} token${n > 1 ? "s" : ""}`}
+              </button>
+            ))}
+          </div>
         </div>
-        <div>
-          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Want slot (optional)</label>
-          <input
-            type="text"
-            placeholder="e.g. PM any"
-            value={wantSlot}
-            onChange={(e) => setWantSlot(e.target.value)}
-            className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-      </div>
+      )}
 
-      {/* Token offer */}
+      {/* Note */}
       <div>
-        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block flex items-center gap-1">
-          <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="token" className="w-3 h-3" />
-          Token sweetener (you have {tokens})
-        </label>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={0}
-            max={tokens}
-            value={tokenOffer}
-            onChange={(e) => setTokenOffer(Math.min(Math.max(0, parseInt(e.target.value) || 0), tokens))}
-            className="w-20 text-xs bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-center focus:outline-none focus:ring-2 focus:ring-amber-400"
-          />
-          {[0, 1, 2, 3].filter((n) => n <= tokens).map((n) => (
-            <button
-              key={n}
-              onClick={() => setTokenOffer(n)}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                tokenOffer === n ? "bg-amber-500 border-amber-400 text-white" : "bg-muted border-border text-muted-foreground"
-              }`}
-            >
-              {n === 0 ? "None" : `+${n}`}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Message */}
-      <div>
-        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Note (optional)</label>
+        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Remarks (optional)</label>
         <input
           type="text"
-          placeholder="e.g. Need PM on Friday…"
+          placeholder="Add a note…"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full text-xs bg-card border border-border rounded-lg px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
 
-      <div className="flex gap-2 pt-1">
-        <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-xs font-semibold border border-border bg-muted text-muted-foreground">
+      <div className="flex gap-2 pt-1 border-t border-border">
+        <button onClick={onCancel} className="flex-1 py-2.5 rounded-lg text-xs font-semibold border border-border bg-card text-muted-foreground hover:bg-muted transition-colors">
           Cancel
         </button>
         <button
           onClick={handleSubmit}
-          disabled={saving || !mySlot}
-          className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-blue-600 text-white disabled:opacity-40 hover:bg-blue-500 transition-colors"
+          disabled={saving || !mySlot || (targetMode === "targeted" && !targetUserId)}
+          className="flex-1 py-2.5 rounded-lg text-xs font-semibold bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 disabled:opacity-40 hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors"
         >
-          {saving ? "Posting…" : "Post Request"}
+          {saving ? "Submitting…" : "Submit Request"}
         </button>
       </div>
     </div>
   );
 }
 
-// ── Single Swap Card ──────────────────────────────────────────────────────────
+// ── Swap Card ─────────────────────────────────────────────────────────────────
 function SwapCard({ req, currentUser, onAccepted, onCancelled }) {
   const [accepting, setAccepting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -215,7 +204,7 @@ function SwapCard({ req, currentUser, onAccepted, onCancelled }) {
       accepted_by_id: currentUser.id,
       accepted_by_name: currentUser.full_name,
     });
-    toast.success("Swap accepted! Coordinate with the other person to complete it.");
+    toast.success("Swap accepted. Please coordinate with the requester.");
     setAccepting(false);
     onAccepted();
   };
@@ -223,135 +212,120 @@ function SwapCard({ req, currentUser, onAccepted, onCancelled }) {
   const handleCancel = async () => {
     setCancelling(true);
     await base44.entities.ShiftSwapRequest.update(req.id, { status: "cancelled" });
-    toast.success("Request cancelled.");
+    toast.success("Request withdrawn.");
     setCancelling(false);
     onCancelled();
   };
 
-  const statusBadge = {
-    open: "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700",
-    accepted: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700",
-    cancelled: "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700",
+  const statusStyles = {
+    open: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+    accepted: "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+    cancelled: "bg-slate-100 dark:bg-slate-800/60 text-slate-400 border-slate-200 dark:border-slate-700",
   }[req.status];
+
+  const displayName = isMyRequest ? "You" : (req.requester_name || req.requester_email?.split("@")[0] || "Unknown");
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      className={`rounded-xl border p-3 flex flex-col gap-2 ${
-        isTargetedAtMe && req.status === "open"
-          ? "border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-950/30"
-          : "border-border bg-card"
-      }`}
+      exit={{ opacity: 0 }}
+      className={`rounded-lg border bg-card overflow-hidden ${isTargetedAtMe && req.status === "open" ? "border-primary" : "border-border"}`}
     >
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
-            <span className="text-[10px] font-bold text-white">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/40">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-slate-300 dark:bg-slate-600 flex items-center justify-center flex-shrink-0">
+            <span className="text-[9px] font-bold text-slate-700 dark:text-slate-200">
               {(req.requester_name || req.requester_email)?.[0]?.toUpperCase() || "?"}
             </span>
           </div>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-foreground truncate">
-              {isMyRequest ? "You" : (req.requester_name || req.requester_email?.split("@")[0])}
-            </p>
-            <p className="text-[10px] text-muted-foreground">{timeAgo(req.created_date)}</p>
-          </div>
+          <span className="text-xs font-semibold text-foreground">{displayName}</span>
+          <span className="text-[10px] text-muted-foreground">· {timeAgo(req.created_date)}</span>
         </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5">
           {isTargetedAtMe && req.status === "open" && (
-            <span className="text-[9px] font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 px-1.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-700">
-              👑 For You
+            <span className="text-[9px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">
+              Directed to you
             </span>
           )}
-          {!req.target_user_id && req.status === "open" && (
-            <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-700">
-              📢 Open
+          {isBroadcast && req.status === "open" && (
+            <span className="text-[9px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+              Open
             </span>
           )}
-          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${statusBadge}`}>
+          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${statusStyles}`}>
             {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
           </span>
         </div>
       </div>
 
-      {/* Swap details */}
-      <div className="bg-muted rounded-lg px-3 py-2 flex items-center gap-2">
+      {/* Slot details */}
+      <div className="px-3 py-2.5 flex items-center gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] text-muted-foreground font-semibold">OFFERING</p>
-          <p className="text-xs font-bold text-foreground truncate">{req.my_date} · {req.my_slot_label}</p>
-          <p className="text-[10px] text-muted-foreground">{req.my_shift} shift</p>
+          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Offering</p>
+          <p className="text-xs font-semibold text-foreground">{formatDate(req.my_date)}</p>
+          <p className="text-[11px] text-muted-foreground">{req.my_slot_label} · {req.my_shift}</p>
         </div>
-        <ArrowRightLeft className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        <ArrowRightLeft className="w-3.5 h-3.5 text-muted-foreground/50 flex-shrink-0" />
         <div className="flex-1 min-w-0 text-right">
-          <p className="text-[10px] text-muted-foreground font-semibold">WANTS</p>
-          {req.want_date || req.want_slot_label ? (
-            <>
-              <p className="text-xs font-bold text-foreground truncate">{req.want_date || "Any date"}</p>
-              <p className="text-[10px] text-muted-foreground">{req.want_slot_label || "Any slot"}</p>
-            </>
-          ) : (
-            <p className="text-xs text-muted-foreground italic">Any slot</p>
+          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Requesting</p>
+          <p className="text-xs text-muted-foreground italic">Any available slot</p>
+        </div>
+      </div>
+
+      {/* Footer: token offer / message / accepted-by */}
+      {(req.token_offer > 0 || req.message || (req.status === "accepted" && req.accepted_by_name)) && (
+        <div className="px-3 pb-2.5 flex flex-wrap gap-2 items-center">
+          {req.token_offer > 0 && (
+            <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded">
+              +{req.token_offer} token{req.token_offer > 1 ? "s" : ""} offered
+            </span>
+          )}
+          {req.message && (
+            <span className="text-[10px] text-muted-foreground italic">"{req.message}"</span>
+          )}
+          {req.status === "accepted" && req.accepted_by_name && (
+            <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+              Accepted by {req.accepted_by_id === currentUser?.id ? "you" : req.accepted_by_name}
+            </span>
           )}
         </div>
-      </div>
-
-      {/* Token offer + message */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {req.token_offer > 0 && (
-          <span className="flex items-center gap-1 text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-700">
-            <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="token" className="w-3 h-3" />
-            +{req.token_offer} token{req.token_offer > 1 ? "s" : ""} sweetener
-          </span>
-        )}
-        {req.target_user_name && !isTargetedAtMe && (
-          <span className="text-[10px] text-muted-foreground">→ {req.target_user_name}</span>
-        )}
-        {req.message && (
-          <span className="text-[10px] text-muted-foreground italic truncate">"{req.message}"</span>
-        )}
-      </div>
-
-      {/* Accepted by */}
-      {req.status === "accepted" && req.accepted_by_name && (
-        <p className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">
-          ✅ Accepted by {req.accepted_by_id === currentUser?.id ? "You" : req.accepted_by_name}
-        </p>
       )}
 
       {/* Actions */}
-      <div className="flex gap-2">
-        {canAccept && (
-          <button
-            onClick={handleAccept}
-            disabled={accepting}
-            className="flex-1 py-2 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white transition-colors disabled:opacity-40"
-          >
-            {accepting ? "Accepting…" : "✅ Accept Swap"}
-          </button>
-        )}
-        {isMyRequest && req.status === "open" && (
-          <button
-            onClick={handleCancel}
-            disabled={cancelling}
-            className="flex-1 py-2 rounded-lg text-xs font-semibold border border-red-200 dark:border-red-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-40"
-          >
-            {cancelling ? "…" : "Cancel Request"}
-          </button>
-        )}
-      </div>
+      {(canAccept || (isMyRequest && req.status === "open")) && (
+        <div className="px-3 pb-3 flex gap-2">
+          {canAccept && (
+            <button
+              onClick={handleAccept}
+              disabled={accepting}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors disabled:opacity-40"
+            >
+              {accepting ? "Processing…" : "Accept Swap"}
+            </button>
+          )}
+          {isMyRequest && req.status === "open" && (
+            <button
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold border border-border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40"
+            >
+              {cancelling ? "…" : "Withdraw"}
+            </button>
+          )}
+        </div>
+      )}
     </motion.div>
   );
 }
 
 // ── Main Panel ────────────────────────────────────────────────────────────────
 export default function ShiftSwapPanel({ user, myBookings, onClose }) {
-  const [view, setView] = useState("list"); // list | new
+  const [view, setView] = useState("list");
   const [requests, setRequests] = useState([]);
   const [users, setUsers] = useState([]);
-  const [filter, setFilter] = useState("open"); // open | mine | all
+  const [filter, setFilter] = useState("open");
 
   const loadData = async () => {
     const [reqs, allUsers] = await Promise.all([
@@ -372,10 +346,9 @@ export default function ShiftSwapPanel({ user, myBookings, onClose }) {
     if (filter === "mine") return r.requester_id === user?.id;
     if (filter === "open") {
       if (r.status !== "open") return false;
-      // Show broadcasts + requests targeted at me
       return !r.target_user_id || r.target_user_id === user?.id;
     }
-    return true; // all
+    return true;
   });
 
   const openForMe = requests.filter(
@@ -387,7 +360,7 @@ export default function ShiftSwapPanel({ user, myBookings, onClose }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center"
+      className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
@@ -395,33 +368,32 @@ export default function ShiftSwapPanel({ user, myBookings, onClose }) {
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 28, stiffness: 300 }}
-        className="bg-background w-full max-w-2xl rounded-t-2xl shadow-2xl flex flex-col"
-        style={{ maxHeight: "90vh" }}
+        className="bg-background w-full max-w-2xl rounded-t-xl shadow-2xl flex flex-col border-t border-x border-border"
+        style={{ maxHeight: "88vh" }}
       >
         {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
+        <div className="flex justify-center pt-2.5 pb-1">
+          <div className="w-8 h-1 bg-muted-foreground/20 rounded-full" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
           <div className="flex items-center gap-2">
-            <ArrowRightLeft className="w-4 h-4 text-primary" />
-            <h2 className="font-bold text-sm text-foreground">Slot Swap Market</h2>
+            <ArrowRightLeft className="w-4 h-4 text-muted-foreground" />
+            <h2 className="font-semibold text-sm text-foreground">Slot Swap Requests</h2>
             {openForMe > 0 && (
-              <span className="text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">{openForMe}</span>
+              <span className="text-[10px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">{openForMe}</span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setView(view === "new" ? "list" : "new")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                view === "new" ? "bg-red-100 text-red-600" : "bg-blue-600 text-white"
-              }`}
-            >
-              {view === "new" ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-              {view === "new" ? "Cancel" : "New Request"}
-            </button>
+            {view === "list" && (
+              <button
+                onClick={() => setView("new")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 hover:bg-slate-700 transition-colors"
+              >
+                <Plus className="w-3 h-3" /> New Request
+              </button>
+            )}
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
@@ -440,17 +412,21 @@ export default function ShiftSwapPanel({ user, myBookings, onClose }) {
           ) : (
             <div className="flex flex-col gap-3 p-4">
               {/* Filter tabs */}
-              <div className="flex gap-1 bg-muted rounded-xl p-1">
+              <div className="flex gap-0 border border-border rounded-lg overflow-hidden">
                 {[
                   { id: "open", label: "Open" },
-                  { id: "mine", label: "My Requests" },
+                  { id: "mine", label: "Mine" },
                   { id: "all", label: "All" },
-                ].map(({ id, label }) => (
+                ].map(({ id, label }, i, arr) => (
                   <button
                     key={id}
                     onClick={() => setFilter(id)}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      filter === id ? "bg-background shadow text-foreground" : "text-muted-foreground"
+                    className={`flex-1 py-2 text-xs font-semibold transition-all ${
+                      i < arr.length - 1 ? "border-r border-border" : ""
+                    } ${
+                      filter === id
+                        ? "bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900"
+                        : "bg-card text-muted-foreground hover:bg-muted"
                     }`}
                   >
                     {label}
@@ -459,10 +435,9 @@ export default function ShiftSwapPanel({ user, myBookings, onClose }) {
               </div>
 
               {filteredRequests.length === 0 ? (
-                <div className="text-center py-10">
-                  <ArrowRightLeft className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-40" />
-                  <p className="text-sm text-muted-foreground">No swap requests here.</p>
-                  <p className="text-xs text-muted-foreground mt-1">Post one to get started!</p>
+                <div className="text-center py-12 flex flex-col items-center gap-2">
+                  <ArrowRightLeft className="w-7 h-7 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">No requests found.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
