@@ -1,0 +1,91 @@
+{
+  "name": "ShiftSwapRequest",
+  "type": "object",
+  "properties": {
+    "requester_id": {
+      "type": "string",
+      "description": "User ID of the person requesting the swap"
+    },
+    "requester_email": {
+      "type": "string",
+      "description": "Email of the requester"
+    },
+    "requester_name": {
+      "type": "string",
+      "description": "Full name of the requester"
+    },
+    "my_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the requester's shift they want to swap"
+    },
+    "my_slot_label": {
+      "type": "string",
+      "description": "Slot label of the requester's shift, e.g. 11:00am - 12:30pm"
+    },
+    "my_slot_id": {
+      "type": "string",
+      "description": "Slot ID of the requester's shift"
+    },
+    "my_shift": {
+      "type": "string",
+      "enum": [
+        "AM",
+        "PM"
+      ],
+      "description": "Shift type of requester's slot"
+    },
+    "target_user_id": {
+      "type": "string",
+      "description": "If targeting a specific person, their user ID. Empty = broadcast to all."
+    },
+    "target_user_name": {
+      "type": "string",
+      "description": "Display name of the targeted person, if any"
+    },
+    "want_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The date the requester wants in return (optional)"
+    },
+    "want_slot_label": {
+      "type": "string",
+      "description": "The slot label they want in return (optional)"
+    },
+    "token_offer": {
+      "type": "number",
+      "description": "Number of tokens offered as a sweetener (0 = no offer)",
+      "default": 0
+    },
+    "message": {
+      "type": "string",
+      "description": "Optional note/message from the requester"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "accepted",
+        "cancelled"
+      ],
+      "default": "open",
+      "description": "Status of the swap request"
+    },
+    "accepted_by_id": {
+      "type": "string",
+      "description": "User ID of who accepted the swap"
+    },
+    "accepted_by_name": {
+      "type": "string",
+      "description": "Name of who accepted the swap"
+    }
+  },
+  "required": [
+    "requester_id",
+    "requester_email",
+    "my_date",
+    "my_slot_id",
+    "my_shift",
+    "status"
+  ]
+}
