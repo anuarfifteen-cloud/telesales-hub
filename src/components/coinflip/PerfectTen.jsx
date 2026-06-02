@@ -209,17 +209,34 @@ function TensionBar({ elapsedMs, isRunning }) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const FREE_PLAYS_PER_DAY = 3;
-const NEAR_MIN = 9.95;
-const NEAR_MAX = 10.05;
+const NEAR_MIN = 9.90;
+const NEAR_MAX = 10.10;
+const SPRINT_DURATION_MS = 300000; // 5 minutes
+
+const LS_DATE_KEY = "perfect10_date";
+const LS_PLAYS_KEY = "perfect10_plays";
+const LS_UNLOCK_KEY = "perfect10_unlocked_until";
 
 function getTodayString() {
   return new Date().toLocaleDateString("en-CA");
 }
 
-function getServerPlaysToday(user) {
-  const today = getTodayString();
-  if (user?.perfect10PlaysDate !== today) return 0;
-  return user?.perfect10PlaysCount ?? 0;
+function getLocalPlaysToday() {
+  const saved = localStorage.getItem(LS_DATE_KEY);
+  if (saved !== getTodayString()) return 0;
+  return parseInt(localStorage.getItem(LS_PLAYS_KEY) || "0", 10);
+}
+
+function getSprintTimeLeft() {
+  const until = parseInt(localStorage.getItem(LS_UNLOCK_KEY) || "0", 10);
+  return Math.max(0, until - Date.now());
+}
+
+function formatSprintTime(ms) {
+  const totalSec = Math.ceil(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -227,34 +244,55 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [result, setResult] = useState(null);
-  const [isFreePlay, setIsFreePlay] = useState(true);
+  const [currentPlayMode, setCurrentPlayMode] = useState(null); // 'free' | 'unlimited'
+  const [sprintTimeLeft, setSprintTimeLeft] = useState(() => getSprintTimeLeft());
+  const [playsToday, setPlaysToday] = useState(() => getLocalPlaysToday());
 
   const startTimeRef = useRef(null);
   const intervalRef = useRef(null);
+  const sprintTickRef = useRef(null);
 
   const tokens = user?.earlyAccessTokens ?? 0;
-  const playsToday = getServerPlaysToday(user);
   const freePlaysLeft = Math.max(0, FREE_PLAYS_PER_DAY - playsToday);
-  const canStart = freePlaysLeft > 0 || tokens >= 1;
+  const hasActiveSprint = sprintTimeLeft > 0;
+  const canStart = freePlaysLeft > 0 || hasActiveSprint || tokens >= 1;
 
-  useEffect(() => () => clearInterval(intervalRef.current), []);
+  // Tick down sprint timer
+  useEffect(() => {
+    sprintTickRef.current = setInterval(() => {
+      const left = getSprintTimeLeft();
+      setSprintTimeLeft(left);
+      if (left <= 0) clearInterval(sprintTickRef.current);
+    }, 500);
+    return () => {
+      clearInterval(sprintTickRef.current);
+      clearInterval(intervalRef.current);
+    };
+  }, []);
 
   const handleStart = async () => {
     if (!canStart || isRunning) return;
     playP10Start();
     setResult(null);
 
-    if (playsToday < FREE_PLAYS_PER_DAY) {
-      setIsFreePlay(true);
-      await base44.auth.updateMe({
-        perfect10PlaysDate: getTodayString(),
-        perfect10PlaysCount: playsToday + 1,
-      });
-      await onUserUpdate();
+    if (freePlaysLeft > 0) {
+      // Scenario A: Free Try
+      const newPlays = playsToday + 1;
+      localStorage.setItem(LS_DATE_KEY, getTodayString());
+      localStorage.setItem(LS_PLAYS_KEY, String(newPlays));
+      setPlaysToday(newPlays);
+      setCurrentPlayMode("free");
+    } else if (hasActiveSprint) {
+      // Scenario C: Active sprint — just play
+      setCurrentPlayMode("unlimited");
     } else {
-      setIsFreePlay(false);
+      // Scenario B: Buy 5-minute sprint
       await base44.auth.updateMe({ earlyAccessTokens: tokens - 1 });
       await onUserUpdate();
+      const until = Date.now() + SPRINT_DURATION_MS;
+      localStorage.setItem(LS_UNLOCK_KEY, String(until));
+      setSprintTimeLeft(SPRINT_DURATION_MS);
+      setCurrentPlayMode("unlimited");
     }
 
     startTimeRef.current = Date.now();
@@ -276,33 +314,35 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     const stoppedStr = stopped.toFixed(2);
 
     let resultType = "miss";
-    let tokensDelta = isFreePlay ? 0 : 0;
+    let tokensDelta = 0;
 
     if (stoppedStr === "10.00") {
+      // JACKPOT — both modes
       resultType = "jackpot";
       tokensDelta = 3;
       playP10Jackpot();
       await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 3 });
       await onUserUpdate();
+      if (currentPlayMode === "unlimited") {
+        // End sprint immediately on jackpot
+        localStorage.removeItem(LS_UNLOCK_KEY);
+        setSprintTimeLeft(0);
+      }
       setResult({ type: "jackpot", message: `JACKPOT! PERFECT 10.00s! +3 Tokens 💎`, time: stoppedStr });
-    } else if (stopped >= NEAR_MIN && stopped <= NEAR_MAX) {
+    } else if (currentPlayMode === "free" && stopped >= NEAR_MIN && stopped <= NEAR_MAX) {
+      // Near miss — FREE mode only
       resultType = "close";
       tokensDelta = 1;
       playP10Close();
       await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 1 });
       await onUserUpdate();
-      setResult({
-        type: "close",
-        message: isFreePlay
-          ? `So close! You stopped at ${stoppedStr}s. +1 Free Token! 😅`
-          : `Close call! You stopped at ${stoppedStr}s. Token returned +1! 😅`,
-        time: stoppedStr,
-      });
+      setResult({ type: "close", message: `Close! Near Miss Bonus: +1 Token 🎁 (${stoppedStr}s)`, time: stoppedStr });
     } else {
+      // Miss
       resultType = "miss";
-      tokensDelta = isFreePlay ? 0 : -1;
+      tokensDelta = 0;
       playP10Miss();
-      setResult({ type: "miss", message: `Oof! You stopped at ${stoppedStr}s. Try again! 😢`, time: stoppedStr });
+      setResult({ type: "miss", message: `Oof, ${stoppedStr}s! Try again! 😢`, time: stoppedStr });
     }
 
     await base44.entities.PerfectTenGame.create({
@@ -332,6 +372,13 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     ? "text-emerald-500"
     : "text-foreground";
 
+  // Start button label
+  const startBtnLabel = freePlaysLeft > 0
+    ? `▶ START (Free Try: ${freePlaysLeft}/3)`
+    : hasActiveSprint
+    ? `▶ START (Sprint: ${formatSprintTime(sprintTimeLeft)} left)`
+    : `🔓 UNLOCK 5 MINUTES (Cost: 1 Token)`;
+
   return (
     <div className="flex flex-col gap-3">
       <div className="bg-card rounded-2xl border border-border shadow-sm p-5 flex flex-col gap-4">
@@ -348,14 +395,12 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
             </div>
             <div className="grid grid-cols-1 gap-1 text-xs text-muted-foreground leading-relaxed">
               <div className="flex items-start gap-1.5">
-                <span className="text-amber-500 font-black mt-0.5">★</span>
-                <span>Hit <strong className="text-amber-600 dark:text-amber-400">EXACTLY 10.00s</strong> → <strong className="text-amber-600 dark:text-amber-400">+3 Tokens</strong></span>
+                <span className="text-emerald-500 font-black mt-0.5">🆓</span>
+                <span><strong className="text-foreground">Free Tries:</strong> Hit exactly <strong className="text-amber-600 dark:text-amber-400">10.00s</strong> → <strong className="text-amber-600 dark:text-amber-400">+3 Tokens</strong>, or get close (<strong className="text-emerald-600 dark:text-emerald-400">9.90–10.10s</strong>) → <strong className="text-emerald-600 dark:text-emerald-400">+1 Token</strong>!</span>
               </div>
               <div className="flex items-start gap-1.5">
-                <span className="text-emerald-500 font-black mt-0.5">●</span>
-                <span>Stop between <strong className="text-emerald-600 dark:text-emerald-400">9.95s – 10.05s</strong> → <strong className="text-emerald-600 dark:text-emerald-400">+1 Token</strong></span>
-              </div>
-              <div className="flex items-start gap-1.5">
+                <span className="text-purple-500 font-black mt-0.5">⚡</span>
+                <span><strong className="text-foreground">Out of free tries?</strong> Spend <strong className="text-purple-600 dark:text-purple-400">1 Token</strong> for <strong className="text-purple-600 dark:text-purple-400">UNLIMITED attempts for 5 Minutes</strong> (Jackpot only, no near miss — ends instantly if you hit 10.00!)</span>
               </div>
             </div>
           </div>
@@ -427,14 +472,12 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           className={`w-full py-4 rounded-xl font-black text-sm tracking-widest uppercase transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg ${
             isRunning
               ? "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-red-500/25 hover:from-red-400 hover:to-rose-400"
-              : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/25 hover:from-blue-500 hover:to-indigo-500"
+              : hasActiveSprint || freePlaysLeft > 0
+              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/25 hover:from-blue-500 hover:to-indigo-500"
+              : "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-purple-500/25 hover:from-purple-500 hover:to-indigo-500"
           }`}
         >
-          {isRunning
-            ? "⏹ STOP!"
-            : freePlaysLeft > 0
-            ? "▶ START (Free)"
-            : `▶ START (Cost: 1 Token)`}
+          {isRunning ? "⏹ STOP!" : startBtnLabel}
         </button>
       </div>
 
