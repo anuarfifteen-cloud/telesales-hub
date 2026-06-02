@@ -104,7 +104,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
               showMilestones={false}
             />
           </div>
-          <VipActivityFeed user={user} isAdmin={isAdmin} />
+          {isAdmin && <VipActivityFeed user={user} isAdmin={isAdmin} />}
         </>
       )}
     </div>
