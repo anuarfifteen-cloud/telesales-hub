@@ -376,8 +376,13 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const startBtnLabel = freePlaysLeft > 0
     ? `▶ START (Free Try: ${freePlaysLeft}/3)`
     : hasActiveSprint
-    ? `▶ START (Sprint: ${formatSprintTime(sprintTimeLeft)} left)`
+    ? `▶ START SPRINT`
     : `🔓 UNLOCK 5 MINUTES (Cost: 1 Token)`;
+
+  // Sprint seconds countdown (live)
+  const sprintTotalSec = Math.ceil(sprintTimeLeft / 1000);
+  const sprintMin = Math.floor(sprintTotalSec / 60);
+  const sprintSec = sprintTotalSec % 60;
 
   return (
     <div className="flex flex-col gap-3">
@@ -407,15 +412,23 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
         </div>
 
         {/* Sprint countdown banner */}
-        {hasActiveSprint && !isRunning && (
-          <div className="flex items-center justify-between bg-purple-50 dark:bg-purple-950/30 rounded-xl px-4 py-2.5 border border-purple-200 dark:border-purple-800">
+        {hasActiveSprint && (
+          <div className="flex items-center justify-between bg-purple-100 dark:bg-purple-950/50 rounded-2xl px-5 py-4 border-2 border-purple-300 dark:border-purple-700 shadow-md shadow-purple-200/40 dark:shadow-purple-900/30">
             <div className="flex items-center gap-2">
-              <span className="text-base">⚡</span>
-              <span className="text-xs font-bold text-purple-700 dark:text-purple-300">Unlimited Sprint Active!</span>
+              <span className="text-xl">⚡</span>
+              <div>
+                <p className="text-xs font-black text-purple-700 dark:text-purple-300 uppercase tracking-widest">Unlimited Sprint!</p>
+                <p className="text-[10px] text-purple-500 dark:text-purple-400">Play unlimited — jackpot only</p>
+              </div>
             </div>
-            <span className="text-sm font-black tabular-nums text-purple-600 dark:text-purple-400">
-              {formatSprintTime(sprintTimeLeft)} left
-            </span>
+            <div className="text-right">
+              <div className="flex items-end gap-0.5 justify-end">
+                <span className="font-black tabular-nums text-purple-700 dark:text-purple-200" style={{ fontSize: "2rem", lineHeight: 1 }}>
+                  {sprintMin}:{String(sprintSec).padStart(2, "0")}
+                </span>
+              </div>
+              <p className="text-[10px] text-purple-500 dark:text-purple-400 font-semibold">remaining</p>
+            </div>
           </div>
         )}
 
