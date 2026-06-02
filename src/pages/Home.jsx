@@ -996,6 +996,7 @@ export default function Home() {
             user={user}
             myBookings={weekBookings.filter((b) => b.user_email === user?.email && b.slot_id !== "DST_POPUP")}
             onClose={() => setShowSwapPanel(false)}
+            isAdmin={isAdmin}
           />
         )}
       </AnimatePresence>

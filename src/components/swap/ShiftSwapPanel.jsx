@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, ArrowRightLeft, Users } from "lucide-react";
+import { X, Plus, ArrowRightLeft, Users, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { SLOTS, getAmSlots, isFriday } from "@/lib/slots";
 
@@ -45,10 +45,11 @@ function NewRequestForm({ user, myBookings, allBookings, onCreated, onCancel }) 
     : [];
   const selectedWantSlot = wantSlots.find((s) => s.id === wantSlotId);
 
-  // Person who currently holds the wanted slot (auto-derive from bookings)
-  const wantSlotHolder = wantDate && wantSlotId
-    ? allBookings.find((b) => b.date === wantDate && b.slot_id === wantSlotId && b.user_email !== user?.email)
-    : null;
+  // All people who hold the wanted slot (slots can have 2 bookings)
+  const wantSlotHolders = wantDate && wantSlotId
+    ? allBookings.filter((b) => b.date === wantDate && b.slot_id === wantSlotId && b.user_email !== user?.email)
+    : [];
+  const wantSlotHolder = wantSlotHolders[0] || null;
 
   const handleSubmit = async () => {
     if (!selectedBooking) { toast.error("Please select a slot to swap."); return; }
@@ -132,47 +133,48 @@ function NewRequestForm({ user, myBookings, allBookings, onCreated, onCancel }) 
           ))}
         </div>
         {wantDate && (
-          <div className="flex flex-col gap-1.5">
-            {wantSlots.map((s) => {
-              const holder = allBookings.find((b) => b.date === wantDate && b.slot_id === s.id && b.user_email !== user?.email);
-              const isBooked = !!holder;
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => isBooked && setWantSlotId(s.id)}
-                  disabled={!isBooked}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-left transition-all ${
-                    !isBooked
-                      ? "border-border bg-muted/50 text-muted-foreground cursor-not-allowed opacity-50"
-                      : wantSlotId === s.id
-                      ? "border-primary bg-accent text-accent-foreground"
-                      : "border-border bg-card text-foreground hover:bg-muted"
-                  }`}
-                >
-                  <div>
-                    <span className="text-xs font-semibold">{s.label}</span>
-                    {isBooked && (
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        Booked by {holder.user_name || holder.user_email?.split("@")[0]}
-                      </p>
-                    )}
-                  </div>
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${isBooked ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>
-                    {isBooked ? "Booked" : "Empty"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        <div className="flex flex-col gap-1.5">
+        {wantSlots.map((s) => {
+          const holders = allBookings.filter((b) => b.date === wantDate && b.slot_id === s.id && b.user_email !== user?.email);
+          const isBooked = holders.length > 0;
+          const holderNames = holders.map((h) => h.user_name || h.user_email?.split("@")[0]).join(", ");
+          return (
+            <button
+              key={s.id}
+              onClick={() => isBooked && setWantSlotId(s.id)}
+              disabled={!isBooked}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-left transition-all ${
+                !isBooked
+                  ? "border-border bg-muted/50 text-muted-foreground cursor-not-allowed opacity-50"
+                  : wantSlotId === s.id
+                  ? "border-primary bg-accent text-accent-foreground"
+                  : "border-border bg-card text-foreground hover:bg-muted"
+              }`}
+            >
+              <div>
+                <span className="text-xs font-semibold">{s.label}</span>
+                {isBooked && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Booked by {holderNames}
+                  </p>
+                )}
+              </div>
+              <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${isBooked ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>
+                {isBooked ? "Booked" : "Empty"}
+              </span>
+            </button>
+          );
+        })}
+        </div>
         )}
         {!wantDate && (
           <p className="text-[11px] text-muted-foreground">Select Today or Tomorrow above to see available slots.</p>
         )}
-        {wantSlotId && wantSlotHolder && (
+        {wantSlotId && wantSlotHolders.length > 0 && (
           <div className="mt-2 flex items-center gap-2 bg-muted/60 border border-border rounded-lg px-3 py-2">
             <Users className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
             <p className="text-[11px] text-foreground">
-              Request will be sent to <strong>{wantSlotHolder.user_name || wantSlotHolder.user_email?.split("@")[0]}</strong>
+              Request will be sent to <strong>{wantSlotHolders.map((h) => h.user_name || h.user_email?.split("@")[0]).join(" & ")}</strong>
             </p>
           </div>
         )}
@@ -229,9 +231,11 @@ function NewRequestForm({ user, myBookings, allBookings, onCreated, onCancel }) 
 }
 
 // ── Swap Card ─────────────────────────────────────────────────────────────────
-function SwapCard({ req, currentUser, onAccepted, onCancelled }) {
+function SwapCard({ req, currentUser, isAdmin, onAccepted, onCancelled, onDeleted }) {
   const [accepting, setAccepting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
 
   const isMyRequest = req.requester_id === currentUser?.id;
   const isTargetedAtMe = req.target_user_id === currentUser?.id;
@@ -256,6 +260,14 @@ function SwapCard({ req, currentUser, onAccepted, onCancelled }) {
     toast.success("Request withdrawn.");
     setCancelling(false);
     onCancelled();
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    await base44.entities.ShiftSwapRequest.delete(req.id);
+    toast.success("Request deleted.");
+    setDeleting(false);
+    onDeleted();
   };
 
   const statusStyles = {
@@ -285,7 +297,20 @@ function SwapCard({ req, currentUser, onAccepted, onCancelled }) {
           <span className="text-[10px] text-muted-foreground">· {timeAgo(req.created_date)}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          {isTargetedAtMe && req.status === "open" && (
+        {isAdmin && !confirmDel && (
+          <button onClick={() => setConfirmDel(true)} className="text-slate-300 hover:text-red-400 transition-colors">
+            <Trash2 className="w-3 h-3" />
+          </button>
+        )}
+        {isAdmin && confirmDel && (
+          <div className="flex items-center gap-1">
+            <button onClick={handleDelete} disabled={deleting} className="text-[9px] font-bold text-white bg-red-500 hover:bg-red-600 px-1.5 py-0.5 rounded disabled:opacity-50">
+              {deleting ? "…" : "Del"}
+            </button>
+            <button onClick={() => setConfirmDel(false)} className="text-[9px] text-slate-500 hover:text-slate-700 font-semibold">✕</button>
+          </div>
+        )}
+        {isTargetedAtMe && req.status === "open" && (
             <span className="text-[9px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">
               Directed to you
             </span>
@@ -369,7 +394,7 @@ function SwapCard({ req, currentUser, onAccepted, onCancelled }) {
 }
 
 // ── Main Panel ────────────────────────────────────────────────────────────────
-export default function ShiftSwapPanel({ user, myBookings, onClose }) {
+export default function ShiftSwapPanel({ user, myBookings, onClose, isAdmin }) {
   const [view, setView] = useState("list");
   const [requests, setRequests] = useState([]);
   const [allBookings, setAllBookings] = useState([]);
@@ -499,8 +524,10 @@ export default function ShiftSwapPanel({ user, myBookings, onClose }) {
                         key={r.id}
                         req={r}
                         currentUser={user}
+                        isAdmin={isAdmin}
                         onAccepted={loadData}
                         onCancelled={loadData}
+                        onDeleted={loadData}
                       />
                     ))}
                   </AnimatePresence>
