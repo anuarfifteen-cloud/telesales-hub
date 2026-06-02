@@ -287,7 +287,6 @@ export default function PerfectTen({ user, onUserUpdate }) {
                 <span>Stop between <strong className="text-emerald-600 dark:text-emerald-400">9.95s – 10.05s</strong> → <strong className="text-emerald-600 dark:text-emerald-400">Near Miss +1 Token</strong></span>
               </div>
               <div className="flex items-start gap-1.5">
-                <span className="text-red-400 font-black mt-0.5">✕</span>
               </div>
             </div>
           </div>
