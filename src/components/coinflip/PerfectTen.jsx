@@ -209,8 +209,8 @@ function TensionBar({ elapsedMs, isRunning }) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const FREE_PLAYS_PER_DAY = 3;
-const NEAR_MIN = 9.90;
-const NEAR_MAX = 10.10;
+const NEAR_MIN = 9.95;
+const NEAR_MAX = 10.05;
 const SPRINT_DURATION_MS = 300000; // 5 minutes
 
 const LS_DATE_KEY = "perfect10_date";
@@ -396,7 +396,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
             <div className="grid grid-cols-1 gap-1 text-xs text-muted-foreground leading-relaxed">
               <div className="flex items-start gap-1.5">
                 <span className="text-emerald-500 font-black mt-0.5">🆓</span>
-                <span><strong className="text-foreground">Free Tries:</strong> Hit exactly <strong className="text-amber-600 dark:text-amber-400">10.00s</strong> → <strong className="text-amber-600 dark:text-amber-400">+3 Tokens</strong>, or get close (<strong className="text-emerald-600 dark:text-emerald-400">9.90–10.10s</strong>) → <strong className="text-emerald-600 dark:text-emerald-400">+1 Token</strong>!</span>
+                <span><strong className="text-foreground">Free Tries:</strong> Hit exactly <strong className="text-amber-600 dark:text-amber-400">10.00s</strong> → <strong className="text-amber-600 dark:text-amber-400">+3 Tokens</strong>, or get close (<strong className="text-emerald-600 dark:text-emerald-400">9.95–10.05s</strong>) → <strong className="text-emerald-600 dark:text-emerald-400">+1 Token</strong>!</span>
               </div>
               <div className="flex items-start gap-1.5">
                 <span className="text-purple-500 font-black mt-0.5">⚡</span>
