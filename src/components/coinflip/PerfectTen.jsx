@@ -151,50 +151,46 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
 
 // ─── Tension Progress Bar ─────────────────────────────────────────────────────
 function TensionBar({ elapsedMs, isRunning }) {
-  // Fill from 0→100% over 0–10s, then stays full (over = red)
-  const clampedSec = Math.min(elapsedMs / 1000, 10);
+  const [speedOffset, setSpeedOffset] = useState(0);
+  const [flicker, setFlicker] = useState(false);
+
+  // Variable speed: every 600ms nudge the offset randomly
+  useEffect(() => {
+    if (!isRunning) return;
+    const id = setInterval(() => {
+      setSpeedOffset((prev) => {
+        const nudge = (Math.random() - 0.5) * 0.4; // ±0.2s jitter
+        return Math.max(-1, Math.min(1, prev + nudge));
+      });
+      setFlicker(Math.random() < 0.25); // 25% chance to flicker
+    }, 600);
+    return () => clearInterval(id);
+  }, [isRunning]);
+
+  // Visual elapsed includes jitter
+  const visualMs = Math.max(0, elapsedMs + speedOffset * 1000);
+  const clampedSec = Math.min(visualMs / 1000, 10);
   const pct = (clampedSec / 10) * 100;
   const isOver = elapsedMs > 10000;
-  // Near zone: 9.95–10.05s
-  const isNear = elapsedMs >= 9500 && elapsedMs <= 10500;
 
-  const barColor = isOver
-    ? "bg-red-500"
-    : isNear
-    ? "bg-emerald-500"
-    : "bg-blue-500";
-
-  const glowColor = isOver
-    ? "shadow-red-500/60"
-    : isNear
-    ? "shadow-emerald-500/60"
-    : "shadow-blue-500/40";
+  const barColor = isOver ? "bg-red-500" : "bg-blue-500";
+  const glowColor = isOver ? "shadow-red-500/60" : "shadow-blue-500/40";
 
   return (
     <div className="w-full flex flex-col gap-1">
-      {/* Labels */}
+      {/* Labels — no "STOP ZONE" hint */}
       <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
         <span>0s</span>
-        <span className={isNear && isRunning ? "text-emerald-600 dark:text-emerald-400 animate-pulse" : ""}>
-          🎯 STOP ZONE
-        </span>
+        <span>⏱️ Stop at 10s</span>
         <span>10s+</span>
       </div>
 
       {/* Track */}
       <div className="relative h-4 bg-muted rounded-full overflow-hidden border border-border">
-        {/* Sweet-spot zone highlight (9.95s–10.05s = 99.5%–100.5% → clamp to 99.5%–100%) */}
-        <div
-          className="absolute top-0 h-full bg-emerald-300/50 dark:bg-emerald-500/30 rounded-full"
-          style={{ left: "99.5%", width: "0.5%" }}
-        />
-
-        {/* Filled bar */}
+        {/* Filled bar — flicker effect */}
         <motion.div
           className={`h-full rounded-full ${barColor} shadow-lg ${glowColor} transition-colors duration-150`}
-          style={{ width: `${pct}%` }}
-          animate={isNear && isRunning ? { opacity: [1, 0.75, 1] } : { opacity: 1 }}
-          transition={{ repeat: Infinity, duration: 0.4 }}
+          style={{ width: `${pct}%`, opacity: flicker && isRunning ? 0.6 : 1 }}
         />
 
         {/* 10s marker line */}
@@ -324,14 +320,11 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     ? result.time
     : "0.00";
 
-  const isNearZone = isRunning && elapsedTime >= 9500 && elapsedTime <= 10500;
   const isOver = isRunning && elapsedTime > 10100;
 
   const timerColor = isRunning
     ? isOver
       ? "text-red-500"
-      : isNearZone
-      ? "text-emerald-500"
       : "text-foreground"
     : result?.type === "jackpot"
     ? "text-amber-500"
@@ -389,8 +382,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
         {/* Timer display */}
         <motion.div
           className="flex items-center justify-center py-2"
-          animate={isNearZone ? { scale: [1, 1.04, 1] } : { scale: 1 }}
-          transition={{ repeat: Infinity, duration: 0.35 }}
+          animate={{ scale: 1 }}
         >
           <span
             className={`font-black tabular-nums transition-colors duration-150 ${timerColor}`}
