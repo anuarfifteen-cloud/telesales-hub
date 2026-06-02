@@ -318,19 +318,20 @@ function SwapCard({ req, currentUser, isAdmin, onAccepted, onCancelled, onDelete
 
       // 3. Token transfer (only if tokens were offered)
       if (req.token_offer > 0) {
-        // Fetch User A's current balance directly
-        const allUsers = await base44.entities.User.list();
+        // Fetch FRESH balances for both users right now to avoid stale data
+        const [freshMe, allUsers] = await Promise.all([
+          base44.auth.me(),
+          base44.entities.User.list(),
+        ]);
         const userA = allUsers.find((u) => u.id === req.requester_id);
+
+        const newBalanceB = (freshMe?.earlyAccessTokens ?? 0) + req.token_offer;
+        const newBalanceA = Math.max(0, (userA?.earlyAccessTokens ?? 0) - req.token_offer);
+
         await Promise.all([
-          // User B (current user) — use updateMe
-          base44.auth.updateMe({
-            earlyAccessTokens: (currentUser.earlyAccessTokens ?? 0) + req.token_offer,
-          }),
-          // User A (requester) — use entity update
+          base44.auth.updateMe({ earlyAccessTokens: newBalanceB }),
           userA
-            ? base44.entities.User.update(userA.id, {
-                earlyAccessTokens: Math.max(0, (userA.earlyAccessTokens ?? 0) - req.token_offer),
-              })
+            ? base44.entities.User.update(userA.id, { earlyAccessTokens: newBalanceA })
             : Promise.resolve(),
         ]);
       }
