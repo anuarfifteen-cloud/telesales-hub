@@ -60,13 +60,13 @@ function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <h3 className="font-bold text-foreground text-sm">📤 Post a Swap Request</h3>
+      <h3 className="font-bold text-foreground text-sm">📤 Post a Slot Swap Request</h3>
 
       {/* My slot to offer */}
       <div>
-        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Your slot to swap away</label>
+        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Your booking slot to swap away</label>
         {myBookings.length === 0 ? (
-          <p className="text-xs text-muted-foreground bg-muted rounded-lg px-3 py-2">You have no upcoming bookings to swap.</p>
+          <p className="text-xs text-muted-foreground bg-muted rounded-lg px-3 py-2">You have no booked slots to swap.</p>
         ) : (
           <select
             value={mySlot}
@@ -282,7 +282,7 @@ function SwapCard({ req, currentUser, onAccepted, onCancelled }) {
         <div className="flex-1 min-w-0">
           <p className="text-[10px] text-muted-foreground font-semibold">OFFERING</p>
           <p className="text-xs font-bold text-foreground truncate">{req.my_date} · {req.my_slot_label}</p>
-          <p className="text-[10px] text-muted-foreground">{req.my_shift} Shift</p>
+          <p className="text-[10px] text-muted-foreground">{req.my_shift} shift</p>
         </div>
         <ArrowRightLeft className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         <div className="flex-1 min-w-0 text-right">
@@ -407,7 +407,7 @@ export default function ShiftSwapPanel({ user, myBookings, onClose }) {
         <div className="flex items-center justify-between px-4 py-2 border-b border-border">
           <div className="flex items-center gap-2">
             <ArrowRightLeft className="w-4 h-4 text-primary" />
-            <h2 className="font-bold text-sm text-foreground">Shift Swap Market</h2>
+            <h2 className="font-bold text-sm text-foreground">Slot Swap Market</h2>
             {openForMe > 0 && (
               <span className="text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">{openForMe}</span>
             )}

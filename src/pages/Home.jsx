@@ -1031,7 +1031,7 @@ export default function Home() {
           className="fixed bottom-24 right-5 z-20 flex items-center gap-2 px-4 py-2.5 rounded-full bg-indigo-600 text-white text-xs font-bold shadow-lg shadow-indigo-500/30 hover:bg-indigo-500 active:scale-95 transition-all"
         >
           <ArrowRightLeft className="w-4 h-4" />
-          Swap Shift
+          Swap Slot
         </button>
       )}
 
