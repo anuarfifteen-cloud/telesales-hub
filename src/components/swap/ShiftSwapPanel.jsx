@@ -71,6 +71,7 @@ function NewRequestForm({ user, myBookings, allBookings, onCreated, onCancel }) 
       target_user_id: wantSlotHolder.created_by_id || "",
       target_user_name: wantSlotHolder.user_name || wantSlotHolder.user_email?.split("@")[0] || "",
       want_date: wantDate,
+      want_slot_id: wantSlotId,
       want_slot_label: selectedWantSlot?.label || wantSlotId,
       token_offer: tokenOffer,
       message: message || "",
@@ -275,12 +276,67 @@ function SwapCard({ req, currentUser, isAdmin, onAccepted, onCancelled, onDelete
 
   const handleAccept = async () => {
     setAccepting(true);
-    await base44.entities.ShiftSwapRequest.update(req.id, {
-      status: "accepted",
-      accepted_by_id: currentUser.id,
-      accepted_by_name: currentUser.full_name,
-    });
-    toast.success("Swap accepted. Please coordinate with the requester.");
+    try {
+      // 1. Fetch both bookings in parallel using precise filters
+      const [userABookings, userBBookings] = await Promise.all([
+        base44.entities.Booking.filter({ date: req.my_date, slot_id: req.my_slot_id, user_email: req.requester_email }),
+        base44.entities.Booking.filter({ date: req.want_date, slot_id: req.want_slot_id, user_email: currentUser.email }),
+      ]);
+
+      const userABooking = userABookings[0];
+      const userBBooking = userBBookings[0];
+
+      if (!userABooking) {
+        toast.error("Could not find the requester's original booking. Swap aborted.");
+        setAccepting(false);
+        return;
+      }
+      if (!userBBooking) {
+        toast.error("Could not find your booking for that slot. Swap aborted.");
+        setAccepting(false);
+        return;
+      }
+
+      // 2. Swap slot details on both bookings + mark request accepted — all in parallel
+      await Promise.all([
+        base44.entities.Booking.update(userABooking.id, {
+          slot_id: userBBooking.slot_id,
+          slot_label: userBBooking.slot_label,
+          shift: userBBooking.shift,
+        }),
+        base44.entities.Booking.update(userBBooking.id, {
+          slot_id: userABooking.slot_id,
+          slot_label: userABooking.slot_label,
+          shift: userABooking.shift,
+        }),
+        base44.entities.ShiftSwapRequest.update(req.id, {
+          status: "accepted",
+          accepted_by_id: currentUser.id,
+          accepted_by_name: currentUser.full_name,
+        }),
+      ]);
+
+      // 3. Token transfer (only if tokens were offered)
+      if (req.token_offer > 0) {
+        const allUsers = await base44.entities.User.list();
+        const userA = allUsers.find((u) => u.id === req.requester_id);
+        if (userA) {
+          await Promise.all([
+            base44.entities.User.update(userA.id, {
+              earlyAccessTokens: Math.max(0, (userA.earlyAccessTokens ?? 0) - req.token_offer),
+            }),
+            base44.entities.User.update(currentUser.id, {
+              earlyAccessTokens: (currentUser.earlyAccessTokens ?? 0) + req.token_offer,
+            }),
+          ]);
+        }
+      }
+
+      toast.success(`Swap complete! Slots exchanged${req.token_offer > 0 ? ` and ${req.token_offer} token${req.token_offer > 1 ? "s" : ""} transferred` : ""}.`);
+    } catch (err) {
+      toast.error("Something went wrong during the swap. Please try again.");
+      console.error(err);
+    }
     setAccepting(false);
     onAccepted();
   };

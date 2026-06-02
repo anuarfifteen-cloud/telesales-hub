@@ -48,6 +48,10 @@
       "format": "date",
       "description": "The date the requester wants in return (optional)"
     },
+    "want_slot_id": {
+      "type": "string",
+      "description": "The slot ID they want in return (optional)"
+    },
     "want_slot_label": {
       "type": "string",
       "description": "The slot label they want in return (optional)"
