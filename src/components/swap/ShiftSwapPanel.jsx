@@ -28,6 +28,7 @@ function NewRequestForm({ user, myBookings, allBookings, onCreated, onCancel }) 
   const [mySlot, setMySlot] = useState("");
   const [wantDate, setWantDate] = useState("");
   const [wantSlotId, setWantSlotId] = useState("");
+  const [selectedHolderEmail, setSelectedHolderEmail] = useState("");
   const [tokenOffer, setTokenOffer] = useState(0);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -49,7 +50,10 @@ function NewRequestForm({ user, myBookings, allBookings, onCreated, onCancel }) 
   const wantSlotHolders = wantDate && wantSlotId
     ? allBookings.filter((b) => b.date === wantDate && b.slot_id === wantSlotId && b.user_email !== user?.email)
     : [];
-  const wantSlotHolder = wantSlotHolders[0] || null;
+  // If multiple holders, use the one the user picked; otherwise auto-pick the only one
+  const wantSlotHolder = wantSlotHolders.length > 1
+    ? (wantSlotHolders.find((h) => h.user_email === selectedHolderEmail) || null)
+    : (wantSlotHolders[0] || null);
 
   const handleSubmit = async () => {
     if (!selectedBooking) { toast.error("Please select a slot to swap."); return; }
@@ -121,7 +125,7 @@ function NewRequestForm({ user, myBookings, allBookings, onCreated, onCancel }) 
           ].map(({ label, value }) => (
             <button
               key={value}
-              onClick={() => { setWantDate(value); setWantSlotId(""); }}
+              onClick={() => { setWantDate(value); setWantSlotId(""); setSelectedHolderEmail(""); }}
               className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-all ${
                 wantDate === value
                   ? "bg-slate-800 text-white border-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-300"
@@ -141,7 +145,7 @@ function NewRequestForm({ user, myBookings, allBookings, onCreated, onCancel }) 
           return (
             <button
               key={s.id}
-              onClick={() => isBooked && setWantSlotId(s.id)}
+              onClick={() => { if (isBooked) { setWantSlotId(s.id); setSelectedHolderEmail(""); } }}
               disabled={!isBooked}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-left transition-all ${
                 !isBooked
@@ -170,11 +174,38 @@ function NewRequestForm({ user, myBookings, allBookings, onCreated, onCancel }) 
         {!wantDate && (
           <p className="text-[11px] text-muted-foreground">Select Today or Tomorrow above to see available slots.</p>
         )}
-        {wantSlotId && wantSlotHolders.length > 0 && (
+        {wantSlotId && wantSlotHolders.length > 1 && (
+          <div className="mt-2 bg-muted/60 border border-border rounded-lg px-3 py-2.5">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Choose who to request</p>
+            <div className="flex flex-col gap-1.5">
+              {wantSlotHolders.map((h) => {
+                const name = h.user_name || h.user_email?.split("@")[0];
+                const picked = selectedHolderEmail === h.user_email;
+                return (
+                  <button
+                    key={h.user_email}
+                    onClick={() => setSelectedHolderEmail(h.user_email)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left text-xs font-semibold transition-all ${
+                      picked
+                        ? "border-primary bg-accent text-accent-foreground"
+                        : "border-border bg-card text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <div className="w-5 h-5 rounded-full bg-slate-300 dark:bg-slate-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[8px] font-bold text-slate-700 dark:text-slate-200">{name?.[0]?.toUpperCase()}</span>
+                    </div>
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {wantSlotId && wantSlotHolders.length === 1 && (
           <div className="mt-2 flex items-center gap-2 bg-muted/60 border border-border rounded-lg px-3 py-2">
             <Users className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
             <p className="text-[11px] text-foreground">
-              Request will be sent to <strong>{wantSlotHolders.map((h) => h.user_name || h.user_email?.split("@")[0]).join(" & ")}</strong>
+              Request will be sent to <strong>{wantSlotHolders[0].user_name || wantSlotHolders[0].user_email?.split("@")[0]}</strong>
             </p>
           </div>
         )}
@@ -220,7 +251,7 @@ function NewRequestForm({ user, myBookings, allBookings, onCreated, onCancel }) 
         </button>
         <button
           onClick={handleSubmit}
-          disabled={saving || !mySlot || !wantDate || !wantSlotId || !wantSlotHolder}
+          disabled={saving || !mySlot || !wantDate || !wantSlotId || (wantSlotHolders.length > 1 && !selectedHolderEmail) || (wantSlotHolders.length === 0)}
           className="flex-1 py-2.5 rounded-lg text-xs font-semibold bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 disabled:opacity-40 hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors"
         >
           {saving ? "Submitting…" : "Submit Request"}
