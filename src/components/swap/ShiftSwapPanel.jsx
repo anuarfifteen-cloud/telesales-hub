@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, ArrowRightLeft, Users, Radio } from "lucide-react";
+import { X, Plus, ArrowRightLeft, Users } from "lucide-react";
 import { toast } from "sonner";
 import { SLOTS, getAmSlots, isFriday } from "@/lib/slots";
 
@@ -24,19 +24,16 @@ function formatDate(dateStr) {
 }
 
 // ── New Request Form ──────────────────────────────────────────────────────────
-function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
+function NewRequestForm({ user, myBookings, allBookings, onCreated, onCancel }) {
   const [mySlot, setMySlot] = useState("");
   const [wantDate, setWantDate] = useState("");
   const [wantSlotId, setWantSlotId] = useState("");
-  const [targetMode, setTargetMode] = useState("broadcast");
-  const [targetUserId, setTargetUserId] = useState("");
   const [tokenOffer, setTokenOffer] = useState(0);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
   const tokens = user?.earlyAccessTokens ?? 0;
   const selectedBooking = myBookings.find((b) => b.id === mySlot);
-  const targetUser = users.find((u) => u.id === targetUserId);
 
   const today = new Date().toLocaleDateString("en-CA");
   const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString("en-CA");
@@ -48,9 +45,15 @@ function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
     : [];
   const selectedWantSlot = wantSlots.find((s) => s.id === wantSlotId);
 
+  // Person who currently holds the wanted slot (auto-derive from bookings)
+  const wantSlotHolder = wantDate && wantSlotId
+    ? allBookings.find((b) => b.date === wantDate && b.slot_id === wantSlotId && b.user_email !== user?.email)
+    : null;
+
   const handleSubmit = async () => {
     if (!selectedBooking) { toast.error("Please select a slot to swap."); return; }
     if (!wantDate || !wantSlotId) { toast.error("Please select the slot you want in return."); return; }
+    if (!wantSlotHolder) { toast.error("That slot has no one booked yet — nothing to swap."); return; }
     setSaving(true);
     await base44.entities.ShiftSwapRequest.create({
       requester_id: user.id,
@@ -60,8 +63,8 @@ function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
       my_slot_label: selectedBooking.slot_label,
       my_slot_id: selectedBooking.slot_id,
       my_shift: selectedBooking.shift,
-      target_user_id: targetMode === "targeted" ? targetUserId : "",
-      target_user_name: targetMode === "targeted" ? (targetUser?.full_name || "") : "",
+      target_user_id: wantSlotHolder.created_by_id || "",
+      target_user_name: wantSlotHolder.user_name || wantSlotHolder.user_email?.split("@")[0] || "",
       want_date: wantDate,
       want_slot_label: selectedWantSlot?.label || wantSlotId,
       token_offer: tokenOffer,
@@ -130,63 +133,48 @@ function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
         </div>
         {wantDate && (
           <div className="flex flex-col gap-1.5">
-            {wantSlots.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setWantSlotId(s.id)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-left transition-all ${
-                  wantSlotId === s.id
-                    ? "border-primary bg-accent text-accent-foreground"
-                    : "border-border bg-card text-foreground hover:bg-muted"
-                }`}
-              >
-                <span className="text-xs font-semibold">{s.label}</span>
-                <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">{s.shift}</span>
-              </button>
-            ))}
+            {wantSlots.map((s) => {
+              const holder = allBookings.find((b) => b.date === wantDate && b.slot_id === s.id && b.user_email !== user?.email);
+              const isBooked = !!holder;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => isBooked && setWantSlotId(s.id)}
+                  disabled={!isBooked}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-left transition-all ${
+                    !isBooked
+                      ? "border-border bg-muted/50 text-muted-foreground cursor-not-allowed opacity-50"
+                      : wantSlotId === s.id
+                      ? "border-primary bg-accent text-accent-foreground"
+                      : "border-border bg-card text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <div>
+                    <span className="text-xs font-semibold">{s.label}</span>
+                    {isBooked && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Booked by {holder.user_name || holder.user_email?.split("@")[0]}
+                      </p>
+                    )}
+                  </div>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${isBooked ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>
+                    {isBooked ? "Booked" : "Empty"}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
         {!wantDate && (
           <p className="text-[11px] text-muted-foreground">Select Today or Tomorrow above to see available slots.</p>
         )}
-      </div>
-
-      {/* Recipient */}
-      <div>
-        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Send To</label>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setTargetMode("broadcast")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold border transition-all ${
-              targetMode === "broadcast"
-                ? "bg-slate-800 text-white border-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-300"
-                : "bg-card border-border text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            <Radio className="w-3 h-3" /> All Staff
-          </button>
-          <button
-            onClick={() => setTargetMode("targeted")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold border transition-all ${
-              targetMode === "targeted"
-                ? "bg-slate-800 text-white border-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-300"
-                : "bg-card border-border text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            <Users className="w-3 h-3" /> Specific Person
-          </button>
-        </div>
-        {targetMode === "targeted" && (
-          <select
-            value={targetUserId}
-            onChange={(e) => setTargetUserId(e.target.value)}
-            className="w-full mt-2 text-xs bg-card border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="">— Select staff member —</option>
-            {users.filter((u) => u.id !== user.id).map((u) => (
-              <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
-            ))}
-          </select>
+        {wantSlotId && wantSlotHolder && (
+          <div className="mt-2 flex items-center gap-2 bg-muted/60 border border-border rounded-lg px-3 py-2">
+            <Users className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+            <p className="text-[11px] text-foreground">
+              Request will be sent to <strong>{wantSlotHolder.user_name || wantSlotHolder.user_email?.split("@")[0]}</strong>
+            </p>
+          </div>
         )}
       </div>
 
@@ -230,7 +218,7 @@ function NewRequestForm({ user, myBookings, users, onCreated, onCancel }) {
         </button>
         <button
           onClick={handleSubmit}
-          disabled={saving || !mySlot || (targetMode === "targeted" && !targetUserId)}
+          disabled={saving || !mySlot || !wantDate || !wantSlotId || !wantSlotHolder}
           className="flex-1 py-2.5 rounded-lg text-xs font-semibold bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 disabled:opacity-40 hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors"
         >
           {saving ? "Submitting…" : "Submit Request"}
@@ -384,16 +372,20 @@ function SwapCard({ req, currentUser, onAccepted, onCancelled }) {
 export default function ShiftSwapPanel({ user, myBookings, onClose }) {
   const [view, setView] = useState("list");
   const [requests, setRequests] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [allBookings, setAllBookings] = useState([]);
   const [filter, setFilter] = useState("open");
 
+  const today = new Date().toLocaleDateString("en-CA");
+  const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString("en-CA");
+
   const loadData = async () => {
-    const [reqs, allUsers] = await Promise.all([
+    const [reqs, bookingsToday, bookingsTomorrow] = await Promise.all([
       base44.entities.ShiftSwapRequest.list("-created_date", 50),
-      base44.entities.User.list(),
+      base44.entities.Booking.filter({ date: today }),
+      base44.entities.Booking.filter({ date: tomorrow }),
     ]);
     setRequests(reqs);
-    setUsers(allUsers);
+    setAllBookings([...bookingsToday, ...bookingsTomorrow]);
   };
 
   useEffect(() => {
@@ -465,7 +457,7 @@ export default function ShiftSwapPanel({ user, myBookings, onClose }) {
             <NewRequestForm
               user={user}
               myBookings={myBookings}
-              users={users}
+              allBookings={allBookings}
               onCreated={() => { loadData(); setView("list"); }}
               onCancel={() => setView("list")}
             />
