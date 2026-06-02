@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { SLOTS, getBookableDates, formatDate, getUnlockTime, getAmSlots } from "@/lib/slots";
 import { format as tzFormat } from "date-fns-tz";
@@ -10,8 +9,7 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins, ArrowRightLeft } from "lucide-react";
-import ShiftSwapPanel from "@/components/swap/ShiftSwapPanel";
+import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins } from "lucide-react";
 import TokensTab from "./TokensTab";
 import { getStoredTheme, applyTheme } from "@/lib/theme";
 import AdminPinModal from "@/components/admin/AdminPinModal";
@@ -71,7 +69,6 @@ export default function Home() {
   const [unlockMinute, setUnlockMinute] = useState(30);
   const [isDarkMode, setIsDarkMode] = useState(() => getStoredTheme());
   const [showAnnouncementPanel, setShowAnnouncementPanel] = useState(false);
-  const [showSwapPanel, setShowSwapPanel] = useState(false);
   const [serverTimeRef, setServerTimeRef] = useState(null);
   const [localTimeAtFetch, setLocalTimeAtFetch] = useState(null);
   const [showDstConfirm, setShowDstConfirm] = useState(false);
@@ -989,18 +986,6 @@ export default function Home() {
         })()}
       </main>
 
-      {/* Swap Panel */}
-      <AnimatePresence>
-        {showSwapPanel && (
-          <ShiftSwapPanel
-            user={user}
-            myBookings={weekBookings.filter((b) => b.user_email === user?.email && b.slot_id !== "DST_POPUP")}
-            onClose={() => setShowSwapPanel(false)}
-            isAdmin={isAdmin}
-          />
-        )}
-      </AnimatePresence>
-
       {/* PIN Modal */}
       {showPinModal &&
       <AdminPinModal
@@ -1024,17 +1009,6 @@ export default function Home() {
         onClose={() => setUnlockModal((m) => ({ ...m, open: false }))}
         title={unlockModal.title}
         message={unlockModal.message} />
-
-      {/* ── SWAP FLOATING BUTTON (booking tab only) ── */}
-      {activeTab === "booking" && (
-        <button
-          onClick={() => setShowSwapPanel(true)}
-          className="fixed bottom-24 right-5 z-20 flex items-center gap-2 px-4 py-2.5 rounded-full bg-indigo-600 text-white text-xs font-bold shadow-lg shadow-indigo-500/30 hover:bg-indigo-500 active:scale-95 transition-all"
-        >
-          <ArrowRightLeft className="w-4 h-4" />
-          Swap Slot
-        </button>
-      )}
 
       {/* ── FLOATING PILL BOTTOM NAVIGATION ── */}
       <nav className="fixed bottom-6 left-0 right-0 z-20 flex justify-center pointer-events-none">
