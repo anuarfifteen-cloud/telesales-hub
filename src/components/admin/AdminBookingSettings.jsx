@@ -1,12 +1,18 @@
 import { useState } from "react";
-import { Settings, X, Check, Plus, Trash2, Clock } from "lucide-react";
+import { Settings, X, Check, Plus, Trash2, Clock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { base44 } from "@/api/base44Client";
 
 export default function AdminBookingSettings({ slots, unlockHour, unlockMinute, onSlotsChange, onUnlockTimeChange }) {
   const [open, setOpen] = useState(false);
   const [localSlots, setLocalSlots] = useState(slots);
   const [localHour, setLocalHour] = useState(String(unlockHour).padStart(2, "0"));
   const [localMinute, setLocalMinute] = useState(String(unlockMinute).padStart(2, "0"));
+
+  // Game records deletion state
+  const [deletingCoinFlip, setDeletingCoinFlip] = useState(false);
+  const [deletingPerfect10, setDeletingPerfect10] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null); // "coinflip" | "perfect10" | null
 
   const handleSave = () => {
     onSlotsChange(localSlots);
@@ -30,6 +36,22 @@ export default function AdminBookingSettings({ slots, unlockHour, unlockMinute, 
       maxBookings: 2,
     };
     setLocalSlots(s => [...s, newSlot]);
+  };
+
+  const handleDeleteAllCoinFlip = async () => {
+    setDeletingCoinFlip(true);
+    const all = await base44.entities.CoinFlipGame.list("-created_date", 500);
+    await Promise.all(all.map(g => base44.entities.CoinFlipGame.delete(g.id)));
+    setDeletingCoinFlip(false);
+    setConfirmDelete(null);
+  };
+
+  const handleDeleteAllPerfect10 = async () => {
+    setDeletingPerfect10(true);
+    const all = await base44.entities.PerfectTenGame.list("-created_date", 500);
+    await Promise.all(all.map(g => base44.entities.PerfectTenGame.delete(g.id)));
+    setDeletingPerfect10(false);
+    setConfirmDelete(null);
   };
 
   if (!open) {
@@ -102,6 +124,66 @@ export default function AdminBookingSettings({ slots, unlockHour, unlockMinute, 
           <button onClick={() => addSlot("PM")} className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 bg-violet-50 border border-violet-200 px-2 py-1 rounded-lg transition-colors">
             <Plus className="w-3 h-3" /> PM Slot
           </button>
+        </div>
+      </div>
+
+      {/* Game Records */}
+      <div>
+        <p className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1"><Trash2 className="w-3.5 h-3.5 text-red-400" /> Game Records</p>
+        <div className="space-y-2">
+
+          {/* Coin Flip */}
+          {confirmDelete === "coinflip" ? (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+              <span className="text-xs text-red-700 flex-1">Delete ALL Coin Flip records?</span>
+              <button
+                onClick={handleDeleteAllCoinFlip}
+                disabled={deletingCoinFlip}
+                className="text-[10px] font-bold text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded disabled:opacity-50"
+              >
+                {deletingCoinFlip ? "Deleting…" : "Confirm"}
+              </button>
+              <button onClick={() => setConfirmDelete(null)} className="text-[10px] text-slate-500 hover:text-slate-700 font-semibold">
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete("coinflip")}
+              className="w-full flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs hover:bg-red-50 hover:border-red-200 transition-colors group"
+            >
+              <span className="text-slate-600 group-hover:text-red-700 font-medium">🪙 Coin Flip — Delete All Records</span>
+              <Trash2 className="w-3.5 h-3.5 text-slate-300 group-hover:text-red-400" />
+            </button>
+          )}
+
+          {/* Perfect 10 */}
+          {confirmDelete === "perfect10" ? (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+              <span className="text-xs text-red-700 flex-1">Delete ALL Perfect 10 records?</span>
+              <button
+                onClick={handleDeleteAllPerfect10}
+                disabled={deletingPerfect10}
+                className="text-[10px] font-bold text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded disabled:opacity-50"
+              >
+                {deletingPerfect10 ? "Deleting…" : "Confirm"}
+              </button>
+              <button onClick={() => setConfirmDelete(null)} className="text-[10px] text-slate-500 hover:text-slate-700 font-semibold">
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete("perfect10")}
+              className="w-full flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs hover:bg-red-50 hover:border-red-200 transition-colors group"
+            >
+              <span className="text-slate-600 group-hover:text-red-700 font-medium">⏱️ Perfect 10 — Delete All Records</span>
+              <Trash2 className="w-3.5 h-3.5 text-slate-300 group-hover:text-red-400" />
+            </button>
+          )}
+
         </div>
       </div>
 

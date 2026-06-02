@@ -13,10 +13,6 @@ function GameRow({ game, currentUserId, getEmoji, getLabel }) {
       ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
       : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800";
 
-  const ts = game.created_date ? new Date(game.created_date).toLocaleString("en-GB", {
-    day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"
-  }) : null;
-
   return (
     <motion.div
       key={game.id}
@@ -28,7 +24,6 @@ function GameRow({ game, currentUserId, getEmoji, getLabel }) {
     >
       <span className="text-base">{getEmoji(game.result_type)}</span>
       <span className="flex-1 text-foreground">{getLabel(game)}</span>
-      {ts && <span className="text-[9px] text-muted-foreground whitespace-nowrap">{ts}</span>}
       {isMe && <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full">YOU</span>}
     </motion.div>
   );
