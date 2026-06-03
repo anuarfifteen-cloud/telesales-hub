@@ -308,19 +308,19 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
           <h3 className="font-black text-base text-foreground">Daily Quiz</h3>
           <span className="ml-auto text-[10px] font-bold text-pink-500 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">5-Day Co-Op</span>
         </div>
-        <p className="text-xs text-muted-foreground">Matched with a partner for 1 daily question.• Score 5/10 together = 1 Token
+        <p className="text-xs text-muted-foreground">Matched with a partner for 1 daily question.
+
+• Score 5/10 together = 1 Token
 • Flawless 10/10 = 2 Tokens!</p>
       </div>
 
       {/* Loading */}
       {loading && <div className="flex justify-center py-10">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-      }
+        </div>}
 
       {/* No match yet (teams not generated yet) */}
-      {!loading && !match &&
-      <div className="bg-card rounded-2xl border border-border shadow-sm p-6 flex flex-col items-center gap-3 text-center">
+      {!loading && !match && <div className="bg-card rounded-2xl border border-border shadow-sm p-6 flex flex-col items-center gap-3 text-center">
           <span className="text-4xl">⏳</span>
           <div>
             <p className="font-bold text-sm text-foreground">Teams Not Assigned Yet</p>
