@@ -1,0 +1,46 @@
+{
+  "name": "FiveDayScore",
+  "type": "object",
+  "properties": {
+    "cycle_id": {
+      "type": "string",
+      "description": "The 5-day block identifier, e.g. Block_0, Block_1"
+    },
+    "team_id": {
+      "type": "string",
+      "description": "ID linking to DuoTeam"
+    },
+    "p1_score": {
+      "type": "number",
+      "description": "Number of correct answers by player 1 (0-5)",
+      "default": 0
+    },
+    "p2_score": {
+      "type": "number",
+      "description": "Number of correct answers by player 2 (0-5)",
+      "default": 0
+    },
+    "p1_played_dates": {
+      "type": "string",
+      "description": "JSON array string of dates player 1 has answered"
+    },
+    "p2_played_dates": {
+      "type": "string",
+      "description": "JSON array string of dates player 2 has answered"
+    },
+    "p1_claimed": {
+      "type": "boolean",
+      "description": "Whether player 1 has claimed their reward tokens",
+      "default": false
+    },
+    "p2_claimed": {
+      "type": "boolean",
+      "description": "Whether player 2 has claimed their reward tokens",
+      "default": false
+    }
+  },
+  "required": [
+    "cycle_id",
+    "team_id"
+  ]
+}

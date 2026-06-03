@@ -1,0 +1,34 @@
+{
+  "name": "DuoTeam",
+  "type": "object",
+  "properties": {
+    "player1_id": {
+      "type": "string",
+      "description": "User ID of player 1"
+    },
+    "player1_email": {
+      "type": "string",
+      "description": "Email of player 1"
+    },
+    "player1_name": {
+      "type": "string",
+      "description": "Display name of player 1"
+    },
+    "player2_id": {
+      "type": "string",
+      "description": "User ID of player 2"
+    },
+    "player2_email": {
+      "type": "string",
+      "description": "Email of player 2"
+    },
+    "player2_name": {
+      "type": "string",
+      "description": "Display name of player 2"
+    }
+  },
+  "required": [
+    "player1_id",
+    "player2_id"
+  ]
+}

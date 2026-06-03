@@ -6,61 +6,54 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 const BRUNEI_TZ = "Asia/Brunei";
+const LAUNCH_DATE = new Date("2026-06-04T00:00:00+08:00");
 
 function getBruneiDateString() {
   return new Date().toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
 }
 
-// Cycle starts on the date the match was created (cycle_start_date field)
-// This helper is only used for querying — we just use today to find active matches
-function getTodayDate() {
-  return getBruneiDateString();
+function getCurrentCycleId() {
+  const today = new Date(getBruneiDateString() + "T00:00:00+08:00");
+  const diffDays = Math.floor((today - LAUNCH_DATE) / (1000 * 60 * 60 * 24));
+  const cycleNumber = Math.max(0, Math.floor(diffDays / 5));
+  return `Block_${cycleNumber}`;
 }
 
-function getDayIndex(cycleStartDate) {
-  const start = new Date(cycleStartDate + "T00:00:00+08:00");
+function getDayOfCycle() {
   const today = new Date(getBruneiDateString() + "T00:00:00+08:00");
-  return Math.floor((today - start) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor((today - LAUNCH_DATE) / (1000 * 60 * 60 * 24));
+  return (diffDays % 5) + 1; // 1-5
 }
 
 // ── Day Progress Pills ────────────────────────────────────────────────────────
-function DayPills({ playedDates, cycleStartDate }) {
+function DayPills({ playedCount, currentDay }) {
   return (
     <div className="flex gap-1.5 justify-center">
-      {[0, 1, 2, 3, 4].map(i => {
-        const dayDate = (() => {
-          const d = new Date(cycleStartDate + "T00:00:00+08:00");
-          d.setDate(d.getDate() + i);
-          return d.toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
-        })();
-        const played = playedDates.includes(dayDate);
-        const today = getBruneiDateString() === dayDate;
-        return (
-          <div
-            key={i}
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all ${
-              played
-                ? "bg-emerald-400 border-emerald-500 text-white"
-                : today
-                ? "bg-pink-100 dark:bg-pink-950/40 border-pink-400 text-pink-600 dark:text-pink-400 animate-pulse"
-                : "bg-muted border-border text-muted-foreground"
-            }`}
-          >
-            {i + 1}
-          </div>
-        );
-      })}
+      {[1, 2, 3, 4, 5].map(i => (
+        <div
+          key={i}
+          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all ${
+            i < currentDay && playedCount >= i
+              ? "bg-emerald-400 border-emerald-500 text-white"
+              : i === currentDay
+              ? "bg-pink-100 dark:bg-pink-950/40 border-pink-400 text-pink-600 dark:text-pink-400 animate-pulse"
+              : "bg-muted border-border text-muted-foreground"
+          }`}
+        >
+          {i}
+        </div>
+      ))}
     </div>
   );
 }
 
-// ── Partner Performance Panel ─────────────────────────────────────────────────
-function PartnerPanel({ match, userId }) {
-  const isP1 = match.p1_id === userId;
+// ── Partner Panel ─────────────────────────────────────────────────────────────
+function PartnerPanel({ team, scoreRecord, userId }) {
+  const isP1 = team.player1_id === userId;
+  const partnerName = isP1 ? team.player2_name : team.player1_name;
   const partnerPrefix = isP1 ? "p2" : "p1";
-  const partnerName = match[`${partnerPrefix}_name`] || "Partner";
-  const partnerScore = match[`${partnerPrefix}_score`] || 0;
-  const partnerPlayedDates = JSON.parse(match[`${partnerPrefix}_played_dates`] || "[]");
+  const partnerScore = scoreRecord?.[`${partnerPrefix}_score`] || 0;
+  const partnerPlayedDates = JSON.parse(scoreRecord?.[`${partnerPrefix}_played_dates`] || "[]");
   const today = getBruneiDateString();
   const answeredToday = partnerPlayedDates.includes(today);
 
@@ -69,10 +62,10 @@ function PartnerPanel({ match, userId }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-violet-200 dark:bg-violet-900 flex items-center justify-center text-xs font-black text-violet-700 dark:text-violet-300">
-            {partnerName[0].toUpperCase()}
+            {(partnerName || "?")[0].toUpperCase()}
           </div>
           <div>
-            <p className="text-xs font-bold text-foreground">{partnerName}</p>
+            <p className="text-xs font-bold text-foreground">{partnerName || "Partner"}</p>
             <p className="text-[10px] text-muted-foreground">Your partner</p>
           </div>
         </div>
@@ -86,62 +79,67 @@ function PartnerPanel({ match, userId }) {
           </div>
         </div>
       </div>
-      {/* Partner day pills */}
-      <div className="flex gap-1.5">
-        {[0, 1, 2, 3, 4].map(i => {
-          const d = new Date(match.cycle_start_date + "T00:00:00+08:00");
-          d.setDate(d.getDate() + i);
-          const dateStr = d.toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
-          const played = partnerPlayedDates.includes(dateStr);
-          const isToday = today === dateStr;
+      <div className="flex gap-1.5 items-center">
+        {[1, 2, 3, 4, 5].map(i => {
+          const played = partnerPlayedDates.length >= i;
+          const currentDay = getDayOfCycle();
+          const isToday = i === currentDay;
           return (
             <div key={i} className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black border-2 ${
               played ? "bg-emerald-400 border-emerald-500 text-white"
               : isToday ? "bg-amber-100 dark:bg-amber-950/40 border-amber-400 text-amber-600 animate-pulse"
               : "bg-muted border-border text-muted-foreground"
             }`}>
-              {i + 1}
+              {i}
             </div>
           );
         })}
-        <span className="ml-auto text-[10px] text-muted-foreground self-center">{partnerPlayedDates.length}/5 days</span>
+        <span className="ml-auto text-[10px] text-muted-foreground">{partnerPlayedDates.length}/5 days</span>
       </div>
     </div>
   );
 }
 
 // ── Quiz Card ─────────────────────────────────────────────────────────────────
-function QuizCard({ match, userId, onAnswered }) {
+function QuizCard({ team, scoreRecord, userId, onAnswered }) {
   const [question, setQuestion] = useState(null);
   const [selected, setSelected] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+  const [loadingQ, setLoadingQ] = useState(true);
 
-  const isP1 = match.p1_id === userId;
+  const isP1 = team.player1_id === userId;
   const playerPrefix = isP1 ? "p1" : "p2";
-  const playedDates = JSON.parse(match[`${playerPrefix}_played_dates`] || "[]");
-  const questionIds = JSON.parse(match[`${playerPrefix}_question_ids`] || "[]");
-  const dayIndex = getDayIndex(match.cycle_start_date);
+  const playedDates = JSON.parse(scoreRecord?.[`${playerPrefix}_played_dates`] || "[]");
   const alreadyPlayed = playedDates.includes(getBruneiDateString());
 
   useEffect(() => {
-    if (alreadyPlayed || dayIndex < 0 || dayIndex > 4) return;
-    const qid = questionIds[dayIndex];
-    if (!qid) return;
-    base44.entities.QuizQuestion.filter({ id: qid }).then(results => {
-      if (results.length > 0) setQuestion(results[0]);
+    if (alreadyPlayed) { setLoadingQ(false); return; }
+    // Fetch one random active question
+    base44.entities.QuizQuestion.filter({ is_active: true }).then(questions => {
+      if (questions.length > 0) {
+        const random = questions[Math.floor(Math.random() * questions.length)];
+        setQuestion(random);
+      }
+      setLoadingQ(false);
     });
-  }, [match.id, dayIndex]);
+  }, [scoreRecord?.id]);
 
   const handleSubmit = async () => {
-    if (!selected || submitting) return;
+    if (!selected || submitting || !question) return;
     setSubmitting(true);
     const res = await base44.functions.invoke("duoSubmitAnswer", {
-      match_id: match.id,
+      score_id: scoreRecord.id,
       answer: selected,
+      question_id: question.id,
     });
     const data = res.data;
-    setResult({ correct: data.correct, correct_answer: data.correct_answer });
+    setResult({
+      correct: data.correct,
+      correct_answer: data.correct_answer,
+      justification: data.justification,
+      new_score: data.new_score,
+    });
     setSubmitting(false);
     onAnswered(data);
   };
@@ -156,28 +154,25 @@ function QuizCard({ match, userId, onAnswered }) {
     );
   }
 
-  if (dayIndex < 0 || dayIndex > 4) {
-    return (
-      <div className="bg-muted rounded-2xl p-4 text-center">
-        <p className="text-sm text-muted-foreground">No question available today.</p>
-      </div>
-    );
+  if (loadingQ) {
+    return <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
 
   if (!question) {
     return (
-      <div className="flex justify-center py-6">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="bg-muted rounded-2xl p-4 text-center">
+        <p className="text-sm text-muted-foreground">No active questions available. Ask your admin to add some!</p>
       </div>
     );
   }
 
   const options = [question.option_a, question.option_b, question.option_c];
+  const currentDay = getDayOfCycle();
 
   return (
     <div className="flex flex-col gap-3">
       <div className="bg-card rounded-2xl border border-border p-4">
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Day {dayIndex + 1} Question</p>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Day {currentDay} Question</p>
         <p className="font-bold text-foreground text-sm leading-relaxed">{question.question_text}</p>
       </div>
 
@@ -211,21 +206,28 @@ function QuizCard({ match, userId, onAnswered }) {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={`rounded-2xl p-4 text-center border ${
+            className={`rounded-2xl p-4 border flex flex-col gap-2 ${
               result.correct
                 ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
                 : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
             }`}
           >
-            {result.correct
-              ? <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-1" />
-              : <XCircle className="w-8 h-8 text-red-500 mx-auto mb-1" />
-            }
-            <p className={`font-black text-sm ${result.correct ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}>
-              {result.correct ? "Correct! +1 to your score 🎉" : "Not quite!"}
-            </p>
-            {!result.correct && (
-              <p className="text-xs text-muted-foreground mt-1">Correct answer: <strong>{result.correct_answer}</strong></p>
+            <div className="flex flex-col items-center gap-1">
+              {result.correct
+                ? <CheckCircle className="w-8 h-8 text-emerald-500" />
+                : <XCircle className="w-8 h-8 text-red-500" />
+              }
+              <p className={`font-black text-sm ${result.correct ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}>
+                {result.correct ? "Correct! +1 to your score 🎉" : "Not quite!"}
+              </p>
+              {!result.correct && (
+                <p className="text-xs text-muted-foreground">Correct answer: <strong className="text-foreground">{result.correct_answer}</strong></p>
+              )}
+            </div>
+            {result.justification && (
+              <div className="bg-muted rounded-xl px-3 py-2 mt-1">
+                <p className="text-[11px] text-muted-foreground italic">💡 {result.justification}</p>
+              </div>
             )}
           </motion.div>
         </AnimatePresence>
@@ -234,15 +236,15 @@ function QuizCard({ match, userId, onAnswered }) {
   );
 }
 
-// ── Completed / Score Screen ──────────────────────────────────────────────────
-function CompletedScreen({ match, userId, onClaimed }) {
-  const isP1 = match.p1_id === userId;
+// ── Completed Screen ──────────────────────────────────────────────────────────
+function CompletedScreen({ team, scoreRecord, userId, onClaimed }) {
+  const isP1 = team.player1_id === userId;
   const playerPrefix = isP1 ? "p1" : "p2";
-  const myScore = match[`${playerPrefix}_score`] || 0;
-  const partnerScore = match[isP1 ? "p2_score" : "p1_score"] || 0;
+  const myScore = scoreRecord?.[`${playerPrefix}_score`] || 0;
+  const partnerScore = scoreRecord?.[isP1 ? "p2_score" : "p1_score"] || 0;
   const teamScore = myScore + partnerScore;
   const isPerfect = teamScore === 10;
-  const alreadyClaimed = match[`${playerPrefix}_claimed`];
+  const alreadyClaimed = scoreRecord?.[`${playerPrefix}_claimed`];
   const [claiming, setClaiming] = useState(false);
 
   const handleClaim = async () => {
@@ -250,7 +252,7 @@ function CompletedScreen({ match, userId, onClaimed }) {
     setClaiming(true);
     const currentTokens = (await base44.auth.me())?.earlyAccessTokens ?? 0;
     await base44.auth.updateMe({ earlyAccessTokens: currentTokens + 2 });
-    await base44.entities.DuoMatchCycle.update(match.id, {
+    await base44.entities.FiveDayScore.update(scoreRecord.id, {
       [`${playerPrefix}_claimed`]: true,
     });
     toast.success("+2 tokens claimed! 🎉");
@@ -264,7 +266,6 @@ function CompletedScreen({ match, userId, onClaimed }) {
         {isPerfect && <div className="text-3xl mb-2">🏆</div>}
         <p className="font-black text-lg text-foreground">{isPerfect ? "Perfect Team Score!" : "Cycle Complete!"}</p>
         <p className="text-sm text-muted-foreground mt-1">5-day quiz challenge finished</p>
-
         <div className="grid grid-cols-3 gap-2 mt-4">
           <div className="bg-muted rounded-xl p-3">
             <p className="text-[10px] text-muted-foreground mb-1">Your Score</p>
@@ -298,7 +299,7 @@ function CompletedScreen({ match, userId, onClaimed }) {
 
       <div className="bg-muted border border-border rounded-2xl p-4 text-center">
         <p className="text-xs text-muted-foreground">
-          🎉 Cycle complete! New random pairings are generated automatically at the start of every 5-day cycle.
+          🎉 Cycle complete! The next 5-day block starts automatically.
         </p>
       </div>
     </div>
@@ -307,117 +308,106 @@ function CompletedScreen({ match, userId, onClaimed }) {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function DailyDuoGame({ user, onUserUpdate }) {
-  const [match, setMatch] = useState(null);
+  const [team, setTeam] = useState(null);
+  const [scoreRecord, setScoreRecord] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const loadMatch = async () => {
+  const loadData = async () => {
     setLoading(true);
-    // Find active match for this user (not filtered by cycle_start_date since cycles start on kick-off day)
+    const cycleId = getCurrentCycleId();
+
+    // Find the user's permanent team
     const [asP1, asP2] = await Promise.all([
-      base44.entities.DuoMatchCycle.filter({ p1_id: user.id, status: "active" }),
-      base44.entities.DuoMatchCycle.filter({ p2_id: user.id, status: "active" }),
+      base44.entities.DuoTeam.filter({ player1_id: user.id }),
+      base44.entities.DuoTeam.filter({ player2_id: user.id }),
     ]);
-    // Also check completed matches for this rolling cycle window
-    const [compP1, compP2] = await Promise.all([
-      base44.entities.DuoMatchCycle.filter({ p1_id: user.id, status: "completed" }),
-      base44.entities.DuoMatchCycle.filter({ p2_id: user.id, status: "completed" }),
-    ]);
-    const activeMatch = asP1[0] || asP2[0] || null;
-    const completedMatches = [...compP1, ...compP2];
-    // Pick the most recent completed if no active
-    const recentCompleted = completedMatches.sort((a, b) =>
-      new Date(b.cycle_start_date) - new Date(a.cycle_start_date)
-    )[0] || null;
-    setMatch(activeMatch || recentCompleted);
+    const foundTeam = asP1[0] || asP2[0] || null;
+    setTeam(foundTeam);
+
+    if (foundTeam) {
+      // Find or create score record for this cycle
+      const existingScores = await base44.entities.FiveDayScore.filter({ cycle_id: cycleId, team_id: foundTeam.id });
+      if (existingScores.length > 0) {
+        setScoreRecord(existingScores[0]);
+      } else {
+        // Auto-create for this new block
+        const newRecord = await base44.entities.FiveDayScore.create({
+          cycle_id: cycleId,
+          team_id: foundTeam.id,
+          p1_score: 0,
+          p2_score: 0,
+          p1_played_dates: "[]",
+          p2_played_dates: "[]",
+          p1_claimed: false,
+          p2_claimed: false,
+        });
+        setScoreRecord(newRecord);
+      }
+    }
     setLoading(false);
   };
 
-  useEffect(() => {
-    loadMatch();
-  }, [user.id]);
+  useEffect(() => { loadData(); }, [user.id]);
 
   useEffect(() => {
-    const unsub = base44.entities.DuoMatchCycle.subscribe(() => {
-      loadMatch();
-    });
+    const unsub = base44.entities.FiveDayScore.subscribe(() => { loadData(); });
     return unsub;
   }, [user.id]);
 
-  const handleAnswered = async (data) => {
-    await loadMatch();
-    if (data.cycle_complete) toast.success("5-day cycle complete! Check your team score.");
-  };
+  const handleAnswered = async () => { await loadData(); };
+  const handleClaimed = async () => { await loadData(); await onUserUpdate(); };
 
-  const handleClaimed = async () => {
-    await loadMatch();
-    await onUserUpdate();
-  };
-
-  const isP1 = match?.p1_id === user.id;
+  const isP1 = team?.player1_id === user.id;
   const playerPrefix = isP1 ? "p1" : "p2";
-  const playedDates = match ? JSON.parse(match[`${playerPrefix}_played_dates`] || "[]") : [];
-  const myScore = match?.[`${playerPrefix}_score`] || 0;
-  const dayIndex = match ? getDayIndex(match.cycle_start_date) : -1;
+  const playedDates = scoreRecord ? JSON.parse(scoreRecord[`${playerPrefix}_played_dates`] || "[]") : [];
+  const myScore = scoreRecord?.[`${playerPrefix}_score`] || 0;
+  const currentDay = getDayOfCycle();
   const allDaysPlayed = playedDates.length >= 5;
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Header card */}
+      {/* Header */}
       <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-lg">🧠</span>
           <h3 className="font-black text-base text-foreground">Daily Quiz</h3>
           <span className="ml-auto text-[10px] font-bold text-pink-500 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">5-Day Co-Op</span>
         </div>
+        <p className="text-xs text-muted-foreground">Team up and answer daily! Hit a flawless 10/10 for 2 Tokens!</p>
+      </div>
 
-      </div>        <p className="text-xs text-muted-foreground">Team up and answer daily! Combined score of 5/10 wins 1 Token. Hit a flawless 10/10 for 2 Tokens!!</p>
+      {loading && <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex justify-center py-10">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-      )}
-
-      {/* No match yet (teams not generated yet) */}
-      {!loading && !match && (
+      {!loading && !team && (
         <div className="bg-card rounded-2xl border border-border shadow-sm p-6 flex flex-col items-center gap-3 text-center">
           <span className="text-4xl">⏳</span>
-          <div>
-            <p className="font-bold text-sm text-foreground">Teams Not Assigned Yet</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Pairings for this cycle haven't been generated yet. Check back soon — your admin will kick off the new round shortly!
-            </p>
-          </div>
+          <p className="font-bold text-sm text-foreground">Your admin is setting up your team.</p>
+          <p className="text-xs text-muted-foreground">Check back soon — you'll be paired with a partner shortly!</p>
         </div>
       )}
 
-      {/* Active */}
-      {!loading && match?.status === "active" && !allDaysPlayed && (
+      {!loading && team && !allDaysPlayed && (
         <>
-          {/* My progress */}
           <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-foreground">Your Progress</p>
-                <p className="text-[10px] text-muted-foreground">Day {Math.min(dayIndex + 1, 5)} of 5</p>
+                <p className="text-[10px] text-muted-foreground">Day {currentDay} of 5 • {getCurrentCycleId()}</p>
               </div>
               <div className="text-right">
                 <p className="text-[10px] text-muted-foreground">Your Score</p>
                 <p className="font-black text-lg text-foreground">{myScore}/5</p>
               </div>
             </div>
-            <DayPills playedDates={playedDates} cycleStartDate={match.cycle_start_date} />
+            <DayPills playedCount={playedDates.length} currentDay={currentDay} />
           </div>
-          {/* Partner panel */}
-          <PartnerPanel match={match} userId={user.id} />
-          <QuizCard match={match} userId={user.id} onAnswered={handleAnswered} />
+          <PartnerPanel team={team} scoreRecord={scoreRecord} userId={user.id} />
+          <QuizCard team={team} scoreRecord={scoreRecord} userId={user.id} onAnswered={handleAnswered} />
         </>
       )}
 
-      {/* Completed or all days played */}
-      {!loading && match && (match?.status === "completed" || allDaysPlayed) && (
-        <CompletedScreen match={match} userId={user.id} onClaimed={handleClaimed} />
+      {!loading && team && allDaysPlayed && (
+        <CompletedScreen team={team} scoreRecord={scoreRecord} userId={user.id} onClaimed={handleClaimed} />
       )}
     </div>
   );
