@@ -274,6 +274,13 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
     loadMatch();
   }, [user.id, cycleStartDate]);
 
+  useEffect(() => {
+    const unsub = base44.entities.DuoMatchCycle.subscribe(() => {
+      loadMatch();
+    });
+    return unsub;
+  }, [user.id, cycleStartDate]);
+
   const handleAnswered = async (data) => {
     await loadMatch();
     if (data.cycle_complete) toast.success("5-day cycle complete! Check your team score.");

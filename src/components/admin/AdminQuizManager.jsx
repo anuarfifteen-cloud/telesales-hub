@@ -132,6 +132,7 @@ export default function AdminQuizManager() {
     const data = res.data;
     if (data?.success) {
       toast.success(`✅ ${data.pairs_created} pairs created for cycle starting ${data.cycle_start_date}!`);
+      qc.invalidateQueries({ queryKey: ["duo-match"] });
     } else {
       toast.error(data?.error || "Failed to generate pairs.");
     }
