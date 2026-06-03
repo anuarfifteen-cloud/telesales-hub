@@ -1,0 +1,101 @@
+{
+  "name": "DuoMatchCycle",
+  "type": "object",
+  "properties": {
+    "p1_id": {
+      "type": "string",
+      "description": "User ID of player 1"
+    },
+    "p1_email": {
+      "type": "string",
+      "description": "Email of player 1"
+    },
+    "p1_name": {
+      "type": "string",
+      "description": "Display name of player 1"
+    },
+    "p2_id": {
+      "type": "string",
+      "description": "User ID of player 2"
+    },
+    "p2_email": {
+      "type": "string",
+      "description": "Email of player 2"
+    },
+    "p2_name": {
+      "type": "string",
+      "description": "Display name of player 2"
+    },
+    "cycle_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The date the duo was formed (YYYY-MM-DD, Brunei timezone)"
+    },
+    "cycle_end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The last day of the 5-day cycle (YYYY-MM-DD, Brunei timezone)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "waiting",
+        "active",
+        "completed",
+        "expired"
+      ],
+      "description": "waiting = one player queued, active = duo formed, completed = cycle done, expired = time ran out",
+      "default": "waiting"
+    },
+    "p1_question_ids": {
+      "type": "string",
+      "description": "JSON array string of question IDs assigned to player 1, one per day"
+    },
+    "p2_question_ids": {
+      "type": "string",
+      "description": "JSON array string of question IDs assigned to player 2, one per day"
+    },
+    "p1_answers": {
+      "type": "string",
+      "description": "JSON array string of player 1 answers per day (null if not yet answered)"
+    },
+    "p2_answers": {
+      "type": "string",
+      "description": "JSON array string of player 2 answers per day (null if not yet answered)"
+    },
+    "p1_played_dates": {
+      "type": "string",
+      "description": "JSON array string of dates player 1 has answered, e.g. [\"2026-06-01\",\"2026-06-02\"]"
+    },
+    "p2_played_dates": {
+      "type": "string",
+      "description": "JSON array string of dates player 2 has answered, e.g. [\"2026-06-01\",\"2026-06-02\"]"
+    },
+    "p1_score": {
+      "type": "number",
+      "description": "Number of correct answers by player 1 (0-5)",
+      "default": 0
+    },
+    "p2_score": {
+      "type": "number",
+      "description": "Number of correct answers by player 2 (0-5)",
+      "default": 0
+    },
+    "p1_claimed": {
+      "type": "boolean",
+      "description": "Whether player 1 has claimed their reward tokens",
+      "default": false
+    },
+    "p2_claimed": {
+      "type": "boolean",
+      "description": "Whether player 2 has claimed their reward tokens",
+      "default": false
+    }
+  },
+  "required": [
+    "p1_id",
+    "p1_email",
+    "status",
+    "cycle_start_date"
+  ]
+}

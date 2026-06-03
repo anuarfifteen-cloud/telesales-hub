@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Settings, X, Check, Plus, Trash2, Clock, AlertTriangle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
+import AdminQuizManager from "@/components/admin/AdminQuizManager";
 
 export default function AdminBookingSettings({ slots, unlockHour, unlockMinute, onSlotsChange, onUnlockTimeChange }) {
   const [open, setOpen] = useState(false);
@@ -229,6 +230,11 @@ export default function AdminBookingSettings({ slots, unlockHour, unlockMinute, 
             ))}
           </div>
         )}
+      </div>
+
+      {/* Quiz Manager */}
+      <div className="border-t border-border pt-4">
+        <AdminQuizManager />
       </div>
 
       <Button className="w-full h-9 text-sm font-semibold" onClick={handleSave}>
