@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Loader2, Plus, X, Check, Trash2, BarChart2, Users } from "lucide-react";
+import { Loader2, Plus, X, Check, Trash2, BarChart2, Users, BookOpen, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const LAUNCH_DATE = new Date("2026-06-04T00:00:00+08:00");
@@ -9,13 +9,6 @@ const BRUNEI_TZ = "Asia/Brunei";
 
 function getBruneiDateString() {
   return new Date().toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
-}
-
-function getCurrentCycleId() {
-  const today = new Date(getBruneiDateString() + "T00:00:00+08:00");
-  const diffDays = Math.floor((today - LAUNCH_DATE) / (1000 * 60 * 60 * 24));
-  const cycleNumber = Math.max(0, Math.floor(diffDays / 5));
-  return `Block_${cycleNumber}`;
 }
 
 function getCycleRange() {
@@ -168,6 +161,138 @@ function PlayerSummary({ teams, scoreRecords }) {
   );
 }
 
+// ── Questions Overview ────────────────────────────────────────────────────────
+function QuestionsOverview({ teams, scoreRecords }) {
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState(null);
+
+  useEffect(() => {
+    base44.entities.QuizQuestion.list().then(q => {
+      setQuestions(q);
+      setLoading(false);
+    });
+  }, []);
+
+  // Build a map: questionId -> list of player names who answered today
+  // Since we store played_dates but not per-day question mapping in FiveDayScore,
+  // we show which players have played at least one day (as a proxy for participation)
+  // and show question details with answer options.
+  const today = getBruneiDateString();
+
+  // Build who answered today per team
+  const playersAnsweredToday = [];
+  teams.forEach(team => {
+    const score = scoreRecords.find(s => s.team_id === team.id);
+    const p1Dates = JSON.parse(score?.p1_played_dates || "[]");
+    const p2Dates = JSON.parse(score?.p2_played_dates || "[]");
+    if (p1Dates.includes(today)) playersAnsweredToday.push(team.player1_name || team.player1_email);
+    if (p2Dates.includes(today)) playersAnsweredToday.push(team.player2_name || team.player2_email);
+  });
+
+  // Also build all players who have played at least once this cycle
+  const allPlayersStats = [];
+  teams.forEach(team => {
+    const score = scoreRecords.find(s => s.team_id === team.id);
+    const p1Dates = JSON.parse(score?.p1_played_dates || "[]");
+    const p2Dates = JSON.parse(score?.p2_played_dates || "[]");
+    allPlayersStats.push({ name: team.player1_name || team.player1_email, daysPlayed: p1Dates.length, answeredToday: p1Dates.includes(today) });
+    allPlayersStats.push({ name: team.player2_name || team.player2_email, daysPlayed: p2Dates.length, answeredToday: p2Dates.includes(today) });
+  });
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
+  if (!questions.length) return <div className="text-center py-8 text-muted-foreground text-sm">No questions found.</div>;
+
+  const activeQuestions = questions.filter(q => q.is_active);
+  const inactiveQuestions = questions.filter(q => !q.is_active);
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Today's participation summary */}
+      <div className="bg-card border border-border rounded-2xl p-4">
+        <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-3">Today's Participation ({today})</p>
+        {allPlayersStats.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No teams yet.</p>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {allPlayersStats.map((p, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <span className="text-xs font-medium text-foreground">{p.name}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground">{p.daysPlayed}/5 days</span>
+                  {p.answeredToday
+                    ? <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 px-1.5 py-0.5 rounded-full"><CheckCircle2 className="w-3 h-3" /> Done today</span>
+                    : <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 px-1.5 py-0.5 rounded-full"><XCircle className="w-3 h-3" /> Not yet</span>
+                  }
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Active Questions */}
+      <div>
+        <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">
+          Active Questions ({activeQuestions.length})
+        </p>
+        <div className="flex flex-col gap-2">
+          {activeQuestions.map((q, i) => (
+            <div key={q.id} className="bg-card border border-border rounded-xl overflow-hidden">
+              <button
+                className="w-full text-left px-3 py-3 flex items-start justify-between gap-2"
+                onClick={() => setExpandedId(expandedId === q.id ? null : q.id)}
+              >
+                <div className="flex items-start gap-2 min-w-0">
+                  <span className="text-[10px] font-black text-muted-foreground mt-0.5 shrink-0">Q{i + 1}</span>
+                  <p className="text-xs font-semibold text-foreground leading-snug">{q.question_text}</p>
+                </div>
+                {expandedId === q.id
+                  ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                  : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                }
+              </button>
+              {expandedId === q.id && (
+                <div className="px-3 pb-3 pt-0 border-t border-border bg-muted/40 flex flex-col gap-2">
+                  {[{ label: "A", val: q.option_a }, { label: "B", val: q.option_b }, { label: "C", val: q.option_c }].map(opt => (
+                    <div key={opt.label} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${opt.val === q.correct_option ? "bg-emerald-100 dark:bg-emerald-950/40 border border-emerald-300 text-emerald-800 dark:text-emerald-300 font-bold" : "bg-background border border-border text-foreground"}`}>
+                      <span className="font-black opacity-60">{opt.label}.</span>
+                      <span>{opt.val}</span>
+                      {opt.val === q.correct_option && <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-500 shrink-0" />}
+                    </div>
+                  ))}
+                  {q.justification && (
+                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2">
+                      <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-0.5">💡 Justification</p>
+                      <p className="text-xs text-foreground">{q.justification}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Inactive Questions */}
+      {inactiveQuestions.length > 0 && (
+        <div>
+          <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2">
+            Inactive Questions ({inactiveQuestions.length})
+          </p>
+          <div className="flex flex-col gap-2">
+            {inactiveQuestions.map((q, i) => (
+              <div key={q.id} className="bg-muted border border-border rounded-xl px-3 py-2.5 opacity-60">
+                <p className="text-xs font-semibold text-muted-foreground line-through">{q.question_text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function AdminDailyQuizTab() {
   const { cycleId, start, end } = getCycleRange();
@@ -243,13 +368,19 @@ export default function AdminDailyQuizTab() {
           onClick={() => setActiveTab("summary")}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === "summary" ? "bg-indigo-600 text-white shadow" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
         >
-          <BarChart2 className="w-3.5 h-3.5" /> Player Summary
+          <BarChart2 className="w-3.5 h-3.5" /> Summary
         </button>
         <button
           onClick={() => setActiveTab("teams")}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === "teams" ? "bg-indigo-600 text-white shadow" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
         >
           <Users className="w-3.5 h-3.5" /> Teams
+        </button>
+        <button
+          onClick={() => setActiveTab("questions")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === "questions" ? "bg-indigo-600 text-white shadow" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+        >
+          <BookOpen className="w-3.5 h-3.5" /> Questions
         </button>
       </div>
 
@@ -288,6 +419,10 @@ export default function AdminDailyQuizTab() {
                 </div>
               )}
             </>
+          )}
+
+          {activeTab === "questions" && (
+            <QuestionsOverview teams={teams} scoreRecords={scoreRecords} />
           )}
         </>
       )}
