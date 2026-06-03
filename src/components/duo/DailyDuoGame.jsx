@@ -408,7 +408,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
           <p className="font-medium text-foreground">Rotate partners monthly and win together! 🤝</p>
           <div className="space-y-1 bg-muted/20 p-2 rounded-md border border-border/50">
             <p>🎯 <span className="font-medium text-foreground">minimum of 5 correct answers together</span></p>
-            <p>= <span className="font-medium text-foreground">win</span> <span className="font-bold text-amber-500"> 1 Token </span><span className="font-medium text-foreground">each</span></p>
+            <p>= <span className="font-bold text-amber-500"> 1 Token </span><span className="font-medium text-foreground">each</span></p>
             <p>🏆 <span className="font-medium text-foreground">10 correct answers</span> = <span className="font-bold text-amber-500">2 Tokens </span><span className="font-medium text-foreground">each</span></p>
           </div>
         </div>
