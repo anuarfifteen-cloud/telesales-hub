@@ -66,7 +66,7 @@ function PartnerPanel({ team, scoreRecord, userId }) {
           </div>
           <div>
             <p className="text-xs font-bold text-foreground">{partnerName || "Partner"}</p>
-            <p className="text-[10px] text-muted-foreground">Your partner</p>
+            <p className="text-[10px] text-muted-foreground">tag team with</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
