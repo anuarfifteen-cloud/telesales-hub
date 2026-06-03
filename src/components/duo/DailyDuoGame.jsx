@@ -419,7 +419,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-foreground">Your Progress</p>
-                <p className="text-[10px] text-muted-foreground">Day {currentDay} of 5 • {getCurrentCycleId()}</p>
+                <p className="text-[10px] text-muted-foreground">Day {currentDay} of 5</p>
               </div>
               <div className="text-right">
                 <p className="text-[10px] text-muted-foreground">Your Score</p>
