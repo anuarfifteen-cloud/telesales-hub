@@ -403,13 +403,12 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
           <span className="text-lg">🧠</span>
           <h3 className="font-black text-base text-foreground">Daily Quiz</h3>
           <span className="ml-auto text-[10px] font-bold text-pink-500 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">5-Day Co-Op</span>
-        </div>
-        <div className="text-xs text-muted-foreground space-y-1.5">
+        <div className="text-xs text-muted-foreground space-y-2 mt-1">
           <p className="font-medium text-foreground">Rotate partners monthly and win together! 🤝</p>
-          <p>
-            Get a minimum of <span className="font-semibold text-blue-500">5 correct answers</span> together to win <span className="font-bold text-amber-500">1 Token each</span>. <br/>
-            Ace all <span className="font-semibold text-green-500">10</span> to get <span className="font-bold text-amber-500">2 Tokens</span>!
-          </p>
+          <div className="space-y-1 bg-muted/20 p-2 rounded-md border border-border/50">
+            <p>🎯 <span className="font-medium text-foreground">5 correct answers</span> = <span className="font-bold text-amber-500">1 Token each</span></p>
+            <p>🏆 <span className="font-medium text-foreground">10 correct answers</span> = <span className="font-bold text-amber-500">2 Tokens</span></p>
+          </div>
         </div>
       </div>
 
