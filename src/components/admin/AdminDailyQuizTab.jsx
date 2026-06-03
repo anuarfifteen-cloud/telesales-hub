@@ -212,6 +212,42 @@ function TeamCard({ team, index, onEdit }) {
           </div>
         </div>
 
+        {/* Per-player answer summary pills */}
+        {[
+          { name: team.p1_name || "P1", answers: team.p1_answers, score: team.p1_score },
+          { name: team.p2_name || "P2", answers: team.p2_answers, score: team.p2_score },
+        ].map(({ name, answers, score }) => {
+          const parsed = JSON.parse(answers || "[null,null,null,null,null]");
+          const answered = parsed.filter(a => a !== null && a !== undefined).length;
+          const correct = score || 0;
+          const wrong = answered - correct;
+          const skipped = 5 - answered;
+          return (
+            <div key={name} className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-muted-foreground truncate w-24 flex-shrink-0">{name}</span>
+              <div className="flex items-center gap-1 flex-1">
+                {parsed.map((a, i) => {
+                  const isAnswered = a !== null && a !== undefined;
+                  return (
+                    <div
+                      key={i}
+                      title={`Day ${i + 1}: ${!isAnswered ? "Not answered" : "Answered"}`}
+                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black flex-shrink-0 ${!isAnswered ? "bg-slate-100 dark:bg-slate-700 text-slate-400" : "bg-slate-200 dark:bg-slate-600 text-slate-500"}`}
+                    >
+                      {i + 1}
+                    </div>
+                  );
+                })}
+                <div className="flex items-center gap-1 ml-auto text-[10px] font-bold">
+                  <span className="text-emerald-600">{correct}✓</span>
+                  <span className="text-red-500">{wrong}✗</span>
+                  {skipped > 0 && <span className="text-slate-400">{skipped}—</span>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
         <div className="flex items-center justify-between">
           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${team.status === "active" ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}>
             {team.status}
@@ -220,7 +256,7 @@ function TeamCard({ team, index, onEdit }) {
             onClick={handleExpand}
             className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
           >
-            {expanded ? "▲ Hide Answers" : "▼ View Q&A"}
+            {expanded ? "▲ Hide Q&A" : "▼ View Q&A"}
           </button>
         </div>
       </div>
