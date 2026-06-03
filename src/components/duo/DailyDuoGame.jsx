@@ -403,6 +403,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
           <span className="text-lg">🧠</span>
           <h3 className="font-black text-base text-foreground">Daily Quiz</h3>
           <span className="ml-auto text-[10px] font-bold text-pink-500 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">5-Day Co-Op</span>
+        </div>
         <div className="text-xs text-muted-foreground space-y-2 mt-1">
           <p className="font-medium text-foreground">Rotate partners monthly and win together! 🤝</p>
           <div className="space-y-1 bg-muted/20 p-2 rounded-md border border-border/50">
