@@ -63,10 +63,15 @@ export default function AdminBookingTotals() {
   };
 
   const handleDelete = async (bookingId) => {
-    await base44.entities.Booking.delete(bookingId);
-    queryClient.invalidateQueries({ queryKey: ["all-bookings-admin"] });
-    queryClient.invalidateQueries({ queryKey: ["bookings-week"] });
-    toast.success("Booking removed.");
+    try {
+      await base44.entities.Booking.delete(bookingId);
+      toast.success("Booking removed.");
+    } catch {
+      toast.error("Booking already removed or not found.");
+    } finally {
+      queryClient.invalidateQueries({ queryKey: ["all-bookings-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings-week"] });
+    }
   };
 
   const handleAdd = async (userEmail, userName) => {
