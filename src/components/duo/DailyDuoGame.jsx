@@ -104,10 +104,10 @@ function PartnerPanel({ team, scoreRecord, userId }) {
 function QuizCard({ team, scoreRecord, userId, onAnswered }) {
   const [question, setQuestion] = useState(null);
   const [selected, setSelected] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
   const [loadingQ, setLoadingQ] = useState(true);
-  // result holds the outcome after submission; null means not yet submitted this session
-  const [result, setResult] = useState(null);
+  // pendingResult: evaluated locally immediately on answer click, before DB write
+  const [pendingResult, setPendingResult] = useState(null);
+  const [finishing, setFinishing] = useState(false);
 
   const isP1 = team.player1_id === userId;
   const playerPrefix = isP1 ? "p1" : "p2";
@@ -115,11 +115,7 @@ function QuizCard({ team, scoreRecord, userId, onAnswered }) {
   const alreadyPlayed = playedDates.includes(getBruneiDateString());
 
   useEffect(() => {
-    // Only fetch a question if there's no result showing and player hasn't played yet
-    if (result !== null || alreadyPlayed) {
-      setLoadingQ(false);
-      return;
-    }
+    if (alreadyPlayed) { setLoadingQ(false); return; }
     base44.entities.QuizQuestion.filter({ is_active: true }).then(questions => {
       if (questions.length > 0) {
         const random = questions[Math.floor(Math.random() * questions.length)];
@@ -129,79 +125,32 @@ function QuizCard({ team, scoreRecord, userId, onAnswered }) {
     });
   }, [scoreRecord?.id]);
 
-  const handleSubmit = async () => {
-    if (!selected || submitting || !question) return;
-    setSubmitting(true);
-    const res = await base44.functions.invoke("duoSubmitAnswer", {
-      score_id: scoreRecord.id,
-      answer: selected,
-      question_id: question.id,
+  // Step 1: On answer click — evaluate locally, show result inline immediately (NO DB yet)
+  const handleAnswerClick = (opt) => {
+    if (pendingResult || !question) return;
+    setSelected(opt);
+    setPendingResult({
+      correct: opt === question.correct_option,
+      correct_answer: question.correct_option,
+      justification: question.justification || null,
+      selectedAnswer: opt,
     });
-    const data = res.data;
-    // Store result locally — do NOT call onAnswered yet, so the locked screen doesn't show
-    setResult({
-      correct: data.correct,
-      correct_answer: data.correct_answer,
-      justification: data.justification,
-      new_score: data.new_score,
-    });
-    setSubmitting(false);
   };
 
-  // CASE 1: Result just came in — show feedback + justification
-  if (result !== null) {
-    return (
-      <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className={`rounded-2xl p-5 border flex flex-col gap-3 ${
-            result.correct
-              ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-              : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
-          }`}
-        >
-          <div className="flex flex-col items-center gap-1 text-center">
-            {result.correct
-              ? <CheckCircle className="w-10 h-10 text-emerald-500" />
-              : <XCircle className="w-10 h-10 text-red-500" />
-            }
-            <p className={`font-black text-base mt-1 ${result.correct ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}>
-              {result.correct ? "Correct! You earned a point for the team. 🎉" : "Incorrect! Better luck tomorrow."}
-            </p>
-            {!result.correct && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Correct answer: <strong className="text-foreground">{result.correct_answer}</strong>
-              </p>
-            )}
-          </div>
+  // Step 2: On "Got it!" — write to DB, THEN transition to locked screen
+  const handleFinish = async () => {
+    if (finishing || !pendingResult || !question) return;
+    setFinishing(true);
+    await base44.functions.invoke("duoSubmitAnswer", {
+      score_id: scoreRecord.id,
+      answer: pendingResult.selectedAnswer,
+      question_id: question.id,
+    });
+    setFinishing(false);
+    onAnswered();
+  };
 
-          {result.justification && (
-            <div className="bg-white/60 dark:bg-black/20 rounded-xl px-4 py-3 border border-border">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">💡 Why?</p>
-              <p className="text-sm text-foreground leading-relaxed">{result.justification}</p>
-            </div>
-          )}
-
-          <Button
-            onClick={() => {
-              // Now transition to the locked state by notifying parent
-              onAnswered();
-            }}
-            className={`w-full font-black tracking-wide mt-1 ${
-              result.correct
-                ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                : "bg-slate-700 hover:bg-slate-800 text-white"
-            }`}
-          >
-            Got it! See you tomorrow.
-          </Button>
-        </motion.div>
-      </AnimatePresence>
-    );
-  }
-
-  // CASE 2: Already played today (and result was already dismissed)
+  // Already played today
   if (alreadyPlayed) {
     return (
       <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 text-center">
@@ -212,12 +161,10 @@ function QuizCard({ team, scoreRecord, userId, onAnswered }) {
     );
   }
 
-  // CASE 3: Loading question
   if (loadingQ) {
     return <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
 
-  // CASE 4: No active questions
   if (!question) {
     return (
       <div className="bg-muted rounded-2xl p-4 text-center">
@@ -226,41 +173,98 @@ function QuizCard({ team, scoreRecord, userId, onAnswered }) {
     );
   }
 
-  // CASE 5: Show the quiz
   const options = [question.option_a, question.option_b, question.option_c];
   const currentDay = getDayOfCycle();
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Question */}
       <div className="bg-card rounded-2xl border border-border p-4">
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Day {currentDay} Question</p>
         <p className="font-bold text-foreground text-sm leading-relaxed">{question.question_text}</p>
       </div>
 
+      {/* Answer options — locked after selection */}
       <div className="flex flex-col gap-2">
-        {options.map((opt, i) => (
-          <button
-            key={i}
-            onClick={() => setSelected(opt)}
-            disabled={submitting}
-            className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
-              selected === opt
-                ? "bg-pink-500 border-pink-400 text-white shadow-lg shadow-pink-200/40 dark:shadow-pink-900/30"
-                : "bg-card border-border text-foreground hover:bg-muted"
+        {options.map((opt, i) => {
+          const isSelected = selected === opt;
+          const isCorrect = opt === question.correct_option;
+          const revealed = !!pendingResult;
+
+          let cls = "bg-card border-border text-foreground hover:bg-muted";
+          if (revealed) {
+            if (isCorrect) cls = "bg-emerald-100 dark:bg-emerald-950/50 border-emerald-400 text-emerald-800 dark:text-emerald-300 font-bold";
+            else if (isSelected) cls = "bg-red-100 dark:bg-red-950/50 border-red-400 text-red-700 dark:text-red-300 font-bold";
+            else cls = "bg-muted border-border text-muted-foreground opacity-60";
+          } else if (isSelected) {
+            cls = "bg-pink-500 border-pink-400 text-white shadow-lg shadow-pink-200/40 dark:shadow-pink-900/30";
+          }
+
+          return (
+            <button
+              key={i}
+              onClick={() => handleAnswerClick(opt)}
+              disabled={!!pendingResult}
+              className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all flex items-center justify-between ${cls}`}
+            >
+              <span>
+                <span className="font-black mr-2 text-xs opacity-70">{["A", "B", "C"][i]}.</span>
+                {opt}
+              </span>
+              {revealed && isCorrect && <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />}
+              {revealed && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-500 shrink-0" />}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Inline result + justification — shown after answer click, before DB write */}
+      {pendingResult && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`rounded-2xl border p-4 flex flex-col gap-3 ${
+            pendingResult.correct
+              ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+              : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {pendingResult.correct
+              ? <CheckCircle className="w-6 h-6 text-emerald-500 shrink-0" />
+              : <XCircle className="w-6 h-6 text-red-500 shrink-0" />
+            }
+            <p className={`font-black text-sm ${pendingResult.correct ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}>
+              {pendingResult.correct ? "Correct! 🎉 You earned a point for the team." : "Incorrect! ❌"}
+            </p>
+          </div>
+
+          {!pendingResult.correct && (
+            <p className="text-xs text-muted-foreground -mt-1">
+              Correct answer: <strong className="text-foreground">{pendingResult.correct_answer}</strong>
+            </p>
+          )}
+
+          {pendingResult.justification && (
+            <div className="bg-white/70 dark:bg-black/20 rounded-xl px-3 py-2.5 border border-border">
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">💡 Why?</p>
+              <p className="text-sm text-foreground leading-relaxed">{pendingResult.justification}</p>
+            </div>
+          )}
+
+          <Button
+            onClick={handleFinish}
+            disabled={finishing}
+            className={`w-full font-black tracking-wide ${
+              pendingResult.correct
+                ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                : "bg-slate-700 hover:bg-slate-800 text-white"
             }`}
           >
-            <span className="font-black mr-2 text-xs opacity-70">{["A", "B", "C"][i]}.</span>
-            {opt}
-          </button>
-        ))}
-        <Button
-          onClick={handleSubmit}
-          disabled={!selected || submitting}
-          className="w-full mt-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black tracking-widest uppercase hover:from-pink-400 hover:to-rose-400 shadow-lg shadow-pink-500/25"
-        >
-          {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit Answer"}
-        </Button>
-      </div>
+            {finishing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Got it! See you tomorrow."}
+          </Button>
+        </motion.div>
+      )}
     </div>
   );
 }
