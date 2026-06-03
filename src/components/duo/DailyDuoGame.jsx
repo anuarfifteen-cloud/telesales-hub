@@ -30,7 +30,7 @@ function getDayIndex(cycleStartDate) {
 function DayPills({ playedDates, cycleStartDate }) {
   return (
     <div className="flex gap-1.5 justify-center">
-      {[0, 1, 2, 3, 4].map((i) => {
+      {[0, 1, 2, 3, 4].map(i => {
         const dayDate = (() => {
           const d = new Date(cycleStartDate + "T00:00:00+08:00");
           d.setDate(d.getDate() + i);
@@ -42,19 +42,19 @@ function DayPills({ playedDates, cycleStartDate }) {
           <div
             key={i}
             className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all ${
-            played ?
-            "bg-emerald-400 border-emerald-500 text-white" :
-            today ?
-            "bg-pink-100 dark:bg-pink-950/40 border-pink-400 text-pink-600 dark:text-pink-400 animate-pulse" :
-            "bg-muted border-border text-muted-foreground"}`
-            }>
-            
+              played
+                ? "bg-emerald-400 border-emerald-500 text-white"
+                : today
+                ? "bg-pink-100 dark:bg-pink-950/40 border-pink-400 text-pink-600 dark:text-pink-400 animate-pulse"
+                : "bg-muted border-border text-muted-foreground"
+            }`}
+          >
             {i + 1}
-          </div>);
-
+          </div>
+        );
       })}
-    </div>);
-
+    </div>
+  );
 }
 
 // ── Quiz Card ─────────────────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ function QuizCard({ match, userId, onAnswered }) {
     if (alreadyPlayed || dayIndex < 0 || dayIndex > 4) return;
     const qid = questionIds[dayIndex];
     if (!qid) return;
-    base44.entities.QuizQuestion.filter({ id: qid }).then((results) => {
+    base44.entities.QuizQuestion.filter({ id: qid }).then(results => {
       if (results.length > 0) setQuestion(results[0]);
     });
   }, [match.id, dayIndex]);
@@ -85,7 +85,7 @@ function QuizCard({ match, userId, onAnswered }) {
     setSubmitting(true);
     const res = await base44.functions.invoke("duoSubmitAnswer", {
       match_id: match.id,
-      answer: selected
+      answer: selected,
     });
     const data = res.data;
     setResult({ correct: data.correct, correct_answer: data.correct_answer });
@@ -99,24 +99,24 @@ function QuizCard({ match, userId, onAnswered }) {
         <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
         <p className="font-bold text-emerald-700 dark:text-emerald-300 text-sm">You've answered today's question!</p>
         <p className="text-xs text-muted-foreground mt-1">Come back tomorrow for your next question.</p>
-      </div>);
-
+      </div>
+    );
   }
 
   if (dayIndex < 0 || dayIndex > 4) {
     return (
       <div className="bg-muted rounded-2xl p-4 text-center">
         <p className="text-sm text-muted-foreground">No question available today.</p>
-      </div>);
-
+      </div>
+    );
   }
 
   if (!question) {
     return (
       <div className="flex justify-center py-6">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>);
-
+      </div>
+    );
   }
 
   const options = [question.option_a, question.option_b, question.option_c];
@@ -128,57 +128,57 @@ function QuizCard({ match, userId, onAnswered }) {
         <p className="font-bold text-foreground text-sm leading-relaxed">{question.question_text}</p>
       </div>
 
-      {!result ?
-      <div className="flex flex-col gap-2">
-          {options.map((opt, i) =>
-        <button
-          key={i}
-          onClick={() => setSelected(opt)}
-          disabled={submitting}
-          className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
-          selected === opt ?
-          "bg-pink-500 border-pink-400 text-white shadow-lg shadow-pink-200/40 dark:shadow-pink-900/30" :
-          "bg-card border-border text-foreground hover:bg-muted"}`
-          }>
-          
+      {!result ? (
+        <div className="flex flex-col gap-2">
+          {options.map((opt, i) => (
+            <button
+              key={i}
+              onClick={() => setSelected(opt)}
+              disabled={submitting}
+              className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                selected === opt
+                  ? "bg-pink-500 border-pink-400 text-white shadow-lg shadow-pink-200/40 dark:shadow-pink-900/30"
+                  : "bg-card border-border text-foreground hover:bg-muted"
+              }`}
+            >
               <span className="font-black mr-2 text-xs opacity-70">{["A", "B", "C"][i]}.</span>
               {opt}
             </button>
-        )}
+          ))}
           <Button
-          onClick={handleSubmit}
-          disabled={!selected || submitting}
-          className="w-full mt-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black tracking-widest uppercase hover:from-pink-400 hover:to-rose-400 shadow-lg shadow-pink-500/25">
-          
+            onClick={handleSubmit}
+            disabled={!selected || submitting}
+            className="w-full mt-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black tracking-widest uppercase hover:from-pink-400 hover:to-rose-400 shadow-lg shadow-pink-500/25"
+          >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit Answer"}
           </Button>
-        </div> :
-
-      <AnimatePresence>
+        </div>
+      ) : (
+        <AnimatePresence>
           <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className={`rounded-2xl p-4 text-center border ${
-          result.correct ?
-          "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800" :
-          "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"}`
-          }>
-          
-            {result.correct ?
-          <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-1" /> :
-          <XCircle className="w-8 h-8 text-red-500 mx-auto mb-1" />
-          }
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={`rounded-2xl p-4 text-center border ${
+              result.correct
+                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+            }`}
+          >
+            {result.correct
+              ? <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-1" />
+              : <XCircle className="w-8 h-8 text-red-500 mx-auto mb-1" />
+            }
             <p className={`font-black text-sm ${result.correct ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}>
               {result.correct ? "Correct! +1 to your score 🎉" : "Not quite!"}
             </p>
-            {!result.correct &&
-          <p className="text-xs text-muted-foreground mt-1">Correct answer: <strong>{result.correct_answer}</strong></p>
-          }
+            {!result.correct && (
+              <p className="text-xs text-muted-foreground mt-1">Correct answer: <strong>{result.correct_answer}</strong></p>
+            )}
           </motion.div>
         </AnimatePresence>
-      }
-    </div>);
-
+      )}
+    </div>
+  );
 }
 
 // ── Completed / Score Screen ──────────────────────────────────────────────────
@@ -198,7 +198,7 @@ function CompletedScreen({ match, userId, onClaimed }) {
     const currentTokens = (await base44.auth.me())?.earlyAccessTokens ?? 0;
     await base44.auth.updateMe({ earlyAccessTokens: currentTokens + 2 });
     await base44.entities.DuoMatchCycle.update(match.id, {
-      [`${playerPrefix}_claimed`]: true
+      [`${playerPrefix}_claimed`]: true,
     });
     toast.success("+2 tokens claimed! 🎉");
     setClaiming(false);
@@ -228,28 +228,28 @@ function CompletedScreen({ match, userId, onClaimed }) {
         </div>
       </div>
 
-      {isPerfect && !alreadyClaimed &&
-      <Button
-        onClick={handleClaim}
-        disabled={claiming}
-        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black tracking-widest uppercase shadow-lg shadow-amber-500/25">
-        
+      {isPerfect && !alreadyClaimed && (
+        <Button
+          onClick={handleClaim}
+          disabled={claiming}
+          className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black tracking-widest uppercase shadow-lg shadow-amber-500/25"
+        >
           {claiming ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Gift className="w-4 h-4 mr-1" /> Claim +2 Tokens</>}
         </Button>
-      }
-      {isPerfect && alreadyClaimed &&
-      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 rounded-xl p-3 text-center text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+      )}
+      {isPerfect && alreadyClaimed && (
+        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 rounded-xl p-3 text-center text-sm font-semibold text-emerald-700 dark:text-emerald-300">
           ✅ Reward claimed!
         </div>
-      }
+      )}
 
       <div className="bg-muted border border-border rounded-2xl p-4 text-center">
         <p className="text-xs text-muted-foreground">
           🎉 Cycle complete! New random pairings are generated automatically at the start of every 5-day cycle.
         </p>
       </div>
-    </div>);
-
+    </div>
+  );
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -262,9 +262,9 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const loadMatch = async () => {
     setLoading(true);
     const [asP1, asP2] = await Promise.all([
-    base44.entities.DuoMatchCycle.filter({ p1_id: user.id, cycle_start_date: cycleStartDate }),
-    base44.entities.DuoMatchCycle.filter({ p2_id: user.id, cycle_start_date: cycleStartDate })]
-    );
+      base44.entities.DuoMatchCycle.filter({ p1_id: user.id, cycle_start_date: cycleStartDate }),
+      base44.entities.DuoMatchCycle.filter({ p2_id: user.id, cycle_start_date: cycleStartDate }),
+    ]);
     const found = asP1[0] || asP2[0] || null;
     setMatch(found);
     setLoading(false);
@@ -295,7 +295,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const playerPrefix = isP1 ? "p1" : "p2";
   const playedDates = match ? JSON.parse(match[`${playerPrefix}_played_dates`] || "[]") : [];
   const myScore = match?.[`${playerPrefix}_score`] || 0;
-  const partnerName = match ? isP1 ? match.p2_name : match.p1_name : null;
+  const partnerName = match ? (isP1 ? match.p2_name : match.p1_name) : null;
   const dayIndex = match ? getDayIndex(match.cycle_start_date) : -1;
   const allDaysPlayed = playedDates.length >= 5;
 
@@ -308,19 +308,19 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
           <h3 className="font-black text-base text-foreground">Daily Quiz</h3>
           <span className="ml-auto text-[10px] font-bold text-pink-500 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">5-Day Co-Op</span>
         </div>
-        <p className="text-xs text-muted-foreground">Matched with a partner for 1 daily question.
 
-• Score 5/10 together = 1 Token 
-• Flawless 10/10 = 2 Tokens!</p>
-      </div>
+      </div>        <p className="text-xs text-muted-foreground">Team up and answer daily! Combined score of 5/10 wins 1 Token. Hit a flawless 10/10 for 2 Tokens!!</p>
 
       {/* Loading */}
-      {loading && <div className="flex justify-center py-10">
+      {loading && (
+        <div className="flex justify-center py-10">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>}
+        </div>
+      )}
 
       {/* No match yet (teams not generated yet) */}
-      {!loading && !match && <div className="bg-card rounded-2xl border border-border shadow-sm p-6 flex flex-col items-center gap-3 text-center">
+      {!loading && !match && (
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-6 flex flex-col items-center gap-3 text-center">
           <span className="text-4xl">⏳</span>
           <div>
             <p className="font-bold text-sm text-foreground">Teams Not Assigned Yet</p>
@@ -329,11 +329,11 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
             </p>
           </div>
         </div>
-      }
+      )}
 
       {/* Active */}
-      {!loading && match?.status === "active" && !allDaysPlayed &&
-      <>
+      {!loading && match?.status === "active" && !allDaysPlayed && (
+        <>
           <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -354,12 +354,12 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
           </div>
           <QuizCard match={match} userId={user.id} onAnswered={handleAnswered} />
         </>
-      }
+      )}
 
       {/* Completed or all days played */}
-      {!loading && match && (match?.status === "completed" || allDaysPlayed) &&
-      <CompletedScreen match={match} userId={user.id} onClaimed={handleClaimed} />
-      }
-    </div>);
-
+      {!loading && match && (match?.status === "completed" || allDaysPlayed) && (
+        <CompletedScreen match={match} userId={user.id} onClaimed={handleClaimed} />
+      )}
+    </div>
+  );
 }
