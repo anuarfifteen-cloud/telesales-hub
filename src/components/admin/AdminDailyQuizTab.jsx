@@ -100,43 +100,154 @@ function UserPickerModal({ title, currentP1, currentP2, allUsers, assignedIds, o
   );
 }
 
+// ── Player Answer Detail ──────────────────────────────────────────────────────
+function PlayerAnswers({ playerName, questionIds, answers, questions }) {
+  const parsedAnswers = JSON.parse(answers || "[null,null,null,null,null]");
+  const parsedQIds = JSON.parse(questionIds || "[]");
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{playerName}</p>
+      {parsedQIds.map((qid, i) => {
+        const q = questions[qid];
+        const answer = parsedAnswers[i];
+        const answered = answer !== null && answer !== undefined;
+        const correct = answered && q && answer === q.correct_option;
+
+        return (
+          <div key={i} className={`rounded-xl border p-2.5 text-xs ${
+            !answered ? "bg-muted border-border opacity-60" :
+            correct ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800" :
+            "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+          }`}>
+            <div className="flex items-start gap-1.5">
+              <span className={`flex-shrink-0 font-black text-[10px] mt-0.5 ${!answered ? "text-muted-foreground" : correct ? "text-emerald-600" : "text-red-500"}`}>
+                Day {i + 1} {answered ? (correct ? "✓" : "✗") : "—"}
+              </span>
+              <div className="flex flex-col gap-1 flex-1 min-w-0">
+                {q ? (
+                  <>
+                    <p className="font-semibold text-foreground leading-snug">{q.question_text}</p>
+                    {answered && (
+                      <p className={`font-medium ${correct ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}>
+                        Answer: {answer}
+                      </p>
+                    )}
+                    {answered && !correct && q.correct_option && (
+                      <p className="text-emerald-700 dark:text-emerald-300">Correct: {q.correct_option}</p>
+                    )}
+                    {answered && q.justification && (
+                      <p className="text-muted-foreground italic bg-muted rounded-lg px-2 py-1 mt-0.5">
+                        💡 {q.justification}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">Loading question…</p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Team Card ─────────────────────────────────────────────────────────────────
 function TeamCard({ team, index, onEdit }) {
+  const [expanded, setExpanded] = useState(false);
+  const [questions, setQuestions] = useState({});
+  const [loadingQs, setLoadingQs] = useState(false);
+
   const totalScore = (team.p1_score || 0) + (team.p2_score || 0);
   const isPerfect = totalScore === 10;
 
+  const handleExpand = async () => {
+    if (!expanded && Object.keys(questions).length === 0) {
+      setLoadingQs(true);
+      const allIds = [
+        ...JSON.parse(team.p1_question_ids || "[]"),
+        ...JSON.parse(team.p2_question_ids || "[]"),
+      ].filter(Boolean);
+      const uniqueIds = [...new Set(allIds)];
+      const fetched = await Promise.all(
+        uniqueIds.map(id => base44.entities.QuizQuestion.filter({ id }).then(r => r[0]).catch(() => null))
+      );
+      const map = {};
+      fetched.forEach(q => { if (q) map[q.id] = q; });
+      setQuestions(map);
+      setLoadingQs(false);
+    }
+    setExpanded(v => !v);
+  };
+
   return (
-    <div className={`rounded-2xl border p-4 flex flex-col gap-2 ${isPerfect ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300" : "bg-card border-border"}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-black text-muted-foreground uppercase">Team {index + 1}</span>
-          {isPerfect && <span className="text-[10px] font-bold bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 px-1.5 py-0.5 rounded-full">🏆 Perfect!</span>}
+    <div className={`rounded-2xl border flex flex-col gap-2 overflow-hidden ${isPerfect ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300" : "bg-card border-border"}`}>
+      <div className="p-4 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black text-muted-foreground uppercase">Team {index + 1}</span>
+            {isPerfect && <span className="text-[10px] font-bold bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 px-1.5 py-0.5 rounded-full">🏆 Perfect!</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => onEdit(team)} className="text-muted-foreground hover:text-primary transition-colors">
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
-        <button onClick={() => onEdit(team)} className="text-muted-foreground hover:text-primary transition-colors">
-          <Edit2 className="w-3.5 h-3.5" />
-        </button>
+
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="bg-muted rounded-xl p-2">
+            <p className="text-[10px] text-muted-foreground truncate">{team.p1_name || "P1"}</p>
+            <p className="font-black text-lg text-foreground">{team.p1_score || 0}</p>
+          </div>
+          <div className={`rounded-xl p-2 border ${isPerfect ? "bg-amber-100 dark:bg-amber-900/40 border-amber-400" : "bg-background border-border"}`}>
+            <p className="text-[10px] text-muted-foreground">Total</p>
+            <p className={`font-black text-lg ${isPerfect ? "text-amber-600" : "text-foreground"}`}>{totalScore}/10</p>
+          </div>
+          <div className="bg-muted rounded-xl p-2">
+            <p className="text-[10px] text-muted-foreground truncate">{team.p2_name || "P2"}</p>
+            <p className="font-black text-lg text-foreground">{team.p2_score || 0}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${team.status === "active" ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}>
+            {team.status}
+          </span>
+          <button
+            onClick={handleExpand}
+            className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            {expanded ? "▲ Hide Answers" : "▼ View Q&A"}
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="bg-muted rounded-xl p-2">
-          <p className="text-[10px] text-muted-foreground truncate">{team.p1_name || "P1"}</p>
-          <p className="font-black text-lg text-foreground">{team.p1_score || 0}</p>
+      {expanded && (
+        <div className="border-t border-border px-4 pb-4 pt-3 flex flex-col gap-4">
+          {loadingQs ? (
+            <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <>
+              <PlayerAnswers
+                playerName={team.p1_name || "Player 1"}
+                questionIds={team.p1_question_ids}
+                answers={team.p1_answers}
+                questions={questions}
+              />
+              <div className="h-px bg-border" />
+              <PlayerAnswers
+                playerName={team.p2_name || "Player 2"}
+                questionIds={team.p2_question_ids}
+                answers={team.p2_answers}
+                questions={questions}
+              />
+            </>
+          )}
         </div>
-        <div className={`rounded-xl p-2 border ${isPerfect ? "bg-amber-100 dark:bg-amber-900/40 border-amber-400" : "bg-background border-border"}`}>
-          <p className="text-[10px] text-muted-foreground">Total</p>
-          <p className={`font-black text-lg ${isPerfect ? "text-amber-600" : "text-foreground"}`}>{totalScore}/10</p>
-        </div>
-        <div className="bg-muted rounded-xl p-2">
-          <p className="text-[10px] text-muted-foreground truncate">{team.p2_name || "P2"}</p>
-          <p className="font-black text-lg text-foreground">{team.p2_score || 0}</p>
-        </div>
-      </div>
-
-      <div className="flex gap-2 text-[10px] justify-center">
-        <span className={`px-2 py-0.5 rounded-full font-bold ${team.status === "active" ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}>
-          {team.status}
-        </span>
-      </div>
+      )}
     </div>
   );
 }
