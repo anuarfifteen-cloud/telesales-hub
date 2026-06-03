@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Clock, Trophy, CheckCircle, XCircle, Loader2, Gift } from "lucide-react";
+import { Users, Trophy, CheckCircle, XCircle, Loader2, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -11,44 +11,24 @@ function getBruneiDateString() {
   return new Date().toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
 }
 
+function getCycleId() {
+  // Cycle ID = the Monday of the current week in Brunei time (groups 5 weekdays)
+  const today = new Date(getBruneiDateString() + "T00:00:00+08:00");
+  const day = today.getDay(); // 0=Sun, 1=Mon...
+  const diff = (day === 0 ? -6 : 1 - day);
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diff);
+  return monday.toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
+}
+
 function getDayIndex(cycleStartDate) {
   const start = new Date(cycleStartDate + "T00:00:00+08:00");
   const today = new Date(getBruneiDateString() + "T00:00:00+08:00");
   return Math.floor((today - start) / (1000 * 60 * 60 * 24));
 }
 
-// ── Waiting Screen ────────────────────────────────────────────────────────────
-function WaitingScreen({ onCancel }) {
-  return (
-    <div className="flex flex-col items-center gap-4 py-8 text-center">
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
-        className="w-16 h-16 rounded-full bg-pink-100 dark:bg-pink-950/40 flex items-center justify-center border-2 border-pink-300 dark:border-pink-700"
-      >
-        <Users className="w-8 h-8 text-pink-500" />
-      </motion.div>
-      <div>
-        <p className="font-black text-lg text-foreground">Finding your Duo Partner…</p>
-        <p className="text-xs text-muted-foreground mt-1">You're in the queue! As soon as someone joins, your 5-day challenge begins.</p>
-      </div>
-      <div className="flex gap-1.5">
-        {[0, 1, 2].map(i => (
-          <motion.div
-            key={i}
-            className="w-2 h-2 rounded-full bg-pink-400"
-            animate={{ opacity: [0.3, 1, 0.3] }}
-            transition={{ repeat: Infinity, duration: 1.2, delay: i * 0.4 }}
-          />
-        ))}
-      </div>
-      <button onClick={onCancel} className="text-xs text-muted-foreground underline hover:text-foreground">Leave queue</button>
-    </div>
-  );
-}
-
 // ── Day Progress Pills ────────────────────────────────────────────────────────
-function DayPills({ playedDates, cycleStartDate, score }) {
+function DayPills({ playedDates, cycleStartDate }) {
   return (
     <div className="flex gap-1.5 justify-center">
       {[0, 1, 2, 3, 4].map(i => {
@@ -83,7 +63,7 @@ function QuizCard({ match, userId, onAnswered }) {
   const [question, setQuestion] = useState(null);
   const [selected, setSelected] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState(null); // { correct, correct_answer }
+  const [result, setResult] = useState(null);
 
   const isP1 = match.p1_id === userId;
   const playerPrefix = isP1 ? "p1" : "p2";
@@ -91,7 +71,6 @@ function QuizCard({ match, userId, onAnswered }) {
   const questionIds = JSON.parse(match[`${playerPrefix}_question_ids`] || "[]");
   const dayIndex = getDayIndex(match.cycle_start_date);
   const alreadyPlayed = playedDates.includes(getBruneiDateString());
-  const score = match[`${playerPrefix}_score`] || 0;
 
   useEffect(() => {
     if (alreadyPlayed || dayIndex < 0 || dayIndex > 4) return;
@@ -233,7 +212,7 @@ function CompletedScreen({ match, userId, onClaimed }) {
       <div className={`rounded-2xl border p-5 text-center ${isPerfect ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700" : "bg-card border-border"}`}>
         {isPerfect && <div className="text-3xl mb-2">🏆</div>}
         <p className="font-black text-lg text-foreground">{isPerfect ? "Perfect Team Score!" : "Cycle Complete!"}</p>
-        <p className="text-sm text-muted-foreground mt-1">5-day duo challenge finished</p>
+        <p className="text-sm text-muted-foreground mt-1">5-day quiz challenge finished</p>
 
         <div className="grid grid-cols-3 gap-2 mt-4">
           <div className="bg-muted rounded-xl p-3">
@@ -265,6 +244,13 @@ function CompletedScreen({ match, userId, onClaimed }) {
           ✅ Reward claimed!
         </div>
       )}
+
+      {/* Locked until next cycle */}
+      <div className="bg-muted border border-border rounded-2xl p-4 text-center">
+        <p className="text-xs text-muted-foreground">
+          🎉 You've finished this cycle! Your next random partner will be automatically assigned when the next 5-day cycle begins.
+        </p>
+      </div>
     </div>
   );
 }
@@ -272,61 +258,69 @@ function CompletedScreen({ match, userId, onClaimed }) {
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function DailyDuoGame({ user, onUserUpdate }) {
   const [match, setMatch] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [joining, setJoining] = useState(false);
+  const [loading, setLoading] = useState(true); // initial load
+  const [assigning, setAssigning] = useState(false); // background matchmaking
+
+  const cycleId = getCycleId();
 
   const loadMatch = async () => {
-    // Check for any active/waiting/completed match
-    const asP1Active = await base44.entities.DuoMatchCycle.filter({ p1_id: user.id, status: "active" });
-    const asP2Active = await base44.entities.DuoMatchCycle.filter({ p2_id: user.id, status: "active" });
-    const asP1Wait = await base44.entities.DuoMatchCycle.filter({ p1_id: user.id, status: "waiting" });
-    const asP1Done = await base44.entities.DuoMatchCycle.filter({ p1_id: user.id, status: "completed" });
-    const asP2Done = await base44.entities.DuoMatchCycle.filter({ p2_id: user.id, status: "completed" });
+    // Check if this user already has a record for this cycle (as p1 or p2)
+    const [asP1, asP2] = await Promise.all([
+      base44.entities.DuoMatchCycle.filter({ p1_id: user.id }),
+      base44.entities.DuoMatchCycle.filter({ p2_id: user.id }),
+    ]);
 
-    const found = asP1Active[0] || asP2Active[0] || asP1Wait[0] || asP1Done[0] || asP2Done[0];
-    setMatch(found || null);
+    const allMatches = [...asP1, ...asP2];
+    const cycleMatch = allMatches.find(m => m.cycle_start_date === cycleId);
+    return cycleMatch || null;
+  };
+
+  const autoMatchmake = async () => {
+    // STEP A: Check if user is already in a cycle
+    const existing = await loadMatch();
+    if (existing) {
+      setMatch(existing);
+      setLoading(false);
+      return;
+    }
+
+    // STEP B: User needs a team — auto-assign
+    setAssigning(true);
+
+    // Look for a waiting record (p2 not yet set) for this cycle
+    const waiting = await base44.entities.DuoMatchCycle.filter({ cycle_start_date: cycleId, status: "waiting" });
+
+    let result = null;
+    if (waiting.length > 0) {
+      // Join as p2 via the matchmake function (it handles question assignment)
+      const res = await base44.functions.invoke("duoMatchmake", {});
+      result = res.data?.match || null;
+    } else {
+      // Create as p1 via the matchmake function
+      const res = await base44.functions.invoke("duoMatchmake", {});
+      result = res.data?.match || null;
+    }
+
+    setMatch(result);
+    setAssigning(false);
     setLoading(false);
   };
 
   useEffect(() => {
-    loadMatch();
-  }, [user.id]);
-
-  const handleJoin = async () => {
-    setJoining(true);
-    const res = await base44.functions.invoke("duoMatchmake", {});
-    const data = res.data;
-    if (data.error) {
-      toast.error(data.error);
-    } else {
-      setMatch(data.match);
-    }
-    setJoining(false);
-  };
-
-  const handleLeaveQueue = async () => {
-    if (!match) return;
-    await base44.entities.DuoMatchCycle.delete(match.id);
-    setMatch(null);
-  };
+    autoMatchmake();
+  }, [user.id, cycleId]);
 
   const handleAnswered = async (data) => {
-    await loadMatch();
+    const updated = await loadMatch();
+    setMatch(updated);
     if (data.cycle_complete) toast.success("5-day cycle complete! Check your team score.");
   };
 
   const handleClaimed = async () => {
-    await loadMatch();
+    const updated = await loadMatch();
+    setMatch(updated);
     await onUserUpdate();
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-10">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   const isP1 = match?.p1_id === user.id;
   const playerPrefix = isP1 ? "p1" : "p2";
@@ -335,49 +329,68 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const partnerName = match ? (isP1 ? match.p2_name : match.p1_name) : null;
   const dayIndex = match ? getDayIndex(match.cycle_start_date) : -1;
 
+  // Check if cycle is done from the user's side
+  const isCycleDoneForUser =
+    match?.status === "completed" ||
+    (match?.status === "active" && JSON.parse(match?.[`${playerPrefix}_played_dates`] || "[]").length >= 5);
+
   return (
     <div className="flex flex-col gap-3">
       {/* Header card */}
       <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-lg">🤝</span>
-          <h3 className="font-black text-base text-foreground">Daily Duo</h3>
+          <span className="text-lg">🧠</span>
+          <h3 className="font-black text-base text-foreground">Daily Quiz</h3>
           <span className="ml-auto text-[10px] font-bold text-pink-500 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">5-Day Co-Op</span>
         </div>
-        <p className="text-xs text-muted-foreground">Get matched with a partner. Answer 1 question daily. Score 10/10 together to earn tokens!</p>
+        <p className="text-xs text-muted-foreground">Matched with a partner. Answer 1 question daily. Score 10/10 together to earn tokens!</p>
       </div>
 
-      {/* No match yet */}
-      {!match && (
-        <div className="bg-card rounded-2xl border border-border shadow-sm p-6 flex flex-col items-center gap-4 text-center">
-          <div className="w-16 h-16 rounded-full bg-pink-100 dark:bg-pink-950/40 flex items-center justify-center border-2 border-pink-200 dark:border-pink-700">
-            <Users className="w-8 h-8 text-pink-500" />
-          </div>
-          <div>
-            <p className="font-black text-base text-foreground">Ready to find your Duo?</p>
-            <p className="text-xs text-muted-foreground mt-1">You'll be matched with a partner. Both get unique daily questions over 5 days. Score a perfect <strong>10/10</strong> together to earn <strong>2 tokens each</strong>!</p>
-          </div>
-          <Button
-            onClick={handleJoin}
-            disabled={joining}
-            className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black tracking-widest uppercase shadow-lg shadow-pink-500/25"
+      {/* Loading / Assigning */}
+      {(loading || assigning) && (
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-6 flex flex-col items-center gap-3 text-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+            className="w-12 h-12 rounded-full bg-pink-100 dark:bg-pink-950/40 flex items-center justify-center border-2 border-pink-300 dark:border-pink-700"
           >
-            {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : "🤝 Find a Duo Partner"}
-          </Button>
+            <Users className="w-6 h-6 text-pink-500" />
+          </motion.div>
+          <p className="font-bold text-sm text-foreground">Assigning your partner…</p>
+          <p className="text-xs text-muted-foreground">Setting up your 5-day quiz challenge.</p>
         </div>
       )}
 
-      {/* Waiting */}
-      {match?.status === "waiting" && (
-        <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
-          <WaitingScreen onCancel={handleLeaveQueue} />
+      {/* Waiting for partner */}
+      {!loading && !assigning && match?.status === "waiting" && (
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-6 flex flex-col items-center gap-3 text-center">
+          <motion.div
+            animate={{ scale: [1, 1.08, 1] }}
+            transition={{ repeat: Infinity, duration: 1.8 }}
+            className="w-12 h-12 rounded-full bg-pink-100 dark:bg-pink-950/40 flex items-center justify-center border-2 border-pink-300 dark:border-pink-700"
+          >
+            <Users className="w-6 h-6 text-pink-500" />
+          </motion.div>
+          <div>
+            <p className="font-bold text-sm text-foreground">Waiting for your partner…</p>
+            <p className="text-xs text-muted-foreground mt-1">You're queued! As soon as another player logs in, your 5-day challenge begins.</p>
+          </div>
+          <div className="flex gap-1.5">
+            {[0, 1, 2].map(i => (
+              <motion.div
+                key={i}
+                className="w-2 h-2 rounded-full bg-pink-400"
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{ repeat: Infinity, duration: 1.2, delay: i * 0.4 }}
+              />
+            ))}
+          </div>
         </div>
       )}
 
       {/* Active */}
-      {match?.status === "active" && (
+      {!loading && !assigning && match?.status === "active" && !isCycleDoneForUser && (
         <>
-          {/* Partner & progress bar */}
           <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -394,16 +407,14 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
                 <p className="font-black text-lg text-foreground">{myScore}/5</p>
               </div>
             </div>
-            <DayPills playedDates={playedDates} cycleStartDate={match.cycle_start_date} score={myScore} />
+            <DayPills playedDates={playedDates} cycleStartDate={match.cycle_start_date} />
           </div>
-
-          {/* Quiz card */}
           <QuizCard match={match} userId={user.id} onAnswered={handleAnswered} />
         </>
       )}
 
       {/* Completed */}
-      {match?.status === "completed" && (
+      {!loading && !assigning && (match?.status === "completed" || isCycleDoneForUser) && (
         <CompletedScreen match={match} userId={user.id} onClaimed={handleClaimed} />
       )}
     </div>

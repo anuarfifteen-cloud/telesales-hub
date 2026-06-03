@@ -26,7 +26,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         />
       </div>
 
-      {/* Row 1: Milestones | VIP Pass | Daily Duo */}
+      {/* Row 1: Milestones | VIP Pass | Daily Quiz */}
       {/* Row 2: Coin Flip  | Perfect 10 */}
       <div className="flex flex-col gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
         {/* Row 1 */}
@@ -59,7 +59,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             }`}
           >
-            🤝 Daily Duo
+            🧠 Daily Quiz
           </button>
         </div>
         {/* Row 2 */}
