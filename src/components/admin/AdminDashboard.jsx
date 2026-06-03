@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { EMPLOYEE_MAP } from "@/lib/employeeMap";
 import { toast } from "sonner";
+import AdminDailyQuizTab from "./AdminDailyQuizTab";
 
 const LIVE_FEED_KEY = "liveFeedEnabled";
 
@@ -55,6 +56,7 @@ function parseCsv(text) {
 }
 
 export default function AdminDashboard({ onBack }) {
+  const [activeTab, setActiveTab] = useState("general");
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [uploadedCount, setUploadedCount] = useState(0);
@@ -129,7 +131,26 @@ export default function AdminDashboard({ onBack }) {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 pt-8 pb-10 space-y-8">
+      {/* Tab switcher */}
+      <div className="max-w-2xl mx-auto px-4 pt-4 flex gap-2">
+        {[{ id: "general", label: "⚙️ General" }, { id: "quiz", label: "🧠 Daily Quiz" }].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border ${activeTab === tab.id ? "bg-primary text-primary-foreground border-primary shadow" : "bg-card text-muted-foreground border-border hover:bg-muted"}`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "quiz" && (
+        <main className="max-w-2xl mx-auto px-4 pt-4 pb-10">
+          <AdminDailyQuizTab />
+        </main>
+      )}
+
+      {activeTab === "general" && <main className="max-w-2xl mx-auto px-4 pt-8 pb-10 space-y-8">
         {/* Welcome banner */}
         <div className="rounded-2xl bg-blue-600 text-white p-5">
           <p className="text-xs font-semibold uppercase tracking-widest opacity-75 mb-1">Admin Panel</p>
@@ -210,7 +231,7 @@ export default function AdminDashboard({ onBack }) {
             Upload Monthly Roster (CSV)
           </Button>
         </div>
-      </main>
-    </div>
-  );
-}
+      </main>}
+      </div>
+      );
+      }
