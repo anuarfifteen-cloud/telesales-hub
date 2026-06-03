@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Loader2, Plus, X, Check, Trash2, BarChart2, Users, BookOpen, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Plus, X, Check, Trash2, BarChart2, Users, BookOpen, ChevronDown, ChevronUp, CheckCircle2, XCircle, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const LAUNCH_DATE = new Date("2026-06-04T00:00:00+08:00");
@@ -83,8 +83,73 @@ function AddTeamModal({ allUsers, assignedIds, onSave, onClose }) {
   );
 }
 
+// ── Team Questions Modal ──────────────────────────────────────────────────────
+function TeamQuestionsModal({ teamName, onClose }) {
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    base44.entities.QuizQuestion.filter({ is_active: true }).then(q => {
+      setQuestions(q.slice(0, 5));
+      setLoading(false);
+    });
+  }, []);
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-card rounded-2xl border border-border w-full max-w-sm shadow-2xl my-4">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <div>
+            <h3 className="font-black text-sm text-foreground">Quiz Questions</h3>
+            <p className="text-[10px] text-muted-foreground">{teamName}</p>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-4 flex flex-col gap-3">
+          {loading && <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>}
+          {!loading && questions.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-4">No active questions found.</p>
+          )}
+          {!loading && questions.map((q, i) => (
+            <div key={q.id} className="bg-muted rounded-xl overflow-hidden">
+              {/* Question header */}
+              <div className="px-3 py-2.5 bg-indigo-50 dark:bg-indigo-950/30 border-b border-indigo-100 dark:border-indigo-900">
+                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-0.5">Question {i + 1}</p>
+                <p className="text-xs font-bold text-foreground leading-snug">{q.question_text}</p>
+              </div>
+              {/* Options */}
+              <div className="px-3 py-2 flex flex-col gap-1.5">
+                {[{ label: "A", val: q.option_a }, { label: "B", val: q.option_b }, { label: "C", val: q.option_c }].map(opt => (
+                  <div key={opt.label} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs ${opt.val === q.correct_option ? "bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700 font-bold text-emerald-800 dark:text-emerald-300" : "bg-background border border-border text-foreground"}`}>
+                    <span className="font-black opacity-50 shrink-0">{opt.label}.</span>
+                    <span className="flex-1">{opt.val}</span>
+                    {opt.val === q.correct_option && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                  </div>
+                ))}
+              </div>
+              {/* Justification */}
+              {q.justification && (
+                <div className="px-3 pb-3">
+                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2">
+                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-0.5">💡 Why?</p>
+                    <p className="text-xs text-foreground leading-relaxed">{q.justification}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Team Card ─────────────────────────────────────────────────────────────────
 function TeamCard({ team, scoreRecord, onDelete }) {
+  const [showQuestions, setShowQuestions] = useState(false);
   const teamName = `${team.player1_name || "P1"} & ${team.player2_name || "P2"}`;
   const p1Score = scoreRecord?.p1_score || 0;
   const p2Score = scoreRecord?.p2_score || 0;
@@ -94,34 +159,47 @@ function TeamCard({ team, scoreRecord, onDelete }) {
   const p2Played = JSON.parse(scoreRecord?.p2_played_dates || "[]").length;
 
   return (
-    <div className={`rounded-2xl border p-4 flex flex-col gap-3 ${isPerfect ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300" : "bg-card border-border"}`}>
-      <div className="flex items-center justify-between">
-        <p className="font-black text-sm text-foreground">{teamName}</p>
-        <div className="flex items-center gap-2">
-          {isPerfect && <span className="text-[10px] font-bold bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 px-1.5 py-0.5 rounded-full">🏆 Perfect!</span>}
-          <button onClick={() => onDelete(team)} className="text-muted-foreground hover:text-red-500 transition-colors" title="Delete team">
-            <Trash2 className="w-4 h-4" />
-          </button>
+    <>
+      <div className={`rounded-2xl border p-4 flex flex-col gap-3 ${isPerfect ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300" : "bg-card border-border"}`}>
+        <div className="flex items-center justify-between">
+          <p className="font-black text-sm text-foreground">{teamName}</p>
+          <div className="flex items-center gap-2">
+            {isPerfect && <span className="text-[10px] font-bold bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 px-1.5 py-0.5 rounded-full">🏆 Perfect!</span>}
+            <button onClick={() => onDelete(team)} className="text-muted-foreground hover:text-red-500 transition-colors" title="Delete team">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
+
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="bg-muted rounded-xl p-2">
+            <p className="text-[10px] text-muted-foreground truncate">{team.player1_name || "P1"}</p>
+            <p className="font-black text-lg text-foreground">{p1Score}/5</p>
+            <p className="text-[9px] text-muted-foreground">{p1Played} days played</p>
+          </div>
+          <div className={`rounded-xl p-2 border ${isPerfect ? "bg-amber-100 dark:bg-amber-900/40 border-amber-400" : "bg-background border-border"}`}>
+            <p className="text-[10px] text-muted-foreground">Total</p>
+            <p className={`font-black text-lg ${isPerfect ? "text-amber-600" : "text-foreground"}`}>{teamScore}/10</p>
+          </div>
+          <div className="bg-muted rounded-xl p-2">
+            <p className="text-[10px] text-muted-foreground truncate">{team.player2_name || "P2"}</p>
+            <p className="font-black text-lg text-foreground">{p2Score}/5</p>
+            <p className="text-[9px] text-muted-foreground">{p2Played} days played</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setShowQuestions(true)}
+          className="flex items-center justify-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-3 py-2 rounded-xl transition-colors w-full"
+        >
+          <Eye className="w-3.5 h-3.5" /> View All Questions
+        </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="bg-muted rounded-xl p-2">
-          <p className="text-[10px] text-muted-foreground truncate">{team.player1_name || "P1"}</p>
-          <p className="font-black text-lg text-foreground">{p1Score}/5</p>
-          <p className="text-[9px] text-muted-foreground">{p1Played} days played</p>
-        </div>
-        <div className={`rounded-xl p-2 border ${isPerfect ? "bg-amber-100 dark:bg-amber-900/40 border-amber-400" : "bg-background border-border"}`}>
-          <p className="text-[10px] text-muted-foreground">Total</p>
-          <p className={`font-black text-lg ${isPerfect ? "text-amber-600" : "text-foreground"}`}>{teamScore}/10</p>
-        </div>
-        <div className="bg-muted rounded-xl p-2">
-          <p className="text-[10px] text-muted-foreground truncate">{team.player2_name || "P2"}</p>
-          <p className="font-black text-lg text-foreground">{p2Score}/5</p>
-          <p className="text-[9px] text-muted-foreground">{p2Played} days played</p>
-        </div>
-      </div>
-    </div>
+      {showQuestions && (
+        <TeamQuestionsModal teamName={teamName} onClose={() => setShowQuestions(false)} />
+      )}
+    </>
   );
 }
 
