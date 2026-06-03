@@ -25,6 +25,7 @@ import {
   AlertDialogTitle } from
 "@/components/ui/alert-dialog";
 import AdminBookingSettings from "@/components/admin/AdminBookingSettings";
+import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminAnnouncement from "@/components/admin/AdminAnnouncement";
 import AnnouncementPanel from "@/components/announcements/AnnouncementPanel";
 import AnnouncementPopup from "@/components/announcements/AnnouncementPopup";
@@ -509,7 +510,11 @@ export default function Home() {
               }
             </button>
             {isAdmin &&
-            <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-1 rounded-full border border-red-200">ADMIN</span>
+            <button
+              onClick={() => setActiveTab("admin")}
+              className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-1 rounded-full border border-red-200 hover:bg-red-200 transition-colors">
+              ADMIN
+            </button>
             }
           </div>
         </div>
@@ -845,6 +850,11 @@ export default function Home() {
         {/* ── TOKENS TAB ── */}
         {activeTab === "tokens" && (
           <TokensTab user={user} onUserUpdate={refreshUser} totalBookingCount={totalBookingCount} isAdmin={isAdmin} />
+        )}
+
+        {/* ── ADMIN TAB ── */}
+        {activeTab === "admin" && isAdmin && (
+          <AdminDashboard onBack={() => setActiveTab("booking")} />
         )}
 
         {/* ── ROSTER TAB ── */}
