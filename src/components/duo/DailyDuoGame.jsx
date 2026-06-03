@@ -11,13 +11,10 @@ function getBruneiDateString() {
   return new Date().toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
 }
 
-function getCycleStartDate() {
-  const today = new Date(getBruneiDateString() + "T00:00:00+08:00");
-  const day = today.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diff);
-  return monday.toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
+// Cycle starts on the date the match was created (cycle_start_date field)
+// This helper is only used for querying — we just use today to find active matches
+function getTodayDate() {
+  return getBruneiDateString();
 }
 
 function getDayIndex(cycleStartDate) {
@@ -53,6 +50,62 @@ function DayPills({ playedDates, cycleStartDate }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ── Partner Performance Panel ─────────────────────────────────────────────────
+function PartnerPanel({ match, userId }) {
+  const isP1 = match.p1_id === userId;
+  const partnerPrefix = isP1 ? "p2" : "p1";
+  const partnerName = match[`${partnerPrefix}_name`] || "Partner";
+  const partnerScore = match[`${partnerPrefix}_score`] || 0;
+  const partnerPlayedDates = JSON.parse(match[`${partnerPrefix}_played_dates`] || "[]");
+  const today = getBruneiDateString();
+  const answeredToday = partnerPlayedDates.includes(today);
+
+  return (
+    <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-violet-200 dark:bg-violet-900 flex items-center justify-center text-xs font-black text-violet-700 dark:text-violet-300">
+            {partnerName[0].toUpperCase()}
+          </div>
+          <div>
+            <p className="text-xs font-bold text-foreground">{partnerName}</p>
+            <p className="text-[10px] text-muted-foreground">Your partner</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${answeredToday ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 text-emerald-700 dark:text-emerald-300" : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 text-amber-600 dark:text-amber-400"}`}>
+            {answeredToday ? "✅ Answered today" : "⏳ Not yet today"}
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground">Score</p>
+            <p className="font-black text-base text-foreground">{partnerScore}/5</p>
+          </div>
+        </div>
+      </div>
+      {/* Partner day pills */}
+      <div className="flex gap-1.5">
+        {[0, 1, 2, 3, 4].map(i => {
+          const d = new Date(match.cycle_start_date + "T00:00:00+08:00");
+          d.setDate(d.getDate() + i);
+          const dateStr = d.toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
+          const played = partnerPlayedDates.includes(dateStr);
+          const isToday = today === dateStr;
+          return (
+            <div key={i} className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black border-2 ${
+              played ? "bg-emerald-400 border-emerald-500 text-white"
+              : isToday ? "bg-amber-100 dark:bg-amber-950/40 border-amber-400 text-amber-600 animate-pulse"
+              : "bg-muted border-border text-muted-foreground"
+            }`}>
+              {i + 1}
+            </div>
+          );
+        })}
+        <span className="ml-auto text-[10px] text-muted-foreground self-center">{partnerPlayedDates.length}/5 days</span>
+      </div>
     </div>
   );
 }
@@ -257,29 +310,38 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const [match, setMatch] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const cycleStartDate = getCycleStartDate();
-
   const loadMatch = async () => {
     setLoading(true);
+    // Find active match for this user (not filtered by cycle_start_date since cycles start on kick-off day)
     const [asP1, asP2] = await Promise.all([
-      base44.entities.DuoMatchCycle.filter({ p1_id: user.id, cycle_start_date: cycleStartDate }),
-      base44.entities.DuoMatchCycle.filter({ p2_id: user.id, cycle_start_date: cycleStartDate }),
+      base44.entities.DuoMatchCycle.filter({ p1_id: user.id, status: "active" }),
+      base44.entities.DuoMatchCycle.filter({ p2_id: user.id, status: "active" }),
     ]);
-    const found = asP1[0] || asP2[0] || null;
-    setMatch(found);
+    // Also check completed matches for this rolling cycle window
+    const [compP1, compP2] = await Promise.all([
+      base44.entities.DuoMatchCycle.filter({ p1_id: user.id, status: "completed" }),
+      base44.entities.DuoMatchCycle.filter({ p2_id: user.id, status: "completed" }),
+    ]);
+    const activeMatch = asP1[0] || asP2[0] || null;
+    const completedMatches = [...compP1, ...compP2];
+    // Pick the most recent completed if no active
+    const recentCompleted = completedMatches.sort((a, b) =>
+      new Date(b.cycle_start_date) - new Date(a.cycle_start_date)
+    )[0] || null;
+    setMatch(activeMatch || recentCompleted);
     setLoading(false);
   };
 
   useEffect(() => {
     loadMatch();
-  }, [user.id, cycleStartDate]);
+  }, [user.id]);
 
   useEffect(() => {
     const unsub = base44.entities.DuoMatchCycle.subscribe(() => {
       loadMatch();
     });
     return unsub;
-  }, [user.id, cycleStartDate]);
+  }, [user.id]);
 
   const handleAnswered = async (data) => {
     await loadMatch();
@@ -295,7 +357,6 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const playerPrefix = isP1 ? "p1" : "p2";
   const playedDates = match ? JSON.parse(match[`${playerPrefix}_played_dates`] || "[]") : [];
   const myScore = match?.[`${playerPrefix}_score`] || 0;
-  const partnerName = match ? (isP1 ? match.p2_name : match.p1_name) : null;
   const dayIndex = match ? getDayIndex(match.cycle_start_date) : -1;
   const allDaysPlayed = playedDates.length >= 5;
 
@@ -334,16 +395,12 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
       {/* Active */}
       {!loading && match?.status === "active" && !allDaysPlayed && (
         <>
+          {/* My progress */}
           <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-pink-200 dark:bg-pink-900 flex items-center justify-center text-xs font-black text-pink-700 dark:text-pink-300">
-                  {(partnerName || "?")[0].toUpperCase()}
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-foreground">Partner: {partnerName || "Unknown"}</p>
-                  <p className="text-[10px] text-muted-foreground">Day {Math.min(dayIndex + 1, 5)} of 5</p>
-                </div>
+              <div>
+                <p className="text-xs font-bold text-foreground">Your Progress</p>
+                <p className="text-[10px] text-muted-foreground">Day {Math.min(dayIndex + 1, 5)} of 5</p>
               </div>
               <div className="text-right">
                 <p className="text-[10px] text-muted-foreground">Your Score</p>
@@ -352,6 +409,8 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
             </div>
             <DayPills playedDates={playedDates} cycleStartDate={match.cycle_start_date} />
           </div>
+          {/* Partner panel */}
+          <PartnerPanel match={match} userId={user.id} />
           <QuizCard match={match} userId={user.id} onAnswered={handleAnswered} />
         </>
       )}

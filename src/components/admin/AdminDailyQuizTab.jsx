@@ -7,12 +7,8 @@ import { Button } from "@/components/ui/button";
 const BRUNEI_TZ = "Asia/Brunei";
 
 function getCycleStartDate() {
-  const today = new Date(new Date().toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ }) + "T00:00:00+08:00");
-  const day = today.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diff);
-  return monday.toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
+  // Cycle starts on kick-off day (today), rolling 5-day cycles
+  return new Date().toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
 }
 
 function getCycleEndDate(startDate) {

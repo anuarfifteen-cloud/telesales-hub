@@ -7,13 +7,8 @@ function getBruneiDateString() {
 }
 
 function getCycleStartDate() {
-  // Monday of the current week in Brunei time
-  const today = new Date(getBruneiDateString() + "T00:00:00+08:00");
-  const day = today.getDay(); // 0=Sun
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diff);
-  return monday.toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
+  // Cycle starts on today's date in Brunei time (rolling 5-day cycles)
+  return getBruneiDateString();
 }
 
 function addDays(dateStr, days) {
