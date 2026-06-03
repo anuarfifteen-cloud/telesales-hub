@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Edit2, Check, X, BookOpen, ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, BookOpen, ToggleLeft, ToggleRight, RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -121,7 +121,22 @@ function QuestionRow({ q, onEdit, onDelete, onToggle }) {
 export default function AdminQuizManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingQ, setEditingQ] = useState(null);
+  const [shuffling, setShuffling] = useState(false);
+  const [confirmShuffle, setConfirmShuffle] = useState(false);
   const qc = useQueryClient();
+
+  const handleShuffleTeams = async () => {
+    setShuffling(true);
+    setConfirmShuffle(false);
+    const res = await base44.functions.invoke("generateDuoPairsForNewCycle", {});
+    const data = res.data;
+    if (data?.success) {
+      toast.success(`✅ ${data.pairs_created} pairs created for cycle starting ${data.cycle_start_date}!`);
+    } else {
+      toast.error(data?.error || "Failed to generate pairs.");
+    }
+    setShuffling(false);
+  };
 
   const { data: questions = [], isLoading } = useQuery({
     queryKey: ["quiz-questions"],
@@ -159,6 +174,31 @@ export default function AdminQuizManager() {
 
   return (
     <div className="flex flex-col gap-3">
+
+      {/* Shuffle Teams Button */}
+      {!confirmShuffle ? (
+        <button
+          onClick={() => setConfirmShuffle(true)}
+          disabled={shuffling}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/25 transition-all disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${shuffling ? "animate-spin" : ""}`} />
+          {shuffling ? "Generating pairs…" : "🔄 Force Reset & Shuffle Teams for Current Cycle"}
+        </button>
+      ) : (
+        <div className="flex items-center gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2.5">
+          <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+          <span className="text-xs text-red-700 dark:text-red-400 flex-1 font-semibold">This will delete all existing pairs for this cycle and re-randomize!</span>
+          <button
+            onClick={handleShuffleTeams}
+            className="text-[10px] font-black text-white bg-red-500 hover:bg-red-600 px-2.5 py-1.5 rounded-lg"
+          >
+            Confirm
+          </button>
+          <button onClick={() => setConfirmShuffle(false)} className="text-[10px] text-muted-foreground hover:text-foreground font-semibold">Cancel</button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-pink-500" />
