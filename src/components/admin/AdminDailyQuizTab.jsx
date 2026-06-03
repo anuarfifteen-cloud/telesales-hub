@@ -84,23 +84,70 @@ function AddTeamModal({ allUsers, assignedIds, onSave, onClose }) {
 }
 
 // ── Team Questions Modal ──────────────────────────────────────────────────────
-function TeamQuestionsModal({ teamName, onClose }) {
-  const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
+// Shows what each player was actually asked and how they answered (from question log)
+function TeamQuestionsModal({ team, scoreRecord, onClose }) {
+  const teamName = `${team.player1_name || "P1"} & ${team.player2_name || "P2"}`;
+  const p1Log = JSON.parse(scoreRecord?.p1_question_log || "[]");
+  const p2Log = JSON.parse(scoreRecord?.p2_question_log || "[]");
 
-  useEffect(() => {
-    base44.entities.QuizQuestion.filter({ is_active: true }).then(q => {
-      setQuestions(q.slice(0, 5));
-      setLoading(false);
-    });
-  }, []);
+  const PlayerLog = ({ name, log }) => {
+    if (log.length === 0) {
+      return (
+        <div className="bg-muted rounded-xl px-3 py-4 text-center">
+          <p className="text-xs text-muted-foreground">{name} hasn't answered any questions yet.</p>
+        </div>
+      );
+    }
+    return (
+      <div className="flex flex-col gap-2">
+        {log.map((entry, i) => (
+          <div key={i} className={`rounded-xl overflow-hidden border ${entry.correct ? "border-emerald-200 dark:border-emerald-800" : "border-red-200 dark:border-red-800"}`}>
+            <div className={`px-3 py-2 flex items-center justify-between ${entry.correct ? "bg-emerald-50 dark:bg-emerald-950/30" : "bg-red-50 dark:bg-red-950/30"}`}>
+              <span className="text-[10px] font-black text-muted-foreground uppercase">{entry.date}</span>
+              {entry.correct
+                ? <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Correct</span>
+                : <span className="text-[10px] font-black text-red-500 flex items-center gap-1"><XCircle className="w-3 h-3" /> Incorrect</span>
+              }
+            </div>
+            <div className="px-3 py-2.5 flex flex-col gap-1.5 bg-card">
+              <p className="text-xs font-semibold text-foreground leading-snug">{entry.question_text}</p>
+              <div className="flex flex-col gap-1 mt-0.5">
+                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs ${entry.answer === entry.correct_option ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-bold" : entry.answer !== entry.correct_option ? "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300 font-bold" : "bg-muted text-foreground"}`}>
+                  <span className="opacity-60 shrink-0">Answered:</span>
+                  <span>{entry.answer}</span>
+                  {entry.answer === entry.correct_option
+                    ? <CheckCircle2 className="w-3 h-3 text-emerald-500 ml-auto" />
+                    : <XCircle className="w-3 h-3 text-red-500 ml-auto" />
+                  }
+                </div>
+                {entry.answer !== entry.correct_option && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300">
+                    <span className="opacity-60 shrink-0">Correct:</span>
+                    <span>{entry.correct_option}</span>
+                  </div>
+                )}
+              </div>
+              {entry.justification && (
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg px-2.5 py-1.5 mt-0.5">
+                  <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-0.5">💡 Why?</p>
+                  <p className="text-xs text-foreground leading-relaxed">{entry.justification}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const [activePlayer, setActivePlayer] = useState("p1");
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-start justify-center z-50 p-4 overflow-y-auto">
       <div className="bg-card rounded-2xl border border-border w-full max-w-sm shadow-2xl my-4">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div>
-            <h3 className="font-black text-sm text-foreground">Quiz Questions</h3>
+            <h3 className="font-black text-sm text-foreground">Answer History</h3>
             <p className="text-[10px] text-muted-foreground">{teamName}</p>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -108,39 +155,27 @@ function TeamQuestionsModal({ teamName, onClose }) {
           </button>
         </div>
 
-        <div className="p-4 flex flex-col gap-3">
-          {loading && <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>}
-          {!loading && questions.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-4">No active questions found.</p>
-          )}
-          {!loading && questions.map((q, i) => (
-            <div key={q.id} className="bg-muted rounded-xl overflow-hidden">
-              {/* Question header */}
-              <div className="px-3 py-2.5 bg-indigo-50 dark:bg-indigo-950/30 border-b border-indigo-100 dark:border-indigo-900">
-                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-0.5">Question {i + 1}</p>
-                <p className="text-xs font-bold text-foreground leading-snug">{q.question_text}</p>
-              </div>
-              {/* Options */}
-              <div className="px-3 py-2 flex flex-col gap-1.5">
-                {[{ label: "A", val: q.option_a }, { label: "B", val: q.option_b }, { label: "C", val: q.option_c }].map(opt => (
-                  <div key={opt.label} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs ${opt.val === q.correct_option ? "bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700 font-bold text-emerald-800 dark:text-emerald-300" : "bg-background border border-border text-foreground"}`}>
-                    <span className="font-black opacity-50 shrink-0">{opt.label}.</span>
-                    <span className="flex-1">{opt.val}</span>
-                    {opt.val === q.correct_option && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
-                  </div>
-                ))}
-              </div>
-              {/* Justification */}
-              {q.justification && (
-                <div className="px-3 pb-3">
-                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2">
-                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-0.5">💡 Why?</p>
-                    <p className="text-xs text-foreground leading-relaxed">{q.justification}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+        {/* Player toggle */}
+        <div className="flex gap-1 p-3 border-b border-border">
+          <button
+            onClick={() => setActivePlayer("p1")}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activePlayer === "p1" ? "bg-indigo-600 text-white" : "text-muted-foreground hover:bg-muted"}`}
+          >
+            {team.player1_name || "Player 1"} ({p1Log.length}/5)
+          </button>
+          <button
+            onClick={() => setActivePlayer("p2")}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activePlayer === "p2" ? "bg-indigo-600 text-white" : "text-muted-foreground hover:bg-muted"}`}
+          >
+            {team.player2_name || "Player 2"} ({p2Log.length}/5)
+          </button>
+        </div>
+
+        <div className="p-4">
+          {activePlayer === "p1"
+            ? <PlayerLog name={team.player1_name || "Player 1"} log={p1Log} />
+            : <PlayerLog name={team.player2_name || "Player 2"} log={p2Log} />
+          }
         </div>
       </div>
     </div>
@@ -192,12 +227,12 @@ function TeamCard({ team, scoreRecord, onDelete }) {
           onClick={() => setShowQuestions(true)}
           className="flex items-center justify-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-3 py-2 rounded-xl transition-colors w-full"
         >
-          <Eye className="w-3.5 h-3.5" /> View All Questions
+          <Eye className="w-3.5 h-3.5" /> View Answer History
         </button>
       </div>
 
       {showQuestions && (
-        <TeamQuestionsModal teamName={teamName} onClose={() => setShowQuestions(false)} />
+        <TeamQuestionsModal team={team} scoreRecord={scoreRecord} onClose={() => setShowQuestions(false)} />
       )}
     </>
   );

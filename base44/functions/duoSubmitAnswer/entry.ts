@@ -17,7 +17,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: "score_id, answer, and question_id are required" }, { status: 400 });
     }
 
-    // Fetch the score record and the question
     const [scoreRecord, question] = await Promise.all([
       base44.asServiceRole.entities.FiveDayScore.get(score_id),
       base44.asServiceRole.entities.QuizQuestion.get(question_id),
@@ -27,8 +26,6 @@ Deno.serve(async (req) => {
     if (!question) return Response.json({ error: "Question not found" }, { status: 404 });
 
     const today = getBruneiDateString();
-
-    // Determine if user is p1 or p2 via DuoTeam
     const team = await base44.asServiceRole.entities.DuoTeam.get(scoreRecord.team_id);
     if (!team) return Response.json({ error: "Team not found" }, { status: 404 });
 
@@ -48,9 +45,21 @@ Deno.serve(async (req) => {
     const currentScore = scoreRecord[`${playerPrefix}_score`] || 0;
     const newScore = isCorrect ? currentScore + 1 : currentScore;
 
+    const existingLog = JSON.parse(scoreRecord[`${playerPrefix}_question_log`] || "[]");
+    const logEntry = {
+      date: today,
+      question_id: question.id,
+      question_text: question.question_text,
+      answer: answer,
+      correct_option: question.correct_option,
+      correct: isCorrect,
+      justification: question.justification || null,
+    };
+
     await base44.asServiceRole.entities.FiveDayScore.update(score_id, {
       [`${playerPrefix}_played_dates`]: JSON.stringify(newPlayedDates),
       [`${playerPrefix}_score`]: newScore,
+      [`${playerPrefix}_question_log`]: JSON.stringify([...existingLog, logEntry]),
     });
 
     return Response.json({
