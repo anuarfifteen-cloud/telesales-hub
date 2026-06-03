@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Loader2, Users, Plus, Edit2, X, Check, Rocket, AlertTriangle } from "lucide-react";
+import { Loader2, Users, Plus, Edit2, X, Check, Rocket, AlertTriangle, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const BRUNEI_TZ = "Asia/Brunei";
@@ -252,12 +252,116 @@ function TeamCard({ team, index, onEdit }) {
   );
 }
 
+// ── User Summary Table ────────────────────────────────────────────────────────
+function computeUserStats(teams, cycleStartDate) {
+  const stats = {};
+
+  const getOrCreate = (id, name) => {
+    if (!stats[id]) stats[id] = { id, name, correct: 0, wrong: 0, unanswered: 0, answered: 0, streak: 0 };
+    return stats[id];
+  };
+
+  teams.forEach(team => {
+    [
+      { id: team.p1_id, name: team.p1_name, answers: team.p1_answers, playedDates: team.p1_played_dates, score: team.p1_score },
+      { id: team.p2_id, name: team.p2_name, answers: team.p2_answers, playedDates: team.p2_played_dates, score: team.p2_score },
+    ].forEach(({ id, name, answers, playedDates, score }) => {
+      if (!id) return;
+      const s = getOrCreate(id, name || id);
+      const parsedAnswers = JSON.parse(answers || "[null,null,null,null,null]");
+      const parsedDates = JSON.parse(playedDates || "[]");
+
+      parsedAnswers.forEach(a => {
+        if (a === null || a === undefined) s.unanswered++;
+        else s.answered++;
+      });
+
+      s.correct = score || 0;
+      s.wrong = s.answered - s.correct;
+
+      // Streak: consecutive days answered starting from day 1 of cycle
+      let streak = 0;
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(cycleStartDate + "T00:00:00+08:00");
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" });
+        if (parsedDates.includes(dateStr)) streak++;
+        else break;
+      }
+      s.streak = streak;
+    });
+  });
+
+  return Object.values(stats).sort((a, b) => b.correct - a.correct || a.wrong - b.wrong);
+}
+
+function UserSummaryTable({ teams, cycleStartDate }) {
+  const stats = computeUserStats(teams, cycleStartDate);
+
+  if (stats.length === 0) return (
+    <div className="text-center py-10 text-muted-foreground text-sm">No data yet. Kick off a cycle first.</div>
+  );
+
+  return (
+    <div className="flex flex-col gap-2">
+      {/* Header */}
+      <div className="grid grid-cols-6 gap-1 px-2 text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+        <div className="col-span-2">Player</div>
+        <div className="text-center text-emerald-600">✓ Right</div>
+        <div className="text-center text-red-500">✗ Wrong</div>
+        <div className="text-center text-slate-400">— Skip</div>
+        <div className="text-center text-amber-500">🔥 Streak</div>
+      </div>
+
+      {stats.map((s, i) => {
+        const total = s.correct + s.wrong;
+        const winRate = total > 0 ? Math.round((s.correct / total) * 100) : null;
+        return (
+          <div key={s.id} className="bg-card border border-border rounded-xl px-3 py-2.5 flex flex-col gap-1.5">
+            <div className="grid grid-cols-6 gap-1 items-center">
+              <div className="col-span-2 flex items-center gap-2 min-w-0">
+                <span className="text-[10px] font-black text-muted-foreground w-4 flex-shrink-0">#{i + 1}</span>
+                <p className="text-xs font-bold text-foreground truncate">{s.name}</p>
+              </div>
+              <div className="text-center">
+                <span className="text-sm font-black text-emerald-600">{s.correct}</span>
+              </div>
+              <div className="text-center">
+                <span className="text-sm font-black text-red-500">{s.wrong}</span>
+              </div>
+              <div className="text-center">
+                <span className="text-sm font-black text-muted-foreground">{s.unanswered}</span>
+              </div>
+              <div className="text-center">
+                <span className="text-sm font-black text-amber-500">{s.streak > 0 ? `${s.streak}🔥` : "—"}</span>
+              </div>
+            </div>
+            {/* Win rate bar */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-emerald-400 rounded-full transition-all"
+                  style={{ width: winRate !== null ? `${winRate}%` : "0%" }}
+                />
+              </div>
+              <span className="text-[10px] font-bold text-muted-foreground w-10 text-right">
+                {winRate !== null ? `${winRate}%` : "—"}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function AdminDailyQuizTab() {
   const cycleStartDate = getCycleStartDate();
   const cycleEndDate = getCycleEndDate(cycleStartDate);
   const weekNum = getWeekNumber(cycleStartDate);
 
+  const [activeTab, setActiveTab] = useState("summary");
   const [teams, setTeams] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -376,30 +480,55 @@ export default function AdminDailyQuizTab() {
         </div>
       )}
 
-      {/* Team Dashboard */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-indigo-500" />
-          <span className="text-sm font-bold text-foreground">Teams ({teams.length})</span>
-        </div>
+      {/* Tab Switcher */}
+      <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
         <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-2.5 py-1 rounded-lg transition-colors"
+          onClick={() => setActiveTab("summary")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === "summary" ? "bg-indigo-600 text-white shadow" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
         >
-          <Plus className="w-3.5 h-3.5" /> Add Team Manually
+          <BarChart2 className="w-3.5 h-3.5" /> Player Summary
+        </button>
+        <button
+          onClick={() => setActiveTab("teams")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === "teams" ? "bg-indigo-600 text-white shadow" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+        >
+          <Users className="w-3.5 h-3.5" /> Teams
         </button>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-      ) : teams.length === 0 ? (
-        <div className="text-center py-10 text-muted-foreground text-sm">No teams yet. Kick off a new cycle to get started!</div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3">
-          {teams.map((team, i) => (
-            <TeamCard key={team.id} team={team} index={i} onEdit={setEditingTeam} />
-          ))}
-        </div>
+      {/* Summary Tab */}
+      {activeTab === "summary" && (
+        loading ? (
+          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+        ) : (
+          <UserSummaryTable teams={teams} cycleStartDate={cycleStartDate} />
+        )
+      )}
+
+      {/* Teams Tab */}
+      {activeTab === "teams" && (
+        <>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold text-foreground">Teams ({teams.length})</span>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-2.5 py-1 rounded-lg transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Team Manually
+            </button>
+          </div>
+          {loading ? (
+            <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+          ) : teams.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground text-sm">No teams yet. Kick off a new cycle to get started!</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {teams.map((team, i) => (
+                <TeamCard key={team.id} team={team} index={i} onEdit={setEditingTeam} />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Edit Modal */}
