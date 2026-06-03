@@ -404,7 +404,12 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
           <h3 className="font-black text-base text-foreground">Daily Quiz</h3>
           <span className="ml-auto text-[10px] font-bold text-pink-500 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">5-Day Co-Op</span>
         </div>
-        <p className="text-xs text-muted-foreground">New partners monthly! Work together to reach minimum of 5 points for 1 Token, or ace all 10 questions for 2 Tokens.</p>
+        <div className="text-xs text-muted-foreground leading-relaxed">
+          <p className="mb-1">Rotate partners monthly and win together!</p>
+          <p>
+            Reach just <strong className="text-foreground">5 points</strong> to claim <strong className="text-amber-500">1 Token</strong>, or go for a flawless <strong className="text-foreground">10</strong> to earn <strong className="text-amber-500">2 Tokens</strong>.
+          </p>
+        </div>
       </div>
 
       {loading && <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}
