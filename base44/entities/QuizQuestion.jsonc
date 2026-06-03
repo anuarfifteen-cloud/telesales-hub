@@ -22,6 +22,10 @@
       "type": "string",
       "description": "The exact text of the correct answer (matches one of option_a, option_b, option_c)"
     },
+    "justification": {
+      "type": "string",
+      "description": "Explanation of why the correct answer is correct"
+    },
     "is_active": {
       "type": "boolean",
       "description": "Whether this question is available for use in the quiz pool",

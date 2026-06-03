@@ -5,7 +5,7 @@ import { Plus, Trash2, Edit2, Check, X, BookOpen, ToggleLeft, ToggleRight } from
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-const EMPTY_FORM = { question_text: "", option_a: "", option_b: "", option_c: "", correct_option: "", is_active: true };
+const EMPTY_FORM = { question_text: "", option_a: "", option_b: "", option_c: "", correct_option: "", justification: "", is_active: true };
 
 function QuizForm({ initial, onSave, onCancel }) {
   const [form, setForm] = useState(initial || EMPTY_FORM);
@@ -54,6 +54,13 @@ function QuizForm({ initial, onSave, onCancel }) {
           <option key={i} value={opt}>{["A", "B", "C"][i]}. {opt}</option>
         ))}
       </select>
+      <textarea
+        value={form.justification}
+        onChange={e => set("justification", e.target.value)}
+        placeholder="Justification (why is this the correct answer?)…"
+        rows={2}
+        className="w-full text-xs border border-border rounded-lg px-2.5 py-2 bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-pink-300"
+      />
       <div className="flex gap-2 mt-1">
         <Button size="sm" onClick={handleSave} className="flex-1 bg-pink-600 hover:bg-pink-700 text-white text-xs h-8">
           <Check className="w-3.5 h-3.5 mr-1" /> Save
@@ -102,6 +109,11 @@ function QuestionRow({ q, onEdit, onDelete, onToggle }) {
           </div>
         ))}
       </div>
+      {q.justification && (
+        <p className="text-[10px] text-muted-foreground bg-muted rounded-lg px-2 py-1.5 border border-border italic">
+          💡 {q.justification}
+        </p>
+      )}
     </div>
   );
 }
