@@ -25,24 +25,48 @@ function getDayOfCycle() {
   return (diffDays % 5) + 1; // 1-5
 }
 
+function getCycleDates() {
+  const today = new Date(getBruneiDateString() + "T00:00:00+08:00");
+  const diffDays = Math.floor((today - LAUNCH_DATE) / (1000 * 60 * 60 * 24));
+  const cycleStartDayOffset = Math.floor(diffDays / 5) * 5;
+  const dates = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(LAUNCH_DATE);
+    d.setDate(d.getDate() + cycleStartDayOffset + i);
+    dates.push(d.toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ }));
+  }
+  return dates;
+}
+
 // ── Day Progress Pills ────────────────────────────────────────────────────────
-function DayPills({ playedCount, currentDay }) {
+function DayPills({ playerQuestionLog, currentDay, cycleDates }) {
+  const logMap = new Map();
+  playerQuestionLog.forEach(entry => { logMap.set(entry.date, entry); });
+
   return (
     <div className="flex gap-1.5 justify-center">
-      {[1, 2, 3, 4, 5].map(i => (
-        <div
-          key={i}
-          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all ${
-            i < currentDay && playedCount >= i
-              ? "bg-emerald-400 border-emerald-500 text-white"
-              : i === currentDay
-              ? "bg-pink-100 dark:bg-pink-950/40 border-pink-400 text-pink-600 dark:text-pink-400 animate-pulse"
-              : "bg-muted border-border text-muted-foreground"
-          }`}
-        >
-          {i}
-        </div>
-      ))}
+      {[0, 1, 2, 3, 4].map(idx => {
+        const dayNumber = idx + 1;
+        const date = cycleDates[idx];
+        const logEntry = logMap.get(date);
+        const isToday = dayNumber === currentDay;
+        const hasAnswered = !!logEntry;
+        const isCorrect = logEntry?.correct;
+
+        let pillClass = "bg-muted border-border text-muted-foreground";
+        if (isToday && !hasAnswered) pillClass = "bg-pink-100 dark:bg-pink-950/40 border-pink-400 text-pink-600 dark:text-pink-400 animate-pulse";
+        if (hasAnswered && isCorrect) pillClass = "bg-emerald-400 border-emerald-500 text-white";
+        if (hasAnswered && !isCorrect) pillClass = "bg-red-400 border-red-500 text-white";
+
+        return (
+          <div key={idx} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all ${pillClass}`}>
+            {hasAnswered
+              ? (isCorrect ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />)
+              : dayNumber
+            }
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -437,7 +461,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
                 <p className="font-black text-lg text-foreground">{myScore}/5</p>
               </div>
             </div>
-            <DayPills playedCount={playedDates.length} currentDay={currentDay} />
+            <DayPills playerQuestionLog={JSON.parse(scoreRecord?.[`${playerPrefix}_question_log`] || "[]")} currentDay={currentDay} cycleDates={getCycleDates()} />
           </div>
           <PartnerPanel team={team} scoreRecord={scoreRecord} userId={user.id} />
           <QuizCard team={team} scoreRecord={scoreRecord} userId={user.id} onAnswered={handleAnswered} />
