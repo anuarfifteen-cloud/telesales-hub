@@ -32,6 +32,7 @@ import AnnouncementPopup from "@/components/announcements/AnnouncementPopup";
 import RosterView from "@/components/roster/RosterView";
 import { Button } from "@/components/ui/button";
 import FeatureUnlockModal from "@/components/FeatureUnlockModal";
+import MysteryBoxModal from "@/components/booking/MysteryBoxModal";
 import { toast } from "sonner";
 
 const EMPLOYEES = [
@@ -76,6 +77,8 @@ export default function Home() {
   const [showCancelDstConfirm, setShowCancelDstConfirm] = useState(false);
   const [activePopup, setActivePopup] = useState(null);
   const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
+  const [mysteryBoxPrize, setMysteryBoxPrize] = useState(null); // null = closed, 0/1/3 = result
+  const [mysteryBoxClaiming, setMysteryBoxClaiming] = useState(false);
 
   const checkMilestones = async (totalCount) => {
     // Dark mode unlock at 5 bookings
@@ -455,6 +458,36 @@ export default function Home() {
   const bookingOpen = msUntilOpen <= 0;
   const dstCountdown = !bookingOpen ? formatCountdownHM(msUntilOpen) : null;
 
+  const getBruneiToday = () =>
+    new Date().toLocaleDateString("en-CA", { timeZone: TZ });
+
+  const handleOpenMysteryBox = () => {
+    const today = getBruneiToday();
+    if (user?.lastMysteryBoxDate === today) {
+      toast.info("You've already opened today's box! Come back tomorrow.");
+      return;
+    }
+    const roll = Math.random();
+    let prize = 0;
+    if (roll >= 0.95) prize = 3;
+    else if (roll >= 0.80) prize = 1;
+    setMysteryBoxPrize(prize);
+  };
+
+  const handleMysteryBoxClaim = async () => {
+    setMysteryBoxClaiming(true);
+    const today = getBruneiToday();
+    const updates = { lastMysteryBoxDate: today };
+    if (mysteryBoxPrize > 0) {
+      const freshUser = await base44.auth.me();
+      updates.earlyAccessTokens = (freshUser?.earlyAccessTokens ?? 0) + mysteryBoxPrize;
+    }
+    await base44.auth.updateMe(updates);
+    await refreshUser();
+    setMysteryBoxClaiming(false);
+    setMysteryBoxPrize(null);
+  };
+
   const handleAdminSave = async () => {
     if (!adminForm.date || !adminForm.employee || !adminForm.shift) {
       toast.error("Please fill in date, employee and shift.");
@@ -566,6 +599,27 @@ export default function Home() {
             onUnlockTimeChange={(h, m) => {setUnlockHour(h);setUnlockMinute(m);}} />
 
           }
+
+            {/* Daily Mystery Box */}
+            <button
+              onClick={handleOpenMysteryBox}
+              className="w-full flex items-center justify-between gap-3 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white rounded-2xl px-4 py-3.5 shadow-lg shadow-violet-200/40 dark:shadow-violet-900/30 transition-all active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🎁</span>
+                <div className="text-left">
+                  <p className="text-sm font-black leading-tight">Open Daily Mystery Box</p>
+                  <p className="text-[11px] opacity-80 mt-0.5">
+                    {user?.lastMysteryBoxDate === getBruneiToday()
+                      ? "✅ Already opened today — come back tomorrow!"
+                      : "80% empty · 15% +1 Token · 5% +3 Tokens"}
+                  </p>
+                </div>
+              </div>
+              {user?.lastMysteryBoxDate !== getBruneiToday() && (
+                <span className="text-lg animate-bounce">✨</span>
+              )}
+            </button>
 
             {/* Shared date picker */}
             <section>
@@ -1019,6 +1073,11 @@ export default function Home() {
         onClose={() => setUnlockModal((m) => ({ ...m, open: false }))}
         title={unlockModal.title}
         message={unlockModal.message} />
+
+      <MysteryBoxModal
+        prize={mysteryBoxPrize}
+        onClaim={handleMysteryBoxClaim}
+        claiming={mysteryBoxClaiming} />
 
       {/* ── FLOATING PILL BOTTOM NAVIGATION ── */}
       <nav className="fixed bottom-6 left-0 right-0 z-20 flex justify-center pointer-events-none">

@@ -32,6 +32,10 @@
       "type": "integer",
       "default": 0,
       "description": "Number of Perfect 10 free plays used on perfect10PlaysDate"
+    },
+    "lastMysteryBoxDate": {
+      "type": "string",
+      "description": "The date (YYYY-MM-DD Brunei time) the user last opened the Daily Mystery Box"
     }
   },
   "required": [
