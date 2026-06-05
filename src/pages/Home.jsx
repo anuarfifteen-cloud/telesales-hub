@@ -612,7 +612,7 @@ export default function Home() {
                   <p className="text-[11px] opacity-80 mt-0.5">
                     {user?.lastMysteryBoxDate === getBruneiToday()
                       ? "✅ Already opened today — come back tomorrow!"
-                      : "80% empty · 15% +1 Token · 5% +3 Tokens"}
+                      : "Open for a chance to win tokens!"}
                   </p>
                 </div>
               </div>
