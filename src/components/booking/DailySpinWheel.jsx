@@ -96,22 +96,7 @@ function WheelGraphic({ rotation }) {
             ...spinStyle,
           }}
         >
-          {/* Slice dividers */}
-          {PRIZES.map((_, i) => (
-            <div
-              key={i}
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                width: "50%",
-                height: "2px",
-                background: "rgba(255,255,255,0.25)",
-                transformOrigin: "left center",
-                transform: `rotate(${i * sliceAngle}deg) translateY(-50%)`,
-              }}
-            />
-          ))}
+
         </div>
 
         {/* Emoji overlay (spins with wheel) */}
