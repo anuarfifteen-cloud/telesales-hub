@@ -163,7 +163,10 @@ function WheelModal({ onClose, onClaim, user, today }) {
   const handleSpin = () => {
     if (spinning || result) return;
     const prizeIndex = rollPrizeIndex();
-    const totalRotation = spinCountRef.current + (360 * 5) - (prizeIndex * 72) - 36;
+    // Each spin adds full rotations + lands on winning slice center
+    // Accumulate so repeated spins don't snap back
+    const baseRotation = Math.ceil(spinCountRef.current / 360) * 360;
+    const totalRotation = baseRotation + (360 * 5) - (prizeIndex * 72) - 36;
     spinCountRef.current = totalRotation;
     setRotation(totalRotation);
     setSpinning(true);
