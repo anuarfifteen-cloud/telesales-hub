@@ -11,34 +11,20 @@
       "default": "user"
     },
     "earlyAccessTokens": {
-      "type": "integer",
-      "default": 0,
-      "description": "Number of early access tokens the user has available to spend"
+      "type": "number",
+      "default": 0
     },
     "vipExpiresAt": {
       "type": "string",
-      "description": "ISO timestamp of when the current early access session expires"
+      "description": "ISO timestamp when the VIP early access expires"
     },
     "milestoneTokensAwarded": {
       "type": "object",
-      "description": "Tracks which booking milestones have already been awarded tokens (e.g. { '15': true, '30': true })",
-      "default": {}
+      "description": "Tracks which booking milestones have already been awarded"
     },
-    "perfect10PlaysDate": {
+    "last_spin_date": {
       "type": "string",
-      "description": "The date (YYYY-MM-DD) for which perfect10PlaysCount is tracked"
-    },
-    "perfect10PlaysCount": {
-      "type": "integer",
-      "default": 0,
-      "description": "Number of Perfect 10 free plays used on perfect10PlaysDate"
-    },
-    "lastMysteryBoxDate": {
-      "type": "string",
-      "description": "The date (YYYY-MM-DD Brunei time) the user last opened the Daily Mystery Box"
+      "description": "The last date (YYYY-MM-DD) the user spun the wheel, used to enforce once-per-day limit"
     }
-  },
-  "required": [
-    "vipExpiresAt"
-  ]
+  }
 }

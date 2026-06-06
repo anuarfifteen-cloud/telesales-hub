@@ -1,0 +1,28 @@
+{
+  "name": "SpinActivityLog",
+  "type": "object",
+  "properties": {
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the user who spun"
+    },
+    "prize_text": {
+      "type": "string",
+      "description": "Text description of the prize won, e.g. '1 Token! \ud83e\ude99'"
+    },
+    "is_winner": {
+      "type": "boolean",
+      "description": "Whether this spin resulted in a token win",
+      "default": false
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the spin occurred"
+    }
+  },
+  "required": [
+    "user_name",
+    "prize_text",
+    "is_winner"
+  ]
+}
