@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 const TZ = "Asia/Brunei";
@@ -12,22 +11,116 @@ function getBruneiToday() {
   return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
 }
 
-// Prize table
+// ── Prize table (order = slice index 0..4, clockwise from top) ────────────────
 const PRIZES = [
-  { label: "No Luck! 😢",    tokens: 0, isWinner: false, color: "from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700", border: "border-slate-300 dark:border-slate-600", emoji: "😢", lockDate: true },
-  { label: "1 Token! 🪙",    tokens: 1, isWinner: true,  color: "from-amber-50 to-yellow-100 dark:from-amber-950/60 dark:to-yellow-900/40", border: "border-amber-300 dark:border-amber-700", emoji: "🪙", lockDate: true },
-  { label: "Spin Again! 🔄", tokens: 0, isWinner: false, color: "from-sky-50 to-blue-100 dark:from-sky-950/60 dark:to-blue-900/40", border: "border-sky-300 dark:border-sky-600", emoji: "🔄", lockDate: false },
-  { label: "Lucky Two! 🌟",  tokens: 2, isWinner: true,  color: "from-emerald-50 to-green-100 dark:from-emerald-950/60 dark:to-green-900/40", border: "border-emerald-300 dark:border-emerald-700", emoji: "🌟", lockDate: true },
-  { label: "JACKPOT! 💎",   tokens: 3, isWinner: true,  color: "from-violet-50 to-purple-100 dark:from-violet-950/60 dark:to-purple-900/40", border: "border-violet-400 dark:border-violet-600", emoji: "💎", lockDate: true },
+  { label: "No Luck! 😢",    tokens: 0, isWinner: false, emoji: "😢", lockDate: true,  wheelColor: "#ef4444", textColor: "#fff" },
+  { label: "1 Token! 🪙",    tokens: 1, isWinner: true,  emoji: "🪙", lockDate: true,  wheelColor: "#3b82f6", textColor: "#fff" },
+  { label: "Spin Again! 🔄", tokens: 0, isWinner: false, emoji: "🔄", lockDate: false, wheelColor: "#eab308", textColor: "#1e293b" },
+  { label: "Lucky Two! 🌟",  tokens: 2, isWinner: true,  emoji: "🌟", lockDate: true,  wheelColor: "#22c55e", textColor: "#fff" },
+  { label: "JACKPOT! 💎",   tokens: 3, isWinner: true,  emoji: "💎", lockDate: true,  wheelColor: "#f59e0b", textColor: "#1e293b" },
 ];
 
-function rollPrize() {
+function rollPrizeIndex() {
   const roll = Math.random();
-  if (roll < 0.45) return PRIZES[0]; // No Luck
-  if (roll < 0.75) return PRIZES[1]; // 1 Token
-  if (roll < 0.90) return PRIZES[2]; // Spin Again
-  if (roll < 0.97) return PRIZES[3]; // 2 Tokens
-  return PRIZES[4];                  // Jackpot
+  if (roll < 0.45) return 0; // No Luck
+  if (roll < 0.75) return 1; // 1 Token
+  if (roll < 0.90) return 2; // Spin Again
+  if (roll < 0.97) return 3; // 2 Tokens
+  return 4;                  // Jackpot
+}
+
+// ── Conic gradient wheel ──────────────────────────────────────────────────────
+function WheelGraphic({ rotation }) {
+  const sliceAngle = 360 / PRIZES.length; // 72deg each
+
+  // Build conic-gradient clockwise, slice 0 starts at 0deg (top)
+  const stops = PRIZES.map((p, i) => {
+    const start = i * sliceAngle;
+    const end = start + sliceAngle;
+    return `${p.wheelColor} ${start}deg ${end}deg`;
+  }).join(", ");
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: 260, height: 260 }}>
+      {/* Pointer arrow at top */}
+      <div
+        className="absolute z-10"
+        style={{ top: -18, left: "50%", transform: "translateX(-50%)" }}
+      >
+        <div
+          style={{
+            width: 0,
+            height: 0,
+            borderLeft: "12px solid transparent",
+            borderRight: "12px solid transparent",
+            borderTop: "22px solid #1e293b",
+            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))",
+          }}
+        />
+      </div>
+
+      {/* Spinning wheel */}
+      <div
+        style={{
+          width: 260,
+          height: 260,
+          borderRadius: "50%",
+          background: `conic-gradient(${stops})`,
+          transform: `rotate(${rotation}deg)`,
+          transition: rotation > 0 ? "transform 4s cubic-bezier(0.1, 0, 0, 1)" : "none",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+          border: "4px solid white",
+        }}
+      />
+
+      {/* Slice labels */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          width: 260,
+          height: 260,
+          transform: `rotate(${rotation}deg)`,
+          transition: rotation > 0 ? "transform 4s cubic-bezier(0.1, 0, 0, 1)" : "none",
+        }}
+      >
+        {PRIZES.map((p, i) => {
+          const angleDeg = i * sliceAngle + sliceAngle / 2; // center of slice
+          const angleRad = ((angleDeg - 90) * Math.PI) / 180;
+          const r = 85; // distance from center
+          const x = 130 + r * Math.cos(angleRad);
+          const y = 130 + r * Math.sin(angleRad);
+          return (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                left: x,
+                top: y,
+                transform: `translate(-50%, -50%) rotate(${angleDeg}deg)`,
+                color: p.textColor,
+                fontSize: 11,
+                fontWeight: 800,
+                textAlign: "center",
+                lineHeight: 1.2,
+                width: 52,
+                textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+              }}
+            >
+              <div style={{ fontSize: 16 }}>{p.emoji}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Center hub */}
+      <div
+        className="absolute rounded-full bg-white shadow-md flex items-center justify-center"
+        style={{ width: 36, height: 36, border: "3px solid #e2e8f0", zIndex: 5 }}
+      >
+        <span style={{ fontSize: 14 }}>🎡</span>
+      </div>
+    </div>
+  );
 }
 
 // ── Winner Feed ───────────────────────────────────────────────────────────────
@@ -59,130 +152,188 @@ function WinnerFeed() {
   );
 }
 
-// ── Result Modal ──────────────────────────────────────────────────────────────
-function SpinResultModal({ prize, onClaim, claiming }) {
-  if (!prize) return null;
+// ── Wheel Modal ───────────────────────────────────────────────────────────────
+function WheelModal({ onClose, onClaim, user, today }) {
+  const [rotation, setRotation] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+  const [result, setResult] = useState(null); // PRIZES[index] after spin
+  const [claiming, setClaiming] = useState(false);
+  const spinCountRef = useRef(0);
+
+  const handleSpin = () => {
+    if (spinning || result) return;
+    const prizeIndex = rollPrizeIndex();
+    const totalRotation = spinCountRef.current + (360 * 5) - (prizeIndex * 72) - 36;
+    spinCountRef.current = totalRotation;
+    setRotation(totalRotation);
+    setSpinning(true);
+    setTimeout(() => {
+      setSpinning(false);
+      setResult(PRIZES[prizeIndex]);
+    }, 4100);
+  };
+
+  const handleClaim = async () => {
+    if (!result) return;
+    setClaiming(true);
+
+    const updates = {};
+    if (result.lockDate) updates.last_spin_date = today;
+    if (result.tokens > 0) {
+      const freshUser = await base44.auth.me();
+      updates.earlyAccessTokens = (freshUser?.earlyAccessTokens ?? 0) + result.tokens;
+    }
+    if (Object.keys(updates).length > 0) await base44.auth.updateMe(updates);
+
+    await base44.entities.SpinActivityLog.create({
+      user_name: user.full_name || user.email,
+      prize_text: result.label,
+      is_winner: result.isWinner,
+      created_at: new Date().toISOString(),
+    });
+
+    if (result.tokens > 0) {
+      toast.success(`+${result.tokens} token${result.tokens > 1 ? "s" : ""} added! 🎉`);
+    } else if (result.lockDate) {
+      toast.info("Better luck tomorrow!");
+    }
+
+    await onClaim();
+    setClaiming(false);
+  };
+
+  const handleSpinAgain = () => {
+    setResult(null);
+    setSpinning(false);
+  };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-        <motion.div
-          initial={{ scale: 0.7, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.7, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 22 }}
-          className={`w-full max-w-xs rounded-3xl border-2 bg-gradient-to-br ${prize.color} ${prize.border} shadow-2xl p-6 flex flex-col items-center gap-4 text-center`}
-        >
-          <div className="text-6xl">{prize.emoji}</div>
-          <div>
-            <h2 className="text-2xl font-black text-foreground leading-tight">{prize.label}</h2>
-            {prize.tokens > 0 && (
-              <p className="text-sm text-muted-foreground mt-1.5">
-                +{prize.tokens} token{prize.tokens > 1 ? "s" : ""} added to your balance!
+    <div className="fixed inset-0 bg-black/80 z-50 flex flex-col items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && !spinning && !result && onClose()}>
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-5">
+        {/* Header */}
+        <div className="w-full flex items-center justify-between">
+          <h2 className="text-lg font-black text-foreground">🎡 Daily Spin Wheel</h2>
+          {!spinning && !result && (
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl font-bold leading-none">×</button>
+          )}
+        </div>
+
+        {/* Wheel */}
+        <WheelGraphic rotation={rotation} />
+
+        {/* Prize slices legend */}
+        <div className="grid grid-cols-5 gap-1 w-full">
+          {PRIZES.map((p, i) => (
+            <div key={i} className="flex flex-col items-center gap-0.5">
+              <div className="w-5 h-5 rounded-full border border-white/50" style={{ background: p.wheelColor }} />
+              <span className="text-[9px] text-muted-foreground text-center leading-tight">{p.emoji}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Result or Spin button */}
+        {!result && (
+          <Button
+            onClick={handleSpin}
+            disabled={spinning}
+            className="w-full h-12 text-base font-black bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white rounded-2xl shadow-lg shadow-violet-200/40"
+          >
+            {spinning ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Spinning…</> : "SPIN!"}
+          </Button>
+        )}
+
+        {result && (
+          <div className="w-full flex flex-col items-center gap-3">
+            <div className="text-5xl">{result.emoji}</div>
+            <h3 className="text-xl font-black text-foreground text-center">{result.label}</h3>
+            {result.tokens > 0 && (
+              <p className="text-sm text-muted-foreground text-center">
+                +{result.tokens} token{result.tokens > 1 ? "s" : ""} will be added to your balance!
               </p>
             )}
-            {!prize.lockDate && (
-              <p className="text-sm text-sky-600 dark:text-sky-400 font-semibold mt-1.5">
-                You can spin again today!
-              </p>
+            {!result.lockDate && (
+              <p className="text-sm text-sky-600 dark:text-sky-400 font-semibold text-center">You can spin again!</p>
+            )}
+
+            {result.lockDate ? (
+              <Button
+                onClick={handleClaim}
+                disabled={claiming}
+                className="w-full font-black bg-slate-800 hover:bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-2xl"
+              >
+                {claiming ? <Loader2 className="w-4 h-4 animate-spin" /> : "Claim & Close"}
+              </Button>
+            ) : (
+              <div className="flex flex-col gap-2 w-full">
+                <Button
+                  onClick={handleSpinAgain}
+                  className="w-full font-black bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 text-white rounded-2xl"
+                >
+                  Spin Again! 🔄
+                </Button>
+                <button onClick={onClose} className="text-xs text-muted-foreground underline text-center">
+                  Close without spinning
+                </button>
+              </div>
             )}
           </div>
-          <Button
-            onClick={onClaim}
-            disabled={claiming}
-            className="w-full font-black tracking-wide bg-slate-800 hover:bg-slate-900 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 text-white rounded-2xl py-3"
-          >
-            {claiming ? <Loader2 className="w-4 h-4 animate-spin" /> : prize.lockDate ? "Claim & Close" : "Got it!"}
-          </Button>
-        </motion.div>
+        )}
       </div>
-    </AnimatePresence>
+    </div>
   );
 }
 
 // ── Main Export ───────────────────────────────────────────────────────────────
 export default function DailySpinWheel({ user, onUserUpdate }) {
-  const [activePrize, setActivePrize] = useState(null);
-  const [claiming, setClaiming] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const queryClient = useQueryClient();
 
   const today = getBruneiToday();
   const alreadySpun = user?.last_spin_date === today;
 
-  const handleSpin = () => {
-    if (alreadySpun || !user) return;
-    const prize = rollPrize();
-    setActivePrize(prize);
-  };
-
   const handleClaim = async () => {
-    if (!activePrize) return;
-    setClaiming(true);
-
-    const updates = {};
-    // Only lock the date if it's NOT a "Spin Again"
-    if (activePrize.lockDate) {
-      updates.last_spin_date = today;
-    }
-
-    // Award tokens if any
-    if (activePrize.tokens > 0) {
-      const freshUser = await base44.auth.me();
-      updates.earlyAccessTokens = (freshUser?.earlyAccessTokens ?? 0) + activePrize.tokens;
-    }
-
-    if (Object.keys(updates).length > 0) {
-      await base44.auth.updateMe(updates);
-    }
-
-    // Log to SpinActivityLog
-    await base44.entities.SpinActivityLog.create({
-      user_name: user.full_name || user.email,
-      prize_text: activePrize.label,
-      is_winner: activePrize.isWinner,
-      created_at: new Date().toISOString(),
-    });
-
     queryClient.invalidateQueries({ queryKey: ["spinWinners"] });
-
-    if (activePrize.tokens > 0) {
-      toast.success(`+${activePrize.tokens} token${activePrize.tokens > 1 ? "s" : ""} added! 🎉`);
-    } else if (activePrize.lockDate) {
-      toast.info("Better luck tomorrow!");
-    }
-
     await onUserUpdate();
-    setClaiming(false);
-    setActivePrize(null);
+    setShowModal(false);
   };
 
   return (
     <>
-      {/* Trigger Card */}
-      <div
-        onClick={alreadySpun ? undefined : handleSpin}
-        className={`w-full rounded-xl p-6 shadow-lg flex items-center justify-between transition-opacity ${
-          alreadySpun
-            ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
-            : "bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white cursor-pointer hover:opacity-90"
-        }`}
-      >
-        <div>
-          <h3 className="text-xl font-bold flex items-center gap-2">🎡 {alreadySpun ? "Come back tomorrow!" : "Daily Spin Wheel"}</h3>
-          {!alreadySpun && <p className="text-sm opacity-90 mt-1">Spin once a day to win free tokens!</p>}
+      {/* Compact Banner */}
+      <div className={`w-full rounded-xl p-3 shadow-md flex items-center justify-between mb-4 ${
+        alreadySpun
+          ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
+          : "bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white"
+      }`}>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🎡</span>
+          <div>
+            <p className="font-bold text-sm leading-tight">{alreadySpun ? "Come back tomorrow!" : "Daily Spin"}</p>
+            {!alreadySpun && <p className="text-xs opacity-90">Spin to win tokens!</p>}
+          </div>
         </div>
         {!alreadySpun && (
-          <div className="bg-white/20 px-4 py-2 rounded-full font-bold text-sm backdrop-blur-sm whitespace-nowrap">
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-1.5 rounded-full font-bold text-sm transition-colors whitespace-nowrap"
+          >
             Spin Now
-          </div>
+          </button>
         )}
       </div>
 
       {/* Winner Feed */}
       <WinnerFeed />
 
-      {/* Result Modal */}
-      <SpinResultModal prize={activePrize} onClaim={handleClaim} claiming={claiming} />
+      {/* Wheel Modal */}
+      {showModal && (
+        <WheelModal
+          onClose={() => setShowModal(false)}
+          onClaim={handleClaim}
+          user={user}
+          today={today}
+        />
+      )}
     </>
   );
 }
