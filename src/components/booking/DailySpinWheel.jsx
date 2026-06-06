@@ -13,11 +13,11 @@ function getBruneiToday() {
 
 // ── Prize table (order = slice index 0..4, clockwise from top) ────────────────
 const PRIZES = [
-  { label: "No Luck! 😢",    tokens: 0, isWinner: false, emoji: "😢", lockDate: true,  wheelColor: "#ef4444", textColor: "#fff" },
-  { label: "1 Token! 🪙",    tokens: 1, isWinner: true,  emoji: "🪙", lockDate: true,  wheelColor: "#3b82f6", textColor: "#fff" },
-  { label: "Spin Again! 🔄", tokens: 0, isWinner: false, emoji: "🔄", lockDate: false, wheelColor: "#eab308", textColor: "#1e293b" },
-  { label: "Lucky Two! 🌟",  tokens: 2, isWinner: true,  emoji: "🌟", lockDate: true,  wheelColor: "#22c55e", textColor: "#fff" },
-  { label: "JACKPOT! 💎",   tokens: 3, isWinner: true,  emoji: "💎", lockDate: true,  wheelColor: "#f59e0b", textColor: "#1e293b" },
+  { label: "No Luck! 😢",    tokens: 0, isWinner: false, emoji: "😢", lockDate: true,  wheelColor: "#c0392b", textColor: "#fff",     dotColor: "bg-red-600"    },
+  { label: "1 Token! 🪙",    tokens: 1, isWinner: true,  emoji: "🪙", lockDate: true,  wheelColor: "#1d4ed8", textColor: "#fff",     dotColor: "bg-blue-700"   },
+  { label: "Spin Again! 🔄", tokens: 0, isWinner: false, emoji: "🔄", lockDate: false, wheelColor: "#d97706", textColor: "#1e293b",  dotColor: "bg-amber-600"  },
+  { label: "Lucky Two! 🌟",  tokens: 2, isWinner: true,  emoji: "🌟", lockDate: true,  wheelColor: "#15803d", textColor: "#fff",     dotColor: "bg-green-700"  },
+  { label: "JACKPOT! 💎",   tokens: 3, isWinner: true,  emoji: "💎", lockDate: true,  wheelColor: "#b45309", textColor: "#fff",     dotColor: "bg-yellow-700" },
 ];
 
 function rollPrizeIndex() {
@@ -33,91 +33,131 @@ function rollPrizeIndex() {
 function WheelGraphic({ rotation }) {
   const sliceAngle = 360 / PRIZES.length; // 72deg each
 
-  // Build conic-gradient clockwise, slice 0 starts at 0deg (top)
   const stops = PRIZES.map((p, i) => {
     const start = i * sliceAngle;
     const end = start + sliceAngle;
     return `${p.wheelColor} ${start}deg ${end}deg`;
   }).join(", ");
 
+  const spinStyle = {
+    transform: `rotate(${rotation}deg)`,
+    transition: rotation > 0 ? "transform 4s cubic-bezier(0.1, 0, 0, 1)" : "none",
+  };
+
   return (
-    <div className="relative flex items-center justify-center" style={{ width: 260, height: 260 }}>
-      {/* Pointer arrow at top */}
+    <div className="relative flex items-center justify-center" style={{ width: 284, height: 284 }}>
+      {/* Premium pointer arrow */}
       <div
-        className="absolute z-10"
-        style={{ top: -18, left: "50%", transform: "translateX(-50%)" }}
+        className="absolute z-30"
+        style={{
+          top: -10,
+          left: "50%",
+          transform: "translateX(-50%)",
+          filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.5))",
+        }}
       >
         <div
           style={{
             width: 0,
             height: 0,
-            borderLeft: "12px solid transparent",
-            borderRight: "12px solid transparent",
-            borderTop: "22px solid #1e293b",
-            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))",
+            borderLeft: "14px solid transparent",
+            borderRight: "14px solid transparent",
+            borderTop: "26px solid #facc15",
           }}
         />
       </div>
 
-      {/* Spinning wheel */}
+      {/* Outer carnival rim */}
       <div
+        className="rounded-full"
         style={{
-          width: 260,
-          height: 260,
-          borderRadius: "50%",
-          background: `conic-gradient(${stops})`,
-          transform: `rotate(${rotation}deg)`,
-          transition: rotation > 0 ? "transform 4s cubic-bezier(0.1, 0, 0, 1)" : "none",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
-          border: "4px solid white",
-        }}
-      />
-
-      {/* Slice labels */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          width: 260,
-          height: 260,
-          transform: `rotate(${rotation}deg)`,
-          transition: rotation > 0 ? "transform 4s cubic-bezier(0.1, 0, 0, 1)" : "none",
+          width: 284,
+          height: 284,
+          background: "#1e1b4b",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.3), inset 0 0 16px rgba(0,0,0,0.4)",
+          border: "12px solid #312e81",
+          padding: 4,
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        {PRIZES.map((p, i) => {
-          const angleDeg = i * sliceAngle + sliceAngle / 2; // center of slice
-          const angleRad = ((angleDeg - 90) * Math.PI) / 180;
-          const r = 85; // distance from center
-          const x = 130 + r * Math.cos(angleRad);
-          const y = 130 + r * Math.sin(angleRad);
-          return (
+        {/* Spinning wheel disc */}
+        <div
+          style={{
+            width: 244,
+            height: 244,
+            borderRadius: "50%",
+            background: `conic-gradient(${stops})`,
+            boxShadow: "inset 0 0 20px rgba(0,0,0,0.25)",
+            position: "relative",
+            overflow: "hidden",
+            ...spinStyle,
+          }}
+        >
+          {/* Slice dividers */}
+          {PRIZES.map((_, i) => (
             <div
               key={i}
               style={{
                 position: "absolute",
-                left: x,
-                top: y,
-                transform: `translate(-50%, -50%) rotate(${angleDeg}deg)`,
-                color: p.textColor,
-                fontSize: 11,
-                fontWeight: 800,
-                textAlign: "center",
-                lineHeight: 1.2,
-                width: 52,
-                textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                top: "50%",
+                left: "50%",
+                width: "50%",
+                height: "2px",
+                background: "rgba(255,255,255,0.25)",
+                transformOrigin: "left center",
+                transform: `rotate(${i * sliceAngle}deg) translateY(-50%)`,
               }}
-            >
-              <div style={{ fontSize: 16 }}>{p.emoji}</div>
-            </div>
-          );
-        })}
+            />
+          ))}
+        </div>
+
+        {/* Emoji overlay (spins with wheel) */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ width: 244, height: 244, margin: "auto", ...spinStyle }}
+        >
+          {PRIZES.map((p, i) => {
+            const angleDeg = i * sliceAngle + sliceAngle / 2;
+            const angleRad = ((angleDeg - 90) * Math.PI) / 180;
+            const r = 78;
+            const x = 122 + r * Math.cos(angleRad);
+            const y = 122 + r * Math.sin(angleRad);
+            return (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  left: x,
+                  top: y,
+                  transform: `translate(-50%, -50%) rotate(${angleDeg}deg)`,
+                  fontSize: 22,
+                  filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))",
+                }}
+              >
+                {p.emoji}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Center hub */}
+      {/* 3D center hub */}
       <div
-        className="absolute rounded-full bg-white shadow-md flex items-center justify-center"
-        style={{ width: 36, height: 36, border: "3px solid #e2e8f0", zIndex: 5 }}
+        className="absolute flex items-center justify-center"
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: "50%",
+          background: "linear-gradient(to bottom, #ffffff, #d1d5db)",
+          boxShadow: "0 4px 10px rgba(0,0,0,0.4)",
+          border: "4px solid #9ca3af",
+          zIndex: 20,
+        }}
       >
-        <span style={{ fontSize: 14 }}>🎡</span>
+        <span style={{ fontSize: 20 }}>⭐</span>
       </div>
     </div>
   );
@@ -224,12 +264,12 @@ function WheelModal({ onClose, onClaim, user, today }) {
         {/* Wheel */}
         <WheelGraphic rotation={rotation} />
 
-        {/* Prize slices legend */}
-        <div className="grid grid-cols-5 gap-1 w-full">
+        {/* Prize legend paytable */}
+        <div className="flex flex-wrap justify-center gap-2 mt-2 w-full">
           {PRIZES.map((p, i) => (
-            <div key={i} className="flex flex-col items-center gap-0.5">
-              <div className="w-5 h-5 rounded-full border border-white/50" style={{ background: p.wheelColor }} />
-              <span className="text-[9px] text-muted-foreground text-center leading-tight">{p.emoji}</span>
+            <div key={i} className="flex items-center gap-1.5 bg-gray-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-slate-600 shadow-sm">
+              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${p.dotColor}`} />
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-200 whitespace-nowrap">{p.emoji} {p.label.replace(/[😢🪙🔄🌟💎]/g, "").trim()}</span>
             </div>
           ))}
         </div>
