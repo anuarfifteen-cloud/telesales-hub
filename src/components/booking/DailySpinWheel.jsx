@@ -73,7 +73,7 @@ function WheelGraphic({ rotation }) {
         }}
       />
 
-      {/* Slice labels */}
+      {/* Slice labels — emoji + text, rotated to point outward */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -84,29 +84,37 @@ function WheelGraphic({ rotation }) {
         }}
       >
         {PRIZES.map((p, i) => {
-          const angleDeg = i * sliceAngle + sliceAngle / 2; // center of slice
-          const angleRad = ((angleDeg - 90) * Math.PI) / 180;
-          const r = 85; // distance from center
-          const x = 130 + r * Math.cos(angleRad);
-          const y = 130 + r * Math.sin(angleRad);
+          const angleDeg = i * sliceAngle + sliceAngle / 2;
           return (
             <div
               key={i}
               style={{
                 position: "absolute",
-                left: x,
-                top: y,
-                transform: `translate(-50%, -50%) rotate(${angleDeg}deg)`,
-                color: p.textColor,
-                fontSize: 11,
-                fontWeight: 800,
-                textAlign: "center",
-                lineHeight: 1.2,
-                width: 52,
-                textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                left: "50%",
+                top: "50%",
+                width: 100,
+                transformOrigin: "0% 0%",
+                transform: `rotate(${angleDeg}deg) translateY(-50%)`,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                paddingLeft: 18,
+                paddingRight: 4,
+                gap: 2,
               }}
             >
-              <div style={{ fontSize: 16 }}>{p.emoji}</div>
+              <span style={{ fontSize: 18, lineHeight: 1 }}>{p.emoji}</span>
+              <span style={{
+                color: p.textColor,
+                fontSize: 10,
+                fontWeight: 800,
+                textAlign: "center",
+                textShadow: "0 1px 3px rgba(0,0,0,0.5)",
+                lineHeight: 1.2,
+                whiteSpace: "nowrap",
+              }}>
+                {p.label.replace(/ [^\s]+$/, "")}
+              </span>
             </div>
           );
         })}
@@ -224,16 +232,6 @@ function WheelModal({ onClose, onClaim, user, today }) {
         {/* Wheel */}
         <WheelGraphic rotation={rotation} />
 
-        {/* Prize slices legend */}
-        <div className="grid grid-cols-5 gap-1 w-full">
-          {PRIZES.map((p, i) => (
-            <div key={i} className="flex flex-col items-center gap-0.5">
-              <div className="w-5 h-5 rounded-full border border-white/50" style={{ background: p.wheelColor }} />
-              <span className="text-[9px] text-muted-foreground text-center leading-tight">{p.emoji}</span>
-            </div>
-          ))}
-        </div>
-
         {/* Result or Spin button */}
         {!result && (
           <Button
@@ -247,16 +245,18 @@ function WheelModal({ onClose, onClaim, user, today }) {
 
         {result && (
           <div className="w-full flex flex-col items-center gap-3">
-            <div className="text-5xl">{result.emoji}</div>
-            <h3 className="text-xl font-black text-foreground text-center">{result.label}</h3>
-            {result.tokens > 0 && (
-              <p className="text-sm text-muted-foreground text-center">
-                +{result.tokens} token{result.tokens > 1 ? "s" : ""} will be added to your balance!
-              </p>
-            )}
-            {!result.lockDate && (
-              <p className="text-sm text-sky-600 dark:text-sky-400 font-semibold text-center">You can spin again!</p>
-            )}
+            <div className="w-full bg-yellow-50 border-2 border-yellow-400 rounded-xl p-4 text-center shadow-lg">
+              <div className="text-4xl mb-1">{result.emoji}</div>
+              <h3 className="text-3xl font-extrabold text-gray-900 leading-tight">{result.label}</h3>
+              {result.tokens > 0 && (
+                <p className="text-sm text-yellow-700 font-semibold mt-1.5">
+                  +{result.tokens} token{result.tokens > 1 ? "s" : ""} will be added to your balance!
+                </p>
+              )}
+              {!result.lockDate && (
+                <p className="text-sm text-sky-600 font-semibold mt-1.5">You can spin again!</p>
+              )}
+            </div>
 
             {result.lockDate ? (
               <Button
@@ -281,6 +281,7 @@ function WheelModal({ onClose, onClaim, user, today }) {
             )}
           </div>
         )}
+
       </div>
     </div>
   );
