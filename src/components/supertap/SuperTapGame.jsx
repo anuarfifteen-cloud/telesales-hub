@@ -95,7 +95,7 @@ function Leaderboard() {
           <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">🥈 2nd: 2 Tokens</span>
           <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">🥉 3rd: 1 Token</span>
         </div>
-        <p className="text-[11px] text-amber-700 light:text-amber-400 mt-2 leading-relaxed">Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players on the board!
+        <p className="text-[11px] light:text-amber-400 mt-2 leading-relaxed text-[#199a26]">Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players on the board!
 
         </p>
       </div>
