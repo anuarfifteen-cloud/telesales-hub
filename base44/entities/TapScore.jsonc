@@ -1,0 +1,32 @@
+{
+  "name": "TapScore",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the user"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user"
+    },
+    "high_score": {
+      "type": "number",
+      "description": "The user's personal best tap count in 10 seconds",
+      "default": 0
+    },
+    "last_played": {
+      "type": "string",
+      "description": "ISO timestamp of the last time this user played"
+    }
+  },
+  "required": [
+    "user_id",
+    "user_name",
+    "high_score"
+  ]
+}

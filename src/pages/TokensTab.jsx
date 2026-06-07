@@ -4,6 +4,7 @@ import CoinFlipArena from "@/components/coinflip/CoinFlipArena";
 import PerfectTen from "@/components/coinflip/PerfectTen";
 import VipActivityFeed from "@/components/coinflip/VipActivityFeed";
 import DailyDuoGame from "@/components/duo/DailyDuoGame";
+import SuperTapGame from "@/components/supertap/SuperTapGame";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin }) {
   const [innerTab, setInnerTab] = useState("milestones");
@@ -63,7 +64,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           </button>
         </div>
         {/* Row 2 */}
-        <div className="grid grid-cols-2 gap-1">
+        <div className="grid grid-cols-3 gap-1">
           <button
             onClick={() => setInnerTab("coinflip")}
             className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
@@ -83,6 +84,16 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
             }`}
           >
             ⏱️ Perfect 10
+          </button>
+          <button
+            onClick={() => setInnerTab("supertap")}
+            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              innerTab === "supertap"
+                ? "bg-red-500 text-white shadow"
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            ⚡ Super Tap
           </button>
         </div>
       </div>
@@ -112,6 +123,11 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
       {/* Daily Duo */}
       {innerTab === "duo" && (
         <DailyDuoGame user={user} onUserUpdate={onUserUpdate} />
+      )}
+
+      {/* Super Tap */}
+      {innerTab === "supertap" && (
+        <SuperTapGame user={user} />
       )}
 
       {/* VIP Pass */}
