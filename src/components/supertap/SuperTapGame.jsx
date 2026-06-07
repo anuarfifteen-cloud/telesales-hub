@@ -56,11 +56,15 @@ function playEndSound(ctx) {
   });
 }
 
-function getRankEmoji(rank) {
-  if (rank === 1) return "🥇";
-  if (rank === 2) return "🥈";
-  if (rank === 3) return "🥉";
-  return `#${rank}`;
+function RankBadge({ rank }) {
+  if (rank === 1) return <span className="text-xl">🥇</span>;
+  if (rank === 2) return <span className="text-xl">🥈</span>;
+  if (rank === 3) return <span className="text-xl">🥉</span>;
+  return (
+    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 text-[11px] font-black text-slate-600 dark:text-slate-300">
+      {rank}
+    </span>
+  );
 }
 
 function Leaderboard() {
@@ -104,12 +108,16 @@ function Leaderboard() {
             const isChamp = champUserIds.has(s.user_id);
             return (
               <div key={s.id} className={`flex items-center gap-3 px-4 py-2.5 ${i < 3 && !isChamp ? "bg-amber-50/40 dark:bg-amber-950/10" : ""}`}>
-                <span className="text-base w-8 text-center flex-shrink-0 font-bold">{getRankEmoji(i + 1)}</span>
-                <span className="flex-1 text-sm font-semibold text-foreground truncate">
-                  {s.user_name}
-                  {isChamp && <span className="ml-1 text-amber-500" title="Defending Champ — Prize Cooldown">👑</span>}
-                </span>
-                <span className="text-sm font-black text-primary tabular-nums">{s.high_score} taps</span>
+                <div className="w-8 flex items-center justify-center flex-shrink-0">
+                  <RankBadge rank={i + 1} />
+                </div>
+                <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                  <span className="text-sm font-semibold text-foreground" style={{ wordBreak: "break-word" }}>
+                    {s.user_name}
+                  </span>
+                  {isChamp && <span className="text-base flex-shrink-0" title="Defending Champ — Prize Cooldown">👑</span>}
+                </div>
+                <span className="text-sm font-black text-primary tabular-nums flex-shrink-0">{s.high_score} taps</span>
               </div>
             );
           })}

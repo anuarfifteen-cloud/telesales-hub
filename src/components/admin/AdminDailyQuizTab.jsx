@@ -84,70 +84,133 @@ function AddTeamModal({ allUsers, assignedIds, onSave, onClose }) {
 }
 
 // ── Team Questions Modal ──────────────────────────────────────────────────────
-// Shows what each player was actually asked and how they answered (from question log)
 function TeamQuestionsModal({ team, scoreRecord, onClose }) {
+  const [activePlayer, setActivePlayer] = useState("p1");
+  const [allQuestions, setAllQuestions] = useState({});
+  const [loadingQ, setLoadingQ] = useState(true);
+
   const teamName = `${team.player1_name || "P1"} & ${team.player2_name || "P2"}`;
   const p1Log = JSON.parse(scoreRecord?.p1_question_log || "[]");
   const p2Log = JSON.parse(scoreRecord?.p2_question_log || "[]");
+  const p1AssignedIds = JSON.parse(scoreRecord?.p1_assigned_questions || "[]");
+  const p2AssignedIds = JSON.parse(scoreRecord?.p2_assigned_questions || "[]");
 
-  const PlayerLog = ({ name, log }) => {
-    if (log.length === 0) {
-      return (
-        <div className="bg-muted rounded-xl px-3 py-4 text-center">
-          <p className="text-xs text-muted-foreground">{name} hasn't answered any questions yet.</p>
-        </div>
-      );
+  // Load all assigned questions so we can show unanswered days too
+  useEffect(() => {
+    const allIds = [...new Set([...p1AssignedIds, ...p2AssignedIds])];
+    if (allIds.length === 0) { setLoadingQ(false); return; }
+    Promise.all(allIds.map(id => base44.entities.QuizQuestion.filter({ id }))).then(results => {
+      const map = {};
+      results.flat().forEach(q => { map[q.id] = q; });
+      setAllQuestions(map);
+      setLoadingQ(false);
+    });
+  }, [scoreRecord?.id]);
+
+  const getCycleDatesAdmin = () => {
+    const LAUNCH_DATE = new Date("2026-06-04T00:00:00+08:00");
+    const BRUNEI_TZ = "Asia/Brunei";
+    const today = new Date(new Date().toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ }) + "T00:00:00+08:00");
+    const diffDays = Math.floor((today - LAUNCH_DATE) / (1000 * 60 * 60 * 24));
+    const cycleStartDayOffset = Math.floor(diffDays / 5) * 5;
+    const dates = [];
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(LAUNCH_DATE);
+      d.setDate(d.getDate() + cycleStartDayOffset + i);
+      dates.push(d.toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ }));
     }
+    return dates;
+  };
+  const cycleDates = getCycleDatesAdmin();
+
+  const PlayerLog = ({ prefix, log, assignedIds }) => {
+    const logByDate = {};
+    log.forEach(entry => { logByDate[entry.date] = entry; });
+
     return (
       <div className="flex flex-col gap-2">
-        {log.map((entry, i) => (
-          <div key={i} className={`rounded-xl overflow-hidden border ${entry.correct ? "border-emerald-200 dark:border-emerald-800" : "border-red-200 dark:border-red-800"}`}>
-            <div className={`px-3 py-2 flex items-center justify-between ${entry.correct ? "bg-emerald-50 dark:bg-emerald-950/30" : "bg-red-50 dark:bg-red-950/30"}`}>
-              <span className="text-[10px] font-black text-muted-foreground uppercase">{entry.date}</span>
-              {entry.correct
-                ? <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Correct</span>
-                : <span className="text-[10px] font-black text-red-500 flex items-center gap-1"><XCircle className="w-3 h-3" /> Incorrect</span>
-              }
-            </div>
-            <div className="px-3 py-2.5 flex flex-col gap-1.5 bg-card">
-              <p className="text-xs font-semibold text-foreground leading-snug">{entry.question_text}</p>
-              <div className="flex flex-col gap-1 mt-0.5">
-                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs ${entry.answer === entry.correct_option ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-bold" : entry.answer !== entry.correct_option ? "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300 font-bold" : "bg-muted text-foreground"}`}>
-                  <span className="opacity-60 shrink-0">Answered:</span>
-                  <span>{entry.answer}</span>
-                  {entry.answer === entry.correct_option
-                    ? <CheckCircle2 className="w-3 h-3 text-emerald-500 ml-auto" />
-                    : <XCircle className="w-3 h-3 text-red-500 ml-auto" />
+        {cycleDates.map((date, dayIdx) => {
+          const entry = logByDate[date];
+          const assignedQuestionId = assignedIds[dayIdx];
+          const assignedQ = allQuestions[assignedQuestionId];
+          const dayLabel = `Day ${dayIdx + 1} — ${date}`;
+
+          if (entry) {
+            // Answered
+            return (
+              <div key={date} className={`rounded-xl overflow-hidden border ${entry.correct ? "border-emerald-200 dark:border-emerald-800" : "border-red-200 dark:border-red-800"}`}>
+                <div className={`px-3 py-2 flex items-center justify-between ${entry.correct ? "bg-emerald-50 dark:bg-emerald-950/30" : "bg-red-50 dark:bg-red-950/30"}`}>
+                  <span className="text-[10px] font-black text-muted-foreground uppercase">{dayLabel}</span>
+                  {entry.correct
+                    ? <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Correct</span>
+                    : <span className="text-[10px] font-black text-red-500 flex items-center gap-1"><XCircle className="w-3 h-3" /> Incorrect</span>
                   }
                 </div>
-                {entry.answer !== entry.correct_option && (
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300">
-                    <span className="opacity-60 shrink-0">Correct:</span>
-                    <span>{entry.correct_option}</span>
+                <div className="px-3 py-2.5 flex flex-col gap-1.5 bg-card">
+                  <p className="text-xs font-semibold text-foreground leading-snug">{entry.question_text}</p>
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs ${entry.answer === entry.correct_option ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-bold" : "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300 font-bold"}`}>
+                    <span className="opacity-60 shrink-0">Answered:</span>
+                    <span>{entry.answer}</span>
+                    {entry.answer === entry.correct_option
+                      ? <CheckCircle2 className="w-3 h-3 text-emerald-500 ml-auto" />
+                      : <XCircle className="w-3 h-3 text-red-500 ml-auto" />
+                    }
                   </div>
-                )}
-              </div>
-              {entry.justification && (
-                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg px-2.5 py-1.5 mt-0.5">
-                  <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-0.5">💡 Why?</p>
-                  <p className="text-xs text-foreground leading-relaxed">{entry.justification}</p>
+                  {entry.answer !== entry.correct_option && (
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300">
+                      <span className="opacity-60 shrink-0">Correct:</span>
+                      <span>{entry.correct_option}</span>
+                    </div>
+                  )}
+                  {entry.justification && (
+                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg px-2.5 py-1.5">
+                      <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-0.5">💡 Why?</p>
+                      <p className="text-xs text-foreground leading-relaxed">{entry.justification}</p>
+                    </div>
+                  )}
                 </div>
+              </div>
+            );
+          }
+
+          // Not yet answered — show assigned question if available
+          return (
+            <div key={date} className="rounded-xl overflow-hidden border border-border opacity-70">
+              <div className="px-3 py-2 flex items-center justify-between bg-muted/60">
+                <span className="text-[10px] font-black text-muted-foreground uppercase">{dayLabel}</span>
+                <span className="text-[10px] font-bold text-muted-foreground">⏳ Not yet answered</span>
+              </div>
+              {loadingQ ? (
+                <div className="px-3 py-3 flex justify-center"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
+              ) : assignedQ ? (
+                <div className="px-3 py-2.5 bg-card flex flex-col gap-1.5">
+                  <p className="text-xs font-semibold text-foreground leading-snug">{assignedQ.question_text}</p>
+                  <div className="flex flex-col gap-1">
+                    {[{ l: "A", v: assignedQ.option_a }, { l: "B", v: assignedQ.option_b }, { l: "C", v: assignedQ.option_c }].map(opt => (
+                      <div key={opt.l} className={`flex items-center gap-2 px-2 py-1 rounded-lg text-xs ${opt.v === assignedQ.correct_option ? "bg-emerald-100 dark:bg-emerald-950/40 border border-emerald-300 text-emerald-800 dark:text-emerald-300 font-bold" : "bg-muted border border-border text-foreground"}`}>
+                        <span className="font-black opacity-60">{opt.l}.</span>
+                        <span>{opt.v}</span>
+                        {opt.v === assignedQ.correct_option && <CheckCircle2 className="w-3 h-3 text-emerald-500 ml-auto shrink-0" />}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="px-3 py-3 text-xs text-muted-foreground italic">No question pre-assigned for this day.</div>
               )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
-
-  const [activePlayer, setActivePlayer] = useState("p1");
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-start justify-center z-50 p-4 overflow-y-auto">
       <div className="bg-card rounded-2xl border border-border w-full max-w-sm shadow-2xl my-4">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div>
-            <h3 className="font-black text-sm text-foreground">Answer History</h3>
+            <h3 className="font-black text-sm text-foreground">5-Day Answer History</h3>
             <p className="text-[10px] text-muted-foreground">{teamName}</p>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -155,7 +218,6 @@ function TeamQuestionsModal({ team, scoreRecord, onClose }) {
           </button>
         </div>
 
-        {/* Player toggle */}
         <div className="flex gap-1 p-3 border-b border-border">
           <button
             onClick={() => setActivePlayer("p1")}
@@ -171,10 +233,10 @@ function TeamQuestionsModal({ team, scoreRecord, onClose }) {
           </button>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 max-h-[70vh] overflow-y-auto">
           {activePlayer === "p1"
-            ? <PlayerLog name={team.player1_name || "Player 1"} log={p1Log} />
-            : <PlayerLog name={team.player2_name || "Player 2"} log={p2Log} />
+            ? <PlayerLog prefix="p1" log={p1Log} assignedIds={p1AssignedIds} />
+            : <PlayerLog prefix="p2" log={p2Log} assignedIds={p2AssignedIds} />
           }
         </div>
       </div>

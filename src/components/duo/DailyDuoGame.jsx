@@ -130,7 +130,6 @@ function QuizCard({ team, scoreRecord, userId, onAnswered }) {
   const [question, setQuestion] = useState(null);
   const [selected, setSelected] = useState(null);
   const [loadingQ, setLoadingQ] = useState(true);
-  // pendingResult: evaluated locally immediately on answer click, before DB write
   const [pendingResult, setPendingResult] = useState(null);
   const [finishing, setFinishing] = useState(false);
 
@@ -138,17 +137,30 @@ function QuizCard({ team, scoreRecord, userId, onAnswered }) {
   const playerPrefix = isP1 ? "p1" : "p2";
   const playedDates = JSON.parse(scoreRecord?.[`${playerPrefix}_played_dates`] || "[]");
   const alreadyPlayed = playedDates.includes(getBruneiDateString());
+  const currentDay = getDayOfCycle(); // 1-5
 
   useEffect(() => {
     if (alreadyPlayed) { setLoadingQ(false); return; }
-    base44.entities.QuizQuestion.filter({ is_active: true }).then(questions => {
-      if (questions.length > 0) {
-        const random = questions[Math.floor(Math.random() * questions.length)];
-        setQuestion(random);
-      }
-      setLoadingQ(false);
-    });
-  }, [scoreRecord?.id]);
+    // Use pre-assigned question for today's day index (0-based)
+    const assignedKey = `${playerPrefix}_assigned_questions`;
+    const assignedIds = JSON.parse(scoreRecord?.[assignedKey] || "[]");
+    const todayQuestionId = assignedIds[currentDay - 1];
+    if (todayQuestionId) {
+      base44.entities.QuizQuestion.filter({ id: todayQuestionId }).then(results => {
+        if (results.length > 0) setQuestion(results[0]);
+        setLoadingQ(false);
+      });
+    } else {
+      // Fallback: pick random if no pre-assignment (legacy)
+      base44.entities.QuizQuestion.filter({ is_active: true }).then(questions => {
+        if (questions.length > 0) {
+          const random = questions[Math.floor(Math.random() * questions.length)];
+          setQuestion(random);
+        }
+        setLoadingQ(false);
+      });
+    }
+  }, [scoreRecord?.id, alreadyPlayed]);
 
   // Step 1: On answer click — evaluate locally, show result inline immediately (NO DB yet)
   const handleAnswerClick = (opt) => {
@@ -199,7 +211,6 @@ function QuizCard({ team, scoreRecord, userId, onAnswered }) {
   }
 
   const options = [question.option_a, question.option_b, question.option_c];
-  const currentDay = getDayOfCycle();
 
   return (
     <div className="flex flex-col gap-3">
@@ -386,6 +397,12 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
       if (existingScores.length > 0) {
         setScoreRecord(existingScores[0]);
       } else {
+        // Pre-assign 5 unique questions for each player
+        const allQuestions = await base44.entities.QuizQuestion.filter({ is_active: true });
+        const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+        const shuffled = shuffle(allQuestions);
+        const p1Qs = shuffled.slice(0, 5).map(q => q.id);
+        const p2Qs = shuffle(allQuestions).slice(0, 5).map(q => q.id);
         const newRecord = await base44.entities.FiveDayScore.create({
           cycle_id: cycleId,
           team_id: foundTeam.id,
@@ -395,6 +412,8 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
           p2_played_dates: "[]",
           p1_claimed: false,
           p2_claimed: false,
+          p1_assigned_questions: JSON.stringify(p1Qs),
+          p2_assigned_questions: JSON.stringify(p2Qs),
         });
         setScoreRecord(newRecord);
       }

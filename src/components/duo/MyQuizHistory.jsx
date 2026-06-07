@@ -45,7 +45,7 @@ export default function MyQuizHistory({ user }) {
         onClick={handleToggle}
         className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-foreground hover:bg-muted/40 transition-colors"
       >
-        <span>⏳ Coming Soon</span>
+        <span>📖 My Answer History</span>
         {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
       </button>
 
@@ -58,7 +58,7 @@ export default function MyQuizHistory({ user }) {
           )}
 
           {!loading && history.length === 0 && (
-            <p className="text-gray-500 italic text-center p-4 text-sm">Work in progress. Thank you for your support!</p>
+            <p className="text-muted-foreground italic text-center p-4 text-sm">No quiz history yet. Start answering daily questions!</p>
           )}
 
           {!loading && history.length > 0 && (

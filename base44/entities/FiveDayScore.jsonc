@@ -45,6 +45,14 @@
     "p2_question_log": {
       "type": "string",
       "description": "JSON array string of player 2's question and answer history per day"
+    },
+    "p1_assigned_questions": {
+      "type": "string",
+      "description": "JSON array of 5 question IDs pre-assigned to player 1 for each day of the cycle"
+    },
+    "p2_assigned_questions": {
+      "type": "string",
+      "description": "JSON array of 5 question IDs pre-assigned to player 2 for each day of the cycle"
     }
   },
   "required": [

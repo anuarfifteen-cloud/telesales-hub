@@ -14,11 +14,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-function getRankEmoji(rank) {
-  if (rank === 1) return "🥇";
-  if (rank === 2) return "🥈";
-  if (rank === 3) return "🥉";
-  return `#${rank}`;
+function RankBadge({ rank }) {
+  if (rank === 1) return <span className="text-xl">🥇</span>;
+  if (rank === 2) return <span className="text-xl">🥈</span>;
+  if (rank === 3) return <span className="text-xl">🥉</span>;
+  return (
+    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 text-[11px] font-black text-slate-600 dark:text-slate-300">
+      {rank}
+    </span>
+  );
 }
 
 export default function AdminSuperTap() {
@@ -231,13 +235,15 @@ export default function AdminSuperTap() {
               const eligibleRank = eligibleScores.findIndex(e => e.id === s.id);
               return (
                 <div key={s.id} className={`flex items-center gap-3 px-4 py-2.5 ${isChamp ? "opacity-60 bg-muted/30" : i < 3 ? "bg-amber-50/50 dark:bg-amber-950/10" : ""}`}>
-                  <span className="text-base w-8 text-center font-bold flex-shrink-0">{getRankEmoji(i + 1)}</span>
+                  <div className="w-8 flex items-center justify-center flex-shrink-0">
+                    <RankBadge rank={i + 1} />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">
-                      {s.user_name}
-                      {isChamp && <span className="ml-1.5 text-amber-500">👑</span>}
+                    <p className="text-sm font-semibold text-foreground flex items-center gap-1.5 flex-wrap">
+                      <span style={{ wordBreak: "break-word" }}>{s.user_name}</span>
+                      {isChamp && <span className="text-base flex-shrink-0">👑</span>}
                     </p>
-                    <p className="text-[11px] text-muted-foreground truncate">
+                    <p className="text-[11px] text-muted-foreground">
                       {isChamp ? "Defending Champ — Prize Cooldown" : s.user_email}
                     </p>
                   </div>
