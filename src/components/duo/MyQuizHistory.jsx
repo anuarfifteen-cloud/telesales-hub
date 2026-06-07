@@ -58,7 +58,7 @@ export default function MyQuizHistory({ user }) {
           )}
 
           {!loading && history.length === 0 && (
-            <p className="text-gray-500 italic text-center p-4 text-sm">No quiz answers recorded yet.</p>
+            <p className="text-gray-500 italic text-center p-4 text-sm">in progress. Thank you for your support!</p>
           )}
 
           {!loading && history.length > 0 && (
