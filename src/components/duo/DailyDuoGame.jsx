@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, XCircle, Loader2, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import MyQuizHistory from "./MyQuizHistory";
 
 const BRUNEI_TZ = "Asia/Brunei";
 const LAUNCH_DATE = new Date("2026-06-04T00:00:00+08:00");
@@ -470,6 +471,10 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
 
       {!loading && team && allDaysPlayed && (
         <CompletedScreen team={team} scoreRecord={scoreRecord} userId={user.id} onClaimed={handleClaimed} />
+      )}
+
+      {!loading && team && (
+        <MyQuizHistory user={user} />
       )}
     </div>
   );
