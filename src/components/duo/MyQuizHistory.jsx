@@ -45,7 +45,7 @@ export default function MyQuizHistory({ user }) {
         onClick={handleToggle}
         className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-foreground hover:bg-muted/40 transition-colors"
       >
-        <span>📖 My Past Answers</span>
+        <span>Coming Soon</span>
         {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
       </button>
 
