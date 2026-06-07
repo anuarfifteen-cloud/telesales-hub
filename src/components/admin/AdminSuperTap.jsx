@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Crown, UserX, Plus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -24,6 +24,9 @@ function getRankEmoji(rank) {
 export default function AdminSuperTap() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [champLoading, setChampLoading] = useState(null); // userId being toggled
+  const [showUserPicker, setShowUserPicker] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
   const queryClient = useQueryClient();
 
   const { data: scores = [], isLoading } = useQuery({
@@ -31,13 +34,35 @@ export default function AdminSuperTap() {
     queryFn: () => base44.entities.TapScore.list("-high_score", 50),
   });
 
-  const { data: allUsers = [] } = useQuery({
+  const { data: allUsers = [], refetch: refetchUsers } = useQuery({
     queryKey: ["allUsersAdmin"],
     queryFn: () => base44.entities.User.list(),
   });
 
   const champUserIds = new Set(allUsers.filter(u => u.is_defending_champ).map(u => u.id));
   const eligibleScores = scores.filter(s => !champUserIds.has(s.user_id));
+  const champs = allUsers.filter(u => u.is_defending_champ);
+  const nonChamps = allUsers.filter(u => !u.is_defending_champ);
+
+  const toggleChamp = async (user, makeChamp) => {
+    setChampLoading(user.id);
+    try {
+      await base44.entities.User.update(user.id, { is_defending_champ: makeChamp });
+      await refetchUsers();
+      queryClient.invalidateQueries({ queryKey: ["tapScores"] });
+      toast.success(makeChamp ? `👑 ${user.full_name} set as Defending Champ` : `✅ ${user.full_name} removed from Defending Champ`);
+    } catch (err) {
+      toast.error("Error: " + err.message);
+    } finally {
+      setChampLoading(null);
+      setShowUserPicker(false);
+      setPickerSearch("");
+    }
+  };
+
+  const filteredNonChamps = nonChamps.filter(u =>
+    (u.full_name || u.email || "").toLowerCase().includes(pickerSearch.toLowerCase())
+  );
 
   const handleEndSeason = async () => {
     setProcessing(true);
@@ -113,6 +138,81 @@ export default function AdminSuperTap() {
         >
           {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : "End Season"}
         </button>
+      </div>
+
+      {/* Defending Champ Manager */}
+      <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">👑 Defending Champ Manager</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Users marked as champ are ineligible for prizes next season.</p>
+          </div>
+          <button
+            onClick={() => setShowUserPicker(v => !v)}
+            className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <Plus className="w-3 h-3" /> Add Champ
+          </button>
+        </div>
+
+        {/* User picker dropdown */}
+        {showUserPicker && (
+          <div className="border-b border-border px-4 py-3 bg-amber-50 dark:bg-amber-950/20 space-y-2">
+            <input
+              autoFocus
+              value={pickerSearch}
+              onChange={e => setPickerSearch(e.target.value)}
+              placeholder="Search users…"
+              className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-white dark:bg-card focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+            <div className="max-h-48 overflow-y-auto divide-y divide-border rounded-lg border border-border bg-white dark:bg-card">
+              {filteredNonChamps.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">No users found</p>
+              ) : filteredNonChamps.map(u => (
+                <button
+                  key={u.id}
+                  onClick={() => toggleChamp(u, true)}
+                  disabled={champLoading === u.id}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors text-left"
+                >
+                  {champLoading === u.id
+                    ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    : <Crown className="w-4 h-4 text-amber-500" />
+                  }
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{u.full_name || u.email}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Current champs list */}
+        {champs.length === 0 ? (
+          <div className="py-6 text-center text-muted-foreground text-sm">No defending champs set.</div>
+        ) : (
+          <div className="divide-y divide-border">
+            {champs.map(u => (
+              <div key={u.id} className="flex items-center gap-3 px-4 py-3 bg-amber-50/50 dark:bg-amber-950/10">
+                <span className="text-lg">👑</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{u.full_name || u.email}</p>
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Prize Cooldown Active</p>
+                </div>
+                <button
+                  onClick={() => toggleChamp(u, false)}
+                  disabled={champLoading === u.id}
+                  className="flex items-center gap-1 text-xs font-bold text-red-600 hover:text-red-700 border border-red-200 hover:border-red-400 px-2.5 py-1.5 rounded-lg transition-colors bg-white dark:bg-card"
+                >
+                  {champLoading === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserX className="w-3 h-3" />}
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Leaderboard */}
