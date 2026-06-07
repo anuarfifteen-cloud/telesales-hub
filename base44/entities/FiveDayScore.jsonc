@@ -37,6 +37,14 @@
       "type": "boolean",
       "description": "Whether player 2 has claimed their reward tokens",
       "default": false
+    },
+    "p1_question_log": {
+      "type": "string",
+      "description": "JSON array string of player 1's question and answer history per day"
+    },
+    "p2_question_log": {
+      "type": "string",
+      "description": "JSON array string of player 2's question and answer history per day"
     }
   },
   "required": [
