@@ -1,8 +1,60 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trophy, Medal } from "lucide-react";
 import { toast } from "sonner";
+
+// ── Sound Engine (Web Audio API) ──────────────────────────────────────────────
+function createAudioCtx() {
+  try { return new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; }
+}
+
+function playTapSound(ctx) {
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(520, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(260, ctx.currentTime + 0.06);
+  gain.gain.setValueAtTime(0.18, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + 0.09);
+}
+
+function playStartSound(ctx) {
+  if (!ctx) return;
+  [440, 550, 660].forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "square";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.12, ctx.currentTime + i * 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.1);
+    osc.start(ctx.currentTime + i * 0.08);
+    osc.stop(ctx.currentTime + i * 0.08 + 0.12);
+  });
+}
+
+function playEndSound(ctx) {
+  if (!ctx) return;
+  [660, 440, 330].forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sawtooth";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.15);
+    osc.start(ctx.currentTime + i * 0.1);
+    osc.stop(ctx.currentTime + i * 0.1 + 0.18);
+  });
+}
 
 function getRankEmoji(rank) {
   if (rank === 1) return "🥇";
@@ -74,8 +126,19 @@ export default function SuperTapGame({ user }) {
   const [isOver, setIsOver] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newRecord, setNewRecord] = useState(false);
+  const [tapped, setTapped] = useState(false); // flash effect
+  const [ripples, setRipples] = useState([]);
   const intervalRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const rippleIdRef = useRef(0);
   const queryClient = useQueryClient();
+
+  // Lazy-init audio ctx on first user gesture
+  const getAudio = () => {
+    if (!audioCtxRef.current) audioCtxRef.current = createAudioCtx();
+    if (audioCtxRef.current?.state === "suspended") audioCtxRef.current.resume();
+    return audioCtxRef.current;
+  };
 
   const clearTimer = () => {
     if (intervalRef.current) {
@@ -118,13 +181,25 @@ export default function SuperTapGame({ user }) {
     }
   };
 
+  const addRipple = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.touches?.[0]?.clientX ?? e.clientX) - rect.left;
+    const y = (e.touches?.[0]?.clientY ?? e.clientY) - rect.top;
+    const id = ++rippleIdRef.current;
+    setRipples(prev => [...prev, { id, x, y }]);
+    setTimeout(() => setRipples(prev => prev.filter(r => r.id !== id)), 500);
+  };
+
   const startGame = () => {
     if (isPlaying) return;
+    getAudio();
+    playStartSound(audioCtxRef.current);
+    if (navigator.vibrate) navigator.vibrate([60, 30, 60]);
     setIsPlaying(true);
     setIsOver(false);
     setNewRecord(false);
-    // Count down
-    let remaining = 100; // 100 ticks of 100ms = 10.0s
+    setCurrentScore(0);
+    let remaining = 100;
     intervalRef.current = setInterval(() => {
       remaining -= 1;
       setTimeLeft(parseFloat((remaining / 10).toFixed(1)));
@@ -132,6 +207,8 @@ export default function SuperTapGame({ user }) {
         clearTimer();
         setIsPlaying(false);
         setIsOver(true);
+        playEndSound(audioCtxRef.current);
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
         setCurrentScore((prev) => {
           saveScore(prev);
           return prev;
@@ -140,11 +217,18 @@ export default function SuperTapGame({ user }) {
     }, 100);
   };
 
-  const handleTap = () => {
-    if (!isPlaying || isOver) {
-      if (!isPlaying && !isOver) startGame();
-      return;
-    }
+  const handleTap = (e) => {
+    if (isOver) return;
+    if (!isPlaying) { startGame(); return; }
+    // Ripple
+    addRipple(e);
+    // Flash
+    setTapped(true);
+    setTimeout(() => setTapped(false), 80);
+    // Vibrate
+    if (navigator.vibrate) navigator.vibrate(12);
+    // Sound
+    playTapSound(audioCtxRef.current);
     setCurrentScore((s) => s + 1);
   };
 
@@ -179,7 +263,11 @@ export default function SuperTapGame({ user }) {
         <div className="w-px bg-border" />
         <div className="flex flex-col items-center">
           <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Taps</span>
-          <span className="text-5xl font-black tabular-nums text-primary">{currentScore}</span>
+          <span
+            key={currentScore}
+            className="text-5xl font-black tabular-nums text-primary"
+            style={{ animation: currentScore > 0 ? "tapPop 0.15s ease-out" : "none" }}
+          >{currentScore}</span>
         </div>
       </div>
 
@@ -201,10 +289,38 @@ export default function SuperTapGame({ user }) {
         <button
           onPointerDown={handleTap}
           disabled={isOver}
-          className="w-48 h-48 rounded-full bg-gradient-to-b from-red-400 to-red-600 hover:to-red-700 active:scale-95 text-white text-3xl font-extrabold shadow-xl transition-all select-none disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ WebkitTapHighlightColor: "transparent", touchAction: "none" }}
+          className={`relative overflow-hidden w-52 h-52 rounded-full text-white text-3xl font-extrabold shadow-2xl transition-all select-none disabled:opacity-50 disabled:cursor-not-allowed
+            ${tapped
+              ? "scale-90 bg-gradient-to-b from-yellow-300 to-red-500 shadow-yellow-300/60"
+              : "scale-100 bg-gradient-to-b from-red-400 to-red-600 active:scale-95 shadow-red-500/40"
+            }`}
+          style={{
+            WebkitTapHighlightColor: "transparent",
+            touchAction: "none",
+            boxShadow: tapped
+              ? "0 0 40px 12px rgba(250,200,0,0.45), 0 8px 32px rgba(0,0,0,0.3)"
+              : "0 8px 32px rgba(220,38,38,0.4), inset 0 -6px 0 rgba(0,0,0,0.2)",
+            transition: "transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease",
+          }}
         >
-          {isOver ? "⏱ Time's Up!" : isPlaying ? "TAP!" : "TAP\nto start!"}
+          {/* Ripples */}
+          {ripples.map(r => (
+            <span
+              key={r.id}
+              className="absolute rounded-full bg-white/30 animate-ping pointer-events-none"
+              style={{
+                width: 80, height: 80,
+                left: r.x - 40, top: r.y - 40,
+                animationDuration: "0.5s",
+                animationIterationCount: 1,
+              }}
+            />
+          ))}
+          {/* Inner ring glow */}
+          <span className="absolute inset-3 rounded-full border-4 border-white/20 pointer-events-none" />
+          <span className="relative z-10 drop-shadow-lg">
+            {isOver ? "⏱ Time's Up!" : isPlaying ? "TAP!" : "TAP\nto start!"}
+          </span>
         </button>
       </div>
 
