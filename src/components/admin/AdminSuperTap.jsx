@@ -31,27 +31,52 @@ export default function AdminSuperTap() {
     queryFn: () => base44.entities.TapScore.list("-high_score", 50),
   });
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["allUsersAdmin"],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const champUserIds = new Set(allUsers.filter(u => u.is_defending_champ).map(u => u.id));
+  const eligibleScores = scores.filter(s => !champUserIds.has(s.user_id));
+
   const handleEndSeason = async () => {
     setProcessing(true);
     try {
-      const top3 = scores.slice(0, 3);
+      // Fetch all users to check defending champ status
+      const allUsers = await base44.entities.User.list();
+      const userMap = {};
+      allUsers.forEach(u => { userMap[u.id] = u; });
+
+      // Filter out defending champ from prize eligibility
+      const eligibleScores = scores.filter(s => !userMap[s.user_id]?.is_defending_champ);
+      const top3 = eligibleScores.slice(0, 3);
       const payouts = [5, 2, 1];
 
-      // Pay out tokens to top 3
+      let newChampUserId = null;
+
+      // Pay out tokens to top 3 eligible players
       for (let i = 0; i < top3.length; i++) {
         const entry = top3[i];
         const tokenReward = payouts[i];
         if (!entry.user_id) continue;
+        const u = userMap[entry.user_id];
+        if (!u) continue;
+        await base44.entities.User.update(u.id, {
+          earlyAccessTokens: (u.earlyAccessTokens ?? 0) + tokenReward,
+        });
+        if (i === 0) newChampUserId = u.id;
+      }
 
-        // Find the user and update their token balance
-        const users = await base44.entities.User.filter({ id: entry.user_id });
-        if (users.length > 0) {
-          const u = users[0];
-          const current = u.earlyAccessTokens ?? 0;
-          await base44.entities.User.update(u.id, {
-            earlyAccessTokens: current + tokenReward,
-          });
+      // Reset is_defending_champ for ALL users
+      for (const u of allUsers) {
+        if (u.is_defending_champ) {
+          await base44.entities.User.update(u.id, { is_defending_champ: false });
         }
+      }
+
+      // Set new defending champ
+      if (newChampUserId) {
+        await base44.entities.User.update(newChampUserId, { is_defending_champ: true });
       }
 
       // Delete ALL TapScore records
@@ -62,7 +87,7 @@ export default function AdminSuperTap() {
 
       queryClient.invalidateQueries({ queryKey: ["tapScoresAdmin"] });
       queryClient.invalidateQueries({ queryKey: ["tapScores"] });
-      toast.success("✅ Season ended! Top 3 paid out & leaderboard wiped.");
+      toast.success("✅ Season ended! Top 3 eligible players paid out & leaderboard wiped.");
     } catch (err) {
       toast.error("Error during payout: " + err.message);
     } finally {
@@ -101,21 +126,30 @@ export default function AdminSuperTap() {
           <div className="py-8 text-center text-muted-foreground text-sm">No scores recorded yet.</div>
         ) : (
           <div className="divide-y divide-border">
-            {scores.map((s, i) => (
-              <div key={s.id} className={`flex items-center gap-3 px-4 py-2.5 ${i < 3 ? "bg-amber-50/50 dark:bg-amber-950/10" : ""}`}>
-                <span className="text-base w-8 text-center font-bold flex-shrink-0">{getRankEmoji(i + 1)}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">{s.user_name}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{s.user_email}</p>
+            {scores.map((s, i) => {
+              const isChamp = champUserIds.has(s.user_id);
+              const eligibleRank = eligibleScores.findIndex(e => e.id === s.id);
+              return (
+                <div key={s.id} className={`flex items-center gap-3 px-4 py-2.5 ${isChamp ? "opacity-60 bg-muted/30" : i < 3 ? "bg-amber-50/50 dark:bg-amber-950/10" : ""}`}>
+                  <span className="text-base w-8 text-center font-bold flex-shrink-0">{getRankEmoji(i + 1)}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {s.user_name}
+                      {isChamp && <span className="ml-1.5 text-amber-500">👑</span>}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {isChamp ? "Defending Champ — Prize Cooldown" : s.user_email}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-black text-primary tabular-nums">{s.high_score} taps</p>
+                    {!isChamp && eligibleRank === 0 && <span className="text-[10px] text-amber-600 font-semibold">+5 tokens</span>}
+                    {!isChamp && eligibleRank === 1 && <span className="text-[10px] text-amber-600 font-semibold">+2 tokens</span>}
+                    {!isChamp && eligibleRank === 2 && <span className="text-[10px] text-amber-600 font-semibold">+1 token</span>}
+                  </div>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-sm font-black text-primary tabular-nums">{s.high_score} taps</p>
-                  {i === 0 && <span className="text-[10px] text-amber-600 font-semibold">+5 tokens</span>}
-                  {i === 1 && <span className="text-[10px] text-amber-600 font-semibold">+2 tokens</span>}
-                  {i === 2 && <span className="text-[10px] text-amber-600 font-semibold">+1 token</span>}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -126,11 +160,11 @@ export default function AdminSuperTap() {
           <AlertDialogHeader>
             <AlertDialogTitle>🚨 End Season & Payout?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will award tokens to the top 3 players:
+              This will award tokens to the top 3 <strong>eligible</strong> players (defending champ is skipped):
               <br /><br />
-              {scores[0] && <><strong>🥇 {scores[0].user_name}</strong> → +5 tokens<br /></>}
-              {scores[1] && <><strong>🥈 {scores[1].user_name}</strong> → +2 tokens<br /></>}
-              {scores[2] && <><strong>🥉 {scores[2].user_name}</strong> → +1 token<br /></>}
+              {eligibleScores[0] && <><strong>🥇 {eligibleScores[0].user_name}</strong> → +5 tokens<br /></>}
+              {eligibleScores[1] && <><strong>🥈 {eligibleScores[1].user_name}</strong> → +2 tokens<br /></>}
+              {eligibleScores[2] && <><strong>🥉 {eligibleScores[2].user_name}</strong> → +1 token<br /></>}
               <br />
               Then <strong>ALL scores will be permanently deleted</strong>. This cannot be undone.
             </AlertDialogDescription>

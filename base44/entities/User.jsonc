@@ -12,19 +12,17 @@
     },
     "earlyAccessTokens": {
       "type": "number",
-      "default": 0
-    },
-    "vipExpiresAt": {
-      "type": "string",
-      "description": "ISO timestamp when the VIP early access expires"
-    },
-    "milestoneTokensAwarded": {
-      "type": "object",
-      "description": "Tracks which booking milestones have already been awarded"
+      "default": 0,
+      "description": "Number of early access tokens the user has"
     },
     "last_spin_date": {
       "type": "string",
-      "description": "The last date (YYYY-MM-DD) the user spun the wheel, used to enforce once-per-day limit"
+      "description": "Date of last daily spin (YYYY-MM-DD, Brunei timezone)"
+    },
+    "is_defending_champ": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this user is the defending Super Tap champion, placed on a one-season prize cooldown"
     }
   }
 }

@@ -18,6 +18,14 @@ function Leaderboard() {
     refetchInterval: 10000,
   });
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["tapUsersPublic"],
+    queryFn: () => base44.entities.User.list(),
+    refetchInterval: 60000,
+  });
+
+  const champUserIds = new Set(allUsers.filter(u => u.is_defending_champ).map(u => u.id));
+
   return (
     <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
       {/* Info box */}
@@ -31,19 +39,28 @@ function Leaderboard() {
           <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">🥈 2nd: 2 Tokens</span>
           <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">🥉 3rd: 1 Token</span>
         </div>
+        <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-2 leading-relaxed">
+          Note: The Defending Champ (👑) is on a one-season prize cooldown. Token prizes will go to the top 3 eligible players on the board!
+        </p>
       </div>
 
       {scores.length === 0 ? (
         <div className="py-8 text-center text-muted-foreground text-sm">No scores yet. Be the first!</div>
       ) : (
         <div className="divide-y divide-border">
-          {scores.map((s, i) => (
-            <div key={s.id} className={`flex items-center gap-3 px-4 py-2.5 ${i < 3 ? "bg-amber-50/40 dark:bg-amber-950/10" : ""}`}>
-              <span className="text-base w-8 text-center flex-shrink-0 font-bold">{getRankEmoji(i + 1)}</span>
-              <span className="flex-1 text-sm font-semibold text-foreground truncate">{s.user_name}</span>
-              <span className="text-sm font-black text-primary tabular-nums">{s.high_score} taps</span>
-            </div>
-          ))}
+          {scores.map((s, i) => {
+            const isChamp = champUserIds.has(s.user_id);
+            return (
+              <div key={s.id} className={`flex items-center gap-3 px-4 py-2.5 ${i < 3 && !isChamp ? "bg-amber-50/40 dark:bg-amber-950/10" : ""}`}>
+                <span className="text-base w-8 text-center flex-shrink-0 font-bold">{getRankEmoji(i + 1)}</span>
+                <span className="flex-1 text-sm font-semibold text-foreground truncate">
+                  {s.user_name}
+                  {isChamp && <span className="ml-1 text-amber-500" title="Defending Champ — Prize Cooldown">👑</span>}
+                </span>
+                <span className="text-sm font-black text-primary tabular-nums">{s.high_score} taps</span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -163,14 +163,18 @@ function WinnerFeed() {
   if (top3.length === 0) return null;
 
   return (
-    <div className="bg-white dark:bg-card rounded-xl border border-border px-4 py-3 space-y-1.5">
+    <div className="bg-white dark:bg-card rounded-xl border border-border px-4 py-3">
       <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">⚡ Recent Winners</p>
       {top3.map((w, i) => (
-        <div key={w.id || i} className="flex items-center gap-2 text-xs text-foreground">
-          <span className="text-base leading-none">🏆</span>
-          <span className="font-semibold">{w.user_name}</span>
-          <span className="text-muted-foreground">just won</span>
-          <span className="font-bold text-amber-600 dark:text-amber-400">{w.prize_text}</span>
+        <div key={w.id || i} className="flex items-center justify-between w-full py-2 border-b border-border last:border-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-base leading-none flex-shrink-0">🏆</span>
+            <span className="text-sm font-medium text-foreground truncate max-w-[130px] whitespace-nowrap">{w.user_name}</span>
+          </div>
+          <span className="text-xs text-muted-foreground mx-2 flex-shrink-0">won</span>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <span className="text-sm font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">{w.prize_text}</span>
+          </div>
         </div>
       ))}
     </div>
