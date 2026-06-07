@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, XCircle, Loader2, Gift } from "lucide-react";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import MyQuizHistory from "./MyQuizHistory";
@@ -306,43 +306,32 @@ function QuizCard({ team, scoreRecord, userId, onAnswered }) {
 }
 
 // ── Completed Screen ──────────────────────────────────────────────────────────
-function CompletedScreen({ team, scoreRecord, userId, onClaimed }) {
+function CompletedScreen({ team, scoreRecord, userId }) {
   const isP1 = team.player1_id === userId;
   const playerPrefix = isP1 ? "p1" : "p2";
   const myScore = scoreRecord?.[`${playerPrefix}_score`] || 0;
   const partnerScore = scoreRecord?.[isP1 ? "p2_score" : "p1_score"] || 0;
   const teamScore = myScore + partnerScore;
   const isPerfect = teamScore === 10;
+  const isWinner = teamScore >= 5;
+  const tokensAwarded = isPerfect ? 2 : isWinner ? 1 : 0;
   const alreadyClaimed = scoreRecord?.[`${playerPrefix}_claimed`];
-  const [claiming, setClaiming] = useState(false);
-
-  const handleClaim = async () => {
-    if (claiming || alreadyClaimed) return;
-    setClaiming(true);
-    const currentTokens = (await base44.auth.me())?.earlyAccessTokens ?? 0;
-    await base44.auth.updateMe({ earlyAccessTokens: currentTokens + 2 });
-    await base44.entities.FiveDayScore.update(scoreRecord.id, {
-      [`${playerPrefix}_claimed`]: true,
-    });
-    toast.success("+2 tokens claimed! 🎉");
-    setClaiming(false);
-    onClaimed();
-  };
 
   return (
     <div className="flex flex-col gap-4">
-      <div className={`rounded-2xl border p-5 text-center ${isPerfect ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700" : "bg-card border-border"}`}>
+      <div className={`rounded-2xl border p-5 text-center ${isPerfect ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700" : isWinner ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700" : "bg-card border-border"}`}>
         {isPerfect && <div className="text-3xl mb-2">🏆</div>}
-        <p className="font-black text-lg text-foreground">{isPerfect ? "Perfect Team Score!" : "Cycle Complete!"}</p>
+        {isWinner && !isPerfect && <div className="text-3xl mb-2">🎉</div>}
+        <p className="font-black text-lg text-foreground">{isPerfect ? "Perfect Team Score!" : isWinner ? "You Won!" : "Cycle Complete!"}</p>
         <p className="text-sm text-muted-foreground mt-1">5-day quiz challenge finished</p>
         <div className="grid grid-cols-3 gap-2 mt-4">
           <div className="bg-muted rounded-xl p-3">
             <p className="text-[10px] text-muted-foreground mb-1">Your Score</p>
             <p className="font-black text-xl text-foreground">{myScore}/5</p>
           </div>
-          <div className={`rounded-xl p-3 border-2 ${isPerfect ? "bg-amber-100 dark:bg-amber-900/40 border-amber-400" : "bg-muted border-border"}`}>
+          <div className={`rounded-xl p-3 border-2 ${isPerfect ? "bg-amber-100 dark:bg-amber-900/40 border-amber-400" : isWinner ? "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-400" : "bg-muted border-border"}`}>
             <p className="text-[10px] text-muted-foreground mb-1">Team Total</p>
-            <p className={`font-black text-xl ${isPerfect ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>{teamScore}/10</p>
+            <p className={`font-black text-xl ${isPerfect ? "text-amber-600 dark:text-amber-400" : isWinner ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>{teamScore}/10</p>
           </div>
           <div className="bg-muted rounded-xl p-3">
             <p className="text-[10px] text-muted-foreground mb-1">Partner</p>
@@ -351,18 +340,11 @@ function CompletedScreen({ team, scoreRecord, userId, onClaimed }) {
         </div>
       </div>
 
-      {isPerfect && !alreadyClaimed && (
-        <Button
-          onClick={handleClaim}
-          disabled={claiming}
-          className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black tracking-widest uppercase shadow-lg shadow-amber-500/25"
-        >
-          {claiming ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Gift className="w-4 h-4 mr-1" /> Claim +2 Tokens</>}
-        </Button>
-      )}
-      {isPerfect && alreadyClaimed && (
-        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 rounded-xl p-3 text-center text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-          ✅ Reward claimed!
+      {isWinner && (
+        <div className={`border rounded-xl p-3 text-center text-sm font-semibold ${alreadyClaimed ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 text-emerald-700 dark:text-emerald-300" : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 text-amber-700 dark:text-amber-300"}`}>
+          {alreadyClaimed
+            ? `✅ +${tokensAwarded} token${tokensAwarded > 1 ? "s" : ""} automatically awarded!`
+            : `⏳ +${tokensAwarded} token${tokensAwarded > 1 ? "s" : ""} being processed...`}
         </div>
       )}
 
@@ -489,7 +471,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
       )}
 
       {!loading && team && allDaysPlayed && (
-        <CompletedScreen team={team} scoreRecord={scoreRecord} userId={user.id} onClaimed={handleClaimed} />
+        <CompletedScreen team={team} scoreRecord={scoreRecord} userId={user.id} />
       )}
 
       {!loading && team && (
