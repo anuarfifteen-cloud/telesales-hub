@@ -460,7 +460,6 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
     <p className="text-xs font-semibold leading-tight">
       If you miss a daily question, your token rewards will be void individually.
     </p>
-  </div>
 </div>
         </div>
       </div>
