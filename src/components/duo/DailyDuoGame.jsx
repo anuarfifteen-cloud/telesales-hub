@@ -458,11 +458,14 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
       </div>
     </div>
  {/* The Warning Callout Only */}
+<div className="space-y-2 bg-amber-500/10 p-3 rounded-lg border border-amber-500/40 shadow-sm">
+  {/* The Warning Callout Only */}
   <div className="flex items-start gap-2 bg-amber-500/20 p-2 rounded border border-amber-500/30 text-amber-800 dark:text-amber-300">
     <span className="text-sm flex-shrink-0 mt-0.5">⚠️</span>
     <p className="text-xs font-semibold leading-tight">
       If you miss a daily question, your token rewards will be void individually.
     </p>
+  </div>
 </div>
       {loading && <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}
 
