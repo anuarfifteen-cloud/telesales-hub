@@ -440,7 +440,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const allDaysPlayed = playedDates.length >= 5;
 
   return (
-    <div className="flex flex-col gap-3">
+ <div className="flex flex-col gap-3">
       {/* Header */}
       <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
         <div className="flex items-center gap-2 mb-1">
@@ -454,13 +454,13 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
             <p>🎯 <span className="font-medium text-foreground">minimum of 5 correct answers together</span></p>
             <p>= <span className="font-bold text-amber-500"> 1 Token </span><span className="font-medium text-foreground">each</span></p>
             <p>🏆 <span className="font-medium text-foreground">10 correct answers</span> = <span className="font-bold text-amber-500">2 Tokens </span><span className="font-medium text-foreground">each</span></p>
-            </div>
-           <div className="bg-red-500/10 p-2 rounded-md border border-red-500/20">
-            <p> className="italic text-red-500/90 font-medium"> ⚠️ Warning: If you miss a daily question, you tokens rewards will be void individually.</p>
-            </div>
           </div>
+           <div className="bg-red-500/10 p-2 rounded-md border border-red-500/20">
+            <p className="italic text-red-500/90 font-medium"> ⚠️ Warning: If you miss a daily question, your tokens rewards will be void individually.</p>
+           </div>
         </div>
       </div>
+    </div>
 
       {loading && <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}
 
