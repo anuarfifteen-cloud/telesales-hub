@@ -217,6 +217,16 @@ function WheelModal({ onClose, onClaim, user, today }) {
     }
     if (Object.keys(updates).length > 0) await base44.auth.updateMe(updates);
 
+    if (result.tokens > 0) {
+      await base44.entities.TokenTransaction.create({
+        user_id: user.id,
+        user_name: user.full_name || user.email,
+        amount: result.tokens,
+        source: "Daily Spin",
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     await base44.entities.SpinActivityLog.create({
       user_name: user.full_name || user.email,
       prize_text: result.label,

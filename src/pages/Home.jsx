@@ -100,6 +100,7 @@ export default function Home() {
           earlyAccessTokens: currentTokens + 3,
           milestoneTokensAwarded: { ...awarded, "15": true }
         });
+        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 3, source: "Booking Milestone — 15 Bookings", timestamp: new Date().toISOString() });
         await refreshUser();
         setUnlockModal({
           open: true,
@@ -120,6 +121,7 @@ export default function Home() {
           earlyAccessTokens: currentTokens + 5,
           milestoneTokensAwarded: { ...awarded, "30": true }
         });
+        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 5, source: "Booking Milestone — 30 Bookings", timestamp: new Date().toISOString() });
         await refreshUser();
         setUnlockModal({
           open: true,
@@ -140,6 +142,7 @@ export default function Home() {
           earlyAccessTokens: currentTokens + 10,
           milestoneTokensAwarded: { ...awarded, "50": true }
         });
+        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 10, source: "Booking Milestone — 50 Bookings", timestamp: new Date().toISOString() });
         await refreshUser();
         setUnlockModal({
           open: true,
@@ -160,6 +163,7 @@ export default function Home() {
           earlyAccessTokens: currentTokens + 20,
           milestoneTokensAwarded: { ...awarded, "100": true }
         });
+        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 20, source: "Booking Milestone — 100 Bookings", timestamp: new Date().toISOString() });
         await refreshUser();
         setUnlockModal({
           open: true,

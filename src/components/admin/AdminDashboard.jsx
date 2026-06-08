@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import AdminDailyQuizTab from "./AdminDailyQuizTab";
 import AdminSpinLogs from "./AdminSpinLogs";
 import AdminSuperTap from "./AdminSuperTap";
+import AdminTokenAuditLog from "./AdminTokenAuditLog";
 
 const LIVE_FEED_KEY = "liveFeedEnabled";
 
@@ -135,7 +136,7 @@ export default function AdminDashboard({ onBack }) {
 
       {/* Tab switcher */}
       <div className="max-w-2xl mx-auto px-4 pt-4 flex gap-2">
-        {[{ id: "general", label: "⚙️ General" }, { id: "quiz", label: "🧠 Daily Quiz" }, { id: "spin", label: "🎡 Spin Logs" }, { id: "supertap", label: "⚡ Super Tap" }].map(tab => (
+        {[{ id: "general", label: "⚙️ General" }, { id: "quiz", label: "🧠 Daily Quiz" }, { id: "spin", label: "🎡 Spin Logs" }, { id: "supertap", label: "⚡ Super Tap" }, { id: "tokens", label: "🪙 Token Log" }].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -161,6 +162,12 @@ export default function AdminDashboard({ onBack }) {
       {activeTab === "supertap" && (
         <main className="max-w-2xl mx-auto px-4 pt-4 pb-10">
           <AdminSuperTap />
+        </main>
+      )}
+
+      {activeTab === "tokens" && (
+        <main className="max-w-2xl mx-auto px-4 pt-4 pb-10">
+          <AdminTokenAuditLog />
         </main>
       )}
 

@@ -128,6 +128,13 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
     setSaving(true);
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     await base44.auth.updateMe({ earlyAccessTokens: tokens - 1, vipExpiresAt: expiresAt });
+    await base44.entities.TokenTransaction.create({
+      user_id: user.id,
+      user_name: user.full_name || user.email,
+      amount: -1,
+      source: "VIP Pass Purchase",
+      timestamp: new Date().toISOString(),
+    });
     await onUserUpdate();
     setSaving(false);
     setShowConfirm(false);

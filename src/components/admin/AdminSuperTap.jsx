@@ -93,6 +93,13 @@ export default function AdminSuperTap() {
         await base44.entities.User.update(u.id, {
           earlyAccessTokens: (u.earlyAccessTokens ?? 0) + tokenReward,
         });
+        await base44.entities.TokenTransaction.create({
+          user_id: u.id,
+          user_name: u.full_name || u.email,
+          amount: tokenReward,
+          source: `Super Tap Season Prize — #${i + 1} Place (${entry.high_score} taps)`,
+          timestamp: new Date().toISOString(),
+        });
         if (i === 0) newChampUserId = u.id;
       }
 

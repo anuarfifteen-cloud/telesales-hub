@@ -1,0 +1,32 @@
+{
+  "name": "TokenTransaction",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the user"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Token change, positive = gain, negative = deduction"
+    },
+    "source": {
+      "type": "string",
+      "description": "What triggered this transaction, e.g. Daily Spin, Super Tap Prize, VIP Pass Purchase, Admin Manual Adjustment"
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO timestamp of when the transaction occurred"
+    }
+  },
+  "required": [
+    "user_name",
+    "amount",
+    "source",
+    "timestamp"
+  ]
+}
