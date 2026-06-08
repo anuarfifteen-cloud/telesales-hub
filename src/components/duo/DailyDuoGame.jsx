@@ -456,6 +456,10 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
             <p> <span className="font-medium text-foreground"> </span></p>
             <p> <span className="font-medium text-foreground"> </span></p>
             <p> <span className="font-medium text-foreground"> </span></p>
+            <p> <span className="font-medium text-foreground"> </span></p>
+            <p> <span className="font-medium text-foreground"> </span></p>
+            <p> <span className="font-medium text-foreground"> </span></p>
+            <p> <span className="font-medium text-foreground"> </span></p>
             <p>🎯 <span className="font-medium text-foreground">5-9 correct answers</span> = <span className="font-bold text-amber-500">1 Token </span><span className="font-medium text-foreground">each</span></p>
             <p>🏆 <span className="font-medium text-foreground">10 correct answers</span> = <span className="font-bold text-amber-500">2 Tokens </span><span className="font-medium text-foreground">each</span></p>
         </div>
