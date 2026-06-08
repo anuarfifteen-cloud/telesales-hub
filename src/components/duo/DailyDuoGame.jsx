@@ -453,31 +453,12 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
           <div className="space-y-1 bg-muted/20 p-2 rounded-md border border-border/50">
             <p>🎯 <span className="font-medium text-foreground">5-9 correct answers</span> = <span className="font-bold text-amber-500">1 Token </span><span className="font-medium text-foreground">each</span></p>
             <p>🏆 <span className="font-medium text-foreground">10 correct answers</span> = <span className="font-bold text-amber-500">2 Tokens </span><span className="font-medium text-foreground">each</span></p>
-<div className="space-y-2 bg-amber-500/10 p-3 rounded-lg border-2 border-amber-500/40 shadow-sm">
-  {/* The Warning Callout */}
+<div className="space-y-2 bg-amber-500/10 p-3 rounded-lg border border-amber-500/40 shadow-sm">
+  {/* The Warning Callout Only */}
   <div className="flex items-start gap-2 bg-amber-500/20 p-2 rounded border border-amber-500/30 text-amber-800 dark:text-amber-300">
     <span className="text-sm flex-shrink-0 mt-0.5">⚠️</span>
     <p className="text-xs font-semibold leading-tight">
       If you miss a daily question, your token rewards will be void individually.
-    </p>
-  </div>
-
-  {/* The Paytable Split Line */}
-  <hr className="border-amber-500/20 my-1" />
-
-  {/* The Rewards List */}
-  <div className="space-y-1 text-sm pl-1">
-    <p className="flex items-center gap-1.5">
-      <span>🎯</span> 
-      <span className="font-medium text-foreground">5-9 correct answers =</span> 
-      <span className="font-bold text-amber-600 dark:text-amber-400">1 Token</span> 
-      <span className="text-xs text-muted-foreground">each</span>
-    </p>
-    <p className="flex items-center gap-1.5">
-      <span>🏆</span> 
-      <span className="font-medium text-foreground">10 correct answers =</span> 
-      <span className="font-bold text-amber-600 dark:text-amber-400">2 Tokens</span> 
-      <span className="text-xs text-muted-foreground">each</span>
     </p>
   </div>
 </div>
