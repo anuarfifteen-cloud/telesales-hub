@@ -454,17 +454,16 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
             <p>🎯 <span className="font-medium text-foreground">5-9 correct answers</span> = <span className="font-bold text-amber-500">1 Token </span><span className="font-medium text-foreground">each</span></p>
             <p>🏆 <span className="font-medium text-foreground">10 correct answers</span> = <span className="font-bold text-amber-500">2 Tokens </span><span className="font-medium text-foreground">each</span></p>
            <p> <span className="font-medium text-foreground"> </span></p>
-  {/* The Warning Callout Only */}
+        </div>
+      </div>
+    </div>
+ {/* The Warning Callout Only */}
   <div className="flex items-start gap-2 bg-amber-500/20 p-2 rounded border border-amber-500/30 text-amber-800 dark:text-amber-300">
     <span className="text-sm flex-shrink-0 mt-0.5">⚠️</span>
     <p className="text-xs font-semibold leading-tight">
       If you miss a daily question, your token rewards will be void individually.
     </p>
 </div>
-        </div>
-      </div>
-    </div>
-
       {loading && <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}
 
       {!loading && !team && (
