@@ -22,10 +22,10 @@ const PRIZES = [
 
 function rollPrizeIndex() {
   const roll = Math.random();
-  if (roll < 0.45) return 0; // No Luck
-  if (roll < 0.75) return 1; // 1 Token
-  if (roll < 0.90) return 2; // Spin Again
-  if (roll < 0.97) return 3; // 2 Tokens
+  if (roll < 0.60) return 0; // No Luck
+  if (roll < 0.85) return 2; // Spin Again
+  if (roll < 0.95) return 1; // 1 Token
+  if (roll < 0.99) return 3; // 2 Tokens
   return 4;                  // Jackpot
 }
 
