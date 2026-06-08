@@ -451,7 +451,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
         <div className="text-xs text-muted-foreground space-y-2 mt-1">
           <p className="font-medium text-foreground">Rotate partners monthly and win together! 🤝</p>
           <div className="space-y-1 bg-muted/20 p-2 rounded-md border border-border/50">
-            <p>⚠️: <span className="text-[hsl(var(--destructive))] font-extrabold">If you miss a daily question, your tokens rewards will be void individually.</span></p>
+            <p>⚠️: <span className="font-extrabold text-[hsl(var(--am-accent))]">If you miss a daily question, your tokens rewards will be void individually.</span></p>
             <p> <span className="font-medium text-foreground"> </span></p>
             <p> <span className="font-medium text-foreground"> </span></p>
             <p>🎯 <span className="font-medium text-foreground">5-9 correct answers</span> = <span className="font-bold text-amber-500">1 Token </span><span className="font-medium text-foreground">each</span></p>
