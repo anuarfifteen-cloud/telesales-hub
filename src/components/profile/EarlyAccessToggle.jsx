@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+
 import { base44 } from "@/api/base44Client";
 import { Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -109,11 +110,20 @@ function MilestoneRow({ milestone, totalBookingCount, index }) {
 export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCount = 0, showMilestones = true }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [vipPrice, setVipPrice] = useState(1);
+
+  useEffect(() => {
+    base44.entities.AppSettings.list().then((rows) => {
+      if (rows.length > 0 && rows[0].vip_pass_price != null) {
+        setVipPrice(rows[0].vip_pass_price);
+      }
+    });
+  }, []);
 
   const tokens = user?.earlyAccessTokens ?? 0;
   const vipExpiresAt = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
   const isVipActive = vipExpiresAt && vipExpiresAt.getTime() > Date.now();
-  const canActivate = tokens > 0 && !isVipActive;
+  const canActivate = tokens >= vipPrice && !isVipActive;
 
   // Find next milestone target for the overall progress bar
   const nextMilestone = MILESTONES.find((m) => totalBookingCount < m.target);
@@ -127,11 +137,11 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
   const handleActivate = async () => {
     setSaving(true);
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    await base44.auth.updateMe({ earlyAccessTokens: tokens - 1, vipExpiresAt: expiresAt });
+    await base44.auth.updateMe({ earlyAccessTokens: tokens - vipPrice, vipExpiresAt: expiresAt });
     await base44.entities.TokenTransaction.create({
       user_id: user.id,
       user_name: user.full_name || user.email,
-      amount: -1,
+      amount: -vipPrice,
       source: "VIP Pass Purchase",
       timestamp: new Date().toISOString(),
     });
@@ -224,7 +234,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
               <AlertDialogHeader>
                 <AlertDialogTitle>⚡ Activate Early Access?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will consume <strong>1 token</strong> ({tokens} remaining) and grant you <strong>30-minute early booking access</strong> for the next <strong>24 hours</strong> or until your next successful booking, whichever comes first.
+                  This will consume <strong>{vipPrice} token{vipPrice !== 1 ? "s" : ""}</strong> ({tokens} remaining) and grant you <strong>30-minute early booking access</strong> for the next <strong>24 hours</strong> or until your next successful booking, whichever comes first.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

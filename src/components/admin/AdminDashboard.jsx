@@ -8,6 +8,7 @@ import AdminDailyQuizTab from "./AdminDailyQuizTab";
 import AdminSpinLogs from "./AdminSpinLogs";
 import AdminSuperTap from "./AdminSuperTap";
 import AdminTokenAuditLog from "./AdminTokenAuditLog";
+import TokenShopSettings from "./TokenShopSettings";
 
 const LIVE_FEED_KEY = "liveFeedEnabled";
 
@@ -198,6 +199,9 @@ export default function AdminDashboard({ onBack }) {
             <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${liveFeedEnabled ? "translate-x-7" : "translate-x-1"}`} />
           </button>
         </div>
+
+        {/* Token Shop Settings */}
+        <TokenShopSettings />
 
         {/* Roster upload card */}
         <div className="bg-white rounded-2xl border border-border p-6 space-y-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>

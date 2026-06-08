@@ -1,0 +1,12 @@
+{
+  "name": "AppSettings",
+  "type": "object",
+  "properties": {
+    "vip_pass_price": {
+      "type": "number",
+      "description": "Cost in tokens to activate the VIP Early Access Pass",
+      "default": 1
+    }
+  },
+  "required": []
+}
