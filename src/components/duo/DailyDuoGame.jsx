@@ -453,7 +453,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
           <div className="space-y-1 bg-muted/20 p-2 rounded-md border border-border/50">
             <p>🎯 <span className="font-medium text-foreground">5-9 correct answers</span> = <span className="font-bold text-amber-500">1 Token </span><span className="font-medium text-foreground">each</span></p>
             <p>🏆 <span className="font-medium text-foreground">10 correct answers</span> = <span className="font-bold text-amber-500">2 Tokens </span><span className="font-medium text-foreground">each</span></p>
-<div className="space-y-2 bg-amber-500/10 p-3 rounded-lg border border-amber-500/40 shadow-sm">
+           <p> <span className="font-medium text-foreground"> </span></p>
   {/* The Warning Callout Only */}
   <div className="flex items-start gap-2 bg-amber-500/20 p-2 rounded border border-amber-500/30 text-amber-800 dark:text-amber-300">
     <span className="text-sm flex-shrink-0 mt-0.5">⚠️</span>
