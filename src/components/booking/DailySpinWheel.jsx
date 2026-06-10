@@ -31,7 +31,7 @@ function rollPrizeIndex() {
 
 // ── Conic gradient wheel ──────────────────────────────────────────────────────
 function WheelGraphic({ rotation }) {
-  const sliceAngle = 360 / PRIZES.length; // 72deg each
+  const sliceAngle = 360 / PRIZES.length;
 
   const stops = PRIZES.map((p, i) => {
     const start = i * sliceAngle;
@@ -95,11 +95,9 @@ function WheelGraphic({ rotation }) {
             overflow: "hidden",
             ...spinStyle,
           }}
-        >
+        />
 
-        </div>
-
-        {/* Emoji overlay (spins with wheel) */}
+        {/* Emoji overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ width: 244, height: 244, margin: "auto", ...spinStyle }}
@@ -185,15 +183,13 @@ function WinnerFeed() {
 function WheelModal({ onClose, onClaim, user, today }) {
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
-  const [result, setResult] = useState(null); // PRIZES[index] after spin
+  const [result, setResult] = useState(null); 
   const [claiming, setClaiming] = useState(false);
   const spinCountRef = useRef(0);
 
   const handleSpin = () => {
     if (spinning || result) return;
     const prizeIndex = rollPrizeIndex();
-    // Each spin adds full rotations + lands on winning slice center
-    // Accumulate so repeated spins don't snap back
     const baseRotation = Math.ceil(spinCountRef.current / 360) * 360;
     const totalRotation = baseRotation + (360 * 5) - (prizeIndex * 72) - 36;
     spinCountRef.current = totalRotation;
@@ -209,39 +205,44 @@ function WheelModal({ onClose, onClaim, user, today }) {
     if (!result) return;
     setClaiming(true);
 
-    const updates = {};
-    if (result.lockDate) updates.last_spin_date = today;
-    if (result.tokens > 0) {
-      const freshUser = await base44.auth.me();
-      updates.earlyAccessTokens = (freshUser?.earlyAccessTokens ?? 0) + result.tokens;
-    }
-    if (Object.keys(updates).length > 0) await base44.auth.updateMe(updates);
+    try {
+      const updates = {};
+      if (result.lockDate) updates.last_spin_date = today;
+      if (result.tokens > 0) {
+        const freshUser = await base44.auth.me();
+        updates.earlyAccessTokens = (freshUser?.earlyAccessTokens ?? 0) + result.tokens;
+      }
+      if (Object.keys(updates).length > 0) await base44.auth.updateMe(updates);
 
-    if (result.tokens > 0) {
-      await base44.entities.TokenTransaction.create({
-        user_id: user.id,
+      if (result.tokens > 0) {
+        await base44.entities.TokenTransaction.create({
+          user_id: user.id,
+          user_name: user.full_name || user.email,
+          amount: result.tokens,
+          source: "Daily Spin",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      await base44.entities.SpinActivityLog.create({
         user_name: user.full_name || user.email,
-        amount: result.tokens,
-        source: "Daily Spin",
-        timestamp: new Date().toISOString(),
+        prize_text: result.label,
+        is_winner: result.isWinner,
+        created_at: new Date().toISOString(),
       });
+
+      if (result.tokens > 0) {
+        toast.success(`+${result.tokens} token${result.tokens > 1 ? "s" : ""} added! 🎉`);
+      } else if (result.lockDate) {
+        toast.info("Better luck tomorrow!");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Sync mismatch. Force saving your claim.");
+    } finally {
+      await onClaim();
+      setClaiming(false);
     }
-
-    await base44.entities.SpinActivityLog.create({
-      user_name: user.full_name || user.email,
-      prize_text: result.label,
-      is_winner: result.isWinner,
-      created_at: new Date().toISOString(),
-    });
-
-    if (result.tokens > 0) {
-      toast.success(`+${result.tokens} token${result.tokens > 1 ? "s" : ""} added! 🎉`);
-    } else if (result.lockDate) {
-      toast.info("Better luck tomorrow!");
-    }
-
-    await onClaim();
-    setClaiming(false);
   };
 
   const handleSpinAgain = () => {
@@ -252,7 +253,6 @@ function WheelModal({ onClose, onClaim, user, today }) {
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex flex-col items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && !spinning && !result && onClose()}>
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-5">
-        {/* Header */}
         <div className="w-full flex items-center justify-between">
           <h2 className="text-lg font-black text-foreground">🎡 Daily Spin Wheel</h2>
           {!spinning && !result && (
@@ -260,10 +260,8 @@ function WheelModal({ onClose, onClaim, user, today }) {
           )}
         </div>
 
-        {/* Wheel */}
         <WheelGraphic rotation={rotation} />
 
-        {/* Prize legend paytable */}
         <div className="flex flex-wrap justify-center gap-2 mt-2 w-full">
           {PRIZES.map((p, i) => (
             <div key={i} className="flex items-center gap-1.5 bg-gray-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-slate-600 shadow-sm">
@@ -273,7 +271,6 @@ function WheelModal({ onClose, onClaim, user, today }) {
           ))}
         </div>
 
-        {/* Result or Spin button */}
         {!result && (
           <Button
             onClick={handleSpin}
@@ -330,18 +327,60 @@ export default function DailySpinWheel({ user, onUserUpdate }) {
   const [showModal, setShowModal] = useState(false);
   const queryClient = useQueryClient();
 
-  const today = getBruneiToday();
-  const alreadySpun = user?.last_spin_date === today;
+  // 1. Fetch history log
+  const { data: userLogs = [], isLoading } = useQuery({
+    queryKey: ["userSpinLog", user?.id],
+    queryFn: () => base44.entities.SpinActivityLog.filter({ 
+      user_name: user.full_name || user.email 
+    }),
+  });
+
+  // 2. Extract most recent entry 
+  const lastSpinRecord = [...userLogs].sort((a, b) => {
+    const dateA = new Date(a.created_at || a.created_date);
+    const dateB = new Date(b.created_at || b.created_date);
+    return dateB - dateA;
+  })[0];
+
+  let alreadySpun = false;
+  const today = getBruneiToday(); // e.g., "2026-06-10"
+  
+  if (lastSpinRecord?.created_at) {
+    // Force database string parsing straight into Brunei Calendar strings
+    const lastSpinBruneiDate = new Date(lastSpinRecord.created_at).toLocaleDateString("en-CA", { 
+      timeZone: TZ 
+    });
+
+    if (lastSpinBruneiDate === today) {
+      alreadySpun = true;
+    }
+  }
+
+  // Fallback profile date lock checks
+  if (user?.last_spin_date === today) {
+    alreadySpun = true;
+  }
 
   const handleClaim = async () => {
     queryClient.invalidateQueries({ queryKey: ["spinWinners"] });
+    queryClient.invalidateQueries({ queryKey: ["userSpinLog", user?.id] });
     await onUserUpdate();
     setShowModal(false);
   };
 
+  if (isLoading) {
+    return (
+      <div className="w-full rounded-xl p-3 bg-muted text-muted-foreground opacity-70 flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
+          <p className="text-sm font-bold">Verifying daily spin status...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {/* Compact Banner */}
       <div className={`w-full rounded-xl p-3 shadow-md flex items-center justify-between mb-4 ${
         alreadySpun
           ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
@@ -350,7 +389,9 @@ export default function DailySpinWheel({ user, onUserUpdate }) {
         <div className="flex items-center gap-3">
           <span className="text-2xl">🎡</span>
           <div>
-            <p className="font-bold text-sm leading-tight">{alreadySpun ? "Come back tomorrow!" : "Daily Spin"}</p>
+            <p className="font-bold text-sm leading-tight">
+              {alreadySpun ? "Come back tomorrow!" : "Daily Spin"}
+            </p>
             {!alreadySpun && <p className="text-xs opacity-90">Spin to win tokens!</p>}
           </div>
         </div>
@@ -364,10 +405,8 @@ export default function DailySpinWheel({ user, onUserUpdate }) {
         )}
       </div>
 
-      {/* Winner Feed */}
       <WinnerFeed />
 
-      {/* Wheel Modal */}
       {showModal && (
         <WheelModal
           onClose={() => setShowModal(false)}
