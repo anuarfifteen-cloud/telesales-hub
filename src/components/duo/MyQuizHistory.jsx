@@ -2,6 +2,84 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-react";
 
+// ── Isolated Card Component with Inline Toggle ───────────────────────────────
+function QuizHistoryCard({ entry }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Consider an answer "long" if it crosses 80 characters
+  const isLongAnswer = entry.answer && entry.answer.length > 80;
+  
+  // Truncate the text for the preview if not expanded
+  const displayedAnswer = isExpanded || !isLongAnswer
+    ? entry.answer
+    : `${entry.answer.substring(0, 80)}...`;
+
+  return (
+    <div
+      className={`rounded-xl border overflow-hidden h-auto flex flex-col ${
+        entry.correct ? "border-emerald-200 dark:border-emerald-800" : "border-red-200 dark:border-red-800"
+      }`}
+    >
+      {/* Header row */}
+      <div className={`px-3 py-1.5 flex items-center justify-between flex-shrink-0 ${entry.correct ? "bg-emerald-50 dark:bg-emerald-950/30" : "bg-red-50 dark:bg-red-950/30"}`}>
+        <span className="text-[10px] font-bold text-muted-foreground">
+          {new Date(entry.date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+        </span>
+        {entry.correct
+          ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600"><CheckCircle2 className="w-3 h-3" /> Correct</span>
+          : <span className="flex items-center gap-1 text-[10px] font-black text-red-500"><XCircle className="w-3 h-3" /> Incorrect</span>
+        }
+      </div>
+
+      {/* Body */}
+      <div className="px-3 py-3 bg-card flex flex-col gap-2.5 h-auto text-xs">
+        <p className="font-bold text-foreground leading-normal whitespace-normal break-words">
+          {entry.question_text}
+        </p>
+        
+        {/* User Answer Container */}
+        <div className={`block h-auto w-full px-2.5 py-2 rounded-lg leading-normal whitespace-normal break-words ${
+          entry.correct ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/30" : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-900/30"
+        }`}>
+          <span className="block text-[10px] uppercase tracking-wider opacity-60 font-black mb-0.5">
+            You answered:
+          </span>
+          <p className="text-foreground font-medium leading-relaxed whitespace-normal break-words">
+            {displayedAnswer}
+          </p>
+
+          {/* View More / View Less Trigger */}
+          {isLongAnswer && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="mt-1.5 text-[11px] font-bold underline flex items-center gap-0.5 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700"
+            >
+              {isExpanded ? (
+                <>View Less <ChevronUp className="w-3 h-3" /></>
+              ) : (
+                <>View Full Answer <ChevronDown className="w-3 h-3" /></>
+              )}
+            </button>
+          )}
+        </div>
+        
+        {/* Correct Option Resolution (Visible only on wrong attempts) */}
+        {!entry.correct && (
+          <div className="block h-auto w-full px-2.5 py-2 rounded-lg leading-normal whitespace-normal break-words border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300">
+            <span className="block text-[10px] uppercase tracking-wider opacity-60 font-black mb-0.5">
+              Correct Answer:
+            </span>
+            <p className="font-semibold text-emerald-600 dark:text-emerald-400 whitespace-normal break-words leading-relaxed">
+              {entry.correct_option}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main Layout Export ───────────────────────────────────────────────────────
 export default function MyQuizHistory({ user }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -27,7 +105,6 @@ export default function MyQuizHistory({ user }) {
       }
     }
 
-    // Sort newest first
     allEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
     setHistory(allEntries);
     setFetched(true);
@@ -62,58 +139,9 @@ export default function MyQuizHistory({ user }) {
           )}
 
           {!loading && history.length > 0 && (
-            /* 🔥 FIX 1: Expanded scroll wrapper to max-h-[500px] so users can browse multiple tall items safely */
-            <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-3 max-h-[520px] overflow-y-auto pr-1">
               {history.map((entry, i) => (
-                <div
-                  key={i}
-                  className={`rounded-xl border overflow-hidden h-auto flex flex-col ${entry.correct ? "border-emerald-200 dark:border-emerald-800" : "border-red-200 dark:border-red-800"}`}
-                >
-                  {/* Header row */}
-                  <div className={`px-3 py-1.5 flex items-center justify-between flex-shrink-0 ${entry.correct ? "bg-emerald-50 dark:bg-emerald-950/30" : "bg-red-50 dark:bg-red-950/30"}`}>
-                    <span className="text-[10px] font-bold text-muted-foreground">
-                      {new Date(entry.date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                    </span>
-                    {entry.correct
-                      ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600"><CheckCircle2 className="w-3 h-3" /> Correct</span>
-                      : <span className="flex items-center gap-1 text-[10px] font-black text-red-500"><XCircle className="w-3 h-3" /> Incorrect</span>
-                    }
-                  </div>
-
-                  {/* Body */}
-<div className="px-3 py-3 bg-card flex flex-col gap-2.5 h-auto min-h-0 overflow-visible">
-  {/* Question Title - block display prevents truncation */}
-  <div className="block h-auto text-xs font-bold text-foreground leading-normal whitespace-normal break-words">
-    {entry.question_text}
-  </div>
-  
-  {/* User Answer Card - block container handles dynamic multi-line paragraphs */}
-  <div className={`block h-auto w-full px-2.5 py-2 rounded-lg text-xs leading-normal whitespace-normal break-words ${
-    entry.correct 
-      ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/30" 
-      : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-900/30"
-  }`}>
-    <span className="block text-[10px] uppercase tracking-wider opacity-60 font-black mb-0.5">
-      You answered:
-    </span>
-    <p className="block h-auto text-foreground font-semibold whitespace-normal break-words leading-relaxed">
-      {entry.answer}
-    </p>
-  </div>
-  
-  {/* Correct Option Resolution Card */}
-  {!entry.correct && (
-    <div className="block h-auto w-full px-2.5 py-2 rounded-lg text-xs leading-normal whitespace-normal break-words border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300">
-      <span className="block text-[10px] uppercase tracking-wider opacity-60 font-black mb-0.5">
-        Correct Answer:
-      </span>
-      <p className="block h-auto text-emerald-600 dark:text-emerald-400 font-semibold whitespace-normal break-words leading-relaxed">
-        {entry.correct_option}
-      </p>
-    </div>
-  )}
-</div>
-                </div>
+                <QuizHistoryCard key={i} entry={entry} />
               ))}
             </div>
           )}
