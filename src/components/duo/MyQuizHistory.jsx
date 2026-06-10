@@ -62,14 +62,15 @@ export default function MyQuizHistory({ user }) {
           )}
 
           {!loading && history.length > 0 && (
-            <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
+            /* 🔥 FIX 1: Expanded scroll wrapper to max-h-[500px] so users can browse multiple tall items safely */
+            <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1">
               {history.map((entry, i) => (
                 <div
                   key={i}
-                  className={`rounded-xl border overflow-hidden ${entry.correct ? "border-emerald-200 dark:border-emerald-800" : "border-red-200 dark:border-red-800"}`}
+                  className={`rounded-xl border overflow-hidden h-auto flex flex-col ${entry.correct ? "border-emerald-200 dark:border-emerald-800" : "border-red-200 dark:border-red-800"}`}
                 >
                   {/* Header row */}
-                  <div className={`px-3 py-1.5 flex items-center justify-between ${entry.correct ? "bg-emerald-50 dark:bg-emerald-950/30" : "bg-red-50 dark:bg-red-950/30"}`}>
+                  <div className={`px-3 py-1.5 flex items-center justify-between flex-shrink-0 ${entry.correct ? "bg-emerald-50 dark:bg-emerald-950/30" : "bg-red-50 dark:bg-red-950/30"}`}>
                     <span className="text-[10px] font-bold text-muted-foreground">
                       {new Date(entry.date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
                     </span>
@@ -80,16 +81,23 @@ export default function MyQuizHistory({ user }) {
                   </div>
 
                   {/* Body */}
-                  <div className="px-3 py-2.5 bg-card flex flex-col gap-1.5">
-                    <p className="text-xs font-semibold text-foreground leading-snug">{entry.question_text}</p>
-                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium ${entry.correct ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300" : "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300"}`}>
-                      <span className="opacity-60 shrink-0">You answered:</span>
-                      <span className="font-bold">{entry.answer}</span>
+                  {/* 🔥 FIX 2: Applied h-auto and explicit vertical padding parameters */}
+                  <div className="px-3 py-3 bg-card flex flex-col gap-2 h-auto text-xs">
+                    <p className="font-bold text-foreground leading-relaxed whitespace-normal break-words">
+                      {entry.question_text}
+                    </p>
+                    
+                    {/* 🔥 FIX 3: Swapped 'items-center' for 'flex-col items-start' and added 'break-words' to allow text lines to drop down naturally */}
+                    <div className={`flex flex-col items-start gap-0.5 px-2.5 py-2 rounded-lg leading-normal h-auto whitespace-normal break-words w-full ${entry.correct ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/30" : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-900/30"}`}>
+                      <span className="text-[10px] uppercase tracking-wider opacity-60 font-bold shrink-0">You answered:</span>
+                      <span className="font-semibold text-foreground">{entry.answer}</span>
                     </div>
+                    
                     {!entry.correct && (
-                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300">
-                        <span className="opacity-60 shrink-0">Correct:</span>
-                        <span className="font-bold">{entry.correct_option}</span>
+                      /* 🔥 FIX 4: Applied the identical dynamic block reset layout to the incorrect resolution text container */
+                      <div className="flex flex-col items-start gap-0.5 px-2.5 py-2 rounded-lg leading-normal h-auto whitespace-normal break-words border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 w-full">
+                        <span className="text-[10px] uppercase tracking-wider opacity-60 font-bold shrink-0">Correct Answer:</span>
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">{entry.correct_option}</span>
                       </div>
                     )}
                   </div>
