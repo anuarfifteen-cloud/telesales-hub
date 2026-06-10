@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 // ── Sound Engine (Web Audio API) ──────────────────────────────────────────────
 function createAudioCtx() {
-  try {return new (window.AudioContext || window.webkitAudioContext)();} catch {return null;}
+  try { return new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; }
 }
 
 function playTapSound(ctx) {
@@ -63,10 +63,11 @@ function RankBadge({ rank }) {
   return (
     <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 text-[11px] font-black text-slate-600 dark:text-slate-300">
       {rank}
-    </span>);
-
+    </span>
+  );
 }
 
+// ── Leaderboard Component ──────────────────────────────────────────────────────
 function Leaderboard() {
   const { data: scores = [] } = useQuery({
     queryKey: ["tapScores"],
@@ -84,7 +85,6 @@ function Leaderboard() {
 
   return (
     <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-      {/* Info box */}
       <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800 px-4 py-3">
         <p className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-1">🏆 Live Leaderboard</p>
         <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
@@ -95,38 +95,39 @@ function Leaderboard() {
           <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">🥈 2nd: 2 Tokens</span>
           <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">🥉 3rd: 1 Token</span>
         </div>
-        <p className="text-[11px] light:text-amber-400 mt-2 leading-relaxed text-[#199a26]">Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players on the board!
-
+        <p className="text-[11px] mt-2 leading-relaxed text-[#199a26]">
+          Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players on the board!
         </p>
       </div>
 
-      {scores.length === 0 ?
-      <div className="py-8 text-center text-muted-foreground text-sm">No scores yet. Be the first!</div> :
-
-      <div className="divide-y divide-border">
+      {scores.length === 0 ? (
+        <div className="py-8 text-center text-muted-foreground text-sm">No scores yet. Be the first!</div>
+      ) : (
+        <div className="divide-y divide-border">
           {scores.map((s, i) => {
-          const isChamp = champUserIds.has(s.user_id);
-          return (
-            <div key={s.id} className={`flex items-center gap-3 px-4 py-2.5 ${i < 3 && !isChamp ? "bg-amber-50/40 dark:bg-amber-950/10" : ""}`}>
+            const isChamp = champUserIds.has(s.user_id);
+            return (
+              <div key={s.id} className={`flex items-center gap-3 px-4 py-2.5 ${i < 3 && !isChamp ? "bg-amber-50/40 dark:bg-amber-950/10" : ""}`}>
                 <div className="w-8 flex items-center justify-center flex-shrink-0">
                   <RankBadge rank={i + 1} />
                 </div>
                 <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                  <span className="text-sm font-semibold text-foreground" style={{ wordBreak: "break-word" }}>
-                    {s.user_name} (BANNED!)
+                  <span className="text-sm font-semibold text-foreground truncate">
+                    {s.user_name}
                   </span>
                   {isChamp && <span className="text-base flex-shrink-0" title="Defending Champ — Prize Cooldown">👑</span>}
                 </div>
                 <span className="text-sm font-black text-primary tabular-nums flex-shrink-0">{s.high_score} taps</span>
-              </div>);
-
-        })}
+              </div>
+            );
+          })}
         </div>
-      }
-    </div>);
-
+      )}
+    </div>
+  );
 }
 
+// ── Main Super Tap Game Component ──────────────────────────────────────────────
 export default function SuperTapGame({ user }) {
   const [timeLeft, setTimeLeft] = useState(10.0);
   const [currentScore, setCurrentScore] = useState(0);
@@ -134,14 +135,17 @@ export default function SuperTapGame({ user }) {
   const [isOver, setIsOver] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newRecord, setNewRecord] = useState(false);
-  const [tapped, setTapped] = useState(false); // flash effect
+  const [tapped, setTapped] = useState(false); 
   const [ripples, setRipples] = useState([]);
+
+  // ANTI-CHEAT POSITION VECTORS: Tracking 2D coordinates inside the container area
+  const [btnCoords, setBtnCoords] = useState({ top: "50%", left: "50%" });
+
   const intervalRef = useRef(null);
   const audioCtxRef = useRef(null);
   const rippleIdRef = useRef(0);
   const queryClient = useQueryClient();
 
-  // Lazy-init audio ctx on first user gesture
   const getAudio = () => {
     if (!audioCtxRef.current) audioCtxRef.current = createAudioCtx();
     if (audioCtxRef.current?.state === "suspended") audioCtxRef.current.resume();
@@ -207,6 +211,10 @@ export default function SuperTapGame({ user }) {
     setIsOver(false);
     setNewRecord(false);
     setCurrentScore(0);
+    
+    // Position button at safe center when starting game loop
+    setBtnCoords({ top: "50%", left: "50%" });
+
     let remaining = 100;
     intervalRef.current = setInterval(() => {
       remaining -= 1;
@@ -227,17 +235,20 @@ export default function SuperTapGame({ user }) {
 
   const handleTap = (e) => {
     if (isOver) return;
-    if (!isPlaying) {startGame();return;}
-    // Ripple
+    if (!isPlaying) { startGame(); return; }
+    
     addRipple(e);
-    // Flash
     setTapped(true);
     setTimeout(() => setTapped(false), 80);
-    // Vibrate
+    
     if (navigator.vibrate) navigator.vibrate(12);
-    // Sound
     playTapSound(audioCtxRef.current);
     setCurrentScore((s) => s + 1);
+
+    // ANTI-CHEAT JUMP: Scramble positions within bounded arena constraints (0% to 65% ensures bounds clearance)
+    const randomTop = Math.floor(Math.random() * 65);
+    const randomLeft = Math.floor(Math.random() * 60);
+    setBtnCoords({ top: `${randomTop}%`, left: `${randomLeft}%` });
   };
 
   const handleReset = () => {
@@ -248,6 +259,7 @@ export default function SuperTapGame({ user }) {
     setIsOver(false);
     setNewRecord(false);
     setSaving(false);
+    setBtnCoords({ top: "50%", left: "50%" });
   };
 
   const displayTime = isOver ? "0.0" : timeLeft.toFixed(1);
@@ -257,7 +269,7 @@ export default function SuperTapGame({ user }) {
       {/* Header */}
       <div className="text-center">
         <h2 className="text-2xl font-black text-foreground">Super Tap ⚡</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Tap as fast as you can in 10 seconds!</p>
+        <p className="text-sm text-muted-foreground mt-0.5">Catch and tap the button as fast as you can!</p>
       </div>
 
       {/* HUD */}
@@ -275,75 +287,79 @@ export default function SuperTapGame({ user }) {
             key={currentScore}
             className="text-5xl font-black tabular-nums text-primary"
             style={{ animation: currentScore > 0 ? "tapPop 0.15s ease-out" : "none" }}>
-            {currentScore}</span>
+            {currentScore}
+          </span>
         </div>
       </div>
 
-      {/* Result / Record banner */}
-      {isOver &&
-      <div className={`rounded-xl px-4 py-3 text-center ${newRecord ? "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-700" : "bg-muted border border-border"}`}>
-          {saving ?
-        <p className="text-sm font-semibold text-muted-foreground">Saving score…</p> :
-        newRecord ?
-        <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">🎉 New personal best! {currentScore} taps!</p> :
-
-        <p className="text-sm font-semibold text-muted-foreground">Score: {currentScore} taps. Keep practicing!</p>
-        }
+      {isOver && (
+        <div className={`rounded-xl px-4 py-3 text-center ${newRecord ? "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-700" : "bg-muted border border-border"}`}>
+          {saving ? (
+            <p className="text-sm font-semibold text-muted-foreground">Saving score…</p>
+          ) : newRecord ? (
+            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">🎉 New personal best! {currentScore} taps!</p>
+          ) : (
+            <p className="text-sm font-semibold text-muted-foreground">Score: {currentScore} taps. Keep practicing!</p>
+          )}
         </div>
-      }
+      )}
 
-      {/* Tap Button */}
-      <div className="flex justify-center">
+      {/* ANTI-CHEAT BOUNDED BOX ARENA CONTAINER */}
+      <div className="relative w-full h-[320px] bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-dashed border-border/80 overflow-hidden flex items-center justify-center p-4 shadow-inner">
         <button
           onPointerDown={handleTap}
           disabled={isOver}
-          className={`relative overflow-hidden w-52 h-52 rounded-full text-white text-3xl font-extrabold shadow-2xl transition-all select-none disabled:opacity-50 disabled:cursor-not-allowed
+          className={`absolute overflow-hidden w-40 h-40 rounded-full text-white text-2xl font-extrabold shadow-2xl select-none disabled:opacity-50 disabled:cursor-not-allowed
             ${tapped ?
-          "scale-90 bg-gradient-to-b from-yellow-300 to-red-500 shadow-yellow-300/60" :
-          "scale-100 bg-gradient-to-b from-red-400 to-red-600 active:scale-95 shadow-red-500/40"}`
+              "bg-gradient-to-b from-yellow-300 to-red-500 shadow-yellow-300/60" :
+              "bg-gradient-to-b from-red-400 to-red-600 active:scale-95 shadow-red-500/40"}`
           }
           style={{
             WebkitTapHighlightColor: "transparent",
             touchAction: "none",
+            // Dynamic coordinates injected through active calculations
+            top: isPlaying ? btnCoords.top : "50%",
+            left: isPlaying ? btnCoords.left : "50%",
+            transform: isPlaying ? "none" : "translate(-50%, -50%)",
             boxShadow: tapped ?
-            "0 0 40px 12px rgba(250,200,0,0.45), 0 8px 32px rgba(0,0,0,0.3)" :
-            "0 8px 32px rgba(220,38,38,0.4), inset 0 -6px 0 rgba(0,0,0,0.2)",
-            transition: "transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease"
+              "0 0 40px 12px rgba(250,200,0,0.45), 0 8px 32px rgba(0,0,0,0.3)" :
+              "0 8px 32px rgba(220,38,38,0.4), inset 0 -6px 0 rgba(0,0,0,0.2)",
+            // CRITICAL: transitions must be 0s / instantaneous on position moves so players can't cheat vectors
+            transition: "transform 0.05s ease, box-shadow 0.05s ease"
           }}>
           
           {/* Ripples */}
-          {ripples.map((r) =>
-          <span
-            key={r.id}
-            className="absolute rounded-full bg-white/30 animate-ping pointer-events-none"
-            style={{
-              width: 80, height: 80,
-              left: r.x - 40, top: r.y - 40,
-              animationDuration: "0.5s",
-              animationIterationCount: 1
-            }} />
-
-          )}
+          {ripples.map((r) => (
+            <span
+              key={r.id}
+              className="absolute rounded-full bg-white/30 animate-ping pointer-events-none"
+              style={{
+                width: 60, height: 60,
+                left: r.x - 30, top: r.y - 30,
+                animationDuration: "0.4s",
+                animationIterationCount: 1
+              }} 
+            />
+          ))}
           {/* Inner ring glow */}
-          <span className="absolute inset-3 rounded-full border-4 border-white/20 pointer-events-none" />
-          <span className="relative z-10 drop-shadow-lg">
-            {isOver ? "⏱ Time's Up!" : isPlaying ? "TAP!" : "TAP\nto start!"}
+          <span className="absolute inset-2 rounded-full border-4 border-white/20 pointer-events-none" />
+          <span className="relative z-10 drop-shadow-lg text-center block px-2 leading-tight">
+            {isOver ? "⏱ Timeout" : isPlaying ? "TAP!" : "START!"}
           </span>
         </button>
       </div>
 
       {/* Play again */}
-      {isOver && !saving &&
-      <button
-        onClick={handleReset}
-        className="mx-auto flex items-center gap-2 bg-slate-800 dark:bg-white dark:text-slate-900 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:opacity-90 transition-opacity">
-        
+      {isOver && !saving && (
+        <button
+          onClick={handleReset}
+          className="mx-auto flex items-center gap-2 bg-slate-800 dark:bg-white dark:text-slate-900 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:opacity-90 transition-opacity">
           Play Again 🔄
         </button>
-      }
+      )}
 
       {/* Leaderboard */}
       <Leaderboard />
-    </div>);
-
+    </div>
+  );
 }
