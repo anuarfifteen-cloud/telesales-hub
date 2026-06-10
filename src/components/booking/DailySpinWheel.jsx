@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -13,11 +13,11 @@ function getBruneiToday() {
 
 // ── Prize table (order = slice index 0..4, clockwise from top) ────────────────
 const PRIZES = [
-  { label: "No Luck! 😢",    tokens: 0, isWinner: false, emoji: "😢", lockDate: true,  wheelColor: "#c0392b", textColor: "#fff",    dotColor: "bg-red-600"    },
-  { label: "1 Token! 🪙",    tokens: 1, isWinner: true,  emoji: "🪙", lockDate: true,  wheelColor: "#1d4ed8", textColor: "#fff",    dotColor: "bg-blue-700"   },
+  { label: "No Luck! 😢",    tokens: 0, isWinner: false, emoji: "😢", lockDate: true,  wheelColor: "#c0392b", textColor: "#fff",     dotColor: "bg-red-600"    },
+  { label: "1 Token! 🪙",    tokens: 1, isWinner: true,  emoji: "🪙", lockDate: true,  wheelColor: "#1d4ed8", textColor: "#fff",     dotColor: "bg-blue-700"   },
   { label: "Spin Again! 🔄", tokens: 0, isWinner: false, emoji: "🔄", lockDate: false, wheelColor: "#d97706", textColor: "#1e293b",  dotColor: "bg-amber-600"  },
-  { label: "Lucky Two! 🌟",  tokens: 2, isWinner: true,  emoji: "🌟", lockDate: true,  wheelColor: "#15803d", textColor: "#fff",    dotColor: "bg-green-700"  },
-  { label: "JACKPOT! 💎",   tokens: 3, isWinner: true,  emoji: "💎", lockDate: true,  wheelColor: "#b45309", textColor: "#fff",    dotColor: "bg-yellow-700" },
+  { label: "Lucky Two! 🌟",  tokens: 2, isWinner: true,  emoji: "🌟", lockDate: true,  wheelColor: "#15803d", textColor: "#fff",     dotColor: "bg-green-700"  },
+  { label: "JACKPOT! 💎",   tokens: 3, isWinner: true,  emoji: "💎", lockDate: true,  wheelColor: "#b45309", textColor: "#fff",     dotColor: "bg-yellow-700" },
 ];
 
 function rollPrizeIndex() {
@@ -95,7 +95,9 @@ function WheelGraphic({ rotation }) {
             overflow: "hidden",
             ...spinStyle,
           }}
-        />
+        >
+
+        </div>
 
         {/* Emoji overlay (spins with wheel) */}
         <div
@@ -180,7 +182,7 @@ function WinnerFeed() {
 }
 
 // ── Wheel Modal ───────────────────────────────────────────────────────────────
-function WheelModal({ onClose, onClaim, user, localToday }) {
+function WheelModal({ onClose, onClaim, user, today }) {
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState(null); // PRIZES[index] after spin
@@ -190,6 +192,8 @@ function WheelModal({ onClose, onClaim, user, localToday }) {
   const handleSpin = () => {
     if (spinning || result) return;
     const prizeIndex = rollPrizeIndex();
+    // Each spin adds full rotations + lands on winning slice center
+    // Accumulate so repeated spins don't snap back
     const baseRotation = Math.ceil(spinCountRef.current / 360) * 360;
     const totalRotation = baseRotation + (360 * 5) - (prizeIndex * 72) - 36;
     spinCountRef.current = totalRotation;
@@ -205,60 +209,39 @@ function WheelModal({ onClose, onClaim, user, localToday }) {
     if (!result) return;
     setClaiming(true);
 
-    try {
-      // 1. Ask your Deno backend for the absolute, unhackable time
-      const timeRes = await base44.functions.getServerTime();
-      const serverTimeStr = timeRes.serverTime; 
-
-      // 2. Format it precisely to match your database string profile
-      const secureToday = new Date(serverTimeStr).toLocaleDateString("en-CA", { timeZone: TZ });
-
-      // 3. THE SECURITY GATE: Intercept if her profile date matches actual server date
-      if (result.lockDate && user?.last_spin_date === secureToday) {
-        toast.error("Security Block: You have already claimed your spin for today!");
-        setClaiming(false);
-        onClose();
-        return;
-      }
-
-      const updates = {};
-      if (result.lockDate) updates.last_spin_date = secureToday;
-      if (result.tokens > 0) {
-        const freshUser = await base44.auth.me();
-        updates.earlyAccessTokens = (freshUser?.earlyAccessTokens ?? 0) + result.tokens;
-      }
-      if (Object.keys(updates).length > 0) await base44.auth.updateMe(updates);
-
-      if (result.tokens > 0) {
-        await base44.entities.TokenTransaction.create({
-          user_id: user.id,
-          user_name: user.full_name || user.email,
-          amount: result.tokens,
-          source: "Daily Spin",
-          timestamp: serverTimeStr, 
-        });
-      }
-
-      await base44.entities.SpinActivityLog.create({
-        user_name: user.full_name || user.email,
-        prize_text: result.label,
-        is_winner: result.isWinner,
-        created_at: serverTimeStr, 
-      });
-
-      if (result.tokens > 0) {
-        toast.success(`+${result.tokens} token${result.tokens > 1 ? "s" : ""} added! 🎉`);
-      } else if (result.lockDate) {
-        toast.info("Better luck tomorrow!");
-      }
-
-      await onClaim();
-    } catch (err) {
-      console.error(err);
-      toast.error("Database connection validation failed.");
-    } finally {
-      setClaiming(false);
+    const updates = {};
+    if (result.lockDate) updates.last_spin_date = today;
+    if (result.tokens > 0) {
+      const freshUser = await base44.auth.me();
+      updates.earlyAccessTokens = (freshUser?.earlyAccessTokens ?? 0) + result.tokens;
     }
+    if (Object.keys(updates).length > 0) await base44.auth.updateMe(updates);
+
+    if (result.tokens > 0) {
+      await base44.entities.TokenTransaction.create({
+        user_id: user.id,
+        user_name: user.full_name || user.email,
+        amount: result.tokens,
+        source: "Daily Spin",
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    await base44.entities.SpinActivityLog.create({
+      user_name: user.full_name || user.email,
+      prize_text: result.label,
+      is_winner: result.isWinner,
+      created_at: new Date().toISOString(),
+    });
+
+    if (result.tokens > 0) {
+      toast.success(`+${result.tokens} token${result.tokens > 1 ? "s" : ""} added! 🎉`);
+    } else if (result.lockDate) {
+      toast.info("Better luck tomorrow!");
+    }
+
+    await onClaim();
+    setClaiming(false);
   };
 
   const handleSpinAgain = () => {
@@ -345,26 +328,10 @@ function WheelModal({ onClose, onClaim, user, localToday }) {
 // ── Main Export ───────────────────────────────────────────────────────────────
 export default function DailySpinWheel({ user, onUserUpdate }) {
   const [showModal, setShowModal] = useState(false);
-  const [serverDate, setServerDate] = useState(getBruneiToday());
   const queryClient = useQueryClient();
 
-  // Sync banner block with your authentic Deno server time
-  useEffect(() => {
-    async function syncBannerTime() {
-      try {
-        const timeData = await base44.functions.getServerTime();
-        if (timeData?.serverTime) {
-          const synchronizedDate = new Date(timeData.serverTime).toLocaleDateString("en-CA", { timeZone: TZ });
-          setServerDate(synchronizedDate);
-        }
-      } catch (e) {
-        console.error("Server time fetch failed for banner, using fallback clock.");
-      }
-    }
-    syncBannerTime();
-  }, [user]);
-
-  const alreadySpun = user?.last_spin_date === serverDate;
+  const today = getBruneiToday();
+  const alreadySpun = user?.last_spin_date === today;
 
   const handleClaim = async () => {
     queryClient.invalidateQueries({ queryKey: ["spinWinners"] });
@@ -406,7 +373,7 @@ export default function DailySpinWheel({ user, onUserUpdate }) {
           onClose={() => setShowModal(false)}
           onClaim={handleClaim}
           user={user}
-          localToday={serverDate}
+          today={today}
         />
       )}
     </>
