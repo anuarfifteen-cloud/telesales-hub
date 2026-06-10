@@ -1,71 +1,82 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 
-// ── Isolated Card Component with Internal Scroll ─────────────────────────────
+// ── Isolated Card Component (Native HTML Expandable Accordion) ────────────────
 function QuizHistoryCard({ entry }) {
-  // Safe string data extraction fallback to protect against empty payloads
+  // Safe string data extraction fallbacks to protect against empty payloads
   const answerText = entry.answer || entry.user_answer || entry.selected_option || "No answer recorded";
   const correctText = entry.correct_option || entry.right_answer || "N/A";
 
   return (
     <div
-      className={`rounded-xl border overflow-hidden h-auto flex flex-col ${
-        entry.correct ? "border-emerald-200 dark:border-emerald-800" : "border-red-200 dark:border-red-800"
-      }`}
+      className="rounded-xl border overflow-hidden flex flex-col mb-1"
+      style={{ 
+        height: "auto", 
+        minHeight: "0px", 
+        display: "flex", 
+        borderColor: entry.correct ? "#a7f3d0" : "#fca5a5" 
+      }}
     >
-      {/* Header row */}
-      <div className={`px-3 py-1.5 flex items-center justify-between flex-shrink-0 ${entry.correct ? "bg-emerald-50 dark:bg-emerald-950/30" : "bg-red-50 dark:bg-red-950/30"}`}>
+      {/* Header Banner */}
+      <div 
+        className="px-3 py-1.5 flex items-center justify-between flex-shrink-0"
+        style={{ backgroundColor: entry.correct ? "rgba(209, 250, 229, 0.4)" : "rgba(254, 226, 226, 0.4)" }}
+      >
         <span className="text-[10px] font-bold text-muted-foreground">
-          {entry.date ? new Date(entry.date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "Date Unknown"}
+          {entry.date ? new Date(entry.date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "Daily Quiz"}
         </span>
         {entry.correct
-          ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600"><CheckCircle2 className="w-3 h-3" /> Correct</span>
-          : <span className="flex items-center gap-1 text-[10px] font-black text-red-500"><XCircle className="w-3 h-3" /> Incorrect</span>
+          ? <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1">✓ Correct</span>
+          : <span className="text-[10px] font-black text-red-500 flex items-center gap-1">× Incorrect</span>
         }
       </div>
 
-      {/* Body */}
-      <div className="px-3 py-3 bg-card flex flex-col gap-2.5 h-auto text-xs">
-        <p className="font-bold text-foreground leading-normal whitespace-normal break-words">
+      {/* Main Body */}
+      <div className="p-3 bg-card flex flex-col gap-2 text-xs" style={{ height: "auto", minHeight: "0px" }}>
+        
+        {/* Question Area */}
+        <p className="font-bold text-foreground leading-normal" style={{ whiteSpace: "normal", wordBreak: "break-word", display: "block" }}>
           {entry.question_text || "Missing Question Text"}
         </p>
         
-        {/* User Answer Container */}
-        <div className={`flex flex-col gap-1 w-full px-2.5 py-2 rounded-lg leading-normal ${
-          entry.correct ? "bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/30" : "bg-red-50/60 dark:bg-red-950/40 border border-red-100 dark:border-red-900/30"
-        }`}>
-          <span className="text-[10px] uppercase tracking-wider opacity-60 font-black shrink-0">
-            You answered:
-          </span>
+        {/* ── NATIVE BROWSER-ENGINE ACCORDION ── */}
+        <details className="w-full group select-none cursor-pointer block">
+          <summary className="text-[11px] font-black text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 py-1">
+            <span>▶ Tap to view full answer details</span>
+          </summary>
           
-          {/* 🔥 RIGHT-SIDE SCROLLBAR ENFORCEMENT */}
-          <div 
-            className={`max-h-20 overflow-y-scroll pr-1.5 whitespace-normal break-words font-semibold leading-relaxed text-left scrollbar-thin ${
-              entry.correct ? "text-emerald-800 dark:text-emerald-300" : "text-red-700 dark:text-red-300"
-            }`}
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
-            {answerText}
-          </div>
-        </div>
-        
-        {/* Correct Option Resolution (Visible only on wrong attempts) */}
-        {!entry.correct && (
-          <div className="flex flex-col gap-1 w-full px-2.5 py-2 rounded-lg leading-normal border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/40 dark:bg-emerald-950/20">
-            <span className="text-[10px] uppercase tracking-wider opacity-60 font-black shrink-0">
-              Correct Answer:
-            </span>
-            
-            {/* 🔥 RIGHT-SIDE SCROLLBAR ENFORCEMENT */}
+          <div className="mt-2 space-y-2" style={{ height: "auto", display: "block", minHeight: "0px" }}>
+            {/* User Answer Container */}
             <div 
-              className="max-h-20 overflow-y-scroll pr-1.5 text-emerald-600 dark:text-emerald-400 font-bold whitespace-normal break-words leading-relaxed text-left scrollbar-thin"
-              style={{ WebkitOverflowScrolling: "touch" }}
+              className="p-2.5 rounded-lg border text-left" 
+              style={{ 
+                height: "auto",
+                backgroundColor: entry.correct ? "rgba(16, 185, 129, 0.05)" : "rgba(239, 68, 68, 0.05)",
+                borderColor: entry.correct ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)"
+              }}
             >
-              {correctText}
+              <strong className="block text-[10px] uppercase opacity-60 mb-1 tracking-wider">Your Submitted Answer:</strong>
+              <p className="text-foreground font-medium leading-relaxed" style={{ whiteSpace: "normal", wordBreak: "break-word", display: "block", height: "auto" }}>
+                {answerText}
+              </p>
             </div>
+
+            {/* Error Correction Container (Only rendered on incorrect tries) */}
+            {!entry.correct && (
+              <div 
+                className="p-2.5 rounded-lg border text-left bg-emerald-500/5 border-emerald-500/10" 
+                style={{ height: "auto" }}
+              >
+                <strong className="block text-[10px] uppercase opacity-60 mb-1 tracking-wider text-emerald-700 dark:text-emerald-400">Correct Baseline Answer:</strong>
+                <p className="font-semibold text-emerald-600 dark:text-emerald-400 leading-relaxed" style={{ whiteSpace: "normal", wordBreak: "break-word", display: "block", height: "auto" }}>
+                  {correctText}
+                </p>
+              </div>
+            )}
           </div>
-        )}
+        </details>
+
       </div>
     </div>
   );
@@ -131,7 +142,7 @@ export default function MyQuizHistory({ user }) {
           )}
 
           {!loading && history.length > 0 && (
-            <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-1 pb-24 relative isolation-auto">
+            <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-1 pb-32 relative isolation-auto">
               {history.map((entry, i) => (
                 <QuizHistoryCard key={i} entry={entry} />
               ))}
