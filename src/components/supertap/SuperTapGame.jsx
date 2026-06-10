@@ -113,7 +113,7 @@ function Leaderboard() {
                 </div>
                 <div className="flex-1 min-w-0 flex items-center gap-1.5">
                   <span className="text-sm font-semibold text-foreground" style={{ wordBreak: "break-word" }}>
-                    {s.user_name}
+                    {s.user_name} (BANNED!)
                   </span>
                   {isChamp && <span className="text-base flex-shrink-0" title="Defending Champ — Prize Cooldown">👑</span>}
                 </div>
