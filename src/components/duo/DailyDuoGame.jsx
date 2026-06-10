@@ -440,26 +440,36 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const allDaysPlayed = playedDates.length >= 5;
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Header */}
-      <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-lg">🧠</span>
-          <h3 className="font-black text-base text-foreground">Daily Quiz</h3>
-          <span className="ml-auto text-[10px] font-bold text-pink-500 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">5-Day Co-Op</span>
-        </div>
-        <div className="text-xs text-muted-foreground space-y-2 mt-1">
-          <p className="font-medium text-foreground">Rotate partners monthly and win together! 🤝</p>
-          <div className="space-y-1 bg-muted/20 p-2 rounded-md border border-border/50">
-            <p>🎯 <span className="font-medium text-foreground">5-9 correct answers</span> = <span className="font-bold text-amber-500">1 Token </span><span className="font-medium text-foreground">each</span></p>
-            <p>🏆 <span className="font-medium text-foreground">10 correct answers</span> = <span className="font-bold text-amber-500">2 Tokens </span><span className="font-medium text-foreground">each</span></p>
-                    <div className="space-y-1 p-2 rounded-md border border-border/50 bg-[#9b5f50]">
-            <p>⚠️: <span className="font-medium text-foreground"> If you miss a daily question, your tokens rewards will be void individually.</span></p>
-          </div>
-        </div>
-      </div>
+   <div className="flex flex-col gap-3">
+  {/* Header & Main Rules */}
+  <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
+    <div className="flex items-center gap-2 mb-1">
+      <span className="text-lg">🧠</span>
+      <h3 className="font-black text-base text-foreground">Daily Quiz</h3>
+      <span className="ml-auto text-[10px] font-bold text-pink-500 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">5-Day Co-Op</span>
     </div>
 
+    <div className="text-xs text-muted-foreground space-y-2 mt-1">
+      <p className="font-medium text-foreground">Rotate partners monthly and win together! 🤝</p>
+      
+      {/* Rewards Card */}
+      <div className="space-y-1 bg-muted/20 p-2 rounded-md border border-border/50">
+        <p>🎯 <span className="font-medium text-foreground">5-9 correct answers</span> = <span className="font-bold text-amber-500">1 Token </span><span className="font-medium text-foreground">each</span></p>
+        <p>🏆 <span className="font-medium text-foreground">10 correct answers</span> = <span className="font-bold text-amber-500">2 Tokens </span><span className="font-medium text-foreground">each</span></p>
+      </div>
+    </div>
+  </div>
+
+  {/* High-Visibility Warning Banner */}
+  <div className="bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500/30 rounded-2xl p-3.5 flex gap-2.5 items-start shadow-md shadow-amber-500/5 animate-pulse-slow">
+    <span className="text-base text-amber-500 flex-shrink-0 mt-0.5">⚠️</span>
+    <div className="text-xs space-y-0.5">
+      <p className="font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider text-[10px]">Important Rule</p>
+      <p className="text-muted-foreground font-medium leading-relaxed">
+        If you miss a daily question, your tokens rewards will be <span className="text-foreground font-bold underline decoration-amber-500">void individually</span>.
+      </p>
+  </div>
+</div>
       {loading && <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}
 
       {!loading && !team &&
