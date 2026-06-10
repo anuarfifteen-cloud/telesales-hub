@@ -4,6 +4,10 @@ import { Loader2, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-r
 
 // ── Isolated Card Component with Internal Scroll ─────────────────────────────
 function QuizHistoryCard({ entry }) {
+  // Safe string data extraction fallback to protect against empty payloads
+  const answerText = entry.answer || entry.user_answer || entry.selected_option || "No answer recorded";
+  const correctText = entry.correct_option || entry.right_answer || "N/A";
+
   return (
     <div
       className={`rounded-xl border overflow-hidden h-auto flex flex-col ${
@@ -13,7 +17,7 @@ function QuizHistoryCard({ entry }) {
       {/* Header row */}
       <div className={`px-3 py-1.5 flex items-center justify-between flex-shrink-0 ${entry.correct ? "bg-emerald-50 dark:bg-emerald-950/30" : "bg-red-50 dark:bg-red-950/30"}`}>
         <span className="text-[10px] font-bold text-muted-foreground">
-          {new Date(entry.date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+          {entry.date ? new Date(entry.date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "Date Unknown"}
         </span>
         {entry.correct
           ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600"><CheckCircle2 className="w-3 h-3" /> Correct</span>
@@ -24,34 +28,41 @@ function QuizHistoryCard({ entry }) {
       {/* Body */}
       <div className="px-3 py-3 bg-card flex flex-col gap-2.5 h-auto text-xs">
         <p className="font-bold text-foreground leading-normal whitespace-normal break-words">
-          {entry.question_text}
+          {entry.question_text || "Missing Question Text"}
         </p>
         
-        {/* User Answer Container - With internal scrolling */}
+        {/* User Answer Container */}
         <div className={`flex flex-col gap-1 w-full px-2.5 py-2 rounded-lg leading-normal ${
-          entry.correct ? "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/30" : "bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/30"
+          entry.correct ? "bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/30" : "bg-red-50/60 dark:bg-red-950/40 border border-red-100 dark:border-red-900/30"
         }`}>
           <span className="text-[10px] uppercase tracking-wider opacity-60 font-black shrink-0">
             You answered:
           </span>
           
-          {/* INTERNAL SCROLL BOX: Scroll down here to read the full text string */}
-          <div className={`max-h-24 overflow-y-auto pr-1 whitespace-normal break-words font-medium leading-relaxed ${
-            entry.correct ? "text-emerald-800 dark:text-emerald-300" : "text-red-700 dark:text-red-300"
-          }`}>
-            {entry.answer}
+          {/* 🔥 RIGHT-SIDE SCROLLBAR ENFORCEMENT */}
+          <div 
+            className={`max-h-20 overflow-y-scroll pr-1.5 whitespace-normal break-words font-semibold leading-relaxed text-left scrollbar-thin ${
+              entry.correct ? "text-emerald-800 dark:text-emerald-300" : "text-red-700 dark:text-red-300"
+            }`}
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            {answerText}
           </div>
         </div>
         
-        {/* Correct Option Resolution - Scrolls if wrong */}
+        {/* Correct Option Resolution (Visible only on wrong attempts) */}
         {!entry.correct && (
-          <div className="flex flex-col gap-1 w-full px-2.5 py-2 rounded-lg leading-normal border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-950/20">
+          <div className="flex flex-col gap-1 w-full px-2.5 py-2 rounded-lg leading-normal border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/40 dark:bg-emerald-950/20">
             <span className="text-[10px] uppercase tracking-wider opacity-60 font-black shrink-0">
               Correct Answer:
             </span>
             
-            <div className="max-h-24 overflow-y-auto pr-1 text-emerald-600 dark:text-emerald-400 font-semibold whitespace-normal break-words leading-relaxed">
-              {entry.correct_option}
+            {/* 🔥 RIGHT-SIDE SCROLLBAR ENFORCEMENT */}
+            <div 
+              className="max-h-20 overflow-y-scroll pr-1.5 text-emerald-600 dark:text-emerald-400 font-bold whitespace-normal break-words leading-relaxed text-left scrollbar-thin"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
+              {correctText}
             </div>
           </div>
         )}
