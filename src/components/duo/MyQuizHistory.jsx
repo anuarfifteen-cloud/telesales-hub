@@ -81,26 +81,38 @@ export default function MyQuizHistory({ user }) {
                   </div>
 
                   {/* Body */}
-                  {/* 🔥 FIX 2: Applied h-auto and explicit vertical padding parameters */}
-                  <div className="px-3 py-3 bg-card flex flex-col gap-2 h-auto text-xs">
-                    <p className="font-bold text-foreground leading-relaxed whitespace-normal break-words">
-                      {entry.question_text}
-                    </p>
-                    
-                    {/* 🔥 FIX 3: Swapped 'items-center' for 'flex-col items-start' and added 'break-words' to allow text lines to drop down naturally */}
-                    <div className={`flex flex-col items-start gap-0.5 px-2.5 py-2 rounded-lg leading-normal h-auto whitespace-normal break-words w-full ${entry.correct ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/30" : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-900/30"}`}>
-                      <span className="text-[10px] uppercase tracking-wider opacity-60 font-bold shrink-0">You answered:</span>
-                      <span className="font-semibold text-foreground">{entry.answer}</span>
-                    </div>
-                    
-                    {!entry.correct && (
-                      /* 🔥 FIX 4: Applied the identical dynamic block reset layout to the incorrect resolution text container */
-                      <div className="flex flex-col items-start gap-0.5 px-2.5 py-2 rounded-lg leading-normal h-auto whitespace-normal break-words border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 w-full">
-                        <span className="text-[10px] uppercase tracking-wider opacity-60 font-bold shrink-0">Correct Answer:</span>
-                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">{entry.correct_option}</span>
-                      </div>
-                    )}
-                  </div>
+<div className="px-3 py-3 bg-card flex flex-col gap-2.5 h-auto min-h-0 overflow-visible">
+  {/* Question Title - block display prevents truncation */}
+  <div className="block h-auto text-xs font-bold text-foreground leading-normal whitespace-normal break-words">
+    {entry.question_text}
+  </div>
+  
+  {/* User Answer Card - block container handles dynamic multi-line paragraphs */}
+  <div className={`block h-auto w-full px-2.5 py-2 rounded-lg text-xs leading-normal whitespace-normal break-words ${
+    entry.correct 
+      ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/30" 
+      : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-900/30"
+  }`}>
+    <span className="block text-[10px] uppercase tracking-wider opacity-60 font-black mb-0.5">
+      You answered:
+    </span>
+    <p className="block h-auto text-foreground font-semibold whitespace-normal break-words leading-relaxed">
+      {entry.answer}
+    </p>
+  </div>
+  
+  {/* Correct Option Resolution Card */}
+  {!entry.correct && (
+    <div className="block h-auto w-full px-2.5 py-2 rounded-lg text-xs leading-normal whitespace-normal break-words border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300">
+      <span className="block text-[10px] uppercase tracking-wider opacity-60 font-black mb-0.5">
+        Correct Answer:
+      </span>
+      <p className="block h-auto text-emerald-600 dark:text-emerald-400 font-semibold whitespace-normal break-words leading-relaxed">
+        {entry.correct_option}
+      </p>
+    </div>
+  )}
+</div>
                 </div>
               ))}
             </div>
