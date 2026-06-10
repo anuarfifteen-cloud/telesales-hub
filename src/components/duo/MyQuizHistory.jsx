@@ -139,7 +139,12 @@ export default function MyQuizHistory({ user }) {
           )}
 
           {!loading && history.length > 0 && (
-            <div className="flex flex-col gap-3 max-h-[520px] overflow-y-auto pr-1">
+            /* 🔥 FIX SUMMARY:
+              1. Changed max-h from a fixed size to a dynamic viewport boundary 'max-h-[60vh]' 
+              2. Added 'pb-24' to force empty space at the bottom of the list 
+              3. Added 'isolation' to prevent the floating navbar from eating clicks
+            */
+            <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-1 pb-24 relative isolation-auto">
               {history.map((entry, i) => (
                 <QuizHistoryCard key={i} entry={entry} />
               ))}
