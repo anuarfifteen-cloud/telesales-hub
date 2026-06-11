@@ -332,7 +332,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const startTimeRef = useRef(null);
   const intervalRef = useRef(null);
   const sprintTickRef = useRef(null);
-  const isSavingRef = useRef(false); // 🟢 FIX: Protect loop from racing async database entries
+  const isSavingRef = useRef(false); 
 
   const tokens = user?.earlyAccessTokens ?? 0;
   const freePlaysLeft = Math.max(0, FREE_PLAYS_PER_DAY - playsToday);
@@ -348,7 +348,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     if (!user?.id) return;
 
     async function syncPlaysFromDatabase() {
-      // 🟢 FIX: If the stop action is currently writing a game row, skip this tick
       if (isSavingRef.current) return;
 
       try {
@@ -361,7 +360,8 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
             ? new Date(g.created_date).toLocaleDateString("en-CA")
             : null;
             
-          return d === todayStr && g.play_number !== null && g.play_number !== undefined;
+          // 🟢 FIX: Positive integer confirmation instead of loose type comparisons
+          return d === todayStr && typeof g.play_number === "number" && g.play_number > 0;
         }).length;
         setPlaysToday(realCount);
       } catch (err) {
@@ -428,7 +428,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     playP10Stop();
     clearInterval(intervalRef.current);
     setIsRunning(false);
-    isSavingRef.current = true; // 🟢 FIX: Set lock flag before async requests execute
+    isSavingRef.current = true; 
 
     const rawMs = Date.now() - startTimeRef.current;
     const stopped = parseFloat((rawMs / 1000).toFixed(2));
@@ -492,7 +492,8 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           const d = g.created_date
             ? new Date(g.created_date).toLocaleDateString("en-CA")
             : null;
-          return d === todayStr && g.play_number !== null && g.play_number !== undefined;
+          // 🟢 FIX: Keep database calculation filters matched to type validation rules
+          return d === todayStr && typeof g.play_number === "number" && g.play_number > 0;
         }).length;
         trueTryNumber = todayCount + 1;
       } catch {
@@ -512,7 +513,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     } catch (err) {
       console.error("Database save failed:", err);
     } finally {
-      // 🟢 FIX: Increment your local hooks state first, then clear the hook freeze lock safely
       setPlaysToday((prev) => prev + 1);
       isSavingRef.current = false;
     }
