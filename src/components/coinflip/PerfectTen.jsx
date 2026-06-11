@@ -59,15 +59,14 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
   const [loadingAll, setLoadingAll] = useState(false);
 
   useEffect(() => {
-    // Fetch a larger slice to ensure we get enough valid free plays after filtering
+    // Pull a larger dataset slice to ensure enough items pass the free-tries query filter
     base44.entities.PerfectTenGame.list("-created_date", 40).then((games) => {
-      // 🛡️ SPRINT EXCLUSION FILTER: Only allow entries that have a valid play_number field
-      const freePlaysOnly = games.filter(g => g.play_number !== null && g.play_number !== undefined);
-      setFeed(freePlaysOnly.slice(0, 10));
+      const freeOnly = games.filter(g => g.play_number !== null && g.play_number !== undefined);
+      setFeed(freeOnly.slice(0, 10));
     });
 
     const unsub = base44.entities.PerfectTenGame.subscribe((event) => {
-      // Direct live-subscription safety check
+      // Real-time listener: ignore if it doesn't contain a play_number attribute
       if (event.type === "create" && event.data.play_number !== null && event.data.play_number !== undefined) {
         setFeed((prev) => [event.data, ...prev].slice(0, 10));
       }
@@ -80,14 +79,14 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
     setLoadingAll(true);
     const all = await base44.entities.PerfectTenGame.list("-created_date", 200);
     
-    // Always filter out sprint modes to maintain consistent behavior throughout the component
-    const filteredAll = all.filter(g => g.play_number !== null && g.play_number !== undefined);
+    // Explicitly filter out sprint modes on expanded listing arrays
+    const freeAll = all.filter(g => g.play_number !== null && g.play_number !== undefined);
 
     if (isAdmin) {
-      setAllGames(filteredAll);
+      setAllGames(freeAll);
     } else {
       const todayStr = new Date().toLocaleDateString("en-CA");
-      setAllGames(filteredAll.filter((g) => {
+      setAllGames(freeAll.filter((g) => {
         const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
         return d === todayStr;
       }));
@@ -121,7 +120,6 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
       ? new Date(game.created_date).toLocaleDateString("en-GB", { day: 'numeric', month: 'short' }) 
       : "Today";
 
-    // Chronologically evaluate historical items across standard daily plays
     const userGamesOnThisDay = displayList
       .filter(g => g.user_id === game.user_id && 
         (g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : "Today") === 
