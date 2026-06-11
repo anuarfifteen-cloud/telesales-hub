@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -13,11 +13,11 @@ function getBruneiToday() {
 
 // ── Prize table (order = slice index 0..4, clockwise from top) ────────────────
 const PRIZES = [
-  { label: "No Luck! 😢",    tokens: 0, isWinner: false, emoji: "😢", lockDate: true,  wheelColor: "#c0392b", textColor: "#fff",     dotColor: "bg-red-600"    },
+  { label: "No Luck! 😢",     tokens: 0, isWinner: false, emoji: "😢", lockDate: true,  wheelColor: "#c0392b", textColor: "#fff",     dotColor: "bg-red-600"    },
   { label: "1 Token! 🪙",    tokens: 1, isWinner: true,  emoji: "🪙", lockDate: true,  wheelColor: "#1d4ed8", textColor: "#fff",     dotColor: "bg-blue-700"   },
   { label: "Spin Again! 🔄", tokens: 0, isWinner: false, emoji: "🔄", lockDate: false, wheelColor: "#d97706", textColor: "#1e293b",  dotColor: "bg-amber-600"  },
   { label: "Lucky Two! 🌟",  tokens: 2, isWinner: true,  emoji: "🌟", lockDate: true,  wheelColor: "#15803d", textColor: "#fff",     dotColor: "bg-green-700"  },
-  { label: "JACKPOT! 💎",   tokens: 3, isWinner: true,  emoji: "💎", lockDate: true,  wheelColor: "#b45309", textColor: "#fff",     dotColor: "bg-yellow-700" },
+  { label: "JACKPOT! 💎",    tokens: 3, isWinner: true,  emoji: "💎", lockDate: true,  wheelColor: "#b45309", textColor: "#fff",     dotColor: "bg-yellow-700" },
 ];
 
 function rollPrizeIndex() {
@@ -95,9 +95,7 @@ function WheelGraphic({ rotation }) {
             overflow: "hidden",
             ...spinStyle,
           }}
-        >
-
-        </div>
+        />
 
         {/* Emoji overlay (spins with wheel) */}
         <div
@@ -148,35 +146,78 @@ function WheelGraphic({ rotation }) {
   );
 }
 
-// ── Winner Feed ───────────────────────────────────────────────────────────────
+// ── Winner Feed (With Date Exposure and Duplicate Checks) ─────────────────────
 function WinnerFeed() {
   const { data: winners = [] } = useQuery({
     queryKey: ["spinWinners"],
     queryFn: () => base44.entities.SpinActivityLog.filter({ is_winner: true }),
-    refetchInterval: 30000,
+    refetchInterval: 10000, // Faster polling to capture live attempts instantly
   });
 
-  const top3 = [...winners]
-    .sort((a, b) => new Date(b.created_at || b.created_date) - new Date(a.created_at || a.created_date))
-    .slice(0, 3);
+  // Sort logically from newest execution downwards
+  const sortedWinners = [...winners].sort((a, b) => 
+    new Date(b.created_at || b.created_date) - new Date(a.created_at || a.created_date)
+  );
+
+  const top3 = sortedWinners.slice(0, 3);
 
   if (top3.length === 0) return null;
 
   return (
     <div className="bg-white dark:bg-card rounded-xl border border-border px-4 py-3">
       <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">⚡ Recent Winners</p>
-      {top3.map((w, i) => (
-        <div key={w.id || i} className="flex items-center justify-between w-full py-2 border-b border-border last:border-0">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-base leading-none flex-shrink-0">🏆</span>
-            <span className="text-sm font-medium text-foreground truncate max-w-[130px] whitespace-nowrap">{w.user_name}</span>
+      {top3.map((w, i) => {
+        // Extract raw timestamp safely to format the exact string day
+        const executionDate = w.created_at 
+          ? new Date(w.created_at).toLocaleDateString("en-GB", { day: 'numeric', month: 'short' })
+          : "Today";
+
+        // 🧠 ACCURACY ALGORITHM: Check if this user has generated other winning records on this exact date string
+        const userWinsOnThisDate = sortedWinners.filter(log => 
+          log.user_name === w.user_name && 
+          (log.created_at ? new Date(log.created_at).toLocaleDateString("en-CA") : "") === 
+          (w.created_at ? new Date(w.created_at).toLocaleDateString("en-CA") : "")
+        );
+
+        // Find chronological position of this specific win entry
+        const reversedList = [...userWinsOnThisDate].reverse();
+        const winOccurrenceIndex = reversedList.findIndex(log => log.id === w.id);
+        const winCountNumber = winOccurrenceIndex !== -1 ? winOccurrenceIndex + 1 : 1;
+
+        // Trigger flag if they managed to pass validation parameters more than once a day!
+        const isDuplicateAttempt = winCountNumber > 1;
+
+        return (
+          <div key={w.id || i} className="flex flex-col gap-0.5 py-2 border-b border-border last:border-0 w-full">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-base leading-none flex-shrink-0">🏆</span>
+                <span className="text-sm font-medium text-foreground truncate max-w-[130px] whitespace-nowrap">
+                  {w.user_name}
+                </span>
+                {isDuplicateAttempt && (
+                  <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400 px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse flex-shrink-0">
+                    ⚠️ Duplicate
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-1.5 flex-shrink-0 text-right">
+                <span className="text-xs text-muted-foreground font-medium">won</span>
+                <span className="text-sm font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                  {w.prize_text}
+                </span>
+              </div>
+            </div>
+            
+            {/* Timestamp footprint sub-text bar */}
+            <div className="flex items-center justify-between text-[9px] text-muted-foreground/80 font-mono px-7">
+              <span>Stamps: {executionDate}</span>
+              {winCountNumber > 1 && <span className="text-red-500 font-bold">Spin Asset #{winCountNumber}</span>}
+            </div>
           </div>
-          <span className="text-xs text-muted-foreground mx-2 flex-shrink-0">won</span>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <span className="text-sm font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">{w.prize_text}</span>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -192,8 +233,7 @@ function WheelModal({ onClose, onClaim, user, today }) {
   const handleSpin = () => {
     if (spinning || result) return;
     const prizeIndex = rollPrizeIndex();
-    // Each spin adds full rotations + lands on winning slice center
-    // Accumulate so repeated spins don't snap back
+    
     const baseRotation = Math.ceil(spinCountRef.current / 360) * 360;
     const totalRotation = baseRotation + (360 * 5) - (prizeIndex * 72) - 36;
     spinCountRef.current = totalRotation;
@@ -220,15 +260,17 @@ function WheelModal({ onClose, onClaim, user, today }) {
     if (result.tokens > 0) {
       await base44.entities.TokenTransaction.create({
         user_id: user.id,
-        user_name: user.full_name || user.email,
+        user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
         amount: result.tokens,
         source: "Daily Spin",
         timestamp: new Date().toISOString(),
       });
     }
 
+    // Force system to write authentic date signatures straight from creation context
     await base44.entities.SpinActivityLog.create({
-      user_name: user.full_name || user.email,
+      user_id: user.id,
+      user_name: user.full_name || user.email?.split("@")[0] || "Someone",
       prize_text: result.label,
       is_winner: result.isWinner,
       created_at: new Date().toISOString(),
@@ -252,7 +294,6 @@ function WheelModal({ onClose, onClaim, user, today }) {
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex flex-col items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && !spinning && !result && onClose()}>
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-5">
-        {/* Header */}
         <div className="w-full flex items-center justify-between">
           <h2 className="text-lg font-black text-foreground">🎡 Daily Spin Wheel</h2>
           {!spinning && !result && (
@@ -260,10 +301,8 @@ function WheelModal({ onClose, onClaim, user, today }) {
           )}
         </div>
 
-        {/* Wheel */}
         <WheelGraphic rotation={rotation} />
 
-        {/* Prize legend paytable */}
         <div className="flex flex-wrap justify-center gap-2 mt-2 w-full">
           {PRIZES.map((p, i) => (
             <div key={i} className="flex items-center gap-1.5 bg-gray-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-slate-600 shadow-sm">
@@ -273,7 +312,6 @@ function WheelModal({ onClose, onClaim, user, today }) {
           ))}
         </div>
 
-        {/* Result or Spin button */}
         {!result && (
           <Button
             onClick={handleSpin}
@@ -290,7 +328,7 @@ function WheelModal({ onClose, onClaim, user, today }) {
             <h3 className="text-xl font-black text-foreground text-center">{result.label}</h3>
             {result.tokens > 0 && (
               <p className="text-sm text-muted-foreground text-center">
-                +{result.tokens} token{result.tokens > 1 ? "s" : ""} will be added to your balance!
+                +{result.tokens} token${result.tokens > 1 ? "s" : ""} will be added to your balance!
               </p>
             )}
             {!result.lockDate && (
@@ -364,7 +402,7 @@ export default function DailySpinWheel({ user, onUserUpdate }) {
         )}
       </div>
 
-      {/* Winner Feed */}
+      {/* Winner Feed with automated timeline trackers */}
       <WinnerFeed />
 
       {/* Wheel Modal */}
