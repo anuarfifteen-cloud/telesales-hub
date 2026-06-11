@@ -9,7 +9,6 @@ function GameRow({ game, currentUserId, getEmoji, getLabel, isAdmin, onDeleted }
   const isMe = game.user_id === currentUserId;
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
   const colorClass =
     game.result_type === "jackpot"
       ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
@@ -59,13 +58,12 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
   const [loadingAll, setLoadingAll] = useState(false);
 
   useEffect(() => {
-    // Increased snippet size to 10 entries to show complete progression lines
-    base44.entities.PerfectTenGame.list("-created_date", 10).then((games) => {
-      setFeed(games.slice(0, 10));
+    base44.entities.PerfectTenGame.list("-created_date", 3).then((games) => {
+      setFeed(games.slice(0, 3));
     });
     const unsub = base44.entities.PerfectTenGame.subscribe((event) => {
       if (event.type === "create") {
-        setFeed((prev) => [event.data, ...prev].slice(0, 10));
+        setFeed((prev) => [event.data, ...prev].slice(0, 3));
       }
     });
     return unsub;
@@ -103,55 +101,17 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
 
   const getEmoji = (type) => ({ jackpot: "🏆", close: "😅", miss: "💨" }[type] || "⏱️");
 
-  const displayList = showAll ? allGames : feed;
-
   const getLabel = (game) => {
     const name = getName(game);
     const time = game.stopped_time?.toFixed(2) ?? "?";
-    
-    const playDate = game.created_date 
-      ? new Date(game.created_date).toLocaleDateString("en-GB", { day: 'numeric', month: 'short' }) 
-      : "Today";
-
-    // Algorithmic Counter: Checks historical entries chronologically to count try numbers
-    const userGamesOnThisDay = displayList
-      .filter(g => g.user_id === game.user_id && 
-        (g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : "Today") === 
-        (game.created_date ? new Date(game.created_date).toLocaleDateString("en-CA") : "Today")
-      )
-      .reverse();
-
-    const gameIndex = userGamesOnThisDay.findIndex(g => g.id === game.id);
-    const realTryNum = gameIndex !== -1 ? gameIndex + 1 : (game.play_number ?? 1);
-    
-    // Highlight flag if they hit a rewarding try beyond their standard 3 free tries allocation
-    const isExceeded = realTryNum > 3 && game.result_type !== "miss"; 
-    const tryDisplay = `(Try #${realTryNum})`;
-
     if (game.result_type === "jackpot")
-      return (
-        <>
-          <strong>{name}</strong> hit <span className="text-amber-600 dark:text-amber-400 font-semibold">PERFECT 10!</span>{" "}
-          <span className={isExceeded ? "text-red-500 font-black animate-pulse" : "text-muted-foreground"}>{tryDisplay}</span> on {playDate} +3 tokens 🎉
-        </>
-      );
-      
+      return <><strong>{name}</strong> hit <span className="text-amber-600 dark:text-amber-400 font-semibold">PERFECT 10!</span> +3 tokens 🎉</>;
     if (game.result_type === "close")
-      return (
-        <>
-          <strong>{name}</strong> stopped at <strong>{time}s</strong>{" "}
-          <span className={isExceeded ? "text-red-500 font-black animate-pulse" : "text-muted-foreground"}>{tryDisplay}</span> —{" "}
-          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+1 token</span> on {playDate}
-        </>
-      );
-
-    return (
-      <>
-        <strong>{name}</strong> stopped at <strong>{time}s</strong>{" "}
-        <span className="text-muted-foreground/70">{tryDisplay}</span> — <span className="text-red-500 dark:text-red-400">missed!</span> on {playDate}
-      </>
-    );
+      return <><strong>{name}</strong> stopped at <strong>{time}s</strong> — <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+1 token</span></>;
+    return <><strong>{name}</strong> stopped at <strong>{time}s</strong> — <span className="text-red-500 dark:text-red-400">missed!</span></>;
   };
+
+  const displayList = showAll ? allGames : feed;
 
   return (
     <div className="bg-card rounded-2xl border border-border shadow-sm p-3 mt-0">
@@ -165,7 +125,6 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
           {loadingAll ? "Loading…" : showAll ? "Show Recent" : "View All"}
         </button>
       </div>
-
       <div className={`space-y-1.5 ${showAll ? "max-h-80 overflow-y-auto pr-1" : ""}`}>
         <AnimatePresence initial={false}>
           {displayList.map((game) => (
@@ -209,7 +168,6 @@ function TensionBar({ elapsedMs, isRunning }) {
   const clampedSec = Math.min(visualMs / 1000, 10);
   const pct = (clampedSec / 10) * 100;
   const isOver = elapsedMs > 10000;
-
   const barColor = isOver ? "bg-red-500" : "bg-blue-500";
   const glowColor = isOver ? "shadow-red-500/60" : "shadow-blue-500/40";
 
@@ -220,7 +178,6 @@ function TensionBar({ elapsedMs, isRunning }) {
         <span>⏱️ Stop at 10s</span>
         <span>10s+</span>
       </div>
-
       <div className="relative h-4 bg-muted rounded-full overflow-hidden border border-border">
         <motion.div
           className={`h-full rounded-full ${barColor} shadow-lg ${glowColor} transition-colors duration-150`}
@@ -228,7 +185,6 @@ function TensionBar({ elapsedMs, isRunning }) {
         />
         <div className="absolute top-0 bottom-0 w-0.5 bg-amber-400 dark:bg-amber-500 opacity-80" style={{ left: "calc(100% - 2px)" }} />
       </div>
-
       <div className="flex justify-between text-[9px] text-muted-foreground px-0.5">
         {[0, 2, 4, 6, 8, 10].map((s) => (
           <span key={s}>{s}s</span>
@@ -242,12 +198,19 @@ function TensionBar({ elapsedMs, isRunning }) {
 const FREE_PLAYS_PER_DAY = 3;
 const NEAR_MIN = 9.95;
 const NEAR_MAX = 10.05;
-const SPRINT_DURATION_MS = 300000; 
-
+const SPRINT_DURATION_MS = 300000;
+const LS_DATE_KEY = "perfect10_date";
+const LS_PLAYS_KEY = "perfect10_plays";
 const LS_UNLOCK_KEY = "perfect10_unlocked_until";
 
 function getTodayString() {
   return new Date().toLocaleDateString("en-CA");
+}
+
+function getLocalPlaysToday() {
+  const saved = localStorage.getItem(LS_DATE_KEY);
+  if (saved !== getTodayString()) return 0;
+  return parseInt(localStorage.getItem(LS_PLAYS_KEY) || "0", 10);
 }
 
 function getSprintTimeLeft() {
@@ -255,16 +218,21 @@ function getSprintTimeLeft() {
   return Math.max(0, until - Date.now());
 }
 
+function formatSprintTime(ms) {
+  const totalSec = Math.ceil(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [result, setResult] = useState(null);
-  const [currentPlayMode, setCurrentPlayMode] = useState(null); 
+  const [currentPlayMode, setCurrentPlayMode] = useState(null);
   const [sprintTimeLeft, setSprintTimeLeft] = useState(() => getSprintTimeLeft());
-  
-  // Real-time Database Tracking State
-  const [playsToday, setPlaysToday] = useState(3);
+  const [playsToday, setPlaysToday] = useState(() => getLocalPlaysToday());
 
   const startTimeRef = useRef(null);
   const intervalRef = useRef(null);
@@ -274,30 +242,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const freePlaysLeft = Math.max(0, FREE_PLAYS_PER_DAY - playsToday);
   const hasActiveSprint = sprintTimeLeft > 0;
   const canStart = freePlaysLeft > 0 || hasActiveSprint || tokens >= 1;
-
-  // Sync session counter directly with central server rows
-  useEffect(() => {
-    if (!user?.id) return;
-    
-    async function syncPlaysFromDatabase() {
-      try {
-        const matches = await base44.entities.PerfectTenGame.filter({ user_id: user.id });
-        const todayStr = getTodayString();
-        
-        const realCount = matches.filter(g => {
-          const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
-          return d === todayStr;
-        }).length;
-
-        setPlaysToday(realCount);
-      } catch (err) {
-        console.error("Fallback system activated due to sync exception.", err);
-        setPlaysToday(3);
-      }
-    }
-
-    syncPlaysFromDatabase();
-  }, [user, isRunning]);
 
   useEffect(() => {
     clearInterval(sprintTickRef.current);
@@ -324,6 +268,10 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     setResult(null);
 
     if (freePlaysLeft > 0) {
+      const newPlays = playsToday + 1;
+      localStorage.setItem(LS_DATE_KEY, getTodayString());
+      localStorage.setItem(LS_PLAYS_KEY, String(newPlays));
+      setPlaysToday(newPlays);
       setCurrentPlayMode("free");
     } else if (hasActiveSprint) {
       setCurrentPlayMode("unlimited");
@@ -358,7 +306,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     const rawMs = Date.now() - startTimeRef.current;
     const stopped = parseFloat((rawMs / 1000).toFixed(2));
     const stoppedStr = stopped.toFixed(2);
-
     let resultType = "miss";
     let tokensDelta = 0;
 
@@ -387,17 +334,13 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       setResult({ type: "miss", message: `Oof, ${stoppedStr}s! Try again! 😢`, time: stoppedStr });
     }
 
-    // Explicitly write the play number directly to the database record ledger
     await base44.entities.PerfectTenGame.create({
       user_id: user.id,
       user_email: user.email,
       stopped_time: stopped,
       result_type: resultType,
       tokens_delta: tokensDelta,
-      play_number: currentPlayMode === "free" ? (playsToday + 1) : null
     });
-
-    setPlaysToday((prev) => prev + 1);
   };
 
   const displayTime = isRunning
@@ -407,7 +350,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     : "0.00";
 
   const isOver = isRunning && elapsedTime > 10100;
-
   const timerColor = isRunning
     ? isOver
       ? "text-red-500"
@@ -431,8 +373,10 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="bg-card rounded-2xl border border-border shadow-sm p-5 flex flex-col gap-4">
+        {/* Header */}
         <div>
           <h3 className="font-black text-base text-foreground">⏱️ Perfect 10</h3>
+          {/* Instruction card */}
           <div className="mt-2 rounded-xl border border-border bg-muted/60 p-3 flex flex-col gap-1.5">
             <div className="flex items-center gap-2">
               <span className="text-lg">🎯</span>
@@ -451,6 +395,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           </div>
         </div>
 
+        {/* Sprint countdown banner */}
         {hasActiveSprint && (
           <div className="flex items-center justify-between bg-purple-100 dark:bg-purple-950/50 rounded-2xl px-5 py-4 border-2 border-purple-300 dark:border-purple-700 shadow-md shadow-purple-200/40 dark:shadow-purple-900/30">
             <div className="flex items-center gap-2">
@@ -471,6 +416,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           </div>
         )}
 
+        {/* Free plays badge */}
         <div className="flex items-center justify-between bg-muted rounded-xl px-4 py-2.5 border border-border">
           <span className="text-xs font-semibold text-muted-foreground">Free Tries Today</span>
           <div className="flex items-center gap-1.5">
@@ -488,7 +434,11 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           </div>
         </div>
 
-        <motion.div className="flex items-center justify-center py-2" animate={{ scale: 1 }}>
+        {/* Timer display */}
+        <motion.div
+          className="flex items-center justify-center py-2"
+          animate={{ scale: 1 }}
+        >
           <span
             className={`font-black tabular-nums transition-colors duration-150 ${timerColor}`}
             style={{ fontSize: "clamp(3rem, 16vw, 5.5rem)", letterSpacing: "-0.02em", lineHeight: 1 }}
@@ -497,10 +447,12 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           </span>
         </motion.div>
 
+        {/* Tension progress bar — hide in last 2s */}
         {isRunning && elapsedTime < 8000 && (
           <TensionBar elapsedMs={elapsedTime} isRunning={isRunning} />
         )}
 
+        {/* Result message */}
         <AnimatePresence mode="wait">
           {result && (
             <motion.div
@@ -523,6 +475,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           )}
         </AnimatePresence>
 
+        {/* Action button */}
         <button
           onClick={isRunning ? handleStop : handleStart}
           disabled={!isRunning && !canStart}
@@ -537,7 +490,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           {isRunning ? "⏹ STOP!" : startBtnLabel}
         </button>
       </div>
-
       <PerfectTenFeed currentUserId={user?.id} isAdmin={isAdmin} />
     </div>
   );
