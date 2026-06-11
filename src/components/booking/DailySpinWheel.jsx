@@ -212,7 +212,7 @@ function WinnerFeed() {
             
             {/* Timestamp footprint sub-text bar */}
             <div className="flex items-center justify-between text-[9px] text-muted-foreground/80 font-mono px-7">
-              <span>Stamps: {executionDate}</span>
+              <span>Date of Spin: {executionDate}</span>
               {winCountNumber > 1 && <span className="text-red-500 font-bold">Spin Asset #{winCountNumber}</span>}
             </div>
           </div>
