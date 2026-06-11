@@ -59,6 +59,7 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
   const [loadingAll, setLoadingAll] = useState(false);
 
   useEffect(() => {
+    // Increased snippet size to 10 entries to show complete progression lines
     base44.entities.PerfectTenGame.list("-created_date", 10).then((games) => {
       setFeed(games.slice(0, 10));
     });
@@ -112,34 +113,26 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
       ? new Date(game.created_date).toLocaleDateString("en-GB", { day: 'numeric', month: 'short' }) 
       : "Today";
 
-    let tryDisplay = "";
-    let isExceeded = false;
+    // Algorithmic Counter: Checks historical entries chronologically to count try numbers
+    const userGamesOnThisDay = displayList
+      .filter(g => g.user_id === game.user_id && 
+        (g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : "Today") === 
+        (game.created_date ? new Date(game.created_date).toLocaleDateString("en-CA") : "Today")
+      )
+      .reverse();
 
-    // Fixed Condition: Check explicitly for "sprint" tag or if play_number is missing completely
-    if (game.play_mode === "sprint" || (!game.play_number && game.play_mode !== "free")) {
-      tryDisplay = "(Sprint Mode)";
-    } else {
-      // Free try path: count occurrences safely
-      const freeGamesOnThisDay = displayList
-        .filter(g => g.user_id === game.user_id && 
-          g.play_mode !== "sprint" &&
-          (g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : "Today") === 
-          (game.created_date ? new Date(game.created_date).toLocaleDateString("en-CA") : "Today")
-        )
-        .reverse();
-
-      const gameIndex = freeGamesOnThisDay.findIndex(g => g.id === game.id);
-      const realTryNum = gameIndex !== -1 ? gameIndex + 1 : (game.play_number ?? 1);
-      
-      tryDisplay = `(Try #${realTryNum})`;
-      isExceeded = realTryNum > 3 && game.result_type !== "miss";
-    }
+    const gameIndex = userGamesOnThisDay.findIndex(g => g.id === game.id);
+    const realTryNum = gameIndex !== -1 ? gameIndex + 1 : (game.play_number ?? 1);
+    
+    // Highlight flag if they hit a rewarding try beyond their standard 3 free tries allocation
+    const isExceeded = realTryNum > 3 && game.result_type !== "miss"; 
+    const tryDisplay = `(Try #${realTryNum})`;
 
     if (game.result_type === "jackpot")
       return (
         <>
           <strong>{name}</strong> hit <span className="text-amber-600 dark:text-amber-400 font-semibold">PERFECT 10!</span>{" "}
-          <span className={isExceeded ? "text-red-500 font-black animate-pulse" : "text-muted-foreground/70"}>{tryDisplay}</span> on {playDate} +3 tokens 🎉
+          <span className={isExceeded ? "text-red-500 font-black animate-pulse" : "text-muted-foreground"}>{tryDisplay}</span> on {playDate} +3 tokens 🎉
         </>
       );
       
@@ -147,7 +140,7 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
       return (
         <>
           <strong>{name}</strong> stopped at <strong>{time}s</strong>{" "}
-          <span className={isExceeded ? "text-red-500 font-black animate-pulse" : "text-muted-foreground/70"}>{tryDisplay}</span> —{" "}
+          <span className={isExceeded ? "text-red-500 font-black animate-pulse" : "text-muted-foreground"}>{tryDisplay}</span> —{" "}
           <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+1 token</span> on {playDate}
         </>
       );
@@ -155,7 +148,7 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
     return (
       <>
         <strong>{name}</strong> stopped at <strong>{time}s</strong>{" "}
-        <span className="text-muted-foreground/60">{tryDisplay}</span> — <span className="text-red-500 dark:text-red-400">missed!</span> on {playDate}
+        <span className="text-muted-foreground/70">{tryDisplay}</span> — <span className="text-red-500 dark:text-red-400">missed!</span> on {playDate}
       </>
     );
   };
@@ -270,6 +263,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const [currentPlayMode, setCurrentPlayMode] = useState(null); 
   const [sprintTimeLeft, setSprintTimeLeft] = useState(() => getSprintTimeLeft());
   
+  // Real-time Database Tracking State
   const [playsToday, setPlaysToday] = useState(3);
 
   const startTimeRef = useRef(null);
@@ -281,6 +275,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const hasActiveSprint = sprintTimeLeft > 0;
   const canStart = freePlaysLeft > 0 || hasActiveSprint || tokens >= 1;
 
+  // Sync session counter directly with central server rows
   useEffect(() => {
     if (!user?.id) return;
     
@@ -291,13 +286,12 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
         
         const realCount = matches.filter(g => {
           const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
-          // Explicit filter adjustment: only count entries marked explicitly as free or containing a baseline number
-          return d === todayStr && g.play_mode !== "sprint";
+          return d === todayStr;
         }).length;
 
         setPlaysToday(realCount);
       } catch (err) {
-        console.error("Database tracking failed.", err);
+        console.error("Fallback system activated due to sync exception.", err);
         setPlaysToday(3);
       }
     }
@@ -329,18 +323,17 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     playP10Start();
     setResult(null);
 
-    // Freeze mode selection explicitly here so it doesn't shift or get lost mid-execution
     if (freePlaysLeft > 0) {
       setCurrentPlayMode("free");
     } else if (hasActiveSprint) {
-      setCurrentPlayMode("sprint");
+      setCurrentPlayMode("unlimited");
     } else {
       await base44.auth.updateMe({ earlyAccessTokens: tokens - 1 });
       await onUserUpdate();
       const until = Date.now() + SPRINT_DURATION_MS;
       localStorage.setItem(LS_UNLOCK_KEY, String(until));
       setSprintTimeLeft(SPRINT_DURATION_MS);
-      setCurrentPlayMode("sprint");
+      setCurrentPlayMode("unlimited");
       base44.entities.SprintPurchase.create({
         user_id: user.id,
         user_email: user.email,
@@ -358,10 +351,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
 
   const handleStop = async () => {
     if (!isRunning) return;
-    
-    // Capture the exact mode active before wiping state layouts
-    const activeMode = currentPlayMode || (freePlaysLeft > 0 ? "free" : "sprint");
-
     playP10Stop();
     clearInterval(intervalRef.current);
     setIsRunning(false);
@@ -379,12 +368,12 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       playP10Jackpot();
       await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 3 });
       await onUserUpdate();
-      if (activeMode === "sprint") {
+      if (currentPlayMode === "unlimited") {
         localStorage.removeItem(LS_UNLOCK_KEY);
         setSprintTimeLeft(0);
       }
       setResult({ type: "jackpot", message: `JACKPOT! PERFECT 10.00s! +3 Tokens 💎`, time: stoppedStr });
-    } else if (activeMode === "free" && stopped >= NEAR_MIN && stopped <= NEAR_MAX) {
+    } else if (currentPlayMode === "free" && stopped >= NEAR_MIN && stopped <= NEAR_MAX) {
       resultType = "close";
       tokensDelta = 1;
       playP10Close();
@@ -398,20 +387,17 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       setResult({ type: "miss", message: `Oof, ${stoppedStr}s! Try again! 😢`, time: stoppedStr });
     }
 
-    // Write both variables explicitly to completely isolate free iterations vs sprints
+    // Explicitly write the play number directly to the database record ledger
     await base44.entities.PerfectTenGame.create({
       user_id: user.id,
       user_email: user.email,
       stopped_time: stopped,
       result_type: resultType,
       tokens_delta: tokensDelta,
-      play_mode: activeMode,
-      play_number: activeMode === "free" ? (playsToday + 1) : null
+      play_number: currentPlayMode === "free" ? (playsToday + 1) : null
     });
 
-    if (activeMode === "free") {
-      setPlaysToday((prev) => prev + 1);
-    }
+    setPlaysToday((prev) => prev + 1);
   };
 
   const displayTime = isRunning
