@@ -128,7 +128,7 @@ function Leaderboard() {
 }
 
 // ── Main Super Tap Game Component ──────────────────────────────────────────────
-export default function SuperTapGame({ user }) {
+export default function SuperTapGame({ user, isAdmin }) {
   const [timeLeft, setTimeLeft] = useState(10.0);
   const [currentScore, setCurrentScore] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -138,7 +138,6 @@ export default function SuperTapGame({ user }) {
   const [tapped, setTapped] = useState(false); 
   const [ripples, setRipples] = useState([]);
 
-  // ANTI-CHEAT POSITION VECTORS: Tracking 2D coordinates inside the container area
   const [btnCoords, setBtnCoords] = useState({ top: "50%", left: "50%" });
 
   const intervalRef = useRef(null);
@@ -172,7 +171,8 @@ export default function SuperTapGame({ user }) {
           user_name: user.full_name || user.email,
           user_email: user.email,
           high_score: score,
-          last_played: new Date().toISOString()
+          last_played: new Date().toISOString(),
+          cheat_protection_bypass: !!isAdmin // Flag payload securely so backend exceptions pass smoothly
         });
         setNewRecord(true);
       } else {
@@ -180,7 +180,8 @@ export default function SuperTapGame({ user }) {
         if (score > record.high_score) {
           await base44.entities.TapScore.update(record.id, {
             high_score: score,
-            last_played: new Date().toISOString()
+            last_played: new Date().toISOString(),
+            cheat_protection_bypass: !!isAdmin
           });
           setNewRecord(true);
         } else {
@@ -212,7 +213,6 @@ export default function SuperTapGame({ user }) {
     setNewRecord(false);
     setCurrentScore(0);
     
-    // Position button at safe center when starting game loop
     setBtnCoords({ top: "50%", left: "50%" });
 
     let remaining = 100;
@@ -243,9 +243,12 @@ export default function SuperTapGame({ user }) {
     
     if (navigator.vibrate) navigator.vibrate(12);
     playTapSound(audioCtxRef.current);
-    setCurrentScore((s) => s + 1);
 
-    // ANTI-CHEAT JUMP: Scramble positions within bounded arena constraints (0% to 65% ensures bounds clearance)
+    // 🧠 THE ACCELERATOR: 1 click adds 100 if user possesses Admin status
+    const tapValue = isAdmin ? 100 : 1;
+    setCurrentScore((s) => s + tapValue);
+
+    // Bounded shift moves instantly to counter static macro triggers
     const randomTop = Math.floor(Math.random() * 65);
     const randomLeft = Math.floor(Math.random() * 60);
     setBtnCoords({ top: `${randomTop}%`, left: `${randomLeft}%` });
@@ -270,6 +273,11 @@ export default function SuperTapGame({ user }) {
       <div className="text-center">
         <h2 className="text-2xl font-black text-foreground">Super Tap ⚡</h2>
         <p className="text-sm text-muted-foreground mt-0.5">Catch and tap the button as fast as you can!</p>
+        {isAdmin && (
+          <span className="inline-block mt-2 text-[10px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 rounded-full animate-pulse">
+            👑 God Mode: 1 Tap = 100 Taps Active
+          </span>
+        )}
       </div>
 
       {/* HUD */}
@@ -304,7 +312,7 @@ export default function SuperTapGame({ user }) {
         </div>
       )}
 
-      {/* ANTI-CHEAT BOUNDED BOX ARENA CONTAINER */}
+      {/* Box Arena Container */}
       <div className="relative w-full h-[320px] bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-dashed border-border/80 overflow-hidden flex items-center justify-center p-4 shadow-inner">
         <button
           onPointerDown={handleTap}
@@ -317,18 +325,15 @@ export default function SuperTapGame({ user }) {
           style={{
             WebkitTapHighlightColor: "transparent",
             touchAction: "none",
-            // Dynamic coordinates injected through active calculations
             top: isPlaying ? btnCoords.top : "50%",
             left: isPlaying ? btnCoords.left : "50%",
             transform: isPlaying ? "none" : "translate(-50%, -50%)",
             boxShadow: tapped ?
               "0 0 40px 12px rgba(250,200,0,0.45), 0 8px 32px rgba(0,0,0,0.3)" :
               "0 8px 32px rgba(220,38,38,0.4), inset 0 -6px 0 rgba(0,0,0,0.2)",
-            // CRITICAL: transitions must be 0s / instantaneous on position moves so players can't cheat vectors
             transition: "transform 0.05s ease, box-shadow 0.05s ease"
           }}>
           
-          {/* Ripples */}
           {ripples.map((r) => (
             <span
               key={r.id}
@@ -341,7 +346,6 @@ export default function SuperTapGame({ user }) {
               }} 
             />
           ))}
-          {/* Inner ring glow */}
           <span className="absolute inset-2 rounded-full border-4 border-white/20 pointer-events-none" />
           <span className="relative z-10 drop-shadow-lg text-center block px-2 leading-tight">
             {isOver ? "⏱ Timeout" : isPlaying ? "TAP!" : "START!"}
@@ -349,7 +353,7 @@ export default function SuperTapGame({ user }) {
         </button>
       </div>
 
-      {/* Play again */}
+      {/* Reset view triggers */}
       {isOver && !saving && (
         <button
           onClick={handleReset}
@@ -358,7 +362,7 @@ export default function SuperTapGame({ user }) {
         </button>
       )}
 
-      {/* Leaderboard */}
+      {/* Leaderboard display snippet frame */}
       <Leaderboard />
     </div>
   );
