@@ -115,22 +115,21 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
     let tryDisplay = "";
     let isExceeded = false;
 
-    // ⚡ SEPARATION FILTER: If play_number is explicitly null, it's a paid sprint record!
-    if (game.play_number === null || game.play_number === undefined) {
+    // Fixed Condition: Check explicitly for "sprint" tag or if play_number is missing completely
+    if (game.play_mode === "sprint" || (!game.play_number && game.play_mode !== "free")) {
       tryDisplay = "(Sprint Mode)";
     } else {
-      // It's a free try! Count ONLY other free try entries to avoid layout number mixing
+      // Free try path: count occurrences safely
       const freeGamesOnThisDay = displayList
         .filter(g => g.user_id === game.user_id && 
-          g.play_number !== null && 
-          g.play_number !== undefined &&
+          g.play_mode !== "sprint" &&
           (g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : "Today") === 
           (game.created_date ? new Date(game.created_date).toLocaleDateString("en-CA") : "Today")
         )
         .reverse();
 
       const gameIndex = freeGamesOnThisDay.findIndex(g => g.id === game.id);
-      const realTryNum = gameIndex !== -1 ? gameIndex + 1 : game.play_number;
+      const realTryNum = gameIndex !== -1 ? gameIndex + 1 : (game.play_number ?? 1);
       
       tryDisplay = `(Try #${realTryNum})`;
       isExceeded = realTryNum > 3 && game.result_type !== "miss";
@@ -292,13 +291,13 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
         
         const realCount = matches.filter(g => {
           const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
-          // Only count entries that have a valid play_number field to determine free attempts left
-          return d === todayStr && g.play_number !== null && g.play_number !== undefined;
+          // Explicit filter adjustment: only count entries marked explicitly as free or containing a baseline number
+          return d === todayStr && g.play_mode !== "sprint";
         }).length;
 
         setPlaysToday(realCount);
       } catch (err) {
-        console.error("Fallback system activated due to sync exception.", err);
+        console.error("Database tracking failed.", err);
         setPlaysToday(3);
       }
     }
@@ -330,17 +329,18 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     playP10Start();
     setResult(null);
 
+    // Freeze mode selection explicitly here so it doesn't shift or get lost mid-execution
     if (freePlaysLeft > 0) {
       setCurrentPlayMode("free");
     } else if (hasActiveSprint) {
-      setCurrentPlayMode("unlimited");
+      setCurrentPlayMode("sprint");
     } else {
       await base44.auth.updateMe({ earlyAccessTokens: tokens - 1 });
       await onUserUpdate();
       const until = Date.now() + SPRINT_DURATION_MS;
       localStorage.setItem(LS_UNLOCK_KEY, String(until));
       setSprintTimeLeft(SPRINT_DURATION_MS);
-      setCurrentPlayMode("unlimited");
+      setCurrentPlayMode("sprint");
       base44.entities.SprintPurchase.create({
         user_id: user.id,
         user_email: user.email,
@@ -358,6 +358,10 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
 
   const handleStop = async () => {
     if (!isRunning) return;
+    
+    // Capture the exact mode active before wiping state layouts
+    const activeMode = currentPlayMode || (freePlaysLeft > 0 ? "free" : "sprint");
+
     playP10Stop();
     clearInterval(intervalRef.current);
     setIsRunning(false);
@@ -375,12 +379,12 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       playP10Jackpot();
       await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 3 });
       await onUserUpdate();
-      if (currentPlayMode === "unlimited") {
+      if (activeMode === "sprint") {
         localStorage.removeItem(LS_UNLOCK_KEY);
         setSprintTimeLeft(0);
       }
       setResult({ type: "jackpot", message: `JACKPOT! PERFECT 10.00s! +3 Tokens 💎`, time: stoppedStr });
-    } else if (currentPlayMode === "free" && stopped >= NEAR_MIN && stopped <= NEAR_MAX) {
+    } else if (activeMode === "free" && stopped >= NEAR_MIN && stopped <= NEAR_MAX) {
       resultType = "close";
       tokensDelta = 1;
       playP10Close();
@@ -394,16 +398,18 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       setResult({ type: "miss", message: `Oof, ${stoppedStr}s! Try again! 😢`, time: stoppedStr });
     }
 
+    // Write both variables explicitly to completely isolate free iterations vs sprints
     await base44.entities.PerfectTenGame.create({
       user_id: user.id,
       user_email: user.email,
       stopped_time: stopped,
       result_type: resultType,
       tokens_delta: tokensDelta,
-      play_number: currentPlayMode === "free" ? (playsToday + 1) : null
+      play_mode: activeMode,
+      play_number: activeMode === "free" ? (playsToday + 1) : null
     });
 
-    if (currentPlayMode === "free") {
+    if (activeMode === "free") {
       setPlaysToday((prev) => prev + 1);
     }
   };
