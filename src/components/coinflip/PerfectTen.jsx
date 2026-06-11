@@ -59,12 +59,16 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
   const [loadingAll, setLoadingAll] = useState(false);
 
   useEffect(() => {
-    // Increased snippet size to 10 entries to show complete progression lines
-    base44.entities.PerfectTenGame.list("-created_date", 10).then((games) => {
-      setFeed(games.slice(0, 10));
+    // Fetch a larger slice to ensure we get enough valid free plays after filtering
+    base44.entities.PerfectTenGame.list("-created_date", 40).then((games) => {
+      // 🛡️ SPRINT EXCLUSION FILTER: Only allow entries that have a valid play_number field
+      const freePlaysOnly = games.filter(g => g.play_number !== null && g.play_number !== undefined);
+      setFeed(freePlaysOnly.slice(0, 10));
     });
+
     const unsub = base44.entities.PerfectTenGame.subscribe((event) => {
-      if (event.type === "create") {
+      // Direct live-subscription safety check
+      if (event.type === "create" && event.data.play_number !== null && event.data.play_number !== undefined) {
         setFeed((prev) => [event.data, ...prev].slice(0, 10));
       }
     });
@@ -75,11 +79,15 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
     if (showAll) { setShowAll(false); return; }
     setLoadingAll(true);
     const all = await base44.entities.PerfectTenGame.list("-created_date", 200);
+    
+    // Always filter out sprint modes to maintain consistent behavior throughout the component
+    const filteredAll = all.filter(g => g.play_number !== null && g.play_number !== undefined);
+
     if (isAdmin) {
-      setAllGames(all);
+      setAllGames(filteredAll);
     } else {
       const todayStr = new Date().toLocaleDateString("en-CA");
-      setAllGames(all.filter((g) => {
+      setAllGames(filteredAll.filter((g) => {
         const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
         return d === todayStr;
       }));
@@ -113,7 +121,7 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
       ? new Date(game.created_date).toLocaleDateString("en-GB", { day: 'numeric', month: 'short' }) 
       : "Today";
 
-    // Algorithmic Counter: Checks historical entries chronologically to count try numbers
+    // Chronologically evaluate historical items across standard daily plays
     const userGamesOnThisDay = displayList
       .filter(g => g.user_id === game.user_id && 
         (g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : "Today") === 
@@ -124,7 +132,6 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
     const gameIndex = userGamesOnThisDay.findIndex(g => g.id === game.id);
     const realTryNum = gameIndex !== -1 ? gameIndex + 1 : (game.play_number ?? 1);
     
-    // Highlight flag if they hit a rewarding try beyond their standard 3 free tries allocation
     const isExceeded = realTryNum > 3 && game.result_type !== "miss"; 
     const tryDisplay = `(Try #${realTryNum})`;
 
@@ -263,7 +270,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const [currentPlayMode, setCurrentPlayMode] = useState(null); 
   const [sprintTimeLeft, setSprintTimeLeft] = useState(() => getSprintTimeLeft());
   
-  // Real-time Database Tracking State
   const [playsToday, setPlaysToday] = useState(3);
 
   const startTimeRef = useRef(null);
@@ -275,7 +281,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const hasActiveSprint = sprintTimeLeft > 0;
   const canStart = freePlaysLeft > 0 || hasActiveSprint || tokens >= 1;
 
-  // Sync session counter directly with central server rows
   useEffect(() => {
     if (!user?.id) return;
     
@@ -286,7 +291,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
         
         const realCount = matches.filter(g => {
           const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
-          return d === todayStr;
+          return d === todayStr && g.play_number !== null && g.play_number !== undefined;
         }).length;
 
         setPlaysToday(realCount);
@@ -387,7 +392,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       setResult({ type: "miss", message: `Oof, ${stoppedStr}s! Try again! 😢`, time: stoppedStr });
     }
 
-    // Explicitly write the play number directly to the database record ledger
     await base44.entities.PerfectTenGame.create({
       user_id: user.id,
       user_email: user.email,
@@ -397,7 +401,9 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       play_number: currentPlayMode === "free" ? (playsToday + 1) : null
     });
 
-    setPlaysToday((prev) => prev + 1);
+    if (currentPlayMode === "free") {
+      setPlaysToday((prev) => prev + 1);
+    }
   };
 
   const displayTime = isRunning
