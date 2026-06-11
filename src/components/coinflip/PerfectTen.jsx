@@ -59,34 +59,26 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
   const [loadingAll, setLoadingAll] = useState(false);
 
   useEffect(() => {
-    // Pull a larger dataset slice to ensure enough items pass the free-tries query filter
-    base44.entities.PerfectTenGame.list("-created_date", 40).then((games) => {
-      const freeOnly = games.filter(g => g.play_number !== null && g.play_number !== undefined);
-      setFeed(freeOnly.slice(0, 10));
+    base44.entities.PerfectTenGame.list("-created_date", 10).then((games) => {
+      setFeed(games.slice(0, 10));
     });
-
     const unsub = base44.entities.PerfectTenGame.subscribe((event) => {
-      // Real-time listener: ignore if it doesn't contain a play_number attribute
-      if (event.type === "create" && event.data.play_number !== null && event.data.play_number !== undefined) {
+      if (event.type === "create") {
         setFeed((prev) => [event.data, ...prev].slice(0, 10));
       }
     });
     return unsub;
-  }, []);
+  }, [currentUserId]); // ✅ Fixed dependency leakage
 
   const handleViewAll = async () => {
     if (showAll) { setShowAll(false); return; }
     setLoadingAll(true);
     const all = await base44.entities.PerfectTenGame.list("-created_date", 200);
-    
-    // Explicitly filter out sprint modes on expanded listing arrays
-    const freeAll = all.filter(g => g.play_number !== null && g.play_number !== undefined);
-
     if (isAdmin) {
-      setAllGames(freeAll);
+      setAllGames(all);
     } else {
       const todayStr = new Date().toLocaleDateString("en-CA");
-      setAllGames(freeAll.filter((g) => {
+      setAllGames(all.filter((g) => {
         const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
         return d === todayStr;
       }));
@@ -289,7 +281,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
         
         const realCount = matches.filter(g => {
           const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
-          return d === todayStr && g.play_number !== null && g.play_number !== undefined;
+          return d === todayStr;
         }).length;
 
         setPlaysToday(realCount);
@@ -399,9 +391,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       play_number: currentPlayMode === "free" ? (playsToday + 1) : null
     });
 
-    if (currentPlayMode === "free") {
-      setPlaysToday((prev) => prev + 1);
-    }
+    setPlaysToday((prev) => prev + 1);
   };
 
   const displayTime = isRunning
