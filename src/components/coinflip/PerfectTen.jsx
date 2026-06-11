@@ -74,7 +74,6 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
   const [showAll, setShowAll] = useState(false);
   const [loadingAll, setLoadingAll] = useState(false);
 
-  // Ref to avoid stale closure in subscription callback
   const currentUserIdRef = useRef(currentUserId);
   useEffect(() => {
     currentUserIdRef.current = currentUserId;
@@ -333,13 +332,13 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const startTimeRef = useRef(null);
   const intervalRef = useRef(null);
   const sprintTickRef = useRef(null);
+  const isSavingRef = useRef(false); // 🟢 FIX: Protect loop from racing async database entries
 
   const tokens = user?.earlyAccessTokens ?? 0;
   const freePlaysLeft = Math.max(0, FREE_PLAYS_PER_DAY - playsToday);
   const hasActiveSprint = sprintTimeLeft > 0;
   const canStart = freePlaysLeft > 0 || hasActiveSprint || tokens >= 1;
 
-  // Ref to safely read playsToday inside async callbacks without stale closure
   const playsTodayRef = useRef(playsToday);
   useEffect(() => {
     playsTodayRef.current = playsToday;
@@ -349,6 +348,9 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     if (!user?.id) return;
 
     async function syncPlaysFromDatabase() {
+      // 🟢 FIX: If the stop action is currently writing a game row, skip this tick
+      if (isSavingRef.current) return;
+
       try {
         const matches = await base44.entities.PerfectTenGame.filter({
           user_id: user.id,
@@ -360,20 +362,16 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
             : null;
             
           return d === todayStr && g.play_number !== null && g.play_number !== undefined;
-          
         }).length;
         setPlaysToday(realCount);
       } catch (err) {
         console.error("Failed to sync plays from database.", err);
-        // Leave current state as-is on error — don't lock user out
       }
     }
 
     syncPlaysFromDatabase();
   }, [user?.id, isRunning]);
 
-  // FIX #1: Use actual sprintTimeLeft value as dep (not boolean), and always
-  // clearInterval before registering a new one to prevent interval stacking.
   useEffect(() => {
     clearInterval(sprintTickRef.current);
     if (sprintTimeLeft <= 0) return;
@@ -397,7 +395,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const handleStart = async () => {
     if (!canStart || isRunning) return;
     playP10Start();
-    setResult(null); // FIX #2: was Result(null) — typo causing ReferenceError crash
+    setResult(null); 
 
     if (freePlaysLeft > 0) {
       setCurrentPlayMode("free");
@@ -430,6 +428,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     playP10Stop();
     clearInterval(intervalRef.current);
     setIsRunning(false);
+    isSavingRef.current = true; // 🟢 FIX: Set lock flag before async requests execute
 
     const rawMs = Date.now() - startTimeRef.current;
     const stopped = parseFloat((rawMs / 1000).toFixed(2));
@@ -482,7 +481,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       });
     }
 
-    // Re-fetch true count from DB to avoid race condition on play_number
     let trueTryNumber = null;
     if (currentPlayMode === "free") {
       try {
@@ -494,24 +492,30 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           const d = g.created_date
             ? new Date(g.created_date).toLocaleDateString("en-CA")
             : null;
-          return d === todayStr;
+          return d === todayStr && g.play_number !== null && g.play_number !== undefined;
         }).length;
         trueTryNumber = todayCount + 1;
       } catch {
-        trueTryNumber = playsTodayRef.current + 1; // safe ref-based fallback
+        trueTryNumber = playsTodayRef.current + 1; 
       }
     }
 
-    await base44.entities.PerfectTenGame.create({
-      user_id: user.id,
-      user_email: user.email,
-      stopped_time: stopped,
-      result_type: resultType,
-      tokens_delta: tokensDelta,
-      play_number: trueTryNumber,
-    });
-
-    setPlaysToday((prev) => prev + 1);
+    try {
+      await base44.entities.PerfectTenGame.create({
+        user_id: user.id,
+        user_email: user.email,
+        stopped_time: stopped,
+        result_type: resultType,
+        tokens_delta: tokensDelta,
+        play_number: trueTryNumber,
+      });
+    } catch (err) {
+      console.error("Database save failed:", err);
+    } finally {
+      // 🟢 FIX: Increment your local hooks state first, then clear the hook freeze lock safely
+      setPlaysToday((prev) => prev + 1);
+      isSavingRef.current = false;
+    }
   };
 
   const displayTime = isRunning
