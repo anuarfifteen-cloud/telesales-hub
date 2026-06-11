@@ -59,12 +59,13 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
   const [loadingAll, setLoadingAll] = useState(false);
 
   useEffect(() => {
-    base44.entities.PerfectTenGame.list("-created_date", 3).then((games) => {
-      setFeed(games.slice(0, 3));
+    // Increased snippet size to 10 entries to show complete progression lines
+    base44.entities.PerfectTenGame.list("-created_date", 10).then((games) => {
+      setFeed(games.slice(0, 10));
     });
     const unsub = base44.entities.PerfectTenGame.subscribe((event) => {
       if (event.type === "create") {
-        setFeed((prev) => [event.data, ...prev].slice(0, 3));
+        setFeed((prev) => [event.data, ...prev].slice(0, 10));
       }
     });
     return unsub;
@@ -102,26 +103,55 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
 
   const getEmoji = (type) => ({ jackpot: "🏆", close: "😅", miss: "💨" }[type] || "⏱️");
 
+  const displayList = showAll ? allGames : feed;
+
   const getLabel = (game) => {
     const name = getName(game);
     const time = game.stopped_time?.toFixed(2) ?? "?";
     
-    // Format creation time/date cleanly
     const playDate = game.created_date 
       ? new Date(game.created_date).toLocaleDateString("en-GB", { day: 'numeric', month: 'short' }) 
       : "Today";
 
-    // Unveil try count directly onto the message string
-    const playNum = game.play_number ? `(Try #${game.play_number})` : "";
+    // Algorithmic Counter: Checks historical entries chronologically to count try numbers
+    const userGamesOnThisDay = displayList
+      .filter(g => g.user_id === game.user_id && 
+        (g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : "Today") === 
+        (game.created_date ? new Date(game.created_date).toLocaleDateString("en-CA") : "Today")
+      )
+      .reverse();
+
+    const gameIndex = userGamesOnThisDay.findIndex(g => g.id === game.id);
+    const realTryNum = gameIndex !== -1 ? gameIndex + 1 : (game.play_number ?? 1);
+    
+    // Highlight flag if they hit a rewarding try beyond their standard 3 free tries allocation
+    const isExceeded = realTryNum > 3 && game.result_type !== "miss"; 
+    const tryDisplay = `(Try #${realTryNum})`;
 
     if (game.result_type === "jackpot")
-      return <><strong>{name}</strong> hit <span className="text-amber-600 dark:text-amber-400 font-semibold">PERFECT 10!</span> {playNum} on {playDate} +3 tokens 🎉</>;
+      return (
+        <>
+          <strong>{name}</strong> hit <span className="text-amber-600 dark:text-amber-400 font-semibold">PERFECT 10!</span>{" "}
+          <span className={isExceeded ? "text-red-500 font-black animate-pulse" : "text-muted-foreground"}>{tryDisplay}</span> on {playDate} +3 tokens 🎉
+        </>
+      );
+      
     if (game.result_type === "close")
-      return <><strong>{name}</strong> stopped at <strong>{time}s</strong> {playNum} — <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+1 token</span> on {playDate}</>;
-    return <><strong>{name}</strong> stopped at <strong>{time}s</strong> {playNum} — <span className="text-red-500 dark:text-red-400">missed!</span> on {playDate}</>;
-  };
+      return (
+        <>
+          <strong>{name}</strong> stopped at <strong>{time}s</strong>{" "}
+          <span className={isExceeded ? "text-red-500 font-black animate-pulse" : "text-muted-foreground"}>{tryDisplay}</span> —{" "}
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+1 token</span> on {playDate}
+        </>
+      );
 
-  const displayList = showAll ? allGames : feed;
+    return (
+      <>
+        <strong>{name}</strong> stopped at <strong>{time}s</strong>{" "}
+        <span className="text-muted-foreground/70">{tryDisplay}</span> — <span className="text-red-500 dark:text-red-400">missed!</span> on {playDate}
+      </>
+    );
+  };
 
   return (
     <div className="bg-card rounded-2xl border border-border shadow-sm p-3 mt-0">
@@ -212,7 +242,7 @@ function TensionBar({ elapsedMs, isRunning }) {
 const FREE_PLAYS_PER_DAY = 3;
 const NEAR_MIN = 9.95;
 const NEAR_MAX = 10.05;
-const SPRINT_DURATION_MS = 300000; // 5 minutes
+const SPRINT_DURATION_MS = 300000; 
 
 const LS_UNLOCK_KEY = "perfect10_unlocked_until";
 
@@ -230,10 +260,10 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [result, setResult] = useState(null);
-  const [currentPlayMode, setCurrentPlayMode] = useState(null); // 'free' | 'unlimited'
+  const [currentPlayMode, setCurrentPlayMode] = useState(null); 
   const [sprintTimeLeft, setSprintTimeLeft] = useState(() => getSprintTimeLeft());
   
-  // SECURE COUNTER: Default to locked out state (3) until database answers query
+  // Real-time Database Tracking State
   const [playsToday, setPlaysToday] = useState(3);
 
   const startTimeRef = useRef(null);
@@ -245,7 +275,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const hasActiveSprint = sprintTimeLeft > 0;
   const canStart = freePlaysLeft > 0 || hasActiveSprint || tokens >= 1;
 
-  // Real-time server database synchronization rule for daily limits
+  // Sync session counter directly with central server rows
   useEffect(() => {
     if (!user?.id) return;
     
@@ -254,7 +284,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
         const matches = await base44.entities.PerfectTenGame.filter({ user_id: user.id });
         const todayStr = getTodayString();
         
-        // Count entries created under this server date schema
         const realCount = matches.filter(g => {
           const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
           return d === todayStr;
@@ -262,7 +291,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
 
         setPlaysToday(realCount);
       } catch (err) {
-        console.error("Database connection lost. Safety configuration enforced.", err);
+        console.error("Fallback system activated due to sync exception.", err);
         setPlaysToday(3);
       }
     }
@@ -358,7 +387,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       setResult({ type: "miss", message: `Oof, ${stoppedStr}s! Try again! 😢`, time: stoppedStr });
     }
 
-    // Write metadata explicitly to backend server ledger fields
+    // Explicitly write the play number directly to the database record ledger
     await base44.entities.PerfectTenGame.create({
       user_id: user.id,
       user_email: user.email,
