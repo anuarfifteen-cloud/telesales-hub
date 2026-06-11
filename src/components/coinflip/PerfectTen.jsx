@@ -114,7 +114,7 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
   const displayList = showAll ? allGames : feed;
 
   return (
-    <div className="bg-card rounded-2xl border border-border shadow-sm p-3 mt-0">
+<div className="bg-card rounded-2xl border border-border shadow-sm p-3 mt-0">
       <div className="flex items-center justify-between mb-2">
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">🔴 Live Activity</p>
         <button
@@ -125,6 +125,30 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
           {loadingAll ? "Loading…" : showAll ? "Show Recent" : "View All"}
         </button>
       </div>
+
+      {/* ─── Added User Stats Info Banner (Today's Attempts) ─── */}
+      {(() => {
+        const todayStr = new Date().toLocaleDateString("en-CA");
+        
+        // Filter out games that belong to the user AND happened today
+        const sourceList = allGames.length > 0 ? allGames : feed;
+        const myTodayGames = sourceList.filter(g => {
+          const isMe = g.user_id === currentUserId;
+          const isToday = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
+          return isMe && isToday === todayStr;
+        });
+        
+        const todayAttempts = myTodayGames.length;
+
+        return (
+          <div className="flex justify-between items-center bg-muted/40 rounded-lg px-2.5 py-1.5 mb-2.5 text-[10px] text-muted-foreground border border-border/60">
+            <span>📊 Today's Total Tries: <strong className="text-foreground font-bold">{todayAttempts}</strong></span>
+            <span>📅 Tracking Date: <strong className="text-foreground font-bold">{todayStr}</strong></span>
+          </div>
+        );
+      })()}
+      {/* ──────────────────────────────────────────────────────── */}
+
       <div className={`space-y-1.5 ${showAll ? "max-h-80 overflow-y-auto pr-1" : ""}`}>
         <AnimatePresence initial={false}>
           {displayList.map((game) => (
