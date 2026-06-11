@@ -105,11 +105,20 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
   const getLabel = (game) => {
     const name = getName(game);
     const time = game.stopped_time?.toFixed(2) ?? "?";
+    
+    // Format creation time/date cleanly
+    const playDate = game.created_date 
+      ? new Date(game.created_date).toLocaleDateString("en-GB", { day: 'numeric', month: 'short' }) 
+      : "Today";
+
+    // Unveil try count directly onto the message string
+    const playNum = game.play_number ? `(Try #${game.play_number})` : "";
+
     if (game.result_type === "jackpot")
-      return <><strong>{name}</strong> hit <span className="text-amber-600 dark:text-amber-400 font-semibold">PERFECT 10!</span> +3 tokens 🎉</>;
+      return <><strong>{name}</strong> hit <span className="text-amber-600 dark:text-amber-400 font-semibold">PERFECT 10!</span> {playNum} on {playDate} +3 tokens 🎉</>;
     if (game.result_type === "close")
-      return <><strong>{name}</strong> stopped at <strong>{time}s</strong> — <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+1 token</span></>;
-    return <><strong>{name}</strong> stopped at <strong>{time}s</strong> — <span className="text-red-500 dark:text-red-400">missed!</span></>;
+      return <><strong>{name}</strong> stopped at <strong>{time}s</strong> {playNum} — <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+1 token</span> on {playDate}</>;
+    return <><strong>{name}</strong> stopped at <strong>{time}s</strong> {playNum} — <span className="text-red-500 dark:text-red-400">missed!</span> on {playDate}</>;
   };
 
   const displayList = showAll ? allGames : feed;
@@ -154,20 +163,18 @@ function TensionBar({ elapsedMs, isRunning }) {
   const [speedOffset, setSpeedOffset] = useState(0);
   const [flicker, setFlicker] = useState(false);
 
-  // Variable speed: every 600ms nudge the offset randomly
   useEffect(() => {
     if (!isRunning) return;
     const id = setInterval(() => {
       setSpeedOffset((prev) => {
-        const nudge = (Math.random() - 0.5) * 0.4; // ±0.2s jitter
+        const nudge = (Math.random() - 0.5) * 0.4;
         return Math.max(-1, Math.min(1, prev + nudge));
       });
-      setFlicker(Math.random() < 0.25); // 25% chance to flicker
+      setFlicker(Math.random() < 0.25);
     }, 600);
     return () => clearInterval(id);
   }, [isRunning]);
 
-  // Visual elapsed includes jitter
   const visualMs = Math.max(0, elapsedMs + speedOffset * 1000);
   const clampedSec = Math.min(visualMs / 1000, 10);
   const pct = (clampedSec / 10) * 100;
@@ -178,26 +185,20 @@ function TensionBar({ elapsedMs, isRunning }) {
 
   return (
     <div className="w-full flex flex-col gap-1">
-      {/* Labels — no "STOP ZONE" hint */}
       <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
         <span>0s</span>
         <span>⏱️ Stop at 10s</span>
         <span>10s+</span>
       </div>
 
-      {/* Track */}
       <div className="relative h-4 bg-muted rounded-full overflow-hidden border border-border">
-        {/* Filled bar — flicker effect */}
         <motion.div
           className={`h-full rounded-full ${barColor} shadow-lg ${glowColor} transition-colors duration-150`}
           style={{ width: `${pct}%`, opacity: flicker && isRunning ? 0.6 : 1 }}
         />
-
-        {/* 10s marker line */}
         <div className="absolute top-0 bottom-0 w-0.5 bg-amber-400 dark:bg-amber-500 opacity-80" style={{ left: "calc(100% - 2px)" }} />
       </div>
 
-      {/* Tick labels */}
       <div className="flex justify-between text-[9px] text-muted-foreground px-0.5">
         {[0, 2, 4, 6, 8, 10].map((s) => (
           <span key={s}>{s}s</span>
@@ -213,30 +214,15 @@ const NEAR_MIN = 9.95;
 const NEAR_MAX = 10.05;
 const SPRINT_DURATION_MS = 300000; // 5 minutes
 
-const LS_DATE_KEY = "perfect10_date";
-const LS_PLAYS_KEY = "perfect10_plays";
 const LS_UNLOCK_KEY = "perfect10_unlocked_until";
 
 function getTodayString() {
   return new Date().toLocaleDateString("en-CA");
 }
 
-function getLocalPlaysToday() {
-  const saved = localStorage.getItem(LS_DATE_KEY);
-  if (saved !== getTodayString()) return 0;
-  return parseInt(localStorage.getItem(LS_PLAYS_KEY) || "0", 10);
-}
-
 function getSprintTimeLeft() {
   const until = parseInt(localStorage.getItem(LS_UNLOCK_KEY) || "0", 10);
   return Math.max(0, until - Date.now());
-}
-
-function formatSprintTime(ms) {
-  const totalSec = Math.ceil(ms / 1000);
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -246,7 +232,9 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const [result, setResult] = useState(null);
   const [currentPlayMode, setCurrentPlayMode] = useState(null); // 'free' | 'unlimited'
   const [sprintTimeLeft, setSprintTimeLeft] = useState(() => getSprintTimeLeft());
-  const [playsToday, setPlaysToday] = useState(() => getLocalPlaysToday());
+  
+  // SECURE COUNTER: Default to locked out state (3) until database answers query
+  const [playsToday, setPlaysToday] = useState(3);
 
   const startTimeRef = useRef(null);
   const intervalRef = useRef(null);
@@ -257,7 +245,31 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const hasActiveSprint = sprintTimeLeft > 0;
   const canStart = freePlaysLeft > 0 || hasActiveSprint || tokens >= 1;
 
-  // Auto-start/stop sprint countdown whenever sprint becomes active
+  // Real-time server database synchronization rule for daily limits
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    async function syncPlaysFromDatabase() {
+      try {
+        const matches = await base44.entities.PerfectTenGame.filter({ user_id: user.id });
+        const todayStr = getTodayString();
+        
+        // Count entries created under this server date schema
+        const realCount = matches.filter(g => {
+          const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
+          return d === todayStr;
+        }).length;
+
+        setPlaysToday(realCount);
+      } catch (err) {
+        console.error("Database connection lost. Safety configuration enforced.", err);
+        setPlaysToday(3);
+      }
+    }
+
+    syncPlaysFromDatabase();
+  }, [user, isRunning]);
+
   useEffect(() => {
     clearInterval(sprintTickRef.current);
     if (sprintTimeLeft > 0) {
@@ -283,17 +295,10 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     setResult(null);
 
     if (freePlaysLeft > 0) {
-      // Scenario A: Free Try
-      const newPlays = playsToday + 1;
-      localStorage.setItem(LS_DATE_KEY, getTodayString());
-      localStorage.setItem(LS_PLAYS_KEY, String(newPlays));
-      setPlaysToday(newPlays);
       setCurrentPlayMode("free");
     } else if (hasActiveSprint) {
-      // Scenario C: Active sprint — just play
       setCurrentPlayMode("unlimited");
     } else {
-      // Scenario B: Buy 5-minute sprint
       await base44.auth.updateMe({ earlyAccessTokens: tokens - 1 });
       await onUserUpdate();
       const until = Date.now() + SPRINT_DURATION_MS;
@@ -329,20 +334,17 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     let tokensDelta = 0;
 
     if (stoppedStr === "10.00") {
-      // JACKPOT — both modes
       resultType = "jackpot";
       tokensDelta = 3;
       playP10Jackpot();
       await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 3 });
       await onUserUpdate();
       if (currentPlayMode === "unlimited") {
-        // End sprint immediately on jackpot
         localStorage.removeItem(LS_UNLOCK_KEY);
         setSprintTimeLeft(0);
       }
       setResult({ type: "jackpot", message: `JACKPOT! PERFECT 10.00s! +3 Tokens 💎`, time: stoppedStr });
     } else if (currentPlayMode === "free" && stopped >= NEAR_MIN && stopped <= NEAR_MAX) {
-      // Near miss — FREE mode only
       resultType = "close";
       tokensDelta = 1;
       playP10Close();
@@ -350,20 +352,23 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       await onUserUpdate();
       setResult({ type: "close", message: `Close! Near Miss Bonus: +1 Token 🎁 (${stoppedStr}s)`, time: stoppedStr });
     } else {
-      // Miss
       resultType = "miss";
       tokensDelta = 0;
       playP10Miss();
       setResult({ type: "miss", message: `Oof, ${stoppedStr}s! Try again! 😢`, time: stoppedStr });
     }
 
+    // Write metadata explicitly to backend server ledger fields
     await base44.entities.PerfectTenGame.create({
       user_id: user.id,
       user_email: user.email,
       stopped_time: stopped,
       result_type: resultType,
       tokens_delta: tokensDelta,
+      play_number: currentPlayMode === "free" ? (playsToday + 1) : null
     });
+
+    setPlaysToday((prev) => prev + 1);
   };
 
   const displayTime = isRunning
@@ -384,14 +389,12 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     ? "text-emerald-500"
     : "text-foreground";
 
-  // Start button label
   const startBtnLabel = freePlaysLeft > 0
     ? `▶ START (Free Try: ${freePlaysLeft}/3)`
     : hasActiveSprint
     ? `▶ START SPRINT`
     : `🔓 UNLOCK 5 MINUTES (Cost: 1 Token)`;
 
-  // Sprint seconds countdown (live)
   const sprintTotalSec = Math.ceil(sprintTimeLeft / 1000);
   const sprintMin = Math.floor(sprintTotalSec / 60);
   const sprintSec = sprintTotalSec % 60;
@@ -399,12 +402,8 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="bg-card rounded-2xl border border-border shadow-sm p-5 flex flex-col gap-4">
-
-        {/* Header */}
         <div>
           <h3 className="font-black text-base text-foreground">⏱️ Perfect 10</h3>
-
-          {/* Instruction card */}
           <div className="mt-2 rounded-xl border border-border bg-muted/60 p-3 flex flex-col gap-1.5">
             <div className="flex items-center gap-2">
               <span className="text-lg">🎯</span>
@@ -423,7 +422,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           </div>
         </div>
 
-        {/* Sprint countdown banner */}
         {hasActiveSprint && (
           <div className="flex items-center justify-between bg-purple-100 dark:bg-purple-950/50 rounded-2xl px-5 py-4 border-2 border-purple-300 dark:border-purple-700 shadow-md shadow-purple-200/40 dark:shadow-purple-900/30">
             <div className="flex items-center gap-2">
@@ -444,7 +442,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           </div>
         )}
 
-        {/* Free plays badge */}
         <div className="flex items-center justify-between bg-muted rounded-xl px-4 py-2.5 border border-border">
           <span className="text-xs font-semibold text-muted-foreground">Free Tries Today</span>
           <div className="flex items-center gap-1.5">
@@ -462,11 +459,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           </div>
         </div>
 
-        {/* Timer display */}
-        <motion.div
-          className="flex items-center justify-center py-2"
-          animate={{ scale: 1 }}
-        >
+        <motion.div className="flex items-center justify-center py-2" animate={{ scale: 1 }}>
           <span
             className={`font-black tabular-nums transition-colors duration-150 ${timerColor}`}
             style={{ fontSize: "clamp(3rem, 16vw, 5.5rem)", letterSpacing: "-0.02em", lineHeight: 1 }}
@@ -475,12 +468,10 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           </span>
         </motion.div>
 
-        {/* Tension progress bar — hide in last 2s */}
         {isRunning && elapsedTime < 8000 && (
           <TensionBar elapsedMs={elapsedTime} isRunning={isRunning} />
         )}
 
-        {/* Result message */}
         <AnimatePresence mode="wait">
           {result && (
             <motion.div
@@ -503,7 +494,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           )}
         </AnimatePresence>
 
-        {/* Action button */}
         <button
           onClick={isRunning ? handleStop : handleStart}
           disabled={!isRunning && !canStart}
