@@ -5,11 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { playP10Start, playP10Stop, playP10Jackpot, playP10Close, playP10Miss } from "@/lib/sounds";
 
 // ─── Live Feed ────────────────────────────────────────────────────────────────
-function GameRow({ game, currentUserId, getEmoji, getLabel, isAdmin, onDeleted, allGames, feed }) {
+function GameRow({ game, currentUserId, getEmoji, getLabel, isAdmin, onDeleted }) {
   const isMe = game.user_id === currentUserId;
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
   const colorClass =
     game.result_type === "jackpot"
       ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
@@ -23,37 +22,6 @@ function GameRow({ game, currentUserId, getEmoji, getLabel, isAdmin, onDeleted, 
     onDeleted(game.id);
   };
 
-  // ─── Anti-Cheat & Sprint Tracking Engine ───
-  const userFlags = (() => {
-    if (!game.created_date) return null;
-    const gameDateStr = new Date(game.created_date).toLocaleDateString("en-CA");
-    const sourceList = allGames.length > 0 ? allGames : feed;
-
-    // 1. Calculate how many tries this user had up until (and including) this game on that day
-    const userGamesOnDay = sourceList
-      .filter(g => g.user_id === game.user_id && g.created_date && new Date(g.created_date).toLocaleDateString("en-CA") === gameDateStr)
-      .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
-
-    const attemptNumber = userGamesOnDay.findIndex(g => g.id === game.id) + 1;
-    const totalDayAttempts = userGamesOnDay.length;
-
-    // 2. Look for an active Sprint Purchase for this user on that specific day
-    const hasSprint = sourceList.some(g => 
-      g.user_id === game.user_id && 
-      g.created_date && 
-      new Date(g.created_date).toLocaleDateString("en-CA") === gameDateStr &&
-      // Check if they ever generated a jackpot or if an external tracking method handles it, 
-      // or if their total count exceeds normal boundaries.
-      (g.result_type === "jackpot" || totalDayAttempts > 3)
-    );
-
-    return {
-      attemptNumber,
-      isBypassing: attemptNumber > 3 && !hasSprint,
-      isSprint: totalDayAttempts > 3 && hasSprint
-    };
-  })();
-
   return (
     <motion.div
       key={game.id}
@@ -61,37 +29,22 @@ function GameRow({ game, currentUserId, getEmoji, getLabel, isAdmin, onDeleted, 
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 10 }}
       transition={{ duration: 0.25 }}
-      className={`flex flex-col gap-1 rounded-lg px-3 py-2 text-xs border ${colorClass} ${isMe ? "ring-1 ring-blue-300 dark:ring-blue-700" : ""}`}
+      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs border ${colorClass} ${isMe ? "ring-1 ring-blue-300 dark:ring-blue-700" : ""}`}
     >
-      <div className="flex items-center gap-2">
-        <span className="text-base">{getEmoji(game.result_type)}</span>
-        <span className="flex-1 text-foreground">{getLabel(game)}</span>
-        {isMe && <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full">YOU</span>}
-        {isAdmin && !confirmDel && (
-          <button onClick={() => setConfirmDel(true)} className="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0">
-            <Trash2 className="w-3 h-3" />
+      <span className="text-base">{getEmoji(game.result_type)}</span>
+      <span className="flex-1 text-foreground">{getLabel(game)}</span>
+      {isMe && <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full">YOU</span>}
+      {isAdmin && !confirmDel && (
+        <button onClick={() => setConfirmDel(true)} className="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0">
+          <Trash2 className="w-3 h-3" />
+        </button>
+      )}
+      {isAdmin && confirmDel && (
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button onClick={handleDelete} disabled={deleting} className="text-[9px] font-bold text-white bg-red-500 hover:bg-red-600 px-1.5 py-0.5 rounded disabled:opacity-50">
+            {deleting ? "…" : "Del"}
           </button>
-        )}
-        {isAdmin && confirmDel && (
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <button onClick={handleDelete} disabled={deleting} className="text-[9px] font-bold text-white bg-red-500 hover:bg-red-600 px-1.5 py-0.5 rounded disabled:opacity-50">
-              {deleting ? "…" : "Del"}
-            </button>
-            <button onClick={() => setConfirmDel(false)} className="text-[9px] text-slate-500 hover:text-slate-700 font-semibold">✕</button>
-          </div>
-        )}
-      </div>
-
-      {/* Flag System Metadata Layer */}
-      {userFlags && (
-        <div className="flex flex-wrap items-center gap-1.5 text-[9px] mt-0.5 border-t border-dashed border-border/40 pt-1 text-muted-foreground">
-          <span>Try #{userFlags.attemptNumber}</span>
-          {userFlags.isBypassing && (
-            <span className="font-black bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 px-1 rounded animate-pulse">⚠️ BYPASS DETECTED</span>
-          )}
-          {userFlags.isSprint && (
-            <span className="font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 px-1 rounded">⚡ SPRINT MODE ACTIVE</span>
-          )}
+          <button onClick={() => setConfirmDel(false)} className="text-[9px] text-slate-500 hover:text-slate-700 font-semibold">✕</button>
         </div>
       )}
     </motion.div>
@@ -161,7 +114,7 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
   const displayList = showAll ? allGames : feed;
 
   return (
-    <div className="bg-card rounded-2xl border border-border shadow-sm p-3 mt-0">
+<div className="bg-card rounded-2xl border border-border shadow-sm p-3 mt-0">
       <div className="flex items-center justify-between mb-2">
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">🔴 Live Activity</p>
         <button
@@ -172,6 +125,29 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
           {loadingAll ? "Loading…" : showAll ? "Show Recent" : "View All"}
         </button>
       </div>
+
+      {/* ─── Added User Stats Info Banner (Today's Attempts) ─── */}
+      {(() => {
+        const todayStr = new Date().toLocaleDateString("en-CA");
+        
+        // Filter out games that belong to the user AND happened today
+        const sourceList = allGames.length > 0 ? allGames : feed;
+        const myTodayGames = sourceList.filter(g => {
+          const isMe = g.user_id === currentUserId;
+          const isToday = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
+          return isMe && isToday === todayStr;
+        });
+        
+        const todayAttempts = myTodayGames.length;
+
+        return (
+          <div className="flex justify-between items-center bg-muted/40 rounded-lg px-2.5 py-1.5 mb-2.5 text-[10px] text-muted-foreground border border-border/60">
+            <span>📊 Today's Total Tries: <strong className="text-foreground font-bold">{todayAttempts}</strong></span>
+            <span>📅 Tracking Date: <strong className="text-foreground font-bold">{todayStr}</strong></span>
+          </div>
+        );
+      })()}
+      {/* ──────────────────────────────────────────────────────── */}
 
       <div className={`space-y-1.5 ${showAll ? "max-h-80 overflow-y-auto pr-1" : ""}`}>
         <AnimatePresence initial={false}>
@@ -184,8 +160,6 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
               getLabel={getLabel}
               isAdmin={isAdmin}
               onDeleted={handleDeleted}
-              allGames={allGames}
-              feed={feed}
             />
           ))}
         </AnimatePresence>
@@ -275,6 +249,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const [currentPlayMode, setCurrentPlayMode] = useState(null);
   const [sprintTimeLeft, setSprintTimeLeft] = useState(() => getSprintTimeLeft());
 
+  // Check if user's saved tracking date is today. If not, they have 0 plays used.
   const playsToday = user?.perfect10_plays_date === getTodayString() ? (user?.perfect10_plays_count ?? 0) : 0;
 
   const startTimeRef = useRef(null);
@@ -311,6 +286,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     setResult(null);
 
     if (freePlaysLeft > 0) {
+      // Scenario A: Free Try synced to user account schema attributes
       const newPlays = playsToday + 1;
       await base44.auth.updateMe({
         perfect10_plays_count: newPlays,
