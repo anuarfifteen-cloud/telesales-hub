@@ -358,7 +358,9 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           const d = g.created_date
             ? new Date(g.created_date).toLocaleDateString("en-CA")
             : null;
-          return d === todayStr;
+            
+          return d === todayStr && g.play_number !== null && g.play_number !== undefined;
+          
         }).length;
         setPlaysToday(realCount);
       } catch (err) {
