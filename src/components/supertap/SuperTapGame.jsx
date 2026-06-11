@@ -228,7 +228,7 @@ function Leaderboard() {
 
                   <span className="text-sm font-semibold text-foreground" style={{ wordBreak: "break-word" }}>
 
-                    {s.user_name} (BANNED!)
+                    {s.user_name} 
 
                   </span>
 
