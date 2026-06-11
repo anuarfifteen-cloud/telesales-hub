@@ -199,18 +199,10 @@ const FREE_PLAYS_PER_DAY = 3;
 const NEAR_MIN = 9.95;
 const NEAR_MAX = 10.05;
 const SPRINT_DURATION_MS = 300000;
-const LS_DATE_KEY = "perfect10_date";
-const LS_PLAYS_KEY = "perfect10_plays";
 const LS_UNLOCK_KEY = "perfect10_unlocked_until";
 
 function getTodayString() {
   return new Date().toLocaleDateString("en-CA");
-}
-
-function getLocalPlaysToday() {
-  const saved = localStorage.getItem(LS_DATE_KEY);
-  if (saved !== getTodayString()) return 0;
-  return parseInt(localStorage.getItem(LS_PLAYS_KEY) || "0", 10);
 }
 
 function getSprintTimeLeft() {
@@ -232,7 +224,9 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const [result, setResult] = useState(null);
   const [currentPlayMode, setCurrentPlayMode] = useState(null);
   const [sprintTimeLeft, setSprintTimeLeft] = useState(() => getSprintTimeLeft());
-  const [playsToday, setPlaysToday] = useState(() => getLocalPlaysToday());
+
+  // Check if user's saved tracking date is today. If not, they have 0 plays used.
+  const playsToday = user?.perfect10_plays_date === getTodayString() ? (user?.perfect10_plays_count ?? 0) : 0;
 
   const startTimeRef = useRef(null);
   const intervalRef = useRef(null);
@@ -268,10 +262,13 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     setResult(null);
 
     if (freePlaysLeft > 0) {
+      // Scenario A: Free Try synced to user account schema attributes
       const newPlays = playsToday + 1;
-      localStorage.setItem(LS_DATE_KEY, getTodayString());
-      localStorage.setItem(LS_PLAYS_KEY, String(newPlays));
-      setPlaysToday(newPlays);
+      await base44.auth.updateMe({
+        perfect10_plays_count: newPlays,
+        perfect10_plays_date: getTodayString()
+      });
+      await onUserUpdate();
       setCurrentPlayMode("free");
     } else if (hasActiveSprint) {
       setCurrentPlayMode("unlimited");
