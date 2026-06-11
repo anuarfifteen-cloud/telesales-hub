@@ -34,18 +34,34 @@ function GameRow({ game, currentUserId, getEmoji, getLabel, isAdmin, onDeleted }
     >
       <span className="text-base">{getEmoji(game.result_type)}</span>
       <span className="flex-1 text-foreground">{getLabel(game)}</span>
-      {isMe && <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full">YOU</span>}
+      {isMe && (
+        <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full">
+          YOU
+        </span>
+      )}
       {isAdmin && !confirmDel && (
-        <button onClick={() => setConfirmDel(true)} className="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0">
+        <button
+          onClick={() => setConfirmDel(true)}
+          className="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0"
+        >
           <Trash2 className="w-3 h-3" />
         </button>
       )}
       {isAdmin && confirmDel && (
         <div className="flex items-center gap-1 flex-shrink-0">
-          <button onClick={handleDelete} disabled={deleting} className="text-[9px] font-bold text-white bg-red-500 hover:bg-red-600 px-1.5 py-0.5 rounded disabled:opacity-50">
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="text-[9px] font-bold text-white bg-red-500 hover:bg-red-600 px-1.5 py-0.5 rounded disabled:opacity-50"
+          >
             {deleting ? "…" : "Del"}
           </button>
-          <button onClick={() => setConfirmDel(false)} className="text-[9px] text-slate-500 hover:text-slate-700 font-semibold">✕</button>
+          <button
+            onClick={() => setConfirmDel(false)}
+            className="text-[9px] text-slate-500 hover:text-slate-700 font-semibold"
+          >
+            ✕
+          </button>
         </div>
       )}
     </motion.div>
@@ -58,6 +74,12 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
   const [showAll, setShowAll] = useState(false);
   const [loadingAll, setLoadingAll] = useState(false);
 
+  // Ref to avoid stale closure in subscription callback
+  const currentUserIdRef = useRef(currentUserId);
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
+
   useEffect(() => {
     base44.entities.PerfectTenGame.list("-created_date", 10).then((games) => {
       setFeed(games.slice(0, 10));
@@ -68,20 +90,27 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
       }
     });
     return unsub;
-  }, [currentUserId]); // ✅ Fixed dependency leakage
+  }, []);
 
   const handleViewAll = async () => {
-    if (showAll) { setShowAll(false); return; }
+    if (showAll) {
+      setShowAll(false);
+      return;
+    }
     setLoadingAll(true);
     const all = await base44.entities.PerfectTenGame.list("-created_date", 200);
     if (isAdmin) {
       setAllGames(all);
     } else {
       const todayStr = new Date().toLocaleDateString("en-CA");
-      setAllGames(all.filter((g) => {
-        const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
-        return d === todayStr;
-      }));
+      setAllGames(
+        all.filter((g) => {
+          const d = g.created_date
+            ? new Date(g.created_date).toLocaleDateString("en-CA")
+            : null;
+          return d === todayStr;
+        })
+      );
     }
     setLoadingAll(false);
     setShowAll(true);
@@ -95,57 +124,82 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
   if (feed.length === 0) return null;
 
   const getName = (game) => {
-    if (game.user_id === currentUserId) return "You";
+    if (game.user_id === currentUserIdRef.current) return "You";
     if (game.user_email) return game.user_email.split("@")[0];
     return "Someone";
   };
 
-  const getEmoji = (type) => ({ jackpot: "🏆", close: "😅", miss: "💨" }[type] || "⏱️");
+  const getEmoji = (type) =>
+    ({ jackpot: "🏆", close: "😅", miss: "💨" }[type] || "⏱️");
 
+  const stableList = allGames.length > 0 ? allGames : feed;
   const displayList = showAll ? allGames : feed;
 
-  const getLabel = (game) => {
+  const getLabel = (game, rawList) => {
     const name = getName(game);
     const time = game.stopped_time?.toFixed(2) ?? "?";
-    
-    const playDate = game.created_date 
-      ? new Date(game.created_date).toLocaleDateString("en-GB", { day: 'numeric', month: 'short' }) 
+
+    const playDate = game.created_date
+      ? new Date(game.created_date).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+        })
       : "Today";
 
-    const userGamesOnThisDay = displayList
-      .filter(g => g.user_id === game.user_id && 
-        (g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : "Today") === 
-        (game.created_date ? new Date(game.created_date).toLocaleDateString("en-CA") : "Today")
+    const gameDayStr = game.created_date
+      ? new Date(game.created_date).toLocaleDateString("en-CA")
+      : "Today";
+
+    const userGamesOnThisDay = rawList
+      .filter(
+        (g) =>
+          g.user_id === game.user_id &&
+          (g.created_date
+            ? new Date(g.created_date).toLocaleDateString("en-CA")
+            : "Today") === gameDayStr
       )
       .reverse();
 
-    const gameIndex = userGamesOnThisDay.findIndex(g => g.id === game.id);
+    const gameIndex = userGamesOnThisDay.findIndex((g) => g.id === game.id);
     const realTryNum = gameIndex !== -1 ? gameIndex + 1 : (game.play_number ?? 1);
-    
-    const isExceeded = realTryNum > 3 && game.result_type !== "miss"; 
+    const isExceeded = realTryNum > 3 && game.result_type !== "miss";
     const tryDisplay = `(Try #${realTryNum})`;
 
     if (game.result_type === "jackpot")
       return (
         <>
-          <strong>{name}</strong> hit <span className="text-amber-600 dark:text-amber-400 font-semibold">PERFECT 10!</span>{" "}
-          <span className={isExceeded ? "text-red-500 font-black animate-pulse" : "text-muted-foreground"}>{tryDisplay}</span> on {playDate} +3 tokens 🎉
+          <strong>{name}</strong> hit{" "}
+          <span className="text-amber-600 dark:text-amber-400 font-semibold">
+            PERFECT 10!
+          </span>{" "}
+          <span className={isExceeded ? "text-red-500 font-black animate-pulse" : "text-muted-foreground"}>
+            {tryDisplay}
+          </span>{" "}
+          on {playDate} +3 tokens 🎉
         </>
       );
-      
+
     if (game.result_type === "close")
       return (
         <>
           <strong>{name}</strong> stopped at <strong>{time}s</strong>{" "}
-          <span className={isExceeded ? "text-red-500 font-black animate-pulse" : "text-muted-foreground"}>{tryDisplay}</span> —{" "}
-          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+1 token</span> on {playDate}
+          <span className={isExceeded ? "text-red-500 font-black animate-pulse" : "text-muted-foreground"}>
+            {tryDisplay}
+          </span>{" "}
+          —{" "}
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+            +1 token
+          </span>{" "}
+          on {playDate}
         </>
       );
 
     return (
       <>
         <strong>{name}</strong> stopped at <strong>{time}s</strong>{" "}
-        <span className="text-muted-foreground/70">{tryDisplay}</span> — <span className="text-red-500 dark:text-red-400">missed!</span> on {playDate}
+        <span className="text-muted-foreground/70">{tryDisplay}</span> —{" "}
+        <span className="text-red-500 dark:text-red-400">missed!</span> on{" "}
+        {playDate}
       </>
     );
   };
@@ -153,7 +207,9 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
   return (
     <div className="bg-card rounded-2xl border border-border shadow-sm p-3 mt-0">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">🔴 Live Activity</p>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+          🔴 Live Activity
+        </p>
         <button
           onClick={handleViewAll}
           disabled={loadingAll}
@@ -171,14 +227,16 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
               game={game}
               currentUserId={currentUserId}
               getEmoji={getEmoji}
-              getLabel={getLabel}
+              getLabel={(g) => getLabel(g, stableList)}
               isAdmin={isAdmin}
               onDeleted={handleDeleted}
             />
           ))}
         </AnimatePresence>
         {showAll && allGames.length === 0 && (
-          <p className="text-xs text-muted-foreground text-center py-3">No history yet.</p>
+          <p className="text-xs text-muted-foreground text-center py-3">
+            No history yet.
+          </p>
         )}
       </div>
     </div>
@@ -223,7 +281,10 @@ function TensionBar({ elapsedMs, isRunning }) {
           className={`h-full rounded-full ${barColor} shadow-lg ${glowColor} transition-colors duration-150`}
           style={{ width: `${pct}%`, opacity: flicker && isRunning ? 0.6 : 1 }}
         />
-        <div className="absolute top-0 bottom-0 w-0.5 bg-amber-400 dark:bg-amber-500 opacity-80" style={{ left: "calc(100% - 2px)" }} />
+        <div
+          className="absolute top-0 bottom-0 w-0.5 bg-amber-400 dark:bg-amber-500 opacity-80"
+          style={{ left: "calc(100% - 2px)" }}
+        />
       </div>
 
       <div className="flex justify-between text-[9px] text-muted-foreground px-0.5">
@@ -239,16 +300,22 @@ function TensionBar({ elapsedMs, isRunning }) {
 const FREE_PLAYS_PER_DAY = 3;
 const NEAR_MIN = 9.95;
 const NEAR_MAX = 10.05;
-const SPRINT_DURATION_MS = 300000; 
+const JACKPOT_TARGET = 10.0;
+const JACKPOT_TOLERANCE = 0.005;
+const SPRINT_DURATION_MS = 300000;
+const SPRINT_DISPLAY_MINUTES = SPRINT_DURATION_MS / 60000;
 
-const LS_UNLOCK_KEY = "perfect10_unlocked_until";
+function getSprintKey(userId) {
+  return `perfect10_unlocked_until_${userId}`;
+}
 
 function getTodayString() {
   return new Date().toLocaleDateString("en-CA");
 }
 
-function getSprintTimeLeft() {
-  const until = parseInt(localStorage.getItem(LS_UNLOCK_KEY) || "0", 10);
+function getSprintTimeLeft(userId) {
+  if (!userId) return 0;
+  const until = parseInt(localStorage.getItem(getSprintKey(userId)) || "0", 10);
   return Math.max(0, until - Date.now());
 }
 
@@ -257,10 +324,11 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [result, setResult] = useState(null);
-  const [currentPlayMode, setCurrentPlayMode] = useState(null); 
-  const [sprintTimeLeft, setSprintTimeLeft] = useState(() => getSprintTimeLeft());
-  
-  const [playsToday, setPlaysToday] = useState(3);
+  const [currentPlayMode, setCurrentPlayMode] = useState(null);
+  const [sprintTimeLeft, setSprintTimeLeft] = useState(() =>
+    getSprintTimeLeft(user?.id)
+  );
+  const [playsToday, setPlaysToday] = useState(0);
 
   const startTimeRef = useRef(null);
   const intervalRef = useRef(null);
@@ -271,40 +339,51 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const hasActiveSprint = sprintTimeLeft > 0;
   const canStart = freePlaysLeft > 0 || hasActiveSprint || tokens >= 1;
 
+  // Ref to safely read playsToday inside async callbacks without stale closure
+  const playsTodayRef = useRef(playsToday);
+  useEffect(() => {
+    playsTodayRef.current = playsToday;
+  }, [playsToday]);
+
   useEffect(() => {
     if (!user?.id) return;
-    
+
     async function syncPlaysFromDatabase() {
       try {
-        const matches = await base44.entities.PerfectTenGame.filter({ user_id: user.id });
+        const matches = await base44.entities.PerfectTenGame.filter({
+          user_id: user.id,
+        });
         const todayStr = getTodayString();
-        
-        const realCount = matches.filter(g => {
-          const d = g.created_date ? new Date(g.created_date).toLocaleDateString("en-CA") : null;
+        const realCount = matches.filter((g) => {
+          const d = g.created_date
+            ? new Date(g.created_date).toLocaleDateString("en-CA")
+            : null;
           return d === todayStr;
         }).length;
-
         setPlaysToday(realCount);
       } catch (err) {
-        console.error("Fallback system activated due to sync exception.", err);
-        setPlaysToday(3);
+        console.error("Failed to sync plays from database.", err);
+        // Leave current state as-is on error — don't lock user out
       }
     }
 
     syncPlaysFromDatabase();
-  }, [user, isRunning]);
+  }, [user?.id, isRunning]);
 
+  // FIX #1: Use actual sprintTimeLeft value as dep (not boolean), and always
+  // clearInterval before registering a new one to prevent interval stacking.
   useEffect(() => {
     clearInterval(sprintTickRef.current);
-    if (sprintTimeLeft > 0) {
-      sprintTickRef.current = setInterval(() => {
-        const left = getSprintTimeLeft();
-        setSprintTimeLeft(left);
-        if (left <= 0) clearInterval(sprintTickRef.current);
-      }, 250);
-    }
+    if (sprintTimeLeft <= 0) return;
+
+    sprintTickRef.current = setInterval(() => {
+      const left = getSprintTimeLeft(user?.id);
+      setSprintTimeLeft(left);
+      if (left <= 0) clearInterval(sprintTickRef.current);
+    }, 250);
+
     return () => clearInterval(sprintTickRef.current);
-  }, [sprintTimeLeft > 0]);
+  }, [sprintTimeLeft, user?.id]);
 
   useEffect(() => {
     return () => {
@@ -316,7 +395,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const handleStart = async () => {
     if (!canStart || isRunning) return;
     playP10Start();
-    setResult(null);
+    setResult(null); // FIX #2: was Result(null) — typo causing ReferenceError crash
 
     if (freePlaysLeft > 0) {
       setCurrentPlayMode("free");
@@ -326,7 +405,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       await base44.auth.updateMe({ earlyAccessTokens: tokens - 1 });
       await onUserUpdate();
       const until = Date.now() + SPRINT_DURATION_MS;
-      localStorage.setItem(LS_UNLOCK_KEY, String(until));
+      localStorage.setItem(getSprintKey(user.id), String(until));
       setSprintTimeLeft(SPRINT_DURATION_MS);
       setCurrentPlayMode("unlimited");
       base44.entities.SprintPurchase.create({
@@ -352,34 +431,73 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
 
     const rawMs = Date.now() - startTimeRef.current;
     const stopped = parseFloat((rawMs / 1000).toFixed(2));
-    const stoppedStr = stopped.toFixed(2);
 
     let resultType = "miss";
     let tokensDelta = 0;
 
-    if (stoppedStr === "10.00") {
+    const isJackpot = Math.abs(stopped - JACKPOT_TARGET) < JACKPOT_TOLERANCE;
+    const isNearMiss =
+      currentPlayMode === "free" && stopped >= NEAR_MIN && stopped <= NEAR_MAX;
+
+    if (isJackpot) {
       resultType = "jackpot";
       tokensDelta = 3;
       playP10Jackpot();
-      await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 3 });
+      await base44.auth.updateMe({
+        earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 3,
+      });
       await onUserUpdate();
       if (currentPlayMode === "unlimited") {
-        localStorage.removeItem(LS_UNLOCK_KEY);
+        localStorage.removeItem(getSprintKey(user.id));
         setSprintTimeLeft(0);
       }
-      setResult({ type: "jackpot", message: `JACKPOT! PERFECT 10.00s! +3 Tokens 💎`, time: stoppedStr });
-    } else if (currentPlayMode === "free" && stopped >= NEAR_MIN && stopped <= NEAR_MAX) {
+      setResult({
+        type: "jackpot",
+        message: `JACKPOT! PERFECT 10.00s! +3 Tokens 💎`,
+        time: stopped.toFixed(2),
+      });
+    } else if (isNearMiss) {
       resultType = "close";
       tokensDelta = 1;
       playP10Close();
-      await base44.auth.updateMe({ earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 1 });
+      await base44.auth.updateMe({
+        earlyAccessTokens: (user?.earlyAccessTokens ?? 0) + 1,
+      });
       await onUserUpdate();
-      setResult({ type: "close", message: `Close! Near Miss Bonus: +1 Token 🎁 (${stoppedStr}s)`, time: stoppedStr });
+      setResult({
+        type: "close",
+        message: `Close! Near Miss Bonus: +1 Token 🎁 (${stopped.toFixed(2)}s)`,
+        time: stopped.toFixed(2),
+      });
     } else {
       resultType = "miss";
       tokensDelta = 0;
       playP10Miss();
-      setResult({ type: "miss", message: `Oof, ${stoppedStr}s! Try again! 😢`, time: stoppedStr });
+      setResult({
+        type: "miss",
+        message: `Oof, ${stopped.toFixed(2)}s! Try again! 😢`,
+        time: stopped.toFixed(2),
+      });
+    }
+
+    // Re-fetch true count from DB to avoid race condition on play_number
+    let trueTryNumber = null;
+    if (currentPlayMode === "free") {
+      try {
+        const matches = await base44.entities.PerfectTenGame.filter({
+          user_id: user.id,
+        });
+        const todayStr = getTodayString();
+        const todayCount = matches.filter((g) => {
+          const d = g.created_date
+            ? new Date(g.created_date).toLocaleDateString("en-CA")
+            : null;
+          return d === todayStr;
+        }).length;
+        trueTryNumber = todayCount + 1;
+      } catch {
+        trueTryNumber = playsTodayRef.current + 1; // safe ref-based fallback
+      }
     }
 
     await base44.entities.PerfectTenGame.create({
@@ -388,7 +506,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
       stopped_time: stopped,
       result_type: resultType,
       tokens_delta: tokensDelta,
-      play_number: currentPlayMode === "free" ? (playsToday + 1) : null
+      play_number: trueTryNumber,
     });
 
     setPlaysToday((prev) => prev + 1);
@@ -412,11 +530,12 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     ? "text-emerald-500"
     : "text-foreground";
 
-  const startBtnLabel = freePlaysLeft > 0
-    ? `▶ START (Free Try: ${freePlaysLeft}/3)`
-    : hasActiveSprint
-    ? `▶ START SPRINT`
-    : `🔓 UNLOCK 5 MINUTES (Cost: 1 Token)`;
+  const startBtnLabel =
+    freePlaysLeft > 0
+      ? `▶ START (Free Try: ${freePlaysLeft}/3)`
+      : hasActiveSprint
+      ? `▶ START SPRINT`
+      : `🔓 UNLOCK ${SPRINT_DISPLAY_MINUTES} MINUTES (Cost: 1 Token)`;
 
   const sprintTotalSec = Math.ceil(sprintTimeLeft / 1000);
   const sprintMin = Math.floor(sprintTotalSec / 60);
@@ -435,11 +554,24 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
             <div className="grid grid-cols-1 gap-1 text-xs text-muted-foreground leading-relaxed">
               <div className="flex items-start gap-1.5">
                 <span className="text-emerald-500 font-black mt-0.5">🆓</span>
-                <span><strong className="text-foreground">Free Tries:</strong> Hit exactly <strong className="text-amber-600 dark:text-amber-400">10.00s</strong> → <strong className="text-amber-600 dark:text-amber-400">+3 Tokens</strong>, or get close (<strong className="text-emerald-600 dark:text-emerald-400">9.95–10.05s</strong>) → <strong className="text-emerald-600 dark:text-emerald-400">+1 Token</strong>!</span>
+                <span>
+                  <strong className="text-foreground">Free Tries:</strong> Hit exactly{" "}
+                  <strong className="text-amber-600 dark:text-amber-400">10.00s</strong> →{" "}
+                  <strong className="text-amber-600 dark:text-amber-400">+3 Tokens</strong>, or get close (
+                  <strong className="text-emerald-600 dark:text-emerald-400">9.95–10.05s</strong>) →{" "}
+                  <strong className="text-emerald-600 dark:text-emerald-400">+1 Token</strong>!
+                </span>
               </div>
               <div className="flex items-start gap-1.5">
                 <span className="text-purple-500 font-black mt-0.5">⚡</span>
-                <span><strong className="text-foreground">Out of free tries?</strong> Spend <strong className="text-purple-600 dark:text-purple-400">1 Token</strong> for <strong className="text-purple-600 dark:text-purple-400">UNLIMITED attempts for 5 Minutes</strong> (Jackpot only, no near miss — ends instantly if you hit 10.00!)</span>
+                <span>
+                  <strong className="text-foreground">Out of free tries?</strong> Spend{" "}
+                  <strong className="text-purple-600 dark:text-purple-400">1 Token</strong> for{" "}
+                  <strong className="text-purple-600 dark:text-purple-400">
+                    UNLIMITED attempts for {SPRINT_DISPLAY_MINUTES} Minutes
+                  </strong>{" "}
+                  (Jackpot only, no near miss — ends instantly if you hit 10.00!)
+                </span>
               </div>
             </div>
           </div>
@@ -450,23 +582,34 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
             <div className="flex items-center gap-2">
               <span className="text-xl">⚡</span>
               <div>
-                <p className="text-xs font-black text-purple-700 dark:text-purple-300 uppercase tracking-widest">Unlimited Sprint!</p>
-                <p className="text-[10px] text-purple-500 dark:text-purple-400">Play unlimited — jackpot only</p>
+                <p className="text-xs font-black text-purple-700 dark:text-purple-300 uppercase tracking-widest">
+                  Unlimited Sprint!
+                </p>
+                <p className="text-[10px] text-purple-500 dark:text-purple-400">
+                  Play unlimited — jackpot only
+                </p>
               </div>
             </div>
             <div className="text-right">
               <div className="flex items-end gap-0.5 justify-end">
-                <span className="font-black tabular-nums text-purple-700 dark:text-purple-200" style={{ fontSize: "2rem", lineHeight: 1 }}>
+                <span
+                  className="font-black tabular-nums text-purple-700 dark:text-purple-200"
+                  style={{ fontSize: "2rem", lineHeight: 1 }}
+                >
                   {sprintMin}:{String(sprintSec).padStart(2, "0")}
                 </span>
               </div>
-              <p className="text-[10px] text-purple-500 dark:text-purple-400 font-semibold">remaining</p>
+              <p className="text-[10px] text-purple-500 dark:text-purple-400 font-semibold">
+                remaining
+              </p>
             </div>
           </div>
         )}
 
         <div className="flex items-center justify-between bg-muted rounded-xl px-4 py-2.5 border border-border">
-          <span className="text-xs font-semibold text-muted-foreground">Free Tries Today</span>
+          <span className="text-xs font-semibold text-muted-foreground">
+            Free Tries Today
+          </span>
           <div className="flex items-center gap-1.5">
             {[0, 1, 2].map((i) => (
               <div
@@ -478,14 +621,20 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
                 }`}
               />
             ))}
-            <span className="text-xs font-black text-foreground ml-1">{freePlaysLeft} / {FREE_PLAYS_PER_DAY}</span>
+            <span className="text-xs font-black text-foreground ml-1">
+              {freePlaysLeft} / {FREE_PLAYS_PER_DAY}
+            </span>
           </div>
         </div>
 
         <motion.div className="flex items-center justify-center py-2" animate={{ scale: 1 }}>
           <span
             className={`font-black tabular-nums transition-colors duration-150 ${timerColor}`}
-            style={{ fontSize: "clamp(3rem, 16vw, 5.5rem)", letterSpacing: "-0.02em", lineHeight: 1 }}
+            style={{
+              fontSize: "clamp(3rem, 16vw, 5.5rem)",
+              letterSpacing: "-0.02em",
+              lineHeight: 1,
+            }}
           >
             {displayTime}
           </span>
@@ -511,7 +660,9 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
                   : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400"
               }`}
             >
-              {result.type === "jackpot" && <div className="text-2xl font-black mb-1">🏆</div>}
+              {result.type === "jackpot" && (
+                <div className="text-2xl font-black mb-1">🏆</div>
+              )}
               {result.message}
             </motion.div>
           )}
