@@ -9,12 +9,13 @@ function GameRow({ game, currentUserId, getEmoji, getLabel, isAdmin, onDeleted }
   const isMe = game.user_id === currentUserId;
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  
   const colorClass =
     game.result_type === "jackpot"
-      ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
+      ? "bg-amber-500/10 dark:bg-amber-950/20 border-amber-500/30 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.05)]"
       : game.result_type === "close"
-      ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-      : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800";
+      ? "bg-emerald-500/10 dark:bg-emerald-950/20 border-emerald-500/30 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.05)]"
+      : "bg-rose-500/10 dark:bg-rose-950/20 border-rose-500/30 text-rose-200";
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -29,22 +30,26 @@ function GameRow({ game, currentUserId, getEmoji, getLabel, isAdmin, onDeleted }
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 10 }}
       transition={{ duration: 0.25 }}
-      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs border ${colorClass} ${isMe ? "ring-1 ring-blue-300 dark:ring-blue-700" : ""}`}
+      className={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs border backdrop-blur-sm transition-all duration-300 ${colorClass} ${isMe ? "ring-1 ring-cyan-400/50 border-cyan-400/40 shadow-[0_0_15px_rgba(34,211,238,0.1)]" : ""}`}
     >
-      <span className="text-base">{getEmoji(game.result_type)}</span>
-      <span className="flex-1 text-foreground">{getLabel(game)}</span>
-      {isMe && <span className="text-[9px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full">YOU</span>}
+      <span className="text-base drop-shadow-md">{getEmoji(game.result_type)}</span>
+      <span className="flex-1 text-slate-200 tracking-wide">{getLabel(game)}</span>
+      {isMe && (
+        <span className="text-[9px] font-black tracking-widest bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-2 py-0.5 rounded-md shadow-sm">
+          YOU
+        </span>
+      )}
       {isAdmin && !confirmDel && (
-        <button onClick={() => setConfirmDel(true)} className="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0">
-          <Trash2 className="w-3 h-3" />
+        <button onClick={() => setConfirmDel(true)} className="text-slate-400 hover:text-rose-400 transition-colors p-1 rounded-lg hover:bg-white/5 flex-shrink-0">
+          <Trash2 className="w-3.5 h-3.5" />
         </button>
       )}
       {isAdmin && confirmDel && (
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <button onClick={handleDelete} disabled={deleting} className="text-[9px] font-bold text-white bg-red-500 hover:bg-red-600 px-1.5 py-0.5 rounded disabled:opacity-50">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <button onClick={handleDelete} disabled={deleting} className="text-[9px] font-black tracking-wider text-white uppercase bg-gradient-to-r from-rose-500 to-red-600 hover:brightness-110 px-2 py-1 rounded-md shadow disabled:opacity-50 transition-all">
             {deleting ? "…" : "Del"}
           </button>
-          <button onClick={() => setConfirmDel(false)} className="text-[9px] text-slate-500 hover:text-slate-700 font-semibold">✕</button>
+          <button onClick={() => setConfirmDel(false)} className="text-xs text-slate-400 hover:text-slate-200 font-bold px-1">✕</button>
         </div>
       )}
     </motion.div>
@@ -105,32 +110,36 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
     const name = getName(game);
     const time = game.stopped_time?.toFixed(2) ?? "?";
     if (game.result_type === "jackpot")
-      return <><strong>{name}</strong> hit <span className="text-amber-600 dark:text-amber-400 font-semibold">PERFECT 10!</span> +3 tokens 🎉</>;
+      return <><strong>{name}</strong> hit <span className="text-amber-400 font-extrabold drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]">PERFECT 10!</span> +3 tokens 🎉</>;
     if (game.result_type === "close")
-      return <><strong>{name}</strong> stopped at <strong>{time}s</strong> — <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+1 token</span></>;
-    return <><strong>{name}</strong> stopped at <strong>{time}s</strong> — <span className="text-red-500 dark:text-red-400">missed!</span></>;
+      return <><strong>{name}</strong> stopped at <strong className="text-white">{time}s</strong> — <span className="text-emerald-400 font-bold">+1 token</span></>;
+    return <><strong>{name}</strong> stopped at <strong className="text-slate-300">{time}s</strong> — <span className="text-rose-400 font-medium">missed!</span></>;
   };
 
   const displayList = showAll ? allGames : feed;
 
   return (
-<div className="bg-card rounded-2xl border border-border shadow-sm p-3 mt-0">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">🔴 Live Activity</p>
+    <div className="bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-800/80 shadow-xl p-4 mt-1 transition-all duration-300">
+      <div className="flex items-center justify-between mb-3 border-b border-slate-800/40 pb-2">
+        <div className="flex items-center gap-1.5">
+          <span className="flex h-2 w-2 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+          </span>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Activity Network</p>
+        </div>
         <button
           onClick={handleViewAll}
           disabled={loadingAll}
-          className="text-[10px] font-semibold text-primary hover:underline disabled:opacity-50"
+          className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-wider transition-colors disabled:opacity-50 bg-cyan-500/10 border border-cyan-500/20 rounded-md px-2 py-0.5"
         >
-          {loadingAll ? "Loading…" : showAll ? "Show Recent" : "View All"}
+          {loadingAll ? "Syncing…" : showAll ? "Recent" : "View All"}
         </button>
       </div>
 
-      {/* ─── Added User Stats Info Banner (Today's Attempts) ─── */}
+      {/* ─── User Stats Info Banner ─── */}
       {(() => {
         const todayStr = new Date().toLocaleDateString("en-CA");
-        
-        // Filter out games that belong to the user AND happened today
         const sourceList = allGames.length > 0 ? allGames : feed;
         const myTodayGames = sourceList.filter(g => {
           const isMe = g.user_id === currentUserId;
@@ -141,15 +150,14 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
         const todayAttempts = myTodayGames.length;
 
         return (
-          <div className="flex justify-between items-center bg-muted/40 rounded-lg px-2.5 py-1.5 mb-2.5 text-[10px] text-muted-foreground border border-border/60">
-            <span>📊 Today's Total Tries: <strong className="text-foreground font-bold">{todayAttempts}</strong></span>
-            <span>📅 Tracking Date: <strong className="text-foreground font-bold">{todayStr}</strong></span>
+          <div className="flex justify-between items-center bg-slate-950/50 backdrop-blur-sm rounded-xl px-3 py-2 mb-3 text-[10px] text-slate-400 border border-slate-800/60 shadow-inner">
+            <span>📊 Today's Total Tries: <strong className="text-cyan-400 font-black text-xs ml-1">{todayAttempts}</strong></span>
+            <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-[9px] font-medium uppercase tracking-wider text-slate-500">Date: {todayStr}</span>
           </div>
         );
       })()}
-      {/* ──────────────────────────────────────────────────────── */}
 
-      <div className={`space-y-1.5 ${showAll ? "max-h-80 overflow-y-auto pr-1" : ""}`}>
+      <div className={`space-y-2 ${showAll ? "max-h-80 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-slate-800" : ""}`}>
         <AnimatePresence initial={false}>
           {displayList.map((game) => (
             <GameRow
@@ -164,7 +172,7 @@ function PerfectTenFeed({ currentUserId, isAdmin }) {
           ))}
         </AnimatePresence>
         {showAll && allGames.length === 0 && (
-          <p className="text-xs text-muted-foreground text-center py-3">No history yet.</p>
+          <p className="text-xs text-slate-500 text-center py-5 tracking-wide">Matrix timeline empty. Jump in!</p>
         )}
       </div>
     </div>
@@ -192,24 +200,24 @@ function TensionBar({ elapsedMs, isRunning }) {
   const clampedSec = Math.min(visualMs / 1000, 10);
   const pct = (clampedSec / 10) * 100;
   const isOver = elapsedMs > 10000;
-  const barColor = isOver ? "bg-red-500" : "bg-blue-500";
-  const glowColor = isOver ? "shadow-red-500/60" : "shadow-blue-500/40";
+  const barColor = isOver ? "bg-gradient-to-r from-rose-500 to-red-600" : "bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-600";
+  const glowColor = isOver ? "shadow-red-500/50 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]" : "shadow-cyan-500/40 drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]";
 
   return (
-    <div className="w-full flex flex-col gap-1">
-      <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-        <span>0s</span>
-        <span>⏱️ Stop at 10s</span>
-        <span>10s+</span>
+    <div className="w-full flex flex-col gap-1.5 bg-slate-950/40 p-3 rounded-xl border border-slate-900 shadow-inner">
+      <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest">
+        <span>0.00s</span>
+        <span className="text-cyan-400 animate-pulse font-extrabold">⏱️ Stabilize at 10.00s</span>
+        <span>10.00s+</span>
       </div>
-      <div className="relative h-4 bg-muted rounded-full overflow-hidden border border-border">
+      <div className="relative h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-[1px]">
         <motion.div
           className={`h-full rounded-full ${barColor} shadow-lg ${glowColor} transition-colors duration-150`}
-          style={{ width: `${pct}%`, opacity: flicker && isRunning ? 0.6 : 1 }}
+          style={{ width: `${pct}%`, opacity: flicker && isRunning ? 0.5 : 1 }}
         />
-        <div className="absolute top-0 bottom-0 w-0.5 bg-amber-400 dark:bg-amber-500 opacity-80" style={{ left: "calc(100% - 2px)" }} />
+        <div className="absolute top-0 bottom-0 w-0.5 bg-amber-400 dark:bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]" style={{ left: "calc(100% - 2px)" }} />
       </div>
-      <div className="flex justify-between text-[9px] text-muted-foreground px-0.5">
+      <div className="flex justify-between text-[9px] font-bold text-slate-500 px-0.5 tracking-tighter">
         {[0, 2, 4, 6, 8, 10].map((s) => (
           <span key={s}>{s}s</span>
         ))}
@@ -249,7 +257,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const [currentPlayMode, setCurrentPlayMode] = useState(null);
   const [sprintTimeLeft, setSprintTimeLeft] = useState(() => getSprintTimeLeft());
 
-  // Check if user's saved tracking date is today. If not, they have 0 plays used.
   const playsToday = user?.perfect10_plays_date === getTodayString() ? (user?.perfect10_plays_count ?? 0) : 0;
 
   const startTimeRef = useRef(null);
@@ -286,7 +293,6 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     setResult(null);
 
     if (freePlaysLeft > 0) {
-      // Scenario A: Free Try synced to user account schema attributes
       const newPlays = playsToday + 1;
       await base44.auth.updateMe({
         perfect10_plays_count: newPlays,
@@ -330,7 +336,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
     let resultType = "miss";
     let tokensDelta = 0;
 
-    if (stoppedStr === "10.00") {
+  if (stoppedStr === "10.00") {
       resultType = "jackpot";
       tokensDelta = 3;
       playP10Jackpot();
@@ -373,18 +379,18 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const isOver = isRunning && elapsedTime > 10100;
   const timerColor = isRunning
     ? isOver
-      ? "text-red-500"
-      : "text-foreground"
+      ? "text-rose-500 drop-shadow-[0_0_15px_rgba(244,63,94,0.6)]"
+      : "text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-300 drop-shadow-[0_2px_10px_rgba(255,255,255,0.15)]"
     : result?.type === "jackpot"
-    ? "text-amber-500"
+    ? "text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-500 drop-shadow-[0_0_25px_rgba(245,158,11,0.5)] animate-pulse"
     : result?.type === "close"
-    ? "text-emerald-500"
-    : "text-foreground";
+    ? "text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 drop-shadow-[0_0_20px_rgba(52,211,153,0.4)]"
+    : "text-transparent bg-clip-text bg-gradient-to-b from-slate-200 to-slate-400";
 
   const startBtnLabel = freePlaysLeft > 0
-    ? `▶ START (Free Try: ${freePlaysLeft}/3)`
+    ? `▶ START (Free Try: ${freePlaysLeft}/${FREE_PLAYS_PER_DAY})`
     : hasActiveSprint
-    ? `▶ START SPRINT`
+    ? `⚡ START SPRINT`
     : `🔓 UNLOCK 5 MINUTES (Cost: 1 Token)`;
 
   const sprintTotalSec = Math.ceil(sprintTimeLeft / 1000);
@@ -392,25 +398,34 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
   const sprintSec = sprintTotalSec % 60;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="bg-card rounded-2xl border border-border shadow-sm p-5 flex flex-col gap-4">
+    <div className="flex flex-col gap-4 max-w-md mx-auto p-1">
+      <div className="bg-slate-950/70 dark:bg-card/40 backdrop-blur-md rounded-3xl border border-slate-800/80 shadow-2xl p-6 flex flex-col gap-5 relative overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-44 h-44 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-44 h-44 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+        
         {/* Header */}
-        <div>
-          <h3 className="font-black text-base text-foreground">⏱️ Perfect 10</h3>
-          {/* Instruction card */}
-          <div className="mt-2 rounded-xl border border-border bg-muted/60 p-3 flex flex-col gap-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🎯</span>
-              <span className="text-xs font-bold text-foreground">How to play</span>
+        <div className="border-b border-slate-900 pb-1">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-500/10 border border-cyan-500/20 shadow-inner">
+              <span className="text-sm">⏱️</span>
             </div>
-            <div className="grid grid-cols-1 gap-1 text-xs text-muted-foreground leading-relaxed">
-              <div className="flex items-start gap-1.5">
-                <span className="text-emerald-500 font-black mt-0.5">🆓</span>
-                <span><strong className="text-foreground">Free Tries:</strong> Hit exactly <strong className="text-amber-600 dark:text-amber-400">10.00s</strong> → <strong className="text-amber-600 dark:text-amber-400">+3 Tokens</strong>, or get close (<strong className="text-emerald-600 dark:text-emerald-400">9.95–10.05s</strong>) → <strong className="text-emerald-600 dark:text-emerald-400">+1 Token</strong>!</span>
+            <h3 className="font-black text-lg text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 tracking-tight uppercase">Perfect 10</h3>
+          </div>
+          
+          {/* Instruction card */}
+          <div className="mt-3 rounded-2xl border border-slate-800/60 bg-slate-900/40 p-3.5 flex flex-col gap-2 shadow-inner">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm">🎯</span>
+              <span className="text-xs font-black uppercase tracking-wider text-slate-300">Operations Protocol</span>
+            </div>
+            <div className="grid grid-cols-1 gap-2 text-[11px] text-slate-400 leading-relaxed">
+              <div className="flex items-start gap-2 bg-slate-950/40 p-2 rounded-xl border border-slate-900">
+                <span className="text-emerald-400 font-bold mt-0.5">🆓</span>
+                <span><strong className="text-slate-200">Free Tries:</strong> Stop dead on <strong className="text-amber-400 font-bold">10.00s</strong> → <strong className="text-amber-400 font-bold">+3 Tokens</strong>, or within the threshold (<strong className="text-emerald-400 font-bold">9.95–10.05s</strong>) → <strong className="text-emerald-400 font-bold">+1 Token</strong>!</span>
               </div>
-              <div className="flex items-start gap-1.5">
-                <span className="text-purple-500 font-black mt-0.5">⚡</span>
-                <span><strong className="text-foreground">Out of free tries?</strong> Spend <strong className="text-purple-600 dark:text-purple-400">1 Token</strong> for <strong className="text-purple-600 dark:text-purple-400">UNLIMITED attempts for 5 Minutes</strong> (Jackpot only, no near miss — ends instantly if you hit 10.00!)</span>
+              <div className="flex items-start gap-2 bg-slate-950/40 p-2 rounded-xl border border-slate-900">
+                <span className="text-purple-400 font-bold mt-0.5">⚡</span>
+                <span><strong className="text-slate-200">Sprint Matrix:</strong> Commit <strong className="text-purple-400 font-bold">1 Token</strong> for <strong className="text-purple-400 font-bold">5 Mins UNLIMITED plays</strong> (Jackpot evaluation only. Structural bypass terminates immediately on 10.00 success).</span>
               </div>
             </div>
           </div>
@@ -418,51 +433,54 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
 
         {/* Sprint countdown banner */}
         {hasActiveSprint && (
-          <div className="flex items-center justify-between bg-purple-100 dark:bg-purple-950/50 rounded-2xl px-5 py-4 border-2 border-purple-300 dark:border-purple-700 shadow-md shadow-purple-200/40 dark:shadow-purple-900/30">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">⚡</span>
+          <div className="flex items-center justify-between bg-gradient-to-r from-purple-950/40 to-indigo-950/40 rounded-2xl px-5 py-4 border border-purple-500/30 shadow-lg shadow-purple-950/40 animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-lg shadow-inner">⚡</div>
               <div>
-                <p className="text-xs font-black text-purple-700 dark:text-purple-300 uppercase tracking-widest">Unlimited Sprint!</p>
-                <p className="text-[10px] text-purple-500 dark:text-purple-400">Play unlimited — jackpot only</p>
+                <p className="text-xs font-black text-purple-300 uppercase tracking-widest">Unlimited Sprint Mode</p>
+                <p className="text-[10px] text-purple-400/80 font-medium tracking-wide">Jackpot evaluation parameters active</p>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-right bg-purple-950/30 border border-purple-500/10 px-3 py-1.5 rounded-xl shadow-inner">
               <div className="flex items-end gap-0.5 justify-end">
-                <span className="font-black tabular-nums text-purple-700 dark:text-purple-200" style={{ fontSize: "2rem", lineHeight: 1 }}>
+                <span className="font-black tabular-nums text-purple-300 tracking-tighter" style={{ fontSize: "1.75rem", lineHeight: 1 }}>
                   {sprintMin}:{String(sprintSec).padStart(2, "0")}
                 </span>
               </div>
-              <p className="text-[10px] text-purple-500 dark:text-purple-400 font-semibold">remaining</p>
+              <p className="text-[9px] text-purple-400/60 uppercase tracking-wider font-bold mt-0.5">remaining</p>
             </div>
           </div>
         )}
 
         {/* Free plays badge */}
-        <div className="flex items-center justify-between bg-muted rounded-xl px-4 py-2.5 border border-border">
-          <span className="text-xs font-semibold text-muted-foreground">Free Tries Today</span>
-          <div className="flex items-center gap-1.5">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                  i < freePlaysLeft
-                    ? "bg-emerald-400 border-emerald-500"
-                    : "bg-muted-foreground/20 border-muted-foreground/30"
-                }`}
-              />
-            ))}
-            <span className="text-xs font-black text-foreground ml-1">{freePlaysLeft} / {FREE_PLAYS_PER_DAY}</span>
+        <div className="flex items-center justify-between bg-slate-900/30 rounded-2xl px-4 py-3 border border-slate-800/60 shadow-inner">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Free Allocations Left</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-slate-950/60 p-1.5 rounded-xl border border-slate-900">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all duration-300 ${
+                    i < freePlaysLeft
+                      ? "bg-gradient-to-br from-emerald-400 to-teal-500 border-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"
+                      : "bg-slate-800 border-slate-700 opacity-40"
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-xs font-black text-slate-200 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 tabular-nums">{freePlaysLeft} / {FREE_PLAYS_PER_DAY}</span>
           </div>
         </div>
 
         {/* Timer display */}
         <motion.div
-          className="flex items-center justify-center py-2"
-          animate={{ scale: 1 }}
+          className="flex items-center justify-center py-4 select-none relative"
+          animate={{ scale: isRunning ? [1, 1.01, 1] : 1 }}
+          transition={{ repeat: Infinity, duration: 1.5 }}
         >
           <span
-            className={`font-black tabular-nums transition-colors duration-150 ${timerColor}`}
-            style={{ fontSize: "clamp(3rem, 16vw, 5.5rem)", letterSpacing: "-0.02em", lineHeight: 1 }}
+            className={`font-black tabular-nums tracking-tighter transition-colors duration-150 ${timerColor}`}
+            style={{ fontSize: "clamp(3.5rem, 18vw, 6rem)", letterSpacing: "-0.04em", lineHeight: 1 }}
           >
             {displayTime}
           </span>
@@ -478,19 +496,19 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
           {result && (
             <motion.div
               key={result.type + result.time}
-              initial={{ opacity: 0, scale: 0.9, y: 8 }}
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3 }}
-              className={`rounded-xl px-4 py-3 text-center text-sm font-semibold border ${
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.25 }}
+              className={`rounded-2xl px-4 py-3.5 text-center text-xs font-bold uppercase tracking-wider border backdrop-blur-md ${
                 result.type === "jackpot"
-                  ? "bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300"
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.1)]"
                   : result.type === "close"
-                  ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
-                  : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400"
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                  : "bg-rose-500/10 border-rose-500/30 text-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.05)]"
               }`}
             >
-              {result.type === "jackpot" && <div className="text-2xl font-black mb-1">🏆</div>}
+              {result.type === "jackpot" && <div className="text-3xl animate-bounce mb-1">🏆</div>}
               {result.message}
             </motion.div>
           )}
@@ -500,17 +518,19 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
         <button
           onClick={isRunning ? handleStop : handleStart}
           disabled={!isRunning && !canStart}
-          className={`w-full py-4 rounded-xl font-black text-sm tracking-widest uppercase transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg ${
+          className={`w-full py-4.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed shadow-xl border border-black/20 ${
             isRunning
-              ? "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-red-500/25 hover:from-red-400 hover:to-rose-400"
+              ? "bg-gradient-to-b from-rose-500 to-red-600 text-white shadow-rose-950/40 hover:brightness-110"
               : hasActiveSprint || freePlaysLeft > 0
-              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/25 hover:from-blue-500 hover:to-indigo-500"
-              : "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-purple-500/25 hover:from-purple-500 hover:to-indigo-500"
+              ? "bg-gradient-to-b from-cyan-500 via-blue-600 to-blue-700 text-white shadow-blue-950/50 hover:brightness-110"
+              : "bg-gradient-to-b from-purple-500 via-indigo-600 to-indigo-700 text-white shadow-indigo-950/50 hover:brightness-110"
           }`}
+          style={{ paddingHeight: "1.125rem" }}
         >
-          {isRunning ? "⏹ STOP!" : startBtnLabel}
+          {isRunning ? "⏹ HALT CORE!" : startBtnLabel}
         </button>
       </div>
+      
       <PerfectTenFeed currentUserId={user?.id} isAdmin={isAdmin} />
     </div>
   );
