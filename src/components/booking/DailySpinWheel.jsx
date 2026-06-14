@@ -197,7 +197,7 @@ function WinnerFeed() {
                 </span>
                 {isDuplicateAttempt && (
                   <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400 px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse flex-shrink-0">
-                    ⚠️ Duplicate
+                    ⚠️ Void
                   </span>
                 )}
               </div>
