@@ -71,20 +71,20 @@ export default function CoinFlipArena({ user, onUserUpdate, isAdmin }) {
 
   return (
     <>
-    <div className="flex flex-col gap-3">
-      {/* Card — theme-aware */}
-      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+    <div className="flex flex-col gap-4 max-w-xl mx-auto w-full">
+      {/* Container - Premium Dark Slate Glass matching Hub styling */}
+      <div className="bg-[#1e2330] rounded-[24px] border border-slate-800/60 shadow-2xl overflow-hidden transition-all duration-300">
 
-        {/* Sub-tabs */}
-        <div className="flex border-b border-border">
+        {/* Navigation Sub-Tabs Layout */}
+        <div className="flex border-b border-slate-800/80 bg-[#161a24]/60 p-1 gap-1">
           {[["game", "🎮 Game"], ["stats", "📊 Stats"], ["history", "📜 History"]].map(([id, label]) => (
             <button
               key={id}
               onClick={() => setActiveView(id)}
-              className={`flex-1 py-2.5 text-xs font-semibold transition-all ${
+              className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 ${
                 activeView === id
-                  ? "text-amber-600 dark:text-amber-400 border-b-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-amber-400 bg-[#1e2330] border border-slate-800/50 shadow-md"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/20"
               }`}
             >
               {label}
@@ -92,61 +92,64 @@ export default function CoinFlipArena({ user, onUserUpdate, isAdmin }) {
           ))}
         </div>
 
-        {/* ── GAME ── */}
+        {/* ── GAME MODULE ── */}
         {activeView === "game" && (
-          <div className="p-4 flex flex-col items-center gap-4">
+          <div className="p-6 flex flex-col items-center gap-6">
 
-            {/* Balance row */}
-            <div className="w-full flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Your Balance</span>
-              <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-full px-3 py-1">
+            {/* Account Balance Row */}
+            <div className="w-full flex items-center justify-between border-b border-slate-800/40 pb-3">
+              <span className="text-[11px] text-slate-400 uppercase tracking-widest font-black">Your Balance</span>
+              <div className="flex items-center gap-2 bg-[#161a24] border border-amber-500/30 rounded-full px-4 py-1.5 shadow-inner">
                 <img
                   src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png"
-                  alt="token" className="w-4 h-4"
+                  alt="token" className="w-4 h-4 object-contain animate-pulse"
                 />
-                <span className="text-amber-700 dark:text-amber-300 font-black text-sm">{tokens}</span>
+                <span className="text-amber-400 font-black text-sm tabular-nums">{tokens}</span>
               </div>
             </div>
 
-            {/* Coin animation */}
-            <CoinAnimation flipping={flipping} outcome={lastResult?.outcome} chosenSide={choice} />
+            {/* Main Coin Animation Anchor Frame */}
+            <div className="relative py-4">
+              <CoinAnimation flipping={flipping} outcome={lastResult?.outcome} chosenSide={choice} />
+            </div>
 
-            {/* Choose side */}
+            {/* Selection Input - Choice Switchers */}
             <div className="w-full">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1.5">Choose Your Side</p>
-              <div className="flex gap-2 w-full">
+              <p className="text-[11px] text-slate-400 uppercase tracking-widest font-black mb-2.5">Choose Your Side</p>
+              <div className="flex gap-3 w-full">
                 <button
                   disabled={flipping}
                   onClick={() => setChoice("heads")}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border-2 flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 py-3.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all duration-200 border border-slate-800/80 flex items-center justify-center gap-2 ${
                     choice === "heads"
-                      ? "bg-amber-500 border-amber-400 text-white shadow-lg shadow-amber-200 dark:shadow-amber-900/40"
-                      : "bg-secondary border-border text-secondary-foreground hover:bg-muted"
+                      ? "bg-amber-500 border-amber-400 text-white shadow-xl shadow-amber-500/20 scale-[1.02]"
+                      : "bg-[#161a24] text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
                   }`}
                 >
-                  <Crown className="w-4 h-4" /> HEADS
+                  <Crown className="w-4 h-4" /> Heads
                 </button>
                 <button
                   disabled={flipping}
                   onClick={() => setChoice("tails")}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border-2 flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 py-3.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all duration-200 border border-slate-800/80 flex items-center justify-center gap-2 ${
                     choice === "tails"
-                      ? "bg-blue-500 border-blue-400 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/40"
-                      : "bg-secondary border-border text-secondary-foreground hover:bg-muted"
+                      ? "bg-blue-600 border-blue-500 text-white shadow-xl shadow-blue-600/20 scale-[1.02]"
+                      : "bg-[#161a24] text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
                   }`}
                 >
-                  <Zap className="w-4 h-4" /> TAILS
+                  <Zap className="w-4 h-4" /> Tails
                 </button>
               </div>
             </div>
 
-            {/* Bet amount */}
+            {/* Bet configuration array */}
             <div className="w-full">
-              <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5 uppercase tracking-widest font-bold">
+              <div className="flex justify-between text-[11px] text-slate-400 mb-2 uppercase tracking-widest font-black">
                 <span>Bet Amount</span>
-                <span>Min 1 · Max {tokens}</span>
+                <span className="text-slate-500 font-medium">Min 1 · Max {tokens}</span>
               </div>
-              {/* Manual input */}
+              
+              {/* Central Manual input text area */}
               <input
                 type="number"
                 min={1}
@@ -158,19 +161,20 @@ export default function CoinFlipArena({ user, onUserUpdate, isAdmin }) {
                   if (isNaN(v)) { setWager(""); return; }
                   setWager(Math.min(Math.max(v, 1), maxWager));
                 }}
-                className="w-full mb-2 bg-muted border border-border rounded-xl px-4 py-2.5 text-center text-foreground font-black text-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full mb-3 bg-[#161a24] border border-slate-800/80 rounded-xl px-4 py-3 text-center text-white font-black text-xl focus:outline-none focus:border-amber-500/60 shadow-inner tracking-wide transition-all"
               />
-              {/* Quick bet chips */}
-              <div className="flex gap-1.5">
+              
+              {/* Quick option chip arrays matching screenshot controls */}
+              <div className="flex gap-2">
                 {QUICK_BETS.filter((b) => b <= maxWager).map((b) => (
                   <button
                     key={b}
                     disabled={flipping}
                     onClick={() => setWager(b)}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all duration-150 ${
                       wager === b
-                        ? "bg-amber-500 border-amber-400 text-white"
-                        : "bg-secondary border-border text-secondary-foreground hover:bg-muted"
+                        ? "bg-amber-500 border-amber-400 text-white shadow-md shadow-amber-500/10"
+                        : "bg-[#161a24] border-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
                     }`}
                   >
                     {b}
@@ -179,10 +183,10 @@ export default function CoinFlipArena({ user, onUserUpdate, isAdmin }) {
                 <button
                   disabled={flipping}
                   onClick={() => setWager(maxWager)}
-                  className={`px-2 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                  className={`px-4 py-2.5 rounded-xl text-xs font-black border transition-all duration-150 ${
                     wager === maxWager
-                      ? "bg-amber-500 border-amber-400 text-white"
-                      : "bg-secondary border-border text-secondary-foreground hover:bg-muted"
+                      ? "bg-amber-500 border-amber-400 text-white shadow-md shadow-amber-500/10"
+                      : "bg-[#161a24] border-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
                   }`}
                 >
                   MAX
@@ -190,30 +194,30 @@ export default function CoinFlipArena({ user, onUserUpdate, isAdmin }) {
               </div>
             </div>
 
-            {/* Potential Win row */}
-            <div className="w-full flex items-center justify-between bg-muted border border-border rounded-xl px-4 py-2.5">
-              <span className="text-xs text-muted-foreground font-semibold">Potential Win</span>
-              <div className="flex items-center gap-1.5">
-                <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="token" className="w-4 h-4" />
-                <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">{(wager || 0) * 2}</span>
+            {/* Potential evaluation projection row */}
+            <div className="w-full flex items-center justify-between bg-[#161a24] border border-slate-800/60 rounded-xl px-4 py-3 shadow-inner">
+              <span className="text-xs text-slate-400 font-bold">Potential Win</span>
+              <div className="flex items-center gap-2">
+                <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="token" className="w-4 h-4 object-contain" />
+                <span className="text-emerald-400 font-black text-sm tracking-wide tabular-nums">{(wager || 0) * 2}</span>
               </div>
             </div>
 
-            {/* Flip button */}
+            {/* Execution action core submission asset button */}
             <button
               onClick={handleFlip}
               disabled={!canFlip}
-              className="w-full py-3 rounded-xl font-black text-sm tracking-widest uppercase bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:from-amber-400 hover:to-orange-400 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-xl font-black text-xs uppercase tracking-widest bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-xl shadow-orange-950/40 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2 border border-amber-400/20"
             >
               {flipping ? (
-                "Flipping…"
+                <span className="animate-pulse">Flipping Arena Matrix…</span>
               ) : !choice ? (
                 "Choose a Side"
               ) : tokens < 1 ? (
-                "No Tokens"
+                "Insufficient Tokens"
               ) : (
                 <>
-                  <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="token" className="w-5 h-5" />
+                  <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="token" className="w-4 h-4 object-contain" />
                   Flip It!
                 </>
               )}
@@ -227,55 +231,57 @@ export default function CoinFlipArena({ user, onUserUpdate, isAdmin }) {
           </div>
         )}
 
-        {/* ── STATS ── */}
+        {/* ── STATS MODULE ── */}
         {activeView === "stats" && (
-          <div className="p-4 grid grid-cols-3 gap-2">
+          <div className="p-5 grid grid-cols-3 gap-3 bg-[#1e2330]">
             {[
-              { label: "Total Flips", value: total, color: "text-foreground" },
-              { label: "Wins", value: wins, color: "text-emerald-600 dark:text-emerald-400" },
-              { label: "Losses", value: losses, color: "text-red-500 dark:text-red-400" },
-              { label: "Win Rate", value: total > 0 ? `${winRate}%` : "—", color: "text-blue-600 dark:text-blue-400" },
-              { label: "Biggest Win", value: biggestWin || "—", color: "text-amber-600 dark:text-amber-400" },
-              { label: "Biggest Loss", value: biggestLoss || "—", color: "text-orange-600 dark:text-orange-400" },
+              { label: "Total Flips", value: total, color: "text-slate-200" },
+              { label: "Wins", value: wins, color: "text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.2)]" },
+              { label: "Losses", value: losses, color: "text-rose-400" },
+              { label: "Win Rate", value: total > 0 ? `${winRate}%` : "—", color: "text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.2)]" },
+              { label: "Biggest Win", value: biggestWin || "—", color: "text-amber-400" },
+              { label: "Biggest Loss", value: biggestLoss || "—", color: "text-orange-400" },
             ].map(({ label, value, color }) => (
-              <div key={label} className="bg-muted rounded-xl p-3 flex flex-col items-center gap-0.5 border border-border">
-                <span className={`text-xl font-black ${color}`}>{value}</span>
-                <span className="text-[10px] text-muted-foreground text-center">{label}</span>
+              <div key={label} className="bg-[#161a24] rounded-xl p-3.5 flex flex-col items-center gap-1 border border-slate-800/40 shadow-inner">
+                <span className={`text-xl font-black tracking-wide ${color}`}>{value}</span>
+                <span className="text-[10px] font-bold text-slate-500 text-center uppercase tracking-wider">{label}</span>
               </div>
             ))}
           </div>
         )}
 
-        {/* ── HISTORY ── */}
+        {/* ── HISTORY DATA TRANSCRIPT MODULE ── */}
         {activeView === "history" && (
-          <div className="p-4">
+          <div className="p-5 bg-[#1e2330]">
             {history.length === 0 ? (
-              <p className="text-center text-muted-foreground text-sm py-6">No flips yet. Play your first game!</p>
+              <p className="text-center text-slate-500 text-xs py-10 tracking-wide font-medium">No system metrics recorded. Execute your first flip sequence!</p>
             ) : (
-              <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-slate-800">
                 {history.map((flip) => (
                   <div
                     key={flip.id}
-                    className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs border ${
+                    className={`flex items-center justify-between rounded-xl px-4 py-3 text-xs border backdrop-blur-sm shadow-sm transition-all duration-200 ${
                       flip.result === "win"
-                        ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                        : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                        ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-200"
+                        : "bg-rose-500/5 border-rose-500/20 text-rose-200"
                     }`}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                       <img
                         src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png"
-                        alt="" className="w-4 h-4"
+                        alt="" className="w-4 h-4 object-contain"
                       />
-                      <span className="text-foreground">
-                        Bet <strong>{flip.wager}</strong> · chose <strong>{flip.choice}</strong>
+                      <span className="text-slate-300 tracking-wide">
+                        Wagered <strong className="text-white font-bold">{flip.wager}</strong> · chose <strong className="text-white uppercase font-bold">{flip.choice}</strong>
                       </span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className={`font-black text-xs ${flip.result === "win" ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-black text-sm tracking-wide tabular-nums ${flip.result === "win" ? "text-emerald-400" : "text-rose-400"}`}>
                         {flip.tokens_delta > 0 ? "+" : ""}{flip.tokens_delta}
                       </span>
-                      <span className="text-muted-foreground text-[10px]">{flip.result === "win" ? "WIN" : "LOSS"}</span>
+                      <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded tracking-widest ${flip.result === "win" ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}>
+                        {flip.result === "win" ? "Win" : "Loss"}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -286,7 +292,7 @@ export default function CoinFlipArena({ user, onUserUpdate, isAdmin }) {
       </div>
     </div>
 
-    {/* Live activity feed */}
+    {/* Connected pipeline live global channel feed */}
     <ActivityFeed currentUserId={user?.id} isAdmin={isAdmin} />
     </>
   );
