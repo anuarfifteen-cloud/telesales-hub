@@ -402,8 +402,7 @@ export default function SuperTapGame({ user }) {
               <span className="text-xl font-black tracking-widest animate-pulse">TAP!</span>
             ) : (
               <>
-                <span className="text-cyan-300 font-bold text-xs tracking-widest">Initialize</span>
-                <span className="text-base font-black">GRID UNIT</span>
+                <span className="text-base font-black">TAP</span>
               </>
             )}
           </span>
