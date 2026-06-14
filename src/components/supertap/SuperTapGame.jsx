@@ -300,7 +300,7 @@ export default function SuperTapGame({ user }) {
       <div className="text-center relative py-2">
         <div className="absolute inset-0 bg-cyan-500/10 blur-2xl rounded-full pointer-events-none" />
         <h2 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400 tracking-tight flex items-center justify-center gap-1.5">
-          SUPER TAP <Zap className="w-6 h-6 text-cyan-400 fill-cyan-400 animate-pulse" />
+          SUPER TAP 2.0 <Zap className="w-6 h-6 text-cyan-400 fill-cyan-400 animate-pulse" />
         </h2>
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mt-1">Grid Overload Matrix</p>
       </div>
