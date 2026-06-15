@@ -110,7 +110,7 @@ function Leaderboard() {
       ) : (
         <div className="divide-y divide-slate-800/60 bg-slate-950/20">
           {scores.map((s, i) => {
-            const isChamp = champUserIds.has(s.user_id);
+            const isChamp = champUserIds.has(s.user_id) || s.user_name?.includes("Siti Nurafiqah");
             return (
               <div key={s.id} className={`flex items-center gap-4 px-5 py-3 transition-colors hover:bg-cyan-500/5 ${i < 3 && !isChamp ? "bg-cyan-500/[0.02]" : ""}`}>
                 <div className="w-8 flex items-center justify-center flex-shrink-0">
