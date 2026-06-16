@@ -52,7 +52,7 @@ export default function TokenVoucher({ user, onUserUpdate }) {
     }
   };
 
-  // ── 2. CLAIM VOUCHER CODE (WITH AUTO-DETECTION) ──
+  // ── 2. CLAIM VOUCHER CODE (WITH SPECIFIC TOKEN VALUE) ──
   const handleClaimVoucher = async () => {
     if (!claimCode.trim()) return toast.error("Please enter a code.");
     setLoading(true);
@@ -101,7 +101,12 @@ export default function TokenVoucher({ user, onUserUpdate }) {
         timestamp: new Date().toISOString(),
       });
 
-      setVoucherStatus({ text: "Success! 🪙 Tokens Added", color: "text-emerald-600 dark:text-emerald-400" });
+      // ── DYNAMIC UPDATE: Specifically prints out how many tokens were added ──
+      setVoucherStatus({ 
+        text: `Success! +${tokenRewardValue} ${tokenRewardValue === 1 ? 'Token' : 'Tokens'} Added 🪙`, 
+        color: "text-emerald-600 dark:text-emerald-400" 
+      });
+      
       setClaimCode("");
       await onUserUpdate();
       toast.success(`Success! Added +${tokenRewardValue} tokens to your balance. 🪙`);
@@ -158,7 +163,7 @@ export default function TokenVoucher({ user, onUserUpdate }) {
             value={claimCode}
             onChange={(e) => {
               setClaimCode(e.target.value);
-              setVoucherStatus(null); // Clear last error text when they start re-typing
+              setVoucherStatus(null);
             }}
             placeholder="Paste voucher code here..."
             className="w-full text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background font-mono uppercase"
