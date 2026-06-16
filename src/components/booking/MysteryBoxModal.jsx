@@ -25,14 +25,10 @@ export default function TokenVoucher({ user, onUserUpdate }) {
     }
 
     setLoading(true);
-    // Generate a short randomized code string
     const uniqueCode = `VCH-${Math.random().toString(36).substring(2, 7).toUpperCase()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
     try {
-      // Deduct tokens from donator
       await base44.auth.updateMe({ earlyAccessTokens: currentTokens - tokenNum });
-      
-      // Store the code string natively inside the source column parameter
       await base44.entities.TokenTransaction.create({
         user_id: user.id,
         user_name: user.full_name || user.email,
@@ -52,7 +48,7 @@ export default function TokenVoucher({ user, onUserUpdate }) {
     }
   };
 
-  // ── 2. CLAIM VOUCHER CODE (WITH SPECIFIC TOKEN VALUE) ──
+  // ── 2. CLAIM VOUCHER CODE ──
   const handleClaimVoucher = async () => {
     if (!claimCode.trim()) return toast.error("Please enter a code.");
     setLoading(true);
@@ -61,38 +57,29 @@ export default function TokenVoucher({ user, onUserUpdate }) {
     const formattedCode = claimCode.trim().toUpperCase();
 
     try {
-      // Fetch all transactions to scan code statuses dynamically
       const transactions = await base44.entities.TokenTransaction.list();
-      
       const activeTx = transactions.find(t => t.source === `VOUCHER_ACTIVE:${formattedCode}`);
       const claimedTx = transactions.find(t => t.source.startsWith(`VOUCHER_CLAIMED:${formattedCode}`));
 
-      // 🛑 Condition A: Code does not exist in logs
       if (!activeTx && !claimedTx) {
         setVoucherStatus({ text: "Code Does Not Exist ❌", color: "text-red-600 dark:text-red-400" });
         setLoading(false);
         return toast.error("Invalid voucher code.");
       }
 
-      // 🛑 Condition B: Code is found but already claimed
       if (claimedTx) {
         setVoucherStatus({ text: "Already Claimed 🚫", color: "text-amber-600 dark:text-amber-400" });
         setLoading(false);
         return toast.error("This voucher has already been claimed.");
       }
 
-      // 🟢 Condition C: Code is valid and active! Proceed to deposit tokens
       const tokenRewardValue = Math.abs(activeTx.amount);
-
-      // Add tokens to claiming agent balance profile configuration
       await base44.auth.updateMe({ earlyAccessTokens: currentTokens + tokenRewardValue });
 
-      // Mark the original transaction voucher code text string flag as CLAIMED 
       await base44.entities.TokenTransaction.update(activeTx.id, {
         source: `VOUCHER_CLAIMED:${formattedCode}_BY_${user.email}`
       });
 
-      // Log secondary transaction recording local claim action history logs
       await base44.entities.TokenTransaction.create({
         user_id: user.id,
         user_name: user.full_name || user.email,
@@ -101,7 +88,6 @@ export default function TokenVoucher({ user, onUserUpdate }) {
         timestamp: new Date().toISOString(),
       });
 
-      // ── DYNAMIC UPDATE: Specifically prints out how many tokens were added ──
       setVoucherStatus({ 
         text: `Success! +${tokenRewardValue} ${tokenRewardValue === 1 ? 'Token' : 'Tokens'} Added 🪙`, 
         color: "text-emerald-600 dark:text-emerald-400" 
@@ -125,91 +111,97 @@ export default function TokenVoucher({ user, onUserUpdate }) {
   };
 
   return (
-    <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 space-y-4">
-      {/* Header with Balance on Right Side */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wide">🎁 TOKEN VOUCHER TRANSFER</p>
-        <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2.5 py-0.5 rounded-full select-none">
-          <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="Token" className="w-3.5 h-3.5" />
-          <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{currentTokens}</span>
+    <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+      {/* Redesigned Header: Clean Layout Grid */}
+      <div className="p-4 bg-slate-50/70 dark:bg-slate-900/40 border-b border-border flex items-center justify-between">
+        <div className="space-y-0.5">
+          <p className="text-xs font-bold text-slate-800 dark:text-gray-100 uppercase tracking-wide">🎁 Voucher Transfer</p>
+          <p className="text-[10px] text-muted-foreground">Issue or redeem early access credits</p>
+        </div>
+        <div className="text-right">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Available to Gift</span>
+          <span className="text-base font-black text-slate-800 dark:text-gray-100 tabular-nums">{currentTokens} <span className="text-xs font-normal text-muted-foreground">Tokens</span></span>
         </div>
       </div>
 
-      {/* Issuing Panel */}
-      <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Create Voucher Code</p>
-        <div className="flex gap-2">
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="Tokens amount..."
-            className="w-full text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background"
-          />
-          <Button size="sm" onClick={handleCreateVoucher} disabled={loading} className="text-xs h-8">
-            Issue
-          </Button>
-        </div>
-
-        {generatedCode && (
-          <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-lg flex items-center justify-between">
-            <span className="font-mono text-xs font-bold select-all">{generatedCode}</span>
-            <button onClick={copyToClipboard} className="hover:text-emerald-700">
-              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Claiming Panel */}
-      <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Redeem Voucher Code</p>
-        <div className="flex gap-2 relative items-center">
-          <div className="relative flex-1">
+      <div className="p-4 space-y-4">
+        {/* Issuing Panel */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Create a Gift Voucher</p>
+          <div className="flex gap-2">
             <input
-              type="text"
-              value={claimCode}
-              onChange={(e) => {
-                setClaimCode(e.target.value);
-                setVoucherStatus(null);
-              }}
-              placeholder="Enter voucher code..."
-              className="w-full text-xs border rounded-lg pl-2.5 pr-14 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background font-mono uppercase"
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter amount to generate..."
+              className="w-full text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background"
             />
-            {/* Native Quick Paste Icon Shortcut */}
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const text = await navigator.clipboard.readText();
-                  if (text) {
-                    setClaimCode(text);
-                    setVoucherStatus(null);
-                    toast.success("Code pasted from clipboard! 📋");
-                  }
-                } catch (err) {
-                  toast.error("Clipboard access denied. Please paste manually.");
-                }
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 px-1.5 py-0.5 rounded text-muted-foreground transition-colors"
-            >
-              Paste
-            </button>
+            <Button size="sm" onClick={handleCreateVoucher} disabled={loading} className="text-xs h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white">
+              Generate
+            </Button>
           </div>
-          
-          <Button size="sm" variant="secondary" onClick={handleClaimVoucher} disabled={loading} className="text-xs h-8 flex-shrink-0">
-            Redeem
-          </Button>
+
+          {generatedCode && (
+            <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-lg flex items-center justify-between">
+              <span className="font-mono text-xs font-bold select-all tracking-wider">{generatedCode}</span>
+              <button onClick={copyToClipboard} className="hover:text-emerald-700 p-1 transition-colors">
+                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Dynamic Auto-Status UI Alert */}
-        {voucherStatus && (
-          <div className="pt-1 flex items-center justify-end text-[11px]">
-            <span className={`font-bold tracking-wide ${voucherStatus.color}`}>
-              {voucherStatus.text}
-            </span>
+        <div className="h-px bg-border/60" />
+
+        {/* Claiming Panel */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Redeem Received Code</p>
+          <div className="flex gap-2 relative items-center">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={claimCode}
+                onChange={(e) => {
+                  setClaimCode(e.target.value);
+                  setVoucherStatus(null);
+                }}
+                placeholder="Paste VCH code here..."
+                className="w-full text-xs border rounded-lg pl-2.5 pr-14 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background font-mono uppercase tracking-wide"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                      setClaimCode(text);
+                      setVoucherStatus(null);
+                      toast.success("Code pasted! 📋");
+                    }
+                  } catch (err) {
+                    toast.error("Please paste code manually.");
+                  }
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-1.5 py-0.5 rounded text-muted-foreground transition-colors"
+              >
+                Paste
+              </button>
+            </div>
+            
+            <Button size="sm" variant="secondary" onClick={handleClaimVoucher} disabled={loading} className="text-xs h-8 flex-shrink-0">
+              Redeem
+            </Button>
           </div>
-        )}
+
+          {/* Dynamic Auto-Status UI Alert */}
+          {voucherStatus && (
+            <div className="pt-1 flex items-center justify-end text-[11px]">
+              <span className={`font-bold tracking-wide ${voucherStatus.color}`}>
+                {voucherStatus.text}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
