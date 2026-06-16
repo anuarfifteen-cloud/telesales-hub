@@ -2,7 +2,7 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Gift, Copy, Check } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 
 export default function TokenVoucher({ user, onUserUpdate }) {
   const [amount, setAmount] = useState("");
@@ -52,31 +52,43 @@ export default function TokenVoucher({ user, onUserUpdate }) {
     }
   };
 
-  // ── 2. CLAIM VOUCHER CODE ──
+  // ── 2. CLAIM VOUCHER CODE (WITH AUTO-DETECTION) ──
   const handleClaimVoucher = async () => {
     if (!claimCode.trim()) return toast.error("Please enter a code.");
     setLoading(true);
+    setVoucherStatus(null);
 
     const formattedCode = claimCode.trim().toUpperCase();
 
     try {
-      // Look up transactions searching for matching code parameters inside source text
+      // Fetch all transactions to scan code statuses dynamically
       const transactions = await base44.entities.TokenTransaction.list();
-      const voucherTx = transactions.find(t => t.source === `VOUCHER_ACTIVE:${formattedCode}`);
+      
+      const activeTx = transactions.find(t => t.source === `VOUCHER_ACTIVE:${formattedCode}`);
+      const claimedTx = transactions.find(t => t.source.startsWith(`VOUCHER_CLAIMED:${formattedCode}`));
 
-      if (!voucherTx) {
+      // 🛑 Condition A: Code does not exist in logs
+      if (!activeTx && !claimedTx) {
+        setVoucherStatus({ text: "Code Does Not Exist ❌", color: "text-red-600 dark:text-red-400" });
         setLoading(false);
-        return toast.error("Invalid or already claimed voucher code.");
+        return toast.error("Invalid voucher code.");
       }
 
-      // Extract original token allotment back out of absolute database value
-      const tokenRewardValue = Math.abs(voucherTx.amount);
+      // 🛑 Condition B: Code is found but already claimed
+      if (claimedTx) {
+        setVoucherStatus({ text: "Already Claimed 🚫", color: "text-amber-600 dark:text-amber-400" });
+        setLoading(false);
+        return toast.error("This voucher has already been claimed.");
+      }
 
-      // Add tokens to the claiming user profile balance configuration
+      // 🟢 Condition C: Code is valid and active! Proceed to deposit tokens
+      const tokenRewardValue = Math.abs(activeTx.amount);
+
+      // Add tokens to claiming agent balance profile configuration
       await base44.auth.updateMe({ earlyAccessTokens: currentTokens + tokenRewardValue });
 
       // Mark the original transaction voucher code text string flag as CLAIMED 
-      await base44.entities.TokenTransaction.update(voucherTx.id, {
+      await base44.entities.TokenTransaction.update(activeTx.id, {
         source: `VOUCHER_CLAIMED:${formattedCode}_BY_${user.email}`
       });
 
@@ -89,45 +101,14 @@ export default function TokenVoucher({ user, onUserUpdate }) {
         timestamp: new Date().toISOString(),
       });
 
+      setVoucherStatus({ text: "Success! 🪙 Tokens Added", color: "text-emerald-600 dark:text-emerald-400" });
       setClaimCode("");
-      setVoucherStatus(null);
       await onUserUpdate();
       toast.success(`Success! Added +${tokenRewardValue} tokens to your balance. 🪙`);
     } catch (e) {
       toast.error("Error processing voucher claim.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // ── 3. LIVE CODE STATUS SCANNER ──
-  const handleCheckStatus = async () => {
-    if (!claimCode.trim()) return;
-    const formatted = claimCode.trim().toUpperCase();
-    
-    try {
-      const transactions = await base44.entities.TokenTransaction.list();
-      const activeTx = transactions.find(t => t.source === `VOUCHER_ACTIVE:${formatted}`);
-      const claimedTx = transactions.find(t => t.source.startsWith(`VOUCHER_CLAIMED:${formatted}`));
-
-      if (activeTx) {
-        setVoucherStatus({
-          text: `Success (+${Math.abs(activeTx.amount)} Tokens Available 🪙)`,
-          color: "text-emerald-600 dark:text-emerald-400"
-        });
-      } else if (claimedTx) {
-        setVoucherStatus({
-          text: "Already Claimed 🚫",
-          color: "text-amber-600 dark:text-amber-400"
-        });
-      } else {
-        setVoucherStatus({
-          text: "Code Does Not Exist ❌",
-          color: "text-red-600 dark:text-red-400"
-        });
-      }
-    } catch (err) {
-      toast.error("Error validation failed.");
     }
   };
 
@@ -177,7 +158,7 @@ export default function TokenVoucher({ user, onUserUpdate }) {
             value={claimCode}
             onChange={(e) => {
               setClaimCode(e.target.value);
-              setVoucherStatus(null);
+              setVoucherStatus(null); // Clear last error text when they start re-typing
             }}
             placeholder="Paste voucher code here..."
             className="w-full text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background font-mono uppercase"
@@ -187,21 +168,12 @@ export default function TokenVoucher({ user, onUserUpdate }) {
           </Button>
         </div>
 
-        {/* Dynamic Status Feedback Node */}
-        {claimCode.trim() && (
-          <div className="pt-1 flex items-center gap-1.5 text-[11px] font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-            <button 
-              onClick={handleCheckStatus}
-              className="text-blue-500 hover:text-blue-600 underline cursor-pointer transition-colors"
-            >
-              Check code status
-            </button>
-            {voucherStatus && (
-              <span className={`ml-auto font-bold tracking-wide transition-all ${voucherStatus.color}`}>
-                {voucherStatus.text}
-              </span>
-            )}
+        {/* Dynamic Auto-Status UI Alert */}
+        {voucherStatus && (
+          <div className="pt-1 flex items-center justify-end text-[11px]">
+            <span className={`font-bold tracking-wide ${voucherStatus.color}`}>
+              {voucherStatus.text}
+            </span>
           </div>
         )}
       </div>
