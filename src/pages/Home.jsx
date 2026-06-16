@@ -957,9 +957,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* ── TOKEN VOUCHER ── */}
-              <TokenVoucher user={user} onUserUpdate={refreshUser} />
-
               {/* App Settings */}
               <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
                 <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">⚙️ APP SETTINGS</p>
