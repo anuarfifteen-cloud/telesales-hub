@@ -10,6 +10,7 @@ export default function TokenVoucher({ user, onUserUpdate }) {
   const [claimCode, setClaimCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [voucherStatus, setVoucherStatus] = useState(null);
 
   const currentTokens = user?.earlyAccessTokens ?? 0;
 
@@ -89,12 +90,44 @@ export default function TokenVoucher({ user, onUserUpdate }) {
       });
 
       setClaimCode("");
+      setVoucherStatus(null);
       await onUserUpdate();
       toast.success(`Success! Added +${tokenRewardValue} tokens to your balance. 🪙`);
     } catch (e) {
       toast.error("Error processing voucher claim.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── 3. LIVE CODE STATUS SCANNER ──
+  const handleCheckStatus = async () => {
+    if (!claimCode.trim()) return;
+    const formatted = claimCode.trim().toUpperCase();
+    
+    try {
+      const transactions = await base44.entities.TokenTransaction.list();
+      const activeTx = transactions.find(t => t.source === `VOUCHER_ACTIVE:${formatted}`);
+      const claimedTx = transactions.find(t => t.source.startsWith(`VOUCHER_CLAIMED:${formatted}`));
+
+      if (activeTx) {
+        setVoucherStatus({
+          text: `Success (+${Math.abs(activeTx.amount)} Tokens Available 🪙)`,
+          color: "text-emerald-600 dark:text-emerald-400"
+        });
+      } else if (claimedTx) {
+        setVoucherStatus({
+          text: "Already Claimed 🚫",
+          color: "text-amber-600 dark:text-amber-400"
+        });
+      } else {
+        setVoucherStatus({
+          text: "Code Does Not Exist ❌",
+          color: "text-red-600 dark:text-red-400"
+        });
+      }
+    } catch (err) {
+      toast.error("Error validation failed.");
     }
   };
 
@@ -106,11 +139,11 @@ export default function TokenVoucher({ user, onUserUpdate }) {
   };
 
   return (
-  <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
-    <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">🎁 TOKEN VOUCHER TRANSFER</p>
+    <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 space-y-4">
+      <p className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wide">🎁 TOKEN VOUCHER TRANSFER</p>
 
       {/* Issuing Panel */}
-      <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed">
+      <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Create Voucher Code</p>
         <div className="flex gap-2">
           <input
@@ -136,20 +169,41 @@ export default function TokenVoucher({ user, onUserUpdate }) {
       </div>
 
       {/* Claiming Panel */}
-      <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed">
+      <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Redeem Voucher Code</p>
         <div className="flex gap-2">
           <input
             type="text"
             value={claimCode}
-            onChange={(e) => setClaimCode(e.target.value)}
+            onChange={(e) => {
+              setClaimCode(e.target.value);
+              setVoucherStatus(null);
+            }}
             placeholder="Paste voucher code here..."
-            className="w-full text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none bg-background font-mono uppercase"
+            className="w-full text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background font-mono uppercase"
           />
           <Button size="sm" variant="secondary" onClick={handleClaimVoucher} disabled={loading} className="text-xs h-8">
             Redeem
           </Button>
         </div>
+
+        {/* Dynamic Status Feedback Node */}
+        {claimCode.trim() && (
+          <div className="pt-1 flex items-center gap-1.5 text-[11px] font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+            <button 
+              onClick={handleCheckStatus}
+              className="text-blue-500 hover:text-blue-600 underline cursor-pointer transition-colors"
+            >
+              Check code status
+            </button>
+            {voucherStatus && (
+              <span className={`ml-auto font-bold tracking-wide transition-all ${voucherStatus.color}`}>
+                {voucherStatus.text}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
