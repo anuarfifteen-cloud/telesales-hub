@@ -126,7 +126,14 @@ export default function TokenVoucher({ user, onUserUpdate }) {
 
   return (
     <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 space-y-4">
-      <p className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wide">🎁 TOKEN VOUCHER TRANSFER</p>
+      {/* Header with Balance on Right Side */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wide">🎁 TOKEN VOUCHER TRANSFER</p>
+        <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2.5 py-0.5 rounded-full select-none">
+          <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="Token" className="w-3.5 h-3.5" />
+          <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{currentTokens}</span>
+        </div>
+      </div>
 
       {/* Issuing Panel */}
       <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
@@ -155,7 +162,6 @@ export default function TokenVoucher({ user, onUserUpdate }) {
       </div>
 
       {/* Claiming Panel */}
-{/* Claiming Panel */}
       <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Redeem Voucher Code</p>
         <div className="flex gap-2 relative items-center">
