@@ -33,6 +33,7 @@ import RosterView from "@/components/roster/RosterView";
 import { Button } from "@/components/ui/button";
 import FeatureUnlockModal from "@/components/FeatureUnlockModal";
 import DailySpinWheel from "@/components/booking/DailySpinWheel";
+import TokenVoucher from "@/components/booking/MysteryBoxModal";
 import { toast } from "sonner";
 
 const EMPLOYEES = [
@@ -844,8 +845,8 @@ export default function Home() {
               )}
                   </>
             }
-              </>
-          }
+          </>
+        }
 
             {/* ── Daily Schedule inner view ── */}
             {innerTab === "schedule" &&
@@ -952,6 +953,9 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+
+              {/* ── TOKEN VOUCHER ── */}
+              <TokenVoucher user={user} onUserUpdate={refreshUser} />
 
               {/* App Settings */}
               <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
