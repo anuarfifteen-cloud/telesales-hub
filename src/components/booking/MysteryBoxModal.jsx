@@ -106,22 +106,19 @@ export default function TokenVoucher({ user, onUserUpdate }) {
   };
 
   return (
-    <div className="space-y-4 max-w-md mx-auto p-4 border border-slate-200 dark:border-slate-800 rounded-2xl bg-card">
-      <div className="flex items-center gap-2 border-b pb-2">
-        <Gift className="w-5 h-5 text-blue-500" />
-        <h3 className="font-bold text-sm">Token Voucher Transfer System</h3>
-      </div>
+  <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+    <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">🎁 TOKEN VOUCHER TRANSFER</p>
 
       {/* Issuing Panel */}
       <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed">
-        <p className="text-xs font-bold text-muted-foreground uppercase">Create Voucher Code</p>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Create Voucher Code</p>
         <div className="flex gap-2">
           <input
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="Tokens amount..."
-            className="w-full text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none bg-background"
+            className="w-full text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background"
           />
           <Button size="sm" onClick={handleCreateVoucher} disabled={loading} className="text-xs h-8">
             Issue
@@ -140,7 +137,7 @@ export default function TokenVoucher({ user, onUserUpdate }) {
 
       {/* Claiming Panel */}
       <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed">
-        <p className="text-xs font-bold text-muted-foreground uppercase">Redeem/Claim Voucher Code</p>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Redeem Voucher Code</p>
         <div className="flex gap-2">
           <input
             type="text"
