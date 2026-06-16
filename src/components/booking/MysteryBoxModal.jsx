@@ -155,20 +155,43 @@ export default function TokenVoucher({ user, onUserUpdate }) {
       </div>
 
       {/* Claiming Panel */}
+{/* Claiming Panel */}
       <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Redeem Voucher Code</p>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={claimCode}
-            onChange={(e) => {
-              setClaimCode(e.target.value);
-              setVoucherStatus(null);
-            }}
-            placeholder="Paste voucher code here..."
-            className="w-full text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background font-mono uppercase"
-          />
-          <Button size="sm" variant="secondary" onClick={handleClaimVoucher} disabled={loading} className="text-xs h-8">
+        <div className="flex gap-2 relative items-center">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={claimCode}
+              onChange={(e) => {
+                setClaimCode(e.target.value);
+                setVoucherStatus(null);
+              }}
+              placeholder="Enter voucher code..."
+              className="w-full text-xs border rounded-lg pl-2.5 pr-14 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background font-mono uppercase"
+            />
+            {/* Native Quick Paste Icon Shortcut */}
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const text = await navigator.clipboard.readText();
+                  if (text) {
+                    setClaimCode(text);
+                    setVoucherStatus(null);
+                    toast.success("Code pasted from clipboard! 📋");
+                  }
+                } catch (err) {
+                  toast.error("Clipboard access denied. Please paste manually.");
+                }
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 px-1.5 py-0.5 rounded text-muted-foreground transition-colors"
+            >
+              Paste
+            </button>
+          </div>
+          
+          <Button size="sm" variant="secondary" onClick={handleClaimVoucher} disabled={loading} className="text-xs h-8 flex-shrink-0">
             Redeem
           </Button>
         </div>
