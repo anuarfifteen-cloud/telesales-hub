@@ -37,7 +37,7 @@ function Avatar({ name, abbreviation }) {
 }
 
 const AM_DEFAULTS  = ["SIMPACK", "ONLINE ORDER", "INBOUND (MB)", "OUTBOUND", "INBOUND (MB)"];
-const PM_DEFAULTS  = ["INBOUND (MB)", "UPSELLING", "OUTBOUND", "SIMPACK", "OUTBOUND"];
+const PM_DEFAULTS  = ["INBOUND (MB)", "REPORT", "OUTBOUND", "SIMPACK", "OUTBOUND"];
 const OFF_DEFAULTS = ["", "", "", ""];
 
 const TASK_COLORS = [
@@ -45,7 +45,7 @@ const TASK_COLORS = [
   { match: /inbound/i,       bg: "bg-green-100",   text: "text-green-800"   },
   { match: /outbound/i,      bg: "bg-blue-100",    text: "text-blue-800"    },
   { match: /chat/i,          bg: "bg-cyan-100",    text: "text-cyan-800"    },
-  { match: /upsell/i,        bg: "bg-purple-100",  text: "text-purple-800"  },
+  { match: /report/i,        bg: "bg-purple-100",  text: "text-purple-800"  },
   { match: /yayasan/i,       bg: "bg-orange-100",  text: "text-orange-800"  },
   { match: /online.order/i,  bg: "bg-amber-100",   text: "text-amber-900"   },
   { match: /mb\b|mobile.bundle/i, bg: "bg-teal-100", text: "text-teal-800"  },
