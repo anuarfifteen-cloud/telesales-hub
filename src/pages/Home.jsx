@@ -55,7 +55,8 @@ const EMPLOYEES = [
 
 
 import React, { useState } from 'react';
-// Exact 2-Avatar Configuration with embedded image data to prevent broken CDN links
+
+// Exact 2-Avatar Configuration with embedded vector data to guarantee 100% uptime
 const AVATAR_PRESETS = [
   {
     id: "man",
