@@ -7,10 +7,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export default function AnnouncementPopup({ announcement, onDismiss }) {
+// ─── ADDED "user" PROP HERE ───
+export default function AnnouncementPopup({ announcement, user, onDismiss }) {
   const [isChecked, setIsChecked] = useState(false);
 
   if (!announcement) return null;
+
+  // ─── ADDED: Filter out popups meant for other users ───
+  if (announcement.targetUserId && announcement.targetUserId !== user?.id) {
+    return null;
+  }
 
   const handleDismiss = () => {
     // Only allow dismissal if they checked the box
