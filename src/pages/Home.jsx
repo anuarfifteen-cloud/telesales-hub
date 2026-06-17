@@ -53,13 +53,18 @@ const EMPLOYEES = [
   { value: 13, label: "Halimatul" }, { value: 14, label: "Afiqah" }
 ];
 
-// Presets featuring 2 Men and 2 Women illustrations + Initials fallback
+// Exact 2-Avatar Configuration matching your reference design screenshots
 const AVATAR_PRESETS = [
-  { id: "initials", name: "Classic Initials", type: "text" },
-  { id: "man-1", name: "Alex (Support)", type: "image", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex&eyebrows=defaultNatural&mouth=smile" },
-  { id: "woman-1", name: "Sarah (Sales)", type: "image", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&mouth=smile&top=longHair" },
-  { id: "man-2", name: "Michael (Lead)", type: "image", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Michael&facialHair=default" },
-  { id: "woman-2", name: "Emma (Telesales)", type: "image", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emma&top=bob" },
+  { 
+    id: "man-corporate", 
+    name: "Male Representative", 
+    url: "https://pub-c2ff507bfec945828f74e6c27618991b.r2.dev/avatar-man.png" 
+  },
+  { 
+    id: "woman-corporate", 
+    name: "Female Representative", 
+    url: "https://pub-c2ff507bfec945828f74e6c27618991b.r2.dev/avatar-woman.png" 
+  }
 ];
 
 function formatCountdownHM(ms) {
@@ -96,10 +101,10 @@ export default function Home() {
   const [activePopup, setActivePopup] = useState(null);
   const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
   
-  // Custom Human Avatar States
+  // Custom Avatar Picker States - Defaulting to the first corporate asset to prevent blank renders
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [selectedAvatarId, setSelectedAvatarId] = useState(() => {
-    return localStorage.getItem("profile_avatar_id") || "initials";
+    return localStorage.getItem("profile_avatar_id") || "man-corporate";
   });
 
   const checkMilestones = async (totalCount) => {
@@ -770,9 +775,6 @@ export default function Home() {
           const pmCount = myBookings.filter((b) => b.shift === "PM").length;
           const totalCount = totalBookingCount;
           const darkModeUnlocked = totalCount >= 5;
-          const initials = user?.full_name ?
-            user.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) :
-            (user?.email?.[0] || "?").toUpperCase();
 
           const activePreset = AVATAR_PRESETS.find(p => p.id === selectedAvatarId) || AVATAR_PRESETS[0];
 
@@ -792,30 +794,24 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Human Avatar Layout with premium micro-ring overlay framework */}
+              {/* Human Avatar Corporate Rendering Container */}
               <div className="flex flex-col items-center pt-2 gap-3">
                 <div 
                   onClick={() => setIsAvatarModalOpen(true)}
                   className="group relative cursor-pointer select-none">
                   
-                  {/* Micro-Shadow Border Base Frame Ring */}
+                  {/* Outer Luxury Premium Micro-Ring Framework */}
                   <div className="w-20 h-20 rounded-full p-[3px] bg-slate-100 dark:bg-slate-800 shadow-[0_4px_14px_rgba(0,0,0,0.05)] border border-slate-200/40 dark:border-slate-700/60 group-hover:border-blue-500/40 transition-colors duration-300">
                     <div className="w-full h-full rounded-full flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-900 shadow-inner transition-transform duration-300 group-hover:scale-98">
-                      {activePreset.id === "initials" ? (
-                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                          <span className="text-xl font-bold tracking-wide text-white">{initials}</span>
-                        </div>
-                      ) : (
-                        <img 
-                          src={activePreset.url} 
-                          alt={activePreset.name} 
-                          className="w-full h-full object-cover bg-slate-100 dark:bg-slate-800"
-                        />
-                      )}
+                      <img 
+                        src={activePreset.url} 
+                        alt={activePreset.name} 
+                        className="w-full h-full object-cover bg-white dark:bg-slate-900"
+                      />
                     </div>
                   </div>
 
-                  {/* Darkened Blur Camera Hover State Overlay */}
+                  {/* Camera Hover Configuration Layer */}
                   <div className="absolute inset-0 rounded-full bg-slate-950/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                     <Camera className="w-4 h-4 text-white drop-shadow-md" />
                   </div>
@@ -827,7 +823,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Stats Bar Panel (Micro-Shadow Panel Refactor) */}
+              {/* Stats Bar Panel */}
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-[0_4px_16px_rgba(0,0,0,0.015)] p-4">
                 <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 text-center">Analytics Aggregate</p>
                 <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800/80">
@@ -913,38 +909,36 @@ export default function Home() {
         })()}
       </main>
 
-      {/* Choice Picker Modal featuring 2 Men and 2 Women illustrations */}
+      {/* Choice Picker Modal featuring exactly your 2 Reference Characters */}
       <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
         <DialogContent className="rounded-2xl max-w-sm sm:max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold tracking-tight">Personalize Avatar Character</DialogTitle>
             <DialogDescription className="text-xs text-slate-400 dark:text-slate-500">
-              Select an option to represent your identity across rosters. Changes persist automatically via local secure containers.
+              Select your identity layout for internal shifts and roster rosters. Changes sync instantly across dark/light profiles.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-3 py-3">
+          <div className="grid grid-cols-2 gap-4 py-4">
             {AVATAR_PRESETS.map((preset) => {
               const isSelected = preset.id === selectedAvatarId;
               return (
                 <div 
                   key={preset.id}
                   onClick={() => handleSaveAvatarChoice(preset.id)}
-                  className={`cursor-pointer rounded-xl border p-3 flex flex-col items-center justify-center gap-2.5 text-center transition-all ${
+                  className={`cursor-pointer rounded-2xl border p-4 flex flex-col items-center justify-center gap-3 text-center transition-all duration-200 ${
                     isSelected 
-                      ? "bg-slate-50 dark:bg-slate-800/40 border-blue-500 shadow-[0_4px_12px_rgba(59,130,246,0.06)]" 
+                      ? "bg-blue-50/40 dark:bg-blue-950/10 border-blue-500 shadow-[0_4px_16px_rgba(59,130,246,0.08)]" 
                       : "bg-white dark:bg-slate-900/40 border-slate-100 dark:border-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700"
                   }`}>
-                  <div className="w-14 h-14 rounded-full overflow-hidden border border-slate-100 dark:border-slate-800 flex items-center justify-center shadow-sm">
-                    {preset.id === "initials" ? (
-                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                        <span className="text-xs font-bold text-white">AZ</span>
-                      </div>
-                    ) : (
-                      <img src={preset.url} alt={preset.name} className="w-full h-full object-cover bg-slate-50 dark:bg-slate-800" />
-                    )}
+                  <div className="w-20 h-20 rounded-full overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 flex items-center justify-center">
+                    <img 
+                      src={preset.url} 
+                      alt={preset.name} 
+                      className="w-full h-full object-cover" 
+                    />
                   </div>
-                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 tracking-tight leading-none">{preset.name}</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 tracking-tight leading-none">{preset.name}</span>
                 </div>
               );
             })}
