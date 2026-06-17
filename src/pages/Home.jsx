@@ -9,7 +9,7 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins, Camera, Smile, ShieldCheck, Sparkles } from "lucide-react";
+import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins, Camera } from "lucide-react";
 import TokensTab from "./TokensTab";
 import { getStoredTheme, applyTheme } from "@/lib/theme";
 import AdminPinModal from "@/components/admin/AdminPinModal";
@@ -30,7 +30,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter
 } from "@/components/ui/dialog";
 import AdminBookingSettings from "@/components/admin/AdminBookingSettings";
 import AdminDashboard from "@/components/admin/AdminDashboard";
@@ -54,12 +53,13 @@ const EMPLOYEES = [
   { value: 13, label: "Halimatul" }, { value: 14, label: "Afiqah" }
 ];
 
-// Presets for the custom profile design picker
+// Presets featuring 2 Men and 2 Women illustrations + Initials fallback
 const AVATAR_PRESETS = [
   { id: "initials", name: "Classic Initials", type: "text" },
-  { id: "sparkle", name: "Elite Performer", type: "icon", color: "from-amber-400 to-orange-500", icon: Sparkles },
-  { id: "shield", name: "Security Specialist", type: "icon", color: "from-emerald-400 to-teal-600", icon: ShieldCheck },
-  { id: "smile", name: "Telesales Champion", type: "icon", color: "from-indigo-400 to-purple-600", icon: Smile },
+  { id: "man-1", name: "Alex (Support)", type: "image", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex&eyebrows=defaultNatural&mouth=smile" },
+  { id: "woman-1", name: "Sarah (Sales)", type: "image", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&mouth=smile&top=longHair" },
+  { id: "man-2", name: "Michael (Lead)", type: "image", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Michael&facialHair=default" },
+  { id: "woman-2", name: "Emma (Telesales)", type: "image", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emma&top=bob" },
 ];
 
 function formatCountdownHM(ms) {
@@ -96,7 +96,7 @@ export default function Home() {
   const [activePopup, setActivePopup] = useState(null);
   const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
   
-  // Custom Avatar Style Picker States
+  // Custom Human Avatar States
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [selectedAvatarId, setSelectedAvatarId] = useState(() => {
     return localStorage.getItem("profile_avatar_id") || "initials";
@@ -781,7 +781,7 @@ export default function Home() {
               {isAdminLoggedIn && (
                 <div className="flex items-center justify-between bg-rose-600 text-white rounded-xl px-4 py-2.5 shadow-sm">
                   <div className="flex items-center gap-2">
-                    <Settings className="w-4 h-4 animate-spin-slow" />
+                    <Settings className="w-4 h-4" />
                     <span className="text-xs font-bold tracking-wide">Privileged Configuration: Enabled</span>
                   </div>
                   <button
@@ -792,28 +792,30 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Avatar + Name Setup with interactive ring */}
+              {/* Human Avatar Layout with premium micro-ring overlay framework */}
               <div className="flex flex-col items-center pt-2 gap-3">
                 <div 
                   onClick={() => setIsAvatarModalOpen(true)}
                   className="group relative cursor-pointer select-none">
                   
-                  {/* Outer Premium Micro-Ring Container */}
+                  {/* Micro-Shadow Border Base Frame Ring */}
                   <div className="w-20 h-20 rounded-full p-[3px] bg-slate-100 dark:bg-slate-800 shadow-[0_4px_14px_rgba(0,0,0,0.05)] border border-slate-200/40 dark:border-slate-700/60 group-hover:border-blue-500/40 transition-colors duration-300">
-                    <div className={`w-full h-full rounded-full flex items-center justify-center shadow-inner transition-transform duration-300 group-hover:scale-98 ${
-                      activePreset.id === "initials" 
-                        ? "bg-gradient-to-br from-blue-500 to-blue-600" 
-                        : `bg-gradient-to-br ${activePreset.color}`
-                    }`}>
-                      {activePreset.type === "text" ? (
-                        <span className="text-xl font-bold tracking-wide text-white">{initials}</span>
+                    <div className="w-full h-full rounded-full flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-900 shadow-inner transition-transform duration-300 group-hover:scale-98">
+                      {activePreset.id === "initials" ? (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                          <span className="text-xl font-bold tracking-wide text-white">{initials}</span>
+                        </div>
                       ) : (
-                        <activePreset.icon className="w-8 h-8 text-white stroke-[1.8]" />
+                        <img 
+                          src={activePreset.url} 
+                          alt={activePreset.name} 
+                          className="w-full h-full object-cover bg-slate-100 dark:bg-slate-800"
+                        />
                       )}
                     </div>
                   </div>
 
-                  {/* Darkened Interactive Blur Overlay Trigger Icon */}
+                  {/* Darkened Blur Camera Hover State Overlay */}
                   <div className="absolute inset-0 rounded-full bg-slate-950/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                     <Camera className="w-4 h-4 text-white drop-shadow-md" />
                   </div>
@@ -844,7 +846,7 @@ export default function Home() {
 
               <TokenVoucher user={user} onUserUpdate={refreshUser} />
 
-              {/* Official Work Hours Panel (Micro-Shadow Panel Refactor) */}
+              {/* Core Shifts Work Panel */}
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-[0_4px_16px_rgba(0,0,0,0.015)] p-4">
                 <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-3.5 uppercase tracking-widest">⏰ Core Shift Schedules</p>
                 <div className="space-y-2">
@@ -865,7 +867,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* App Settings Panel (Micro-Shadow Panel Refactor) */}
+              {/* Dark Mode Configuration Section */}
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-[0_4px_16px_rgba(0,0,0,0.015)] p-4">
                 <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-3.5 uppercase tracking-widest">⚙️ Preferences Configuration</p>
                 <div className="space-y-4">
@@ -911,11 +913,11 @@ export default function Home() {
         })()}
       </main>
 
-      {/* Modern Dialog Choice Picker Modal */}
+      {/* Choice Picker Modal featuring 2 Men and 2 Women illustrations */}
       <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
         <DialogContent className="rounded-2xl max-w-sm sm:max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold tracking-tight">Personalize Avatar Core</DialogTitle>
+            <DialogTitle className="text-base font-semibold tracking-tight">Personalize Avatar Character</DialogTitle>
             <DialogDescription className="text-xs text-slate-400 dark:text-slate-500">
               Select an option to represent your identity across rosters. Changes persist automatically via local secure containers.
             </DialogDescription>
@@ -933,15 +935,13 @@ export default function Home() {
                       ? "bg-slate-50 dark:bg-slate-800/40 border-blue-500 shadow-[0_4px_12px_rgba(59,130,246,0.06)]" 
                       : "bg-white dark:bg-slate-900/40 border-slate-100 dark:border-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700"
                   }`}>
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm ${
-                    preset.id === "initials" 
-                      ? "bg-gradient-to-br from-blue-500 to-blue-600" 
-                      : `bg-gradient-to-br ${preset.color}`
-                  }`}>
-                    {preset.type === "text" ? (
-                      <span className="text-sm font-bold text-white">AZ</span>
+                  <div className="w-14 h-14 rounded-full overflow-hidden border border-slate-100 dark:border-slate-800 flex items-center justify-center shadow-sm">
+                    {preset.id === "initials" ? (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                        <span className="text-xs font-bold text-white">AZ</span>
+                      </div>
                     ) : (
-                      <preset.icon className="w-5 h-5 text-white stroke-[1.8]" />
+                      <img src={preset.url} alt={preset.name} className="w-full h-full object-cover bg-slate-50 dark:bg-slate-800" />
                     )}
                   </div>
                   <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 tracking-tight leading-none">{preset.name}</span>
