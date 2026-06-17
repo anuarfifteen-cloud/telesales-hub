@@ -9,7 +9,7 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins } from "lucide-react";
+import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins, Camera, Smile, ShieldCheck, Sparkles } from "lucide-react";
 import TokensTab from "./TokensTab";
 import { getStoredTheme, applyTheme } from "@/lib/theme";
 import AdminPinModal from "@/components/admin/AdminPinModal";
@@ -22,8 +22,16 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle } from
-"@/components/ui/alert-dialog";
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
 import AdminBookingSettings from "@/components/admin/AdminBookingSettings";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminAnnouncement from "@/components/admin/AdminAnnouncement";
@@ -37,13 +45,22 @@ import TokenVoucher from "@/components/booking/MysteryBoxModal";
 import { toast } from "sonner";
 
 const EMPLOYEES = [
-{ value: 1, label: "Aiman" }, { value: 2, label: "Adibah" },
-{ value: 3, label: "Anil" }, { value: 4, label: "Nurul" },
-{ value: 5, label: "Kash" }, { value: 6, label: "Salwa" },
-{ value: 7, label: "Husnina" }, { value: 8, label: "Anwar" },
-{ value: 9, label: "Sasha" }, { value: 10, label: "Aziemah" },
-{ value: 11, label: "Kamaliah" }, { value: 12, label: "Atiqah" },
-{ value: 13, label: "Halimatul" }, { value: 14, label: "Afiqah" }];
+  { value: 1, label: "Aiman" }, { value: 2, label: "Adibah" },
+  { value: 3, label: "Anil" }, { value: 4, label: "Nurul" },
+  { value: 5, label: "Kash" }, { value: 6, label: "Salwa" },
+  { value: 7, label: "Husnina" }, { value: 8, label: "Anwar" },
+  { value: 9, label: "Sasha" }, { value: 10, label: "Aziemah" },
+  { value: 11, label: "Kamaliah" }, { value: 12, label: "Atiqah" },
+  { value: 13, label: "Halimatul" }, { value: 14, label: "Afiqah" }
+];
+
+// Presets for the custom profile design picker
+const AVATAR_PRESETS = [
+  { id: "initials", name: "Classic Initials", type: "text" },
+  { id: "sparkle", name: "Elite Performer", type: "icon", color: "from-amber-400 to-orange-500", icon: Sparkles },
+  { id: "shield", name: "Security Specialist", type: "icon", color: "from-emerald-400 to-teal-600", icon: ShieldCheck },
+  { id: "smile", name: "Telesales Champion", type: "icon", color: "from-indigo-400 to-purple-600", icon: Smile },
+];
 
 function formatCountdownHM(ms) {
   if (ms <= 0) return null;
@@ -67,7 +84,7 @@ export default function Home() {
   const [adminSaving, setAdminSaving] = useState(false);
   const [forceBookSlot, setForceBookSlot] = useState(null);
   const [forceBookEmployee, setForceBookEmployee] = useState("");
-  const [customSlots, setCustomSlots] = useState(null); // null = use defaults
+  const [customSlots, setCustomSlots] = useState(null); 
   const [unlockHour, setUnlockHour] = useState(19);
   const [unlockMinute, setUnlockMinute] = useState(30);
   const [isDarkMode, setIsDarkMode] = useState(() => getStoredTheme());
@@ -78,10 +95,14 @@ export default function Home() {
   const [showCancelDstConfirm, setShowCancelDstConfirm] = useState(false);
   const [activePopup, setActivePopup] = useState(null);
   const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
-
+  
+  // Custom Avatar Style Picker States
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [selectedAvatarId, setSelectedAvatarId] = useState(() => {
+    return localStorage.getItem("profile_avatar_id") || "initials";
+  });
 
   const checkMilestones = async (totalCount) => {
-    // Dark mode unlock at 5 bookings
     if (totalCount >= 5 && !localStorage.getItem("hasSeenDarkModeModal")) {
       localStorage.setItem("hasSeenDarkModeModal", "true");
       setUnlockModal({
@@ -91,7 +112,6 @@ export default function Home() {
       });
     }
 
-    // Token milestone at 15 bookings: award 3 tokens
     if (totalCount >= 15) {
       const freshUser = await base44.auth.me();
       const awarded = freshUser?.milestoneTokensAwarded || {};
@@ -112,7 +132,6 @@ export default function Home() {
       }
     }
 
-    // Token milestone at 30 bookings: award 5 additional tokens
     if (totalCount >= 30) {
       const freshUser = await base44.auth.me();
       const awarded = freshUser?.milestoneTokensAwarded || {};
@@ -133,7 +152,6 @@ export default function Home() {
       }
     }
 
-    // Token milestone at 50 bookings: award 10 tokens
     if (totalCount >= 50) {
       const freshUser = await base44.auth.me();
       const awarded = freshUser?.milestoneTokensAwarded || {};
@@ -154,7 +172,6 @@ export default function Home() {
       }
     }
 
-    // Token milestone at 100 bookings: award 20 tokens
     if (totalCount >= 100) {
       const freshUser = await base44.auth.me();
       const awarded = freshUser?.milestoneTokensAwarded || {};
@@ -174,13 +191,13 @@ export default function Home() {
       }
     }
   };
+
   const [seenAnnouncementIds, setSeenAnnouncementIds] = useState(() => {
-    try {return JSON.parse(localStorage.getItem("seenAnnouncements") || "[]");} catch {return [];}
+    try { return JSON.parse(localStorage.getItem("seenAnnouncements") || "[]"); } catch { return []; }
   });
   const bruneiNow = useBruneiClock(serverTimeRef, localTimeAtFetch);
   const dates = getBookableDates(bruneiNow);
 
-  // Set selectedDate once server-corrected time is available
   useEffect(() => {
     if (serverTimeRef && dates.length > 0) {
       setSelectedDate(dates[0]);
@@ -193,7 +210,6 @@ export default function Home() {
       base44.auth.me(),
       base44.functions.invoke('getServerTime', {}).catch(() => null),
     ]);
-    // Capture local time AFTER response arrives so offset = serverTime - localNow
     const localAfter = new Date();
     setLocalTimeAtFetch(localAfter);
     setServerTimeRef(timeRes?.data?.serverTime || null);
@@ -211,10 +227,16 @@ export default function Home() {
     applyTheme(val);
   };
 
+  const handleSaveAvatarChoice = (id) => {
+    setSelectedAvatarId(id);
+    localStorage.setItem("profile_avatar_id", id);
+    setIsAvatarModalOpen(false);
+    toast.success("Profile appearance synchronized!");
+  };
+
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookings", selectedDate],
-    queryFn: () =>
-    selectedDate ? base44.entities.Booking.filter({ date: selectedDate }) : [],
+    queryFn: () => selectedDate ? base44.entities.Booking.filter({ date: selectedDate }) : [],
     enabled: !!selectedDate
   });
 
@@ -224,7 +246,6 @@ export default function Home() {
     enabled: !!user
   });
 
-  // Check milestones when booking data loads (for veterans opening the app)
   useEffect(() => {
     if (!user) return;
     const myCount = weekBookings.filter((b) => b.user_email === user.email).length;
@@ -240,12 +261,11 @@ export default function Home() {
   const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
   const activeAnnouncements = announcements.filter((a) => {
     if (Date.now() - new Date(a.created_date).getTime() >= TWENTY_FOUR_HOURS) return false;
-    if (!a.targetUserId) return true; // global
-    return user && a.targetUserId === user.id; // targeted
+    if (!a.targetUserId) return true; 
+    return user && a.targetUserId === user.id; 
   });
   const hasUnread = activeAnnouncements.some((a) => !seenAnnouncementIds.includes(a.id));
 
-  // Show popup for any active popup announcement the user hasn't dismissed yet
   useEffect(() => {
     if (!user) return;
     const pending = activeAnnouncements.find(
@@ -258,7 +278,7 @@ export default function Home() {
     const ids = activeAnnouncements.map((a) => a.id);
     const merged = [...new Set([...seenAnnouncementIds, ...ids])];
     setSeenAnnouncementIds(merged);
-    try {localStorage.setItem("seenAnnouncements", JSON.stringify(merged));} catch {}
+    try { localStorage.setItem("seenAnnouncements", JSON.stringify(merged)); } catch {}
     setShowAnnouncementPanel(true);
   };
 
@@ -272,24 +292,16 @@ export default function Home() {
 
   const createMutation = useMutation({
     mutationFn: async (slot) => {
-      // Pre-flight: check if user already has a booking for this date
       const dateBookings = await base44.entities.Booking.filter({ date: selectedDate, user_email: user.email });
-      if (dateBookings.length > 0) {
-        throw new Error("ALREADY_BOOKED");
-      }
+      if (dateBookings.length > 0) throw new Error("ALREADY_BOOKED");
 
-      // Pre-flight: check capacity
       const freshBookings = await base44.entities.Booking.filter({ date: selectedDate, slot_id: slot.id });
-      if (freshBookings.length >= slot.maxBookings) {
-        throw new Error("SLOT_FULL");
-      }
+      if (freshBookings.length >= slot.maxBookings) throw new Error("SLOT_FULL");
 
-      // Check if user has active VIP token
       const freshUserForVip = await base44.auth.me();
       const vipExp = freshUserForVip?.vipExpiresAt ? new Date(freshUserForVip.vipExpiresAt) : null;
       const usingVip = vipExp && vipExp.getTime() > Date.now();
 
-      // Write the booking
       const newBooking = await base44.entities.Booking.create({
         date: selectedDate,
         slot_id: slot.id,
@@ -301,24 +313,16 @@ export default function Home() {
         vip_used: !!usingVip
       });
 
-      // --- POST-WRITE TIMESTAMP TIE-BREAKER ---
-      // Re-fetch ALL bookings for this slot now that we've written
       const allSlotBookings = await base44.entities.Booking.filter({ date: selectedDate, slot_id: slot.id });
-
-      // Sort by database creation timestamp ascending (earliest = winner)
       const sorted = [...allSlotBookings].sort((a, b) =>
-      new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
+        new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
       );
 
       const myIndex = sorted.findIndex((b) => b.id === newBooking.id);
-
       if (myIndex >= slot.maxBookings) {
-        // LOSER — rolled past capacity, delete our booking and surface the error
         await base44.entities.Booking.delete(newBooking.id);
         throw new Error("RACE_CONDITION");
       }
-
-      // WINNER — return the confirmed booking
       return newBooking;
     },
     onMutate: async (slot) => {
@@ -349,13 +353,11 @@ export default function Home() {
       const currentTotalBookingCount = context.prevTotalBookingCount + 1;
       checkMilestones(currentTotalBookingCount);
 
-      // Reset VIP early access after a successful booking
       if (user?.vipExpiresAt) {
         base44.auth.updateMe({ vipExpiresAt: null }).then(refreshUser);
       }
     },
     onError: (err, slot, context) => {
-      // Roll back optimistic update
       queryClient.setQueryData(["bookings", selectedDate], context.prev);
       queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
       queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
@@ -375,12 +377,8 @@ export default function Home() {
     onMutate: async (booking) => {
       await queryClient.cancelQueries({ queryKey: ["bookings", selectedDate] });
       const prev = queryClient.getQueryData(["bookings", selectedDate]);
-      queryClient.setQueryData(["bookings", selectedDate], (old = []) =>
-      old.filter((b) => b.id !== booking.id)
-      );
-      queryClient.setQueryData(["bookings-week", dates[0]], (old = []) =>
-      old.filter((b) => b.id !== booking.id)
-      );
+      queryClient.setQueryData(["bookings", selectedDate], (old = []) => old.filter((b) => b.id !== booking.id));
+      queryClient.setQueryData(["bookings-week", dates[0]], (old = []) => old.filter((b) => b.id !== booking.id));
       return { prev };
     },
     onSuccess: () => {
@@ -436,15 +434,12 @@ export default function Home() {
   const pmSlots = customSlots ? activeSlots.filter((s) => s.shift === "PM") : basePmSlots;
 
   const getBookedCount = (slotId) => bookings.filter((b) => b.slot_id === slotId).length;
-  const getMyBooking = (slotId) =>
-  bookings.find((b) => b.slot_id === slotId && b.user_email === user?.email);
+  const getMyBooking = (slotId) => bookings.find((b) => b.slot_id === slotId && b.user_email === user?.email);
 
   const isMutating = createMutation.isPending || cancelMutation.isPending;
-
   const myBookings = weekBookings.filter((b) => b.user_email === user?.email);
   const totalBookingCount = myBookings.length;
 
-  // Token-based VIP early access check
   const vipExpiresAt = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
   const isVipTokenActive = vipExpiresAt && vipExpiresAt.getTime() > Date.now();
 
@@ -454,413 +449,307 @@ export default function Home() {
     return base;
   })() : null;
 
-  // Admin bypasses the lock entirely
   const effectiveUnlockTime = isAdmin ? new Date(0) : unlockTime;
-
-  // Countdown for Log Activity button
   const msUntilOpen = effectiveUnlockTime ? effectiveUnlockTime.getTime() - bruneiNow.getTime() : 0;
   const bookingOpen = msUntilOpen <= 0;
   const dstCountdown = !bookingOpen ? formatCountdownHM(msUntilOpen) : null;
 
-  const getBruneiToday = () =>
-    new Date().toLocaleDateString("en-CA", { timeZone: TZ });
-
-
-
-  const handleAdminSave = async () => {
-    if (!adminForm.date || !adminForm.employee || !adminForm.shift) {
-      toast.error("Please fill in date, employee and shift.");
-      return;
-    }
-    setAdminSaving(true);
-    const emp = EMPLOYEES.find((e) => String(e.value) === adminForm.employee);
-    await base44.entities.RosterDatabase.create({
-      date: adminForm.date,
-      shift_type: adminForm.shift,
-      employee_number: emp.value,
-      employee_name: emp.label,
-      daily_task: adminForm.task
-    });
-    toast.success("Assignment saved!");
-    setAdminForm({ date: "", employee: "", shift: "", task: "" });
-    setAdminSaving(false);
-    queryClient.invalidateQueries({ queryKey: ["roster"] });
-  };
-
   return (
-    <div className="min-h-screen bg-background font-inter pb-32">
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950/20 font-inter pb-32 transition-colors duration-200">
       {/* Header */}
-      <header className="bg-white dark:bg-slate-900 sticky top-0 z-10" style={{ boxShadow: "0 1px 12px 0 rgba(0,0,0,0.08)" }}>
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-10 border-b border-slate-100 dark:border-slate-800/80 shadow-[0_1px_10px_rgba(0,0,0,0.02)]">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          {/* Left: logo + app title */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <img
               src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/a6f4605c6_generated_image.png"
               alt="Telesales Hub logo"
-              className="h-9 w-9 rounded-xl object-cover flex-shrink-0" />
-            
-            <h1 className="text-xl text-slate-900 dark:text-white leading-tight" style={{ fontFamily: "'Pacifico', cursive" }}>Telesales Hub</h1>
+              className="h-9 w-9 rounded-xl object-cover flex-shrink-0 ring-2 ring-blue-500/10" />
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white" style={{ fontFamily: "'Pacifico', cursive" }}>Telesales Hub</h1>
           </div>
 
-          {/* Right: token balance, admin badge, bell */}
           <div className="flex items-center gap-2">
-            {/* Token balance pill */}
             <button
               onClick={() => setActiveTab("tokens")}
-              className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2.5 py-1 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors">
-              <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="Token" className="w-4 h-4" />
-              <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{user?.earlyAccessTokens ?? 0}</span>
+              className="flex items-center gap-1.5 bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 px-3 py-1 rounded-full hover:bg-amber-500/15 transition-all group">
+              <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="Token" className="w-4 h-4 scale-95 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-bold text-amber-700 dark:text-amber-400">{user?.earlyAccessTokens ?? 0}</span>
             </button>
             <button
               onClick={handleOpenAnnouncements}
-              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative">
-              <Bell className="w-5 h-5 text-slate-500" />
+              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative">
+              <Bell className="w-4 h-4 text-slate-600 dark:text-slate-400" />
               {hasUnread && activeAnnouncements.length > 0 &&
-              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 border border-white dark:border-slate-900">
-                  {activeAnnouncements.length}
-                </span>
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
               }
             </button>
             {isAdmin &&
-            <button
-              onClick={() => setActiveTab("admin")}
-              className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-1 rounded-full border border-red-200 hover:bg-red-200 transition-colors">
-              ADMIN
-            </button>
+              <button
+                onClick={() => setActiveTab("admin")}
+                className="text-[10px] font-bold tracking-wider bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2.5 py-1 rounded-md border border-rose-500/20 hover:bg-rose-500/20 transition-all">
+                ADMIN
+              </button>
             }
           </div>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 pt-3 pb-6 space-y-4">
-
+      <main className="max-w-2xl mx-auto px-4 pt-4 pb-6 space-y-5">
         {/* ── BOOKING TAB ── */}
-        {activeTab === "booking" &&
-        <>
-            {/* Inner segmented control */}
-            <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1.5">
+        {activeTab === "booking" && (
+          <>
+            <div className="flex gap-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl p-1">
               <button
-              onClick={() => setInnerTab("book")}
-              className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-              innerTab === "book" ?
-              "bg-blue-600 text-white shadow-md" :
-              "bg-transparent text-slate-500 hover:text-slate-700"}`
-              }>
-              
-                <span>📆</span>
-                Book a Slot
+                onClick={() => setInnerTab("book")}
+                className={`flex-1 flex justify-center items-center gap-2 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                  innerTab === "book" ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}>
+                <span>📆</span> Book a Slot
               </button>
               <button
-              onClick={() => setInnerTab("schedule")}
-              className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-              innerTab === "schedule" ?
-              "bg-blue-600 text-white shadow-md" :
-              "bg-transparent text-slate-500 hover:text-slate-700"}`
-              }>
-              
-                <span>📋</span>
-                Daily Schedule
+                onClick={() => setInnerTab("schedule")}
+                className={`flex-1 flex justify-center items-center gap-2 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                  innerTab === "schedule" ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}>
+                <span>📋</span> Daily Schedule
               </button>
             </div>
 
-            {/* Admin Tools */}
-            {isAdmin &&
-          <AdminAnnouncement adminName={user?.full_name} />
-          }
+            {isAdmin && <AdminAnnouncement adminName={user?.full_name} />}
+            {isAdmin && (
+              <AdminBookingSettings
+                slots={customSlots || SLOTS}
+                unlockHour={unlockHour}
+                unlockMinute={unlockMinute}
+                onSlotsChange={(s) => setCustomSlots(s)}
+                onUnlockTimeChange={(h, m) => { setUnlockHour(h); setUnlockMinute(m); }} />
+            )}
 
-            {/* Admin Booking Settings */}
-            {isAdmin &&
-          <AdminBookingSettings
-            slots={customSlots || SLOTS}
-            unlockHour={unlockHour}
-            unlockMinute={unlockMinute}
-            onSlotsChange={(s) => setCustomSlots(s)}
-            onUnlockTimeChange={(h, m) => {setUnlockHour(h);setUnlockMinute(m);}} />
-
-          }
-
-            {/* Daily Spin Wheel */}
             <DailySpinWheel user={user} onUserUpdate={refreshUser} />
 
-            {/* Shared date picker */}
-            <section>
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                Select Date
-              </p>
+            <section className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 rounded-2xl p-4 shadow-[0_4px_12px_rgba(0,0,0,0.01)]">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Select Date</p>
               <div className="grid grid-cols-7 gap-1.5">
-                {dates.map((d) =>
-              <DateTab
-                key={d}
-                dateStr={d}
-                isSelected={d === selectedDate}
-                onClick={() => setSelectedDate(d)} />
-
-              )}
+                {dates.map((d) => (
+                  <DateTab key={d} dateStr={d} isSelected={d === selectedDate} onClick={() => setSelectedDate(d)} />
+                ))}
               </div>
             </section>
 
-            {/* ── Book a Slot inner view ── */}
-            {innerTab === "book" &&
-          <>
+            {innerTab === "book" && (
+              <>
                 <LiveClock now={bruneiNow} />
-
-                {selectedDate &&
-            <div>
-                    <h2 className="font-semibold text-foreground text-base leading-tight">
-                      {formatDate(selectedDate)}
-                    </h2>
-                    {effectiveUnlockTime && bruneiNow.getTime() < effectiveUnlockTime.getTime() && (() => {
-                const [y, mo, d] = selectedDate.split("-").map(Number);
-                const prevDay = new Date(y, mo - 1, d - 1);
-                const dayNum = prevDay.getDate();
-                const monthName = prevDay.toLocaleDateString("en-US", { month: "long" });
-                return (
-                  <div className="mt-2 bg-amber-50 dark:bg-amber-950/40 border border-orange-200 dark:border-orange-800 rounded-lg p-3">
-                          <p className="font-bold text-orange-800 dark:text-orange-300 text-sm">🔒 Booking not open yet.</p>
-                          <p className="text-orange-700 dark:text-orange-400 text-sm mt-0.5">
-                            Bookings open on {dayNum} {monthName} {unlockHour % 12 === 0 ? 12 : unlockHour % 12}:{String(unlockMinute).padStart(2, "0")} {unlockHour >= 12 ? "PM" : "AM"}.
-                          </p>
-                        </div>);
-
-              })()}
+                {selectedDate && (
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-1">
+                    <h2 className="font-semibold text-slate-800 dark:text-slate-200 text-sm tracking-tight">{formatDate(selectedDate)}</h2>
                   </div>
-            }
+                )}
 
-                {/* ── Off-Day / Duty Outside Office Log ── */}
-                {(() => {
-              const dstBooking = bookings.find(
-                (b) => b.slot_id === "DST_POPUP" && b.user_email === user?.email
-              );
-              // Check if user already has a real break slot booking for this date
-              const hasBreakBookingToday = bookings.some(
-                (b) => b.user_email === user?.email && b.slot_id !== "DST_POPUP"
-              );
-              const isLocked = !bookingOpen && !dstBooking;
-              const isDisabled = !user || isMutating || isLocked || hasBreakBookingToday;
-
-              return (
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-4 py-3 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-base">🏖️</span>
-                        <div>
-                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Off-Day / DST Pop Up</p>
-                          {hasBreakBookingToday && !dstBooking ?
-                      <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Already booked a slot today</p> :
-
-                      <p className="text-[11px] text-muted-foreground">Friday AM Shift may earn one booking credit here</p>
-                      }
-                        </div>
-                      </div>
-                      {dstBooking ?
-                  <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
-                          <span className="text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
-                            ✓ Logged
-                          </span>
-                          <button
-                            onClick={() => setShowCancelDstConfirm(true)}
-                            className="text-[10px] font-semibold text-red-500 hover:text-red-700 underline underline-offset-2 transition-colors">
-                            Cancel Log
-                          </button>
-                          <AlertDialog open={showCancelDstConfirm} onOpenChange={setShowCancelDstConfirm}>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Cancel Logged Activity?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  You can only claim <strong>one activity per day</strong> — either a break slot or an off-day/DST log, not both.<br /><br />
-                                  Cancelling this log will remove your activity credit for <strong>{selectedDate}</strong> and allow you to book a break slot instead.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Keep Log</AlertDialogCancel>
-                                <AlertDialogAction
-                                  className="bg-red-600 hover:bg-red-700 text-white"
-                                  onClick={async () => {
-                                    await base44.entities.Booking.delete(dstBooking.id);
-                                    queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
-                                    queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
-                                    toast.success("Activity log cancelled. You can now book a break slot.");
-                                  }}>
-                                  Yes, Cancel Log
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div> :
-                  hasBreakBookingToday ?
-                  <span className="flex-shrink-0 text-[11px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-600 cursor-not-allowed">
-                          🔒 Locked
-                        </span> :
-
-                  <>
-                          <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
-                            <button
-                        disabled={isDisabled}
-                        onClick={() => setShowDstConfirm(true)}
-                        className="flex-shrink-0 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 disabled:bg-slate-400 flex items-center gap-1 tabular-nums">
-                        
-                              {dstCountdown ?
-                        <>
-                                  <Clock className="w-3 h-3 flex-shrink-0" />
-                                  {dstCountdown}
-                                </> :
-
-                        'Claim'
-                        }
-                            </button>
-                            
-                          </div>
-                          <AlertDialog open={showDstConfirm} onOpenChange={setShowDstConfirm}>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Log Off-Day / DST Pop Up?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will count as your activity for <strong>{selectedDate}</strong> and earn you 1 booking credit.
-                                  <br /><br />
-                                  <strong>⚠️ NOTE: This includes PL</strong>
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={async () => {
-                            if (!user) return;
-                            // Safety net: re-check for existing break slot bookings
-                            const existingBreak = bookings.filter(
-                              (b) => b.user_email === user.email && b.slot_id !== "DST_POPUP"
-                            );
-                            if (existingBreak.length > 0) {
-                              setShowDstConfirm(false);
-                              toast.error("Request Denied: You have already booked a break slot for this date. You cannot log off-day / DST Pop Up activity as well.");
-                              return;
-                            }
-                            const existing = await base44.entities.Booking.filter({ date: selectedDate, slot_id: "DST_POPUP", user_email: user.email });
-                            if (existing.length > 0) {toast.error("Already logged for today.");return;}
-                            await base44.entities.Booking.create({
-                              date: selectedDate,
-                              slot_id: "DST_POPUP",
-                              slot_label: "Off-Day / Duty Outside",
-                              shift: "AM",
-                              user_email: user.email,
-                              user_name: user.full_name,
-                              booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ })
-                            });
-                            queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
-                            queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
-                            toast.success("Off-Day/Duty logged! Credit earned.");
-                          }}>
-                                  Confirm & Log
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </>
-                  }
-                    </div>);
-
-            })()}
-
-                {/* ── Inform user why slots are locked due to DST log ── */}
-                {(() => {
-                  const hasDstLog = bookings.some(
-                    (b) => b.slot_id === "DST_POPUP" && b.user_email === user?.email
-                  );
-                  if (!hasDstLog) return null;
+                {selectedDate && effectiveUnlockTime && bruneiNow.getTime() < effectiveUnlockTime.getTime() && (() => {
+                  const [y, mo, d] = selectedDate.split("-").map(Number);
+                  const prevDay = new Date(y, mo - 1, d - 1);
+                  const dayNum = prevDay.getDate();
+                  const monthName = prevDay.toLocaleDateString("en-US", { month: "long" });
                   return (
-                    <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 flex items-start gap-2">
-                      <span className="text-base flex-shrink-0">ℹ️</span>
-                      <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                        <strong>Break slots are locked.</strong> You've already logged an Off-Day / DST activity today. Only one activity credit is allowed per day. To book a break slot instead, cancel your activity log above.
+                    <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-3.5 shadow-sm">
+                      <p className="font-semibold text-amber-600 dark:text-amber-400 text-xs flex items-center gap-1.5">🔒 Booking Window Paused</p>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 leading-relaxed">
+                        Slots unlock on {dayNum} {monthName} {unlockHour % 12 === 0 ? 12 : unlockHour % 12}:{String(unlockMinute).padStart(2, "0")} {unlockHour >= 12 ? "PM" : "AM"}.
                       </p>
                     </div>
                   );
                 })()}
 
-                {isLoading ?
-            <div className="space-y-2">
-                    {[1, 2, 3, 4, 5, 6].map((i) =>
-              <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />
-              )}
-                  </div> :
+                {(() => {
+                  const dstBooking = bookings.find((b) => b.slot_id === "DST_POPUP" && b.user_email === user?.email);
+                  const hasBreakBookingToday = bookings.some((b) => b.user_email === user?.email && b.slot_id !== "DST_POPUP");
+                  const isLocked = !bookingOpen && !dstBooking;
+                  const isDisabled = !user || isMutating || isLocked || hasBreakBookingToday;
 
-            <>
-                    {[{ label: "AM Shift", emoji: "🌤", slots: amSlots }, { label: "PM Shift", emoji: "🌆", slots: pmSlots }].map(({ label, emoji, slots }) =>
-              <section key={label}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-base">{emoji}</span>
-                          <p className="text-sm font-semibold text-foreground">{label}</p>
-                          <div className="flex-1 h-px bg-border" />
+                  return (
+                    <div className="rounded-2xl border border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-900 px-4 py-3.5 flex items-center justify-between gap-3 shadow-[0_4px_12px_rgba(0,0,0,0.01)]">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-sm flex-shrink-0">🏖️</div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 tracking-tight">Off-Day / DST Pop Up</p>
+                          {hasBreakBookingToday && !dstBooking ? (
+                            <p className="text-[10px] text-amber-600 dark:text-amber-500 font-medium mt-0.5">Alternative break already recorded</p>
+                          ) : (
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">AM Friday shift grants authorization here</p>
+                          )}
                         </div>
-                        <div className="space-y-1.5">
+                      </div>
+                      {dstBooking ? (
+                        <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+                          <span className="text-[10px] font-bold tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-500/10">✓ LOGGED</span>
+                          <button onClick={() => setShowCancelDstConfirm(true)} className="text-[10px] font-medium text-slate-400 hover:text-rose-500 transition-colors underline underline-offset-4">Cancel Entry</button>
+                          <AlertDialog open={showCancelDstConfirm} onOpenChange={setShowCancelDstConfirm}>
+                            <AlertDialogContent className="rounded-2xl">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="text-base font-semibold">Revoke Logged Activity?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-xs text-slate-500 leading-relaxed">
+                                  You are allocated exactly **one activity credit per date frame**. Revoking this will delete your record for **{selectedDate}**, allowing dynamic placement back into default break loops.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="text-xs rounded-xl">Keep Log</AlertDialogCancel>
+                                <AlertDialogAction className="text-xs bg-rose-600 hover:bg-rose-700 text-white rounded-xl" onClick={async () => {
+                                  await base44.entities.Booking.delete(dstBooking.id);
+                                  queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+                                  queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
+                                  toast.success("Activity cleared.");
+                                }}>Confirm & Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      ) : hasBreakBookingToday ? (
+                        <span className="text-[10px] font-semibold tracking-wider bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-600 px-2.5 py-1 rounded-md border border-slate-100 dark:border-slate-700/60 cursor-not-allowed">LOCKED</span>
+                      ) : (
+                        <div className="flex-shrink-0">
+                          <button disabled={isDisabled} onClick={() => setShowDstConfirm(true)} className="text-xs font-semibold tracking-wide bg-blue-600 hover:bg-blue-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-600 text-white px-4 py-1.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5">
+                            {dstCountdown ? (
+                              <>
+                                <Clock className="w-3 h-3 text-slate-400" />
+                                <span className="tabular-nums text-[11px]">{dstCountdown}</span>
+                              </>
+                            ) : 'Claim'}
+                          </button>
+                          <AlertDialog open={showDstConfirm} onOpenChange={setShowDstConfirm}>
+                            <AlertDialogContent className="rounded-2xl">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="text-base font-semibold">Log Active Assignment?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-xs text-slate-500 leading-relaxed">
+                                  This confirms an out-of-office record for **{selectedDate}** yielding 1 baseline workflow credit. 
+                                  <br /><br />
+                                  <strong>⚠️ NOTE: Includes Personal Leave (PL).</strong>
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="text-xs rounded-xl">Cancel</AlertDialogCancel>
+                                <AlertDialogAction className="text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-xl" onClick={async () => {
+                                  if (!user) return;
+                                  const existingBreak = bookings.filter((b) => b.user_email === user.email && b.slot_id !== "DST_POPUP");
+                                  if (existingBreak.length > 0) {
+                                    setShowDstConfirm(false);
+                                    toast.error("Process Denied: Break parameters are already active for this date.");
+                                    return;
+                                  }
+                                  await base44.entities.Booking.create({
+                                    date: selectedDate,
+                                    slot_id: "DST_POPUP",
+                                    slot_label: "Off-Day / Duty Outside",
+                                    shift: "AM",
+                                    user_email: user.email,
+                                    user_name: user.full_name,
+                                    booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ })
+                                  });
+                                  queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+                                  queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
+                                  toast.success("Assignment saved.");
+                                }}>Confirm & Log</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {(() => {
+                  const hasDstLog = bookings.some((b) => b.slot_id === "DST_POPUP" && b.user_email === user?.email);
+                  if (!hasDstLog) return null;
+                  return (
+                    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 rounded-xl px-4 py-3 flex items-start gap-2.5">
+                      <span className="text-xs mt-0.5">ℹ️</span>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                        <strong>Default breaks are locked.</strong> An external activity state is mapped to your account for this micro-period. Clear your out-of-office marker above to open real-time scheduling templates.
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="h-14 rounded-xl bg-slate-100 dark:bg-slate-800/50 animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    {[{ label: "AM Shift Timeline", emoji: "🌤", slots: amSlots }, { label: "PM Shift Timeline", emoji: "🌆", slots: pmSlots }].map(({ label, emoji, slots }) => (
+                      <section key={label} className="space-y-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">{emoji}</span>
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">{label}</p>
+                          <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800/80" />
+                        </div>
+                        <div className="space-y-2">
                           {slots.map((slot) => {
-                    const slotBookings = bookings.filter((b) => b.slot_id === slot.id);
-                    const myBooking = getMyBooking(slot.id);
-                    const isFull = getBookedCount(slot.id) >= slot.maxBookings;
-                    return (
-                      <div key={slot.id} className="space-y-1">
+                            const slotBookings = bookings.filter((b) => b.slot_id === slot.id);
+                            const myBooking = getMyBooking(slot.id);
+                            const isFull = getBookedCount(slot.id) >= slot.maxBookings;
+                            return (
+                              <div key={slot.id} className="space-y-1">
                                 <SlotCard
-                          slot={slot}
-                          bookedCount={getBookedCount(slot.id)}
-                          myBooking={myBooking}
-                          onBook={handleBook}
-                          onCancel={handleCancel}
-                          unlockTime={effectiveUnlockTime}
-                          now={bruneiNow}
-                          loading={isMutating} />
-                        
-                                {isAdmin &&
-                        <div className="pl-2 space-y-1">
-                                    {slotBookings.map((b) =>
-                          <div key={b.id} className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">
-                                        <span className="text-xs text-red-700 font-medium">{b.user_name || b.user_email}</span>
-                                        <button onClick={() => handleAdminDeleteBooking(b.id)} className="text-red-500 hover:text-red-700 transition-colors">
+                                  slot={slot}
+                                  bookedCount={getBookedCount(slot.id)}
+                                  myBooking={myBooking}
+                                  onBook={handleBook}
+                                  onCancel={handleCancel}
+                                  unlockTime={effectiveUnlockTime}
+                                  now={bruneiNow}
+                                  loading={isMutating} />
+                                
+                                {isAdmin && (
+                                  <div className="pl-2 space-y-1">
+                                    {slotBookings.map((b) => (
+                                      <div key={b.id} className="flex items-center justify-between bg-rose-500/5 border border-rose-500/10 rounded-xl px-3 py-1.5 shadow-2xs">
+                                        <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium">{b.user_name || b.user_email}</span>
+                                        <button onClick={() => handleAdminDeleteBooking(b.id)} className="text-slate-400 hover:text-rose-500 transition-colors">
                                           <Trash2 className="w-3.5 h-3.5" />
                                         </button>
                                       </div>
-                          )}
+                                    ))}
                                     {!isFull && !slot.restriction && (
-                          forceBookSlot?.id === slot.id ?
-                          <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
+                                      forceBookSlot?.id === slot.id ? (
+                                        <div className="flex items-center gap-2 bg-blue-500/5 border border-blue-500/10 rounded-xl px-3 py-1.5 shadow-2xs">
                                           <input
-                              type="text"
-                              value={forceBookEmployee}
-                              onChange={(e) => setForceBookEmployee(e.target.value)}
-                              placeholder="Type any name…"
-                              className="flex-1 text-xs border-0 bg-transparent text-slate-700 focus:outline-none placeholder:text-slate-400" />
-                            
-                                          <button onClick={() => handleForceBook(slot)} className="text-xs font-bold text-blue-600 hover:text-blue-800">Book</button>
-                                          <button onClick={() => {setForceBookSlot(null);setForceBookEmployee("");}} className="text-xs text-slate-400">✕</button>
-                                        </div> :
-
-                          <button onClick={() => {setForceBookSlot(slot);setForceBookEmployee("");}} className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">
-                                          <Plus className="w-3 h-3" /> Force book
-                                        </button>)
-
-                          }
+                                            type="text"
+                                            value={forceBookEmployee}
+                                            onChange={(e) => setForceBookEmployee(e.target.value)}
+                                            placeholder="Type any name…"
+                                            className="flex-1 text-xs border-0 bg-transparent text-slate-700 dark:text-slate-300 focus:outline-none placeholder:text-slate-400" />
+                                          <button onClick={() => handleForceBook(slot)} className="text-xs font-bold text-blue-600 dark:text-blue-400">Book</button>
+                                          <button onClick={() => { setForceBookSlot(null); setForceBookEmployee(""); }} className="text-xs text-slate-400">✕</button>
+                                        </div>
+                                      ) : (
+                                        <button onClick={() => { setForceBookSlot(slot); setForceBookEmployee(""); }} className="flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 px-2 py-1 rounded-lg hover:bg-blue-500/5 transition-colors">
+                                          <Plus className="w-3 h-3" /> Force assignment
+                                        </button>
+                                      )
+                                    )}
                                   </div>
-                        }
-                              </div>);
-
-                  })}
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </section>
-              )}
+                    ))}
                   </>
-            }
-          </>
-        }
-
-            {/* ── Daily Schedule inner view ── */}
-            {innerTab === "schedule" &&
-          <>
-                {selectedDate &&
-            <h2 className="font-semibold text-foreground text-base leading-tight">
-                    {formatDate(selectedDate)}
-                  </h2>
-            }
-                <MySchedule bookings={bookings} selectedDate={selectedDate} />
+                )}
               </>
-          }
+            )}
+
+            {innerTab === "schedule" && selectedDate && (
+              <div className="space-y-2">
+                <h2 className="font-semibold text-slate-800 dark:text-slate-200 text-sm tracking-tight">{formatDate(selectedDate)}</h2>
+                <MySchedule bookings={bookings} selectedDate={selectedDate} />
+              </div>
+            )}
           </>
-        }
+        )}
 
         {/* ── TOKENS TAB ── */}
         {activeTab === "tokens" && (
@@ -882,178 +771,216 @@ export default function Home() {
           const totalCount = totalBookingCount;
           const darkModeUnlocked = totalCount >= 5;
           const initials = user?.full_name ?
-          user.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) :
-          (user?.email?.[0] || "?").toUpperCase();
+            user.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) :
+            (user?.email?.[0] || "?").toUpperCase();
+
+          const activePreset = AVATAR_PRESETS.find(p => p.id === selectedAvatarId) || AVATAR_PRESETS[0];
 
           return (
-            <div className="relative flex flex-col gap-4 pb-4">
-              {/* Admin Banner */}
-              {isAdminLoggedIn &&
-              <div className="flex items-center justify-between bg-red-600 text-white rounded-xl px-4 py-2">
+            <div className="relative flex flex-col gap-5 pb-4">
+              {isAdminLoggedIn && (
+                <div className="flex items-center justify-between bg-rose-600 text-white rounded-xl px-4 py-2.5 shadow-sm">
                   <div className="flex items-center gap-2">
-                    <Settings className="w-4 h-4" />
-                    <span className="text-sm font-bold">Admin Mode: ACTIVE</span>
+                    <Settings className="w-4 h-4 animate-spin-slow" />
+                    <span className="text-xs font-bold tracking-wide">Privileged Configuration: Enabled</span>
                   </div>
                   <button
-                  onClick={() => {setIsAdminLoggedIn(false);setIsAdmin(false);}}
-                  className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors flex items-center gap-1">
-                  
+                    onClick={() => { setIsAdminLoggedIn(false); setIsAdmin(false); }}
+                    className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg transition-all flex items-center gap-1">
                     <ArrowLeft className="w-3 h-3" /> Exit
                   </button>
                 </div>
-              }
+              )}
 
-              {/* Avatar + Name */}
-              <div className="flex flex-col items-center pt-4 gap-2">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg ring-4 ring-blue-100 dark:ring-blue-900">
-                  <span className="text-2xl font-bold text-white">{initials}</span>
-                </div>
-                <div className="text-center">
-                  <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100 leading-tight">
-                    {user?.full_name || "My Profile"}
-                  </h2>
-                  <p className="text-xs text-muted-foreground dark:text-gray-400 mt-0.5">{user?.email}</p>
-                </div>
-              </div>
-
-              {/* Stats Bar */}
-              <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 text-center">All-Time</p>
-                <div className="grid grid-cols-3 divide-x divide-border">
-                  {[
-                  { label: "Bookings", value: totalCount },
-                  { label: "AM", value: amCount },
-                  { label: "PM", value: pmCount }].
-                  map(({ label, value }) =>
-                  <div key={label} className="flex flex-col items-center gap-0.5 px-2">
-                      <span className="text-2xl font-bold text-slate-800 dark:text-gray-100">{value}</span>
-                      <span className="text-[11px] text-muted-foreground dark:text-gray-400">{label}</span>
+              {/* Avatar + Name Setup with interactive ring */}
+              <div className="flex flex-col items-center pt-2 gap-3">
+                <div 
+                  onClick={() => setIsAvatarModalOpen(true)}
+                  className="group relative cursor-pointer select-none">
+                  
+                  {/* Outer Premium Micro-Ring Container */}
+                  <div className="w-20 h-20 rounded-full p-[3px] bg-slate-100 dark:bg-slate-800 shadow-[0_4px_14px_rgba(0,0,0,0.05)] border border-slate-200/40 dark:border-slate-700/60 group-hover:border-blue-500/40 transition-colors duration-300">
+                    <div className={`w-full h-full rounded-full flex items-center justify-center shadow-inner transition-transform duration-300 group-hover:scale-98 ${
+                      activePreset.id === "initials" 
+                        ? "bg-gradient-to-br from-blue-500 to-blue-600" 
+                        : `bg-gradient-to-br ${activePreset.color}`
+                    }`}>
+                      {activePreset.type === "text" ? (
+                        <span className="text-xl font-bold tracking-wide text-white">{initials}</span>
+                      ) : (
+                        <activePreset.icon className="w-8 h-8 text-white stroke-[1.8]" />
+                      )}
                     </div>
-                  )}
+                  </div>
+
+                  {/* Darkened Interactive Blur Overlay Trigger Icon */}
+                  <div className="absolute inset-0 rounded-full bg-slate-950/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <Camera className="w-4 h-4 text-white drop-shadow-md" />
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <h2 className="text-base font-bold tracking-tight text-slate-800 dark:text-slate-100">{user?.full_name || "My Profile"}</h2>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{user?.email}</p>
                 </div>
               </div>
 
-              {/* ── TOKEN VOUCHER ── */}
+              {/* Stats Bar Panel (Micro-Shadow Panel Refactor) */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-[0_4px_16px_rgba(0,0,0,0.015)] p-4">
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 text-center">Analytics Aggregate</p>
+                <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800/80">
+                  {[
+                    { label: "Bookings", value: totalCount },
+                    { label: "AM Shift", value: amCount },
+                    { label: "PM Shift", value: pmCount }
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex flex-col items-center gap-0.5 px-2">
+                      <span className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">{value}</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <TokenVoucher user={user} onUserUpdate={refreshUser} />
 
-              {/* Official Work Hours */}
-              <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
-                <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">⏰ Official Work Hours</p>
+              {/* Official Work Hours Panel (Micro-Shadow Panel Refactor) */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-[0_4px_16px_rgba(0,0,0,0.015)] p-4">
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-3.5 uppercase tracking-widest">⏰ Core Shift Schedules</p>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 rounded-xl px-3 py-2.5 border border-amber-100 dark:border-amber-800">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">🌅</span>
-                      <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">AM Shift</span>
+                  <div className="flex items-center justify-between bg-amber-500/5 rounded-xl px-3.5 py-2.5 border border-amber-500/10">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xs">🌅</span>
+                      <span className="text-xs font-semibold text-amber-800 dark:text-amber-400 tracking-tight">AM Shift Segment</span>
                     </div>
-                    <span className="text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-full">09:00 – 18:00</span>
+                    <span className="text-[11px] font-bold tracking-wide text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-md">09:00 – 18:00</span>
                   </div>
-                  <div className="flex items-center justify-between bg-violet-50 dark:bg-violet-950/40 rounded-xl px-3 py-2.5 border border-violet-100 dark:border-violet-800">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">🌆</span>
-                      <span className="text-sm font-semibold text-violet-800 dark:text-violet-300">PM Shift</span>
+                  <div className="flex items-center justify-between bg-violet-500/5 rounded-xl px-3.5 py-2.5 border border-violet-500/10">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xs">🌆</span>
+                      <span className="text-xs font-semibold text-violet-800 dark:text-violet-400 tracking-tight">PM Shift Segment</span>
                     </div>
-                    <span className="text-xs font-medium text-violet-700 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/50 px-2 py-0.5 rounded-full">13:00 – 21:00</span>
+                    <span className="text-[11px] font-bold tracking-wide text-violet-700 dark:text-violet-400 bg-violet-500/10 px-2.5 py-0.5 rounded-md">13:00 – 21:00</span>
                   </div>
                 </div>
               </div>
 
-              {/* App Settings */}
-              <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
-                <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">⚙️ APP SETTINGS</p>
+              {/* App Settings Panel (Micro-Shadow Panel Refactor) */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-[0_4px_16px_rgba(0,0,0,0.015)] p-4">
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-3.5 uppercase tracking-widest">⚙️ Preferences Configuration</p>
                 <div className="space-y-4">
-                  {/* Dark Mode */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Moon className={`w-4 h-4 ${darkModeUnlocked ? "text-slate-500 dark:text-slate-400" : "text-slate-300 dark:text-slate-600"}`} />
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-slate-50 dark:bg-slate-800/60 flex items-center justify-center">
+                        <Moon className={`w-3.5 h-3.5 ${darkModeUnlocked ? "text-slate-600 dark:text-slate-400" : "text-slate-300 dark:text-slate-600"}`} />
+                      </div>
                       <div>
-                        <span className={`text-sm font-medium ${darkModeUnlocked ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>Dark Mode</span>
-                        {!darkModeUnlocked &&
-                          <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-none mt-0.5">🔒 Unlocks at 5 Bookings</p>
-                        }
+                        <span className={`text-xs font-semibold tracking-tight ${darkModeUnlocked ? "text-slate-700 dark:text-slate-300" : "text-slate-400 dark:text-slate-600"}`}>Interface Dark Mode</span>
+                        {!darkModeUnlocked && <p className="text-[9px] text-slate-400 dark:text-slate-600 mt-0.5">🔒 Requires 5 completed bookings to unlock</p>}
                       </div>
                     </div>
                     {darkModeUnlocked ? (
                       <button
                         onClick={() => handleToggleDarkMode(!isDarkMode)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isDarkMode ? "bg-blue-600" : "bg-slate-200"}`}>
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isDarkMode ? "translate-x-6" : "translate-x-1"}`} />
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${isDarkMode ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-700"}`}>
+                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${isDarkMode ? "translate-x-5" : "translate-x-1"}`} />
                       </button>
                     ) : (
-                      <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-slate-100 cursor-not-allowed opacity-50">
-                        <span className="inline-block h-4 w-4 transform rounded-full bg-white shadow translate-x-1" />
+                      <div className="relative inline-flex h-5 w-9 items-center rounded-full bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-50">
+                        <span className="inline-block h-3 w-3 transform rounded-full bg-white shadow translate-x-1" />
                       </div>
                     )}
                   </div>
                 </div>
               </div>
 
-
-
-              {/* Admin: Booking Totals */}
               {isAdmin && <AdminBookingTotals />}
 
-              {/* Log Out */}
               <Button
                 variant="outline"
                 onClick={() => base44.auth.logout()}
-                className="gap-2 text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:border-red-400 w-full">
-                
-                <LogOut className="w-4 h-4" /> Log Out
+                className="gap-2 text-xs tracking-wide font-medium text-rose-600 border-slate-200 dark:border-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:border-rose-200 w-full py-2.5 rounded-xl">
+                <LogOut className="w-3.5 h-3.5" /> Termination Session (Log Out)
               </Button>
 
-              {/* Stealth Admin Gear */}
-              <button
-                onClick={() => setShowPinModal(true)}
-                className="absolute bottom-0 right-0 p-2 opacity-20 hover:opacity-40 transition-opacity"
-                aria-label="">
-                
-                <Settings className="w-4 h-4 text-slate-500" />
+              <button onClick={() => setShowPinModal(true)} className="absolute bottom-0 right-0 p-2 opacity-5 hover:opacity-20 transition-opacity" aria-label="Stealth Access Verification Layer">
+                <Settings className="w-3.5 h-3.5 text-slate-500" />
               </button>
-            </div>);
-
+            </div>
+          );
         })()}
       </main>
 
-      {/* PIN Modal */}
-      {showPinModal &&
-      <AdminPinModal
-        onClose={() => setShowPinModal(false)}
-        onSuccess={() => {setShowPinModal(false);setIsAdminLoggedIn(true);setIsAdmin(true);}} />
+      {/* Modern Dialog Choice Picker Modal */}
+      <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+        <DialogContent className="rounded-2xl max-w-sm sm:max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold tracking-tight">Personalize Avatar Core</DialogTitle>
+            <DialogDescription className="text-xs text-slate-400 dark:text-slate-500">
+              Select an option to represent your identity across rosters. Changes persist automatically via local secure containers.
+            </DialogDescription>
+          </DialogHeader>
 
-      }
+          <div className="grid grid-cols-2 gap-3 py-3">
+            {AVATAR_PRESETS.map((preset) => {
+              const isSelected = preset.id === selectedAvatarId;
+              return (
+                <div 
+                  key={preset.id}
+                  onClick={() => handleSaveAvatarChoice(preset.id)}
+                  className={`cursor-pointer rounded-xl border p-3 flex flex-col items-center justify-center gap-2.5 text-center transition-all ${
+                    isSelected 
+                      ? "bg-slate-50 dark:bg-slate-800/40 border-blue-500 shadow-[0_4px_12px_rgba(59,130,246,0.06)]" 
+                      : "bg-white dark:bg-slate-900/40 border-slate-100 dark:border-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700"
+                  }`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm ${
+                    preset.id === "initials" 
+                      ? "bg-gradient-to-br from-blue-500 to-blue-600" 
+                      : `bg-gradient-to-br ${preset.color}`
+                  }`}>
+                    {preset.type === "text" ? (
+                      <span className="text-sm font-bold text-white">AZ</span>
+                    ) : (
+                      <preset.icon className="w-5 h-5 text-white stroke-[1.8]" />
+                    )}
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 tracking-tight leading-none">{preset.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {showAnnouncementPanel &&
-      <AnnouncementPanel
-        announcements={announcements}
-        onClose={() => setShowAnnouncementPanel(false)} />
-      }
+      {showPinModal && (
+        <AdminPinModal
+          onClose={() => setShowPinModal(false)}
+          onSuccess={() => { setShowPinModal(false); setIsAdminLoggedIn(true); setIsAdmin(true); }} />
+      )}
 
-      <AnnouncementPopup
-        announcement={activePopup}
-        onDismiss={() => setActivePopup(null)} />
+      {showAnnouncementPanel && (
+        <AnnouncementPanel announcements={announcements} onClose={() => setShowAnnouncementPanel(false)} />
+      )}
 
+      <AnnouncementPopup announcement={activePopup} onDismiss={() => setActivePopup(null)} />
       <FeatureUnlockModal
         isOpen={unlockModal.open}
         onClose={() => setUnlockModal((m) => ({ ...m, open: false }))}
         title={unlockModal.title}
         message={unlockModal.message} />
 
-      {/* ── FLOATING PILL BOTTOM NAVIGATION ── */}
+      {/* Floating Bottom Navigation */}
       <nav className="fixed bottom-6 left-0 right-0 z-20 flex justify-center pointer-events-none">
         <div
-          className="pointer-events-auto flex items-center justify-around px-3 py-1.5 rounded-full"
+          className="pointer-events-auto flex items-center justify-around px-2 py-1.5 rounded-2xl"
           style={{
-            width: "90%",
-            maxWidth: "420px",
-            background: isDarkMode
-              ? "rgba(15, 23, 42, 0.92)"
-              : "rgba(255, 255, 255, 0.92)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06)",
-            border: isDarkMode
-              ? "1px solid rgba(255,255,255,0.10)"
-              : "1px solid rgba(0,0,0,0.08)",
+            width: "92%",
+            maxWidth: "400px",
+            background: isDarkMode ? "rgba(15, 23, 42, 0.85)" : "rgba(255, 255, 255, 0.85)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.02)",
+            border: isDarkMode ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.04)",
           }}
         >
           {[
@@ -1067,19 +994,17 @@ export default function Home() {
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-full transition-all ${
-                  isActive
-                    ? "bg-blue-600 text-white"
-                    : isDarkMode ? "text-slate-400" : "text-slate-400"
+                className={`flex flex-col items-center justify-center gap-1 px-3.5 py-2 rounded-xl transition-all ${
+                  isActive ? "bg-blue-600 text-white shadow-sm" : isDarkMode ? "text-slate-400 hover:text-slate-200" : "text-slate-400 hover:text-slate-600"
                 }`}
               >
-                <Icon className="w-[18px] h-[18px]" />
-                <span className="text-[9px] font-semibold tracking-wide">{label}</span>
+                <Icon className="w-[16px] h-[16px]" />
+                <span className="text-[9px] font-bold tracking-wider uppercase">{label}</span>
               </button>
             );
           })}
         </div>
       </nav>
-    </div>);
-
+    </div>
+  );
 }
