@@ -9,7 +9,6 @@ function createAudioCtx() {
   try { return new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; }
 }
 
-// System audio mechanics unchanged
 function playTapSound(ctx) {
   if (!ctx) return;
   const osc = ctx.createOscillator();
@@ -84,45 +83,45 @@ function Leaderboard() {
   const champUserIds = new Set(allUsers.filter((u) => u.is_defending_champ).map((u) => u.id));
 
   return (
-    <div className="w-full bg-slate-900/40 backdrop-blur-md rounded-2xl border border-cyan-500/20 shadow-xl shadow-cyan-950/20 overflow-hidden transition-all duration-300">
+    <div className="w-full bg-white dark:bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-cyan-500/20 shadow-xl shadow-slate-200/50 dark:shadow-cyan-950/20 overflow-hidden transition-all duration-300">
       {/* Info box */}
-      <div className="bg-gradient-to-r from-cyan-950/40 to-indigo-950/40 border-b border-cyan-500/20 px-5 py-4">
+      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-cyan-950/40 dark:to-indigo-950/40 border-b border-slate-200 dark:border-cyan-500/20 px-5 py-4">
         <div className="flex items-center justify-center gap-2 mb-1.5">
-          <Trophy className="w-4 h-4 text-cyan-400 animate-pulse" />
-          <p className="text-xs font-black uppercase tracking-wider text-cyan-400">Live Cyber Leaderboard</p>
+          <Trophy className="w-4 h-4 text-cyan-600 dark:text-cyan-400 animate-pulse" />
+          <p className="text-xs font-black uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Live Cyber Leaderboard</p>
         </div>
-        <p className="text-[11px] text-slate-300 text-center leading-relaxed">
+        <p className="text-[11px] text-slate-600 dark:text-slate-300 text-center leading-relaxed">
           The leaderboard resets twice a month (on the 15th and the final day of the month). Be in the Top 3 when the season ends to win:
         </p>
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2.5">
-          <span className="text-[11px] font-bold bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 text-cyan-300">🥇 1st: 5 Tokens</span>
-          <span className="text-[11px] font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 text-indigo-300">🥈 2nd: 2 Tokens</span>
-          <span className="text-[11px] font-bold bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20 text-purple-300">🥉 3rd: 1 Token</span>
+          <span className="text-[11px] font-bold bg-cyan-50 dark:bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-200 dark:border-cyan-500/20 text-cyan-700 dark:text-cyan-300">🥇 1st: 5 Tokens</span>
+          <span className="text-[11px] font-bold bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-300">🥈 2nd: 2 Tokens</span>
+          <span className="text-[11px] font-bold bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-300">🥉 3rd: 1 Token</span>
         </div>
-        <p className="text-[10px] mt-2.5 leading-relaxed text-emerald-400 flex items-center justify-center gap-1">
-          <span className="inline-block w-1 h-1 rounded-full bg-emerald-400 animate-ping mr-0.5" />
+        <p className="text-[10px] mt-2.5 leading-relaxed text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 font-medium">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping mr-0.5" />
           Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players!
         </p>
       </div>
 
       {scores.length === 0 ? (
-        <div className="py-10 text-center text-slate-400 text-sm tracking-wide">Awaiting first contestant. Enter the grid!</div>
+        <div className="py-10 text-center text-slate-400 dark:text-slate-500 text-sm tracking-wide">Awaiting first contestant. Enter the grid!</div>
       ) : (
-        <div className="divide-y divide-slate-800/60 bg-slate-950/20">
+        <div className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-950/20">
           {scores.map((s, i) => {
             const isChamp = champUserIds.has(s.user_id) || s.user_name?.includes("Siti Nurafiqah");
             return (
-              <div key={s.id} className={`flex items-center gap-4 px-5 py-3 transition-colors hover:bg-cyan-500/5 ${i < 3 && !isChamp ? "bg-cyan-500/[0.02]" : ""}`}>
+              <div key={s.id} className={`flex items-center gap-4 px-5 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-cyan-500/5 ${i < 3 && !isChamp ? "bg-cyan-50/30 dark:bg-cyan-500/[0.02]" : ""}`}>
                 <div className="w-8 flex items-center justify-center flex-shrink-0">
                   <RankBadge rank={i + 1} />
                 </div>
                 <div className="flex-1 min-w-0 flex items-center gap-2">
-                  <span className="text-sm font-medium text-slate-200 truncate" style={{ wordBreak: "break-word" }}>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate" style={{ wordBreak: "break-word" }}>
                     {s.user_name}
                   </span>
                   {isChamp && <span className="text-base flex-shrink-0" title="Defending Champ — Prize Cooldown">👑</span>}
                 </div>
-                <span className="text-sm font-black text-cyan-400 tracking-wider tabular-nums flex-shrink-0 bg-cyan-950/30 px-2.5 py-1 rounded-lg border border-cyan-500/10">{s.high_score} taps</span>
+                <span className="text-sm font-black text-cyan-600 dark:text-cyan-400 tracking-wider tabular-nums flex-shrink-0 bg-cyan-50 dark:bg-cyan-950/30 px-2.5 py-1 rounded-lg border border-cyan-100 dark:border-cyan-500/10">{s.high_score} taps</span>
               </div>
             );
           })}
@@ -284,7 +283,6 @@ export default function SuperTapGame({ user }) {
   const displayTime = isOver ? "0.0" : timeLeft.toFixed(1);
 
   return (
-    /* FIXED: Flex layout forced to absolute vertical and horizontal center alignment */
     <div className="flex flex-col items-center justify-center text-center w-full max-w-md mx-auto p-4 gap-6 select-none">
       
       {/* Dynamic Floating Styles */}
@@ -299,30 +297,30 @@ export default function SuperTapGame({ user }) {
       {/* Header */}
       <div className="w-full relative py-2 flex flex-col items-center justify-center">
         <div className="absolute inset-0 bg-cyan-500/10 blur-2xl rounded-full pointer-events-none" />
-        <h2 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400 tracking-tight flex items-center justify-center gap-1.5">
-          SUPER TAP 2.0 <Zap className="w-6 h-6 text-cyan-400 fill-cyan-400 animate-pulse" />
+        <h2 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 via-sky-400 to-indigo-600 dark:from-cyan-400 dark:via-sky-300 dark:to-indigo-400 tracking-tight flex items-center justify-center gap-1.5">
+          SUPER TAP 2.0 <Zap className="w-6 h-6 text-cyan-500 dark:text-cyan-400 fill-cyan-500 dark:fill-cyan-400 animate-pulse" />
         </h2>
-        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mt-1">Grid Overload Matrix</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mt-1">Grid Overload Matrix</p>
       </div>
 
       {/* HUD Board */}
-      <div className="w-full grid grid-cols-2 gap-4 bg-slate-900/60 border border-slate-800/80 p-4 rounded-2xl shadow-inner backdrop-blur-sm">
+      <div className="w-full grid grid-cols-2 gap-4 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 p-4 rounded-2xl shadow-md dark:shadow-inner backdrop-blur-sm">
         <div className="flex flex-col items-center justify-center p-2 relative group">
-          <div className="flex items-center gap-1 text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
-            <Timer className="w-3 h-3 text-slate-500" /> Time Left
+          <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
+            <Timer className="w-3 h-3 text-slate-400 dark:text-slate-500" /> Time Left
           </div>
-          <span className={`text-4xl font-black tracking-tighter tabular-nums transition-colors duration-200 ${parseFloat(displayTime) <= 3 && !isOver ? "text-rose-400 drop-shadow-[0_0_12px_rgba(244,63,94,0.4)]" : "text-cyan-400"}`}>
+          <span className={`text-4xl font-black tracking-tighter tabular-nums transition-colors duration-200 ${parseFloat(displayTime) <= 3 && !isOver ? "text-rose-500 dark:text-rose-400 drop-shadow-[0_0_12px_rgba(244,63,94,0.4)]" : "text-cyan-600 dark:text-cyan-400"}`}>
             {displayTime}s
           </span>
         </div>
         
-        <div className="flex flex-col items-center justify-center p-2 border-l border-slate-800/80 relative">
-          <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
+        <div className="flex flex-col items-center justify-center p-2 border-l border-slate-200 dark:border-slate-800/80 relative">
+          <div className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
             Total Taps
           </div>
           <span
             key={currentScore}
-            className="text-4xl font-black tracking-tighter tabular-nums text-indigo-400 drop-shadow-[0_0_10px_rgba(129,140,248,0.2)]"
+            className="text-4xl font-black tracking-tighter tabular-nums text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_10px_rgba(129,140,248,0.2)]"
             style={{ transform: currentScore > 0 ? "scale(1.05)" : "none", transition: "transform 0.05s ease-out" }}
           >
             {currentScore}
@@ -333,13 +331,13 @@ export default function SuperTapGame({ user }) {
       {/* Evaluation Feedback Banner */}
       {isOver && (
         <div className="w-full">
-          <div className={`rounded-xl px-4 py-3.5 text-center backdrop-blur-md transition-all animate-in fade-in zoom-in-95 duration-200 border ${newRecord ? "bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.05)]" : "bg-slate-900/80 border-slate-800"}`}>
+          <div className={`rounded-xl px-4 py-3.5 text-center backdrop-blur-md transition-all animate-in fade-in zoom-in-95 duration-200 border ${newRecord ? "bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.05)]" : "bg-slate-50 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800"}`}>
             {saving ? (
-              <p className="text-xs font-bold text-slate-400 tracking-wider uppercase animate-pulse">Syncing core network scores...</p>
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider uppercase animate-pulse">Syncing core network scores...</p>
             ) : newRecord ? (
-              <p className="text-sm font-extrabold text-emerald-400 drop-shadow-sm">⚡ RECORD BREAK! Ultimate Tier: {currentScore} Taps!</p>
+              <p className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 drop-shadow-sm">⚡ RECORD BREAK! Ultimate Tier: {currentScore} Taps!</p>
             ) : (
-              <p className="text-xs font-semibold text-slate-300">Run completed: <span className="text-cyan-400 font-bold">{currentScore} taps</span> recorded. Push limits next round!</p>
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Run completed: <span className="text-cyan-600 dark:text-cyan-400 font-bold">{currentScore} taps</span> recorded. Push limits next round!</p>
             )}
           </div>
         </div>
@@ -352,7 +350,7 @@ export default function SuperTapGame({ user }) {
           onPointerUp={handlePointerRelease}
           onPointerLeave={handlePointerRelease}
           disabled={isOver}
-          className={`relative overflow-hidden w-52 h-52 rounded-full text-white text-2xl font-black tracking-tight uppercase shadow-2xl transition-all select-none disabled:opacity-40 disabled:cursor-not-allowed outline-none border-4 border-slate-950 flex items-center justify-center
+          className={`relative overflow-hidden w-52 h-52 rounded-full text-white text-2xl font-black tracking-tight uppercase shadow-2xl transition-all select-none disabled:opacity-40 disabled:cursor-not-allowed outline-none border-4 border-slate-100 dark:border-slate-950 flex items-center justify-center
             ${tapped ?
               "bg-gradient-to-b from-cyan-300 via-sky-400 to-indigo-500 shadow-cyan-400/50" :
               "bg-gradient-to-b from-cyan-500 via-indigo-600 to-slate-900 shadow-indigo-950/60"
@@ -364,7 +362,7 @@ export default function SuperTapGame({ user }) {
             transform: tapped ? "scale(0.94)" : "scale(1)",
             boxShadow: tapped ?
               "0 0 50px 15px rgba(34,211,238,0.4), inset 0 4px 12px rgba(255,255,255,0.4)" :
-              "0 20px 40px rgba(0,0,0,0.4), inset 0 -8px 0 rgba(0,0,0,0.3), inset 0 6px 12px rgba(255,255,255,0.15)",
+              "0 20px 40px rgba(0,0,0,0.3), inset 0 -8px 0 rgba(0,0,0,0.3), inset 0 6px 12px rgba(255,255,255,0.15)",
             transition: "transform 0.05s ease, box-shadow 0.05s ease"
           }}
         >
@@ -386,7 +384,7 @@ export default function SuperTapGame({ user }) {
           {popups.map((p) => (
             <span
               key={p.id}
-              className="absolute text-xl font-black text-cyan-200 pointer-events-none select-none animate-float z-30 drop-shadow-[0_2px_8px_rgba(34,211,238,0.6)]"
+              className="absolute text-xl font-black text-cyan-100 dark:text-cyan-200 pointer-events-none select-none animate-float z-30 drop-shadow-[0_2px_8px_rgba(34,211,238,0.6)]"
               style={{ left: p.x - 12, top: p.y - 20 }}
             >
               +1
