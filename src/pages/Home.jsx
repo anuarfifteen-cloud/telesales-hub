@@ -613,7 +613,7 @@ export default function Home() {
                     <p className={`text-xs font-bold uppercase tracking-wider ${titleClass}`}>
                       {titleText}
                     </p>
-                    <p className={`text-sm font-medium truncate mt-0.5 ${textClass}`}>
+                    <p className={`text-sm font-medium line-clamp-2 mt-0.5 ${textClass}`}>
                       {latestAnnouncement.message}
                     </p>
                   </div>
