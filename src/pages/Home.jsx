@@ -561,17 +561,59 @@ export default function Home() {
             {/* Dynamic Status Indicator / Announcement Banner */}
             {activeAnnouncements.length > 0 && (() => {
               const latestAnnouncement = activeAnnouncements[0];
+              const msg = latestAnnouncement.message.toLowerCase();
+
+              // ── 3-WAY CATEGORY CHECK ──
+              const isMaintenance = msg.includes("maintenance") || msg.includes("down");
+              const isSystemRestored = msg.includes("normal") || msg.includes("operational") || msg.includes("resolved");
+              const isGeneralUpdate = !isMaintenance && !isSystemRestored;
+
+              // Default to Blue theme for general updates
+              let wrapperClass = "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40";
+              let iconWrapperClass = "bg-blue-100 dark:bg-blue-900/60";
+              let titleClass = "text-blue-800 dark:text-blue-300";
+              let textClass = "text-blue-700 dark:text-blue-400";
+              let titleText = "Latest Update";
+
+              // Override to Amber for maintenance
+              if (isMaintenance) {
+                wrapperClass = "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40";
+                iconWrapperClass = "bg-amber-100 dark:bg-amber-900/60";
+                titleClass = "text-amber-800 dark:text-amber-300";
+                textClass = "text-amber-700 dark:text-amber-400";
+                titleText = "System Status";
+              }
+              // Override to Emerald for system restorations
+              else if (isSystemRestored) {
+                wrapperClass = "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40";
+                iconWrapperClass = "bg-emerald-100 dark:bg-emerald-900/60";
+                titleClass = "text-emerald-800 dark:text-emerald-300";
+                textClass = "text-emerald-700 dark:text-emerald-400";
+                titleText = "System Status";
+              }
+
               return (
-                <div 
+                <div
                   onClick={handleOpenAnnouncements}
-                  className="flex items-center gap-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl p-3 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all shadow-sm animate-in fade-in slide-in-from-top-1"
+                  className={`flex items-center gap-3 border rounded-xl p-3 cursor-pointer transition-all shadow-sm animate-in fade-in slide-in-from-top-1 ${wrapperClass}`}
                 >
-                  <div className="flex-shrink-0 p-2 bg-blue-100 dark:bg-blue-900/60 rounded-lg">
-                    <Megaphone className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-pulse" />
+                  <div className={`flex-shrink-0 p-2 rounded-lg ${iconWrapperClass}`}>
+                    {isMaintenance && <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-pulse" />}
+                    {isGeneralUpdate && <Megaphone className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-pulse" />}
+                    {isSystemRestored && (
+                      <div className="w-4 h-4 flex items-center justify-center">
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">Latest Update</p>
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-400 truncate mt-0.5">
+                    <p className={`text-xs font-bold uppercase tracking-wider ${titleClass}`}>
+                      {titleText}
+                    </p>
+                    <p className={`text-sm font-medium truncate mt-0.5 ${textClass}`}>
                       {latestAnnouncement.message}
                     </p>
                   </div>
