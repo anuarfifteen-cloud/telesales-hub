@@ -575,12 +575,12 @@ export default function Home() {
               let textClass = "text-blue-700 dark:text-blue-400";
               let titleText = "Latest Update";
 
-              // Override to Amber for maintenance
+              // Override to Red for maintenance
               if (isMaintenance) {
-                wrapperClass = "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40";
-                iconWrapperClass = "bg-amber-100 dark:bg-amber-900/60";
-                titleClass = "text-amber-800 dark:text-amber-300";
-                textClass = "text-amber-700 dark:text-amber-400";
+                wrapperClass = "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40";
+                iconWrapperClass = "bg-red-100 dark:bg-red-900/60";
+                titleClass = "text-red-800 dark:text-red-300";
+                textClass = "text-red-700 dark:text-red-400";
                 titleText = "System Status";
               }
               // Override to Emerald for system restorations
@@ -598,7 +598,7 @@ export default function Home() {
                   className={`flex items-center gap-3 border rounded-xl p-3 cursor-pointer transition-all shadow-sm animate-in fade-in slide-in-from-top-1 ${wrapperClass}`}
                 >
                   <div className={`flex-shrink-0 p-2 rounded-lg ${iconWrapperClass}`}>
-                    {isMaintenance && <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-pulse" />}
+                    {isMaintenance && <Clock className="w-4 h-4 text-red-600 dark:text-red-400 animate-pulse" />}
                     {isGeneralUpdate && <Megaphone className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-pulse" />}
                     {isSystemRestored && (
                       <div className="w-4 h-4 flex items-center justify-center">
