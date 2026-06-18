@@ -35,6 +35,47 @@ import FeatureUnlockModal from "@/components/FeatureUnlockModal";
 import DailySpinWheel from "@/components/booking/DailySpinWheel";
 import TokenVoucher from "@/components/booking/MysteryBoxModal";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { Coins, TrendingUp } from "lucide-react";
+
+export function TopRightTokenBadge({ user }) {
+  // Pull only this specific user's token transactions
+  const { data: transactions = [] } = useQuery({
+    queryKey: ["tokenHistory", user?.id],
+    queryFn: () => base44.entities.TokenTransaction.filter({ user_id: user?.id }),
+    enabled: !!user?.id, // Only run if the user is logged in
+  });
+
+  // Sort by newest first, and grab the single latest transaction
+  const latestTx = [...transactions].sort(
+    (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+  )[0];
+
+  return (
+    <div className="absolute top-4 right-4 flex flex-col items-end gap-1 z-40 pointer-events-none">
+      
+      {/* 1. Main Token Balance Badge */}
+      <div className="bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-900/60 dark:to-yellow-900/60 border border-amber-300 dark:border-amber-700 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm pointer-events-auto">
+        <Coins className="w-4 h-4 text-amber-600 dark:text-amber-400 drop-shadow-sm" />
+        <span className="font-black text-sm text-amber-800 dark:text-amber-300">
+          {user?.earlyAccessTokens || 0}
+        </span>
+      </div>
+
+      {/* 2. Latest Addition Log (Only shows if they have at least one transaction) */}
+      {latestTx && latestTx.amount > 0 && (
+        <div className="flex items-center gap-1 bg-emerald-50/90 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md shadow-sm animate-in slide-in-from-top-2 fade-in duration-500">
+          <TrendingUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+          <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
+            +{latestTx.amount} ({latestTx.source})
+          </span>
+        </div>
+      )}
+
+    </div>
+  );
+}
 
 const EMPLOYEES = [
 { value: 1, label: "Aiman" }, { value: 2, label: "Adibah" },
