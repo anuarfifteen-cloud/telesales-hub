@@ -465,8 +465,6 @@ export default function Home() {
   const getBruneiToday = () =>
     new Date().toLocaleDateString("en-CA", { timeZone: TZ });
 
-
-
   const handleAdminSave = async () => {
     if (!adminForm.date || !adminForm.employee || !adminForm.shift) {
       toast.error("Please fill in date, employee and shift.");
@@ -498,7 +496,6 @@ export default function Home() {
               src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/a6f4605c6_generated_image.png"
               alt="Telesales Hub logo"
               className="h-9 w-9 rounded-xl object-cover flex-shrink-0" />
-            
             <h1 className="text-xl text-slate-900 dark:text-white leading-tight" style={{ fontFamily: "'Pacifico', cursive" }}>Telesales Hub</h1>
           </div>
 
@@ -546,7 +543,6 @@ export default function Home() {
               "bg-blue-600 text-white shadow-md" :
               "bg-transparent text-slate-500 hover:text-slate-700"}`
               }>
-              
                 <span>📆</span>
                 Book a Slot
               </button>
@@ -557,7 +553,6 @@ export default function Home() {
               "bg-blue-600 text-white shadow-md" :
               "bg-transparent text-slate-500 hover:text-slate-700"}`
               }>
-              
                 <span>📋</span>
                 Daily Schedule
               </button>
@@ -606,7 +601,6 @@ export default function Home() {
             unlockMinute={unlockMinute}
             onSlotsChange={(s) => setCustomSlots(s)}
             onUnlockTimeChange={(h, m) => {setUnlockHour(h);setUnlockMinute(m);}} />
-
           }
 
             {/* Daily Spin Wheel */}
@@ -624,7 +618,6 @@ export default function Home() {
                 dateStr={d}
                 isSelected={d === selectedDate}
                 onClick={() => setSelectedDate(d)} />
-
               )}
               </div>
             </section>
@@ -651,7 +644,6 @@ export default function Home() {
                             Bookings open on {dayNum} {monthName} {unlockHour % 12 === 0 ? 12 : unlockHour % 12}:{String(unlockMinute).padStart(2, "0")} {unlockHour >= 12 ? "PM" : "AM"}.
                           </p>
                         </div>);
-
               })()}
                   </div>
             }
@@ -676,7 +668,6 @@ export default function Home() {
                           <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Off-Day / DST Pop Up</p>
                           {hasBreakBookingToday && !dstBooking ?
                       <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Already booked a slot today</p> :
-
                       <p className="text-[11px] text-muted-foreground">Friday AM Shift may earn one booking credit here</p>
                       }
                         </div>
@@ -720,24 +711,20 @@ export default function Home() {
                   <span className="flex-shrink-0 text-[11px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-600 cursor-not-allowed">
                           🔒 Locked
                         </span> :
-
                   <>
                           <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
                             <button
                         disabled={isDisabled}
                         onClick={() => setShowDstConfirm(true)}
                         className="flex-shrink-0 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 disabled:bg-slate-400 flex items-center gap-1 tabular-nums">
-                        
                               {dstCountdown ?
                         <>
                                   <Clock className="w-3 h-3 flex-shrink-0" />
                                   {dstCountdown}
                                 </> :
-
                         'Claim'
                         }
                             </button>
-                            
                           </div>
                           <AlertDialog open={showDstConfirm} onOpenChange={setShowDstConfirm}>
                             <AlertDialogContent>
@@ -785,7 +772,6 @@ export default function Home() {
                         </>
                   }
                     </div>);
-
             })()}
 
                 {/* ── Inform user why slots are locked due to DST log ── */}
@@ -810,7 +796,6 @@ export default function Home() {
               <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />
               )}
                   </div> :
-
             <>
                     {[{ label: "AM Shift", emoji: "🌤", slots: amSlots }, { label: "PM Shift", emoji: "🌆", slots: pmSlots }].map(({ label, emoji, slots }) =>
               <section key={label}>
@@ -835,7 +820,6 @@ export default function Home() {
                           unlockTime={effectiveUnlockTime}
                           now={bruneiNow}
                           loading={isMutating} />
-                        
                                 {isAdmin &&
                         <div className="pl-2 space-y-1">
                                     {slotBookings.map((b) =>
@@ -855,28 +839,24 @@ export default function Home() {
                               onChange={(e) => setForceBookEmployee(e.target.value)}
                               placeholder="Type any name…"
                               className="flex-1 text-xs border-0 bg-transparent text-slate-700 focus:outline-none placeholder:text-slate-400" />
-                            
                                           <button onClick={() => handleForceBook(slot)} className="text-xs font-bold text-blue-600 hover:text-blue-800">Book</button>
                                           <button onClick={() => {setForceBookSlot(null);setForceBookEmployee("");}} className="text-xs text-slate-400">✕</button>
                                         </div> :
-
                           <button onClick={() => {setForceBookSlot(slot);setForceBookEmployee("");}} className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">
                                           <Plus className="w-3 h-3" /> Force book
                                         </button>)
-
                           }
                                   </div>
                         }
                               </div>);
-
                   })}
                         </div>
                       </section>
               )}
                   </>
             }
-          <>
-        }
+          </>
+            }
 
             {/* ── Daily Schedule inner view ── */}
             {innerTab === "schedule" &&
@@ -927,7 +907,6 @@ export default function Home() {
                   <button
                   onClick={() => {setIsAdminLoggedIn(false);setIsAdmin(false);}}
                   className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors flex items-center gap-1">
-                  
                     <ArrowLeft className="w-3 h-3" /> Exit
                   </button>
                 </div>
@@ -1017,8 +996,6 @@ export default function Home() {
                 </div>
               </div>
 
-
-
               {/* Admin: Booking Totals */}
               {isAdmin && <AdminBookingTotals />}
 
@@ -1027,7 +1004,6 @@ export default function Home() {
                 variant="outline"
                 onClick={() => base44.auth.logout()}
                 className="gap-2 text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:border-red-400 w-full">
-                
                 <LogOut className="w-4 h-4" /> Log Out
               </Button>
 
@@ -1035,38 +1011,44 @@ export default function Home() {
               <button
                 onClick={() => setShowPinModal(true)}
                 className="absolute bottom-0 right-0 p-2 opacity-20 hover:opacity-40 transition-opacity"
-                aria-label="">
-                
+                aria-label="Admin Settings">
                 <Settings className="w-4 h-4 text-slate-500" />
               </button>
-            </div>);
-
+            </div>
+          );
         })()}
       </main>
 
       {/* PIN Modal */}
-      {showPinModal &&
-      <AdminPinModal
-        onClose={() => setShowPinModal(false)}
-        onSuccess={() => {setShowPinModal(false);setIsAdminLoggedIn(true);setIsAdmin(true);}} />
+      {showPinModal && (
+        <AdminPinModal
+          onClose={() => setShowPinModal(false)}
+          onSuccess={() => {
+            setShowPinModal(false);
+            setIsAdminLoggedIn(true);
+            setIsAdmin(true);
+          }} 
+        />
+      )}
 
-      }
-
-      {showAnnouncementPanel &&
-      <AnnouncementPanel
-        announcements={announcements}
-        onClose={() => setShowAnnouncementPanel(false)} />
-      }
+      {showAnnouncementPanel && (
+        <AnnouncementPanel
+          announcements={announcements}
+          onClose={() => setShowAnnouncementPanel(false)} 
+        />
+      )}
 
       <AnnouncementPopup
         announcement={activePopup}
-        onDismiss={() => setActivePopup(null)} />
+        onDismiss={() => setActivePopup(null)} 
+      />
 
       <FeatureUnlockModal
         isOpen={unlockModal.open}
         onClose={() => setUnlockModal((m) => ({ ...m, open: false }))}
         title={unlockModal.title}
-        message={unlockModal.message} />
+        message={unlockModal.message} 
+      />
 
       {/* ── FLOATING PILL BOTTOM NAVIGATION ── */}
       <nav className="fixed bottom-6 left-0 right-0 z-20 flex justify-center pointer-events-none">
@@ -1110,6 +1092,6 @@ export default function Home() {
           })}
         </div>
       </nav>
-    </div>);
-
+    </div>
+  );
 }
