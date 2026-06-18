@@ -9,7 +9,7 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins } from "lucide-react";
+import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins, Megaphone } from "lucide-react";
 import TokensTab from "./TokensTab";
 import { getStoredTheme, applyTheme } from "@/lib/theme";
 import AdminPinModal from "@/components/admin/AdminPinModal";
@@ -563,6 +563,36 @@ export default function Home() {
               </button>
             </div>
 
+            {/* Dynamic Status Indicator / Announcement Banner */}
+            {activeAnnouncements.length > 0 && (() => {
+              const latestAnnouncement = activeAnnouncements[0];
+              return (
+                <div 
+                  onClick={handleOpenAnnouncements}
+                  className="flex items-center gap-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl p-3 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all shadow-sm animate-in fade-in slide-in-from-top-1"
+                >
+                  <div className="flex-shrink-0 p-2 bg-blue-100 dark:bg-blue-900/60 rounded-lg">
+                    <Megaphone className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-pulse" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">Latest Update</p>
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-400 truncate mt-0.5">
+                      {latestAnnouncement.message}
+                    </p>
+                  </div>
+                  {seenAnnouncementIds.includes(latestAnnouncement.id) ? (
+                    <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 dark:bg-slate-800 dark:text-slate-500 px-2 py-0.5 rounded-full flex-shrink-0">
+                      Read
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-white bg-blue-600 px-2 py-0.5 rounded-full flex-shrink-0 animate-bounce">
+                      New
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Admin Tools */}
             {isAdmin &&
           <AdminAnnouncement adminName={user?.full_name} />
@@ -845,7 +875,7 @@ export default function Home() {
               )}
                   </>
             }
-          </>
+          <>
         }
 
             {/* ── Daily Schedule inner view ── */}
