@@ -234,7 +234,7 @@ export default function Home() {
   const { data: announcements = [] } = useQuery({
     queryKey: ["announcements"],
     queryFn: () => base44.entities.Announcement.list("-created_date", 50),
-    refetchInterval: 60000
+    refetchInterval: 600000
   });
 
   const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
