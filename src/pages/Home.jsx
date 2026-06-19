@@ -965,7 +965,7 @@ export default function Home() {
                   <span>👤</span> Profile
                 </button>
                 <button
-                  onClick={() => setProfileTab("inbox")}
+                  onClick={() => setProfileTab("inbox (trial)")}
                   className={`relative flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${profileTab === "inbox" ? "bg-blue-600 text-white shadow-md" : "bg-transparent text-slate-500 hover:text-slate-700"}`}>
                   <span>💬</span> Coming Soon
                   {unreadMessageCount > 0 &&
