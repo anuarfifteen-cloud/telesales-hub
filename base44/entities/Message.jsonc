@@ -49,8 +49,14 @@
         }
       ]
     },
-    "write": {
-      "created_by_id": "{{user.id}}"
+    "create": {
+      "sender_id": "{{user.id}}"
+    },
+    "update": {
+      "recipient_id": "{{user.id}}"
+    },
+    "delete": {
+      "sender_id": "__deletion_disabled__"
     }
   }
 }
