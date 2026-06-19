@@ -1,0 +1,56 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "Deterministic conversation ID built by sorting the two user IDs alphabetically and joining with underscore"
+    },
+    "sender_id": {
+      "type": "string",
+      "description": "User ID of who sent the message"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Sender's display name at time of sending"
+    },
+    "recipient_id": {
+      "type": "string",
+      "description": "User ID of the recipient"
+    },
+    "recipient_name": {
+      "type": "string",
+      "description": "Recipient's display name at time of sending"
+    },
+    "body": {
+      "type": "string",
+      "description": "Message text"
+    },
+    "read": {
+      "type": "boolean",
+      "description": "Whether the recipient has opened/read the message",
+      "default": false
+    }
+  },
+  "required": [
+    "conversation_id",
+    "sender_id",
+    "recipient_id",
+    "body"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "sender_id": "{{user.id}}"
+        },
+        {
+          "recipient_id": "{{user.id}}"
+        }
+      ]
+    },
+    "write": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

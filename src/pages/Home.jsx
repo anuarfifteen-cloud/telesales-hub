@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import FeatureUnlockModal from "@/components/FeatureUnlockModal";
 import DailySpinWheel from "@/components/booking/DailySpinWheel";
 import TokenVoucher from "@/components/booking/MysteryBoxModal";
+import InboxView from "@/components/inbox/InboxView";
 import { toast } from "sonner";
 
 const EMPLOYEES = [
@@ -60,6 +61,7 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [activeTab, setActiveTab] = useState("booking");
   const [innerTab, setInnerTab] = useState("book");
+  const [profileTab, setProfileTab] = useState("profile");
   const [showPinModal, setShowPinModal] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
@@ -237,6 +239,14 @@ export default function Home() {
     refetchInterval: 600000
   });
 
+  const { data: unreadMessages = [] } = useQuery({
+    queryKey: ["unread-messages", user?.id],
+    queryFn: () => (user ? base44.entities.Message.filter({ recipient_id: user.id, read: false }) : []),
+    enabled: !!user,
+    refetchInterval: 30000
+  });
+  const unreadMessageCount = unreadMessages.length;
+
   const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
   const activeAnnouncements = announcements.filter((a) => {
     if (Date.now() - new Date(a.created_date).getTime() >= TWENTY_FOUR_HOURS) return false;
@@ -269,6 +279,14 @@ export default function Home() {
     });
     return unsub;
   }, [selectedDate]);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsub = base44.entities.Message.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ["unread-messages", user.id] });
+    });
+    return unsub;
+  }, [user]);
 
   const createMutation = useMutation({
     mutationFn: async (slot) => {
