@@ -1,9 +1,18 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Plus, MessageSquare, Loader2 } from "lucide-react";
-import moment from "moment";
 import ChatThread from "./ChatThread";
 import UserPicker from "./UserPicker";
+
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
 function initialsOf(name, email) {
   if (name) return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -25,21 +34,35 @@ export default function InboxView({ user }) {
   const [view, setView] = useState("list"); // list | thread | picker
   const [activePeer, setActivePeer] = useState(null); // { id, name }
 
-  const loadMessages = () =>
-    base44.entities.Message.list("-created_date", 500).then((m) => setMessages(m));
+  // ── FIX: Use two filtered queries instead of .list() to respect RLS ──
+  const loadMessages = async () => {
+    if (!user?.id) return;
+    const [sent, received] = await Promise.all([
+      base44.entities.Message.filter({ sender_id: user.id }),
+      base44.entities.Message.filter({ recipient_id: user.id }),
+    ]);
+    // Merge and deduplicate by id (a message you sent to yourself would appear twice)
+    const merged = [...sent, ...received];
+    const unique = Array.from(new Map(merged.map((m) => [m.id, m])).values());
+    // Sort newest first
+    unique.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+    setMessages(unique);
+  };
 
   useEffect(() => {
+    if (!user?.id) return;
     Promise.all([
-      base44.entities.Message.list("-created_date", 500),
+      loadMessages(),
       base44.entities.User.list(),
-    ]).then(([m, u]) => {
-      setMessages(m);
-      setAllUsers(u);
+    ]).then(([, u]) => {
+      setAllUsers(u || []);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
+
+    // Subscribe for real-time updates
     const unsub = base44.entities.Message.subscribe(() => loadMessages());
     return unsub;
-  }, []);
+  }, [user?.id]);
 
   const conversations = useMemo(() => {
     if (!user) return [];
@@ -48,10 +71,11 @@ export default function InboxView({ user }) {
       const isMine = m.sender_id === user.id;
       const peerId = isMine ? m.recipient_id : m.sender_id;
       const peerName = isMine ? m.recipient_name : m.sender_name;
-      if (!map[m.conversation_id]) {
-        map[m.conversation_id] = { conversation_id: m.conversation_id, peerId, peerName, last: m, unread: 0 };
+      const cid = m.conversation_id;
+      if (!map[cid]) {
+        map[cid] = { conversation_id: cid, peerId, peerName, last: m, unread: 0 };
       }
-      const c = map[m.conversation_id];
+      const c = map[cid];
       if (new Date(m.created_date) > new Date(c.last.created_date)) c.last = m;
       if (m.recipient_id === user.id && !m.read) c.unread++;
     });
@@ -114,7 +138,7 @@ export default function InboxView({ user }) {
         <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-8 flex flex-col items-center gap-2 text-center">
           <MessageSquare className="w-8 h-8 text-slate-300 dark:text-slate-600" />
           <p className="text-sm font-semibold text-slate-600 dark:text-gray-300">No messages yet</p>
-          <p className="text-xs text-muted-foreground">Tap “New” to start a conversation.</p>
+          <p className="text-xs text-muted-foreground">Tap "New" to start a conversation.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -133,7 +157,7 @@ export default function InboxView({ user }) {
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-bold text-slate-800 dark:text-gray-100 truncate">{name}</span>
                     <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                      {moment(c.last.created_date).fromNow()}
+                      {timeAgo(c.last.created_date)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-0.5">
