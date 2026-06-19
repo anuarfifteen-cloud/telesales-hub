@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { ArrowLeft, Send } from "lucide-react";
-import moment from "moment";
 
 function convId(a, b) {
   return [a, b].sort().join("_");
@@ -10,6 +9,17 @@ function convId(a, b) {
 function initialsOf(name) {
   if (!name) return "?";
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+}
+
+function formatTime(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
 
 export default function ChatThread({ user, peer, messages, onBack, onChanged }) {
@@ -43,25 +53,33 @@ export default function ChatThread({ user, peer, messages, onBack, onChanged }) 
     const body = text.trim();
     if (!body || sending) return;
     setSending(true);
-    await base44.entities.Message.create({
-      conversation_id: cid,
-      sender_id: user.id,
-      sender_name: user.full_name || user.email,
-      recipient_id: peer.id,
-      recipient_name: peer.name,
-      body,
-      read: false,
-    });
-    setText("");
-    setSending(false);
-    onChanged && onChanged();
+    try {
+      await base44.entities.Message.create({
+        conversation_id: cid,
+        sender_id: user.id,
+        sender_name: user.full_name || user.email,
+        recipient_id: peer.id,
+        recipient_name: peer.name,
+        body,
+        read: false,
+      });
+      setText("");
+      onChanged && onChanged();
+    } catch (err) {
+      console.error("Send failed:", err);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
     <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm flex flex-col overflow-hidden" style={{ height: "70vh" }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-3 py-2.5 border-b border-border flex-shrink-0">
-        <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <button
+          onClick={onBack}
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        >
           <ArrowLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
         </button>
         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0">
@@ -81,10 +99,14 @@ export default function ChatThread({ user, peer, messages, onBack, onChanged }) 
             const mine = m.sender_id === user.id;
             return (
               <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[75%] rounded-2xl px-3 py-2 ${mine ? "bg-blue-600 text-white rounded-br-sm" : "bg-white dark:bg-slate-800 text-slate-800 dark:text-gray-100 border border-border rounded-bl-sm"}`}>
+                <div className={`max-w-[75%] rounded-2xl px-3 py-2 ${
+                  mine
+                    ? "bg-blue-600 text-white rounded-br-sm"
+                    : "bg-white dark:bg-slate-800 text-slate-800 dark:text-gray-100 border border-border rounded-bl-sm"
+                }`}>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.body}</p>
                   <p className={`text-[9px] mt-0.5 ${mine ? "text-blue-100" : "text-muted-foreground"}`}>
-                    {moment(m.created_date).format("MMM D, h:mm A")}
+                    {formatTime(m.created_date)}
                   </p>
                 </div>
               </div>
@@ -100,7 +122,7 @@ export default function ChatThread({ user, peer, messages, onBack, onChanged }) 
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") handleSend(); }}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) handleSend(); }}
           placeholder="Type a message…"
           className="flex-1 text-sm border border-border rounded-full px-4 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
