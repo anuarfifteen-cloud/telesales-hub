@@ -957,6 +957,28 @@ export default function Home() {
 
           return (
             <div className="relative flex flex-col gap-4 pb-4">
+              {/* Profile sub-tabs */}
+              <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1.5">
+                <button
+                  onClick={() => setProfileTab("profile")}
+                  className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${profileTab === "profile" ? "bg-blue-600 text-white shadow-md" : "bg-transparent text-slate-500 hover:text-slate-700"}`}>
+                  <span>👤</span> Profile
+                </button>
+                <button
+                  onClick={() => setProfileTab("inbox")}
+                  className={`relative flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${profileTab === "inbox" ? "bg-blue-600 text-white shadow-md" : "bg-transparent text-slate-500 hover:text-slate-700"}`}>
+                  <span>💬</span> Inbox
+                  {unreadMessageCount > 0 &&
+                    <span className="min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                      {unreadMessageCount}
+                    </span>
+                  }
+                </button>
+              </div>
+
+              {profileTab === "inbox" && <InboxView user={user} />}
+
+              {profileTab === "profile" && (<>
               {/* Admin Banner */}
               {isAdminLoggedIn &&
               <div className="flex items-center justify-between bg-red-600 text-white rounded-xl px-4 py-2">
@@ -1074,6 +1096,7 @@ export default function Home() {
                 aria-label="Admin Settings">
                 <Settings className="w-4 h-4 text-slate-500" />
               </button>
+              </>)}
             </div>
           );
         })()}
@@ -1139,7 +1162,7 @@ export default function Home() {
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-full transition-all ${
+                className={`relative flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-full transition-all ${
                   isActive
                     ? "bg-blue-600 text-white"
                     : isDarkMode ? "text-slate-400" : "text-slate-400"
@@ -1147,6 +1170,11 @@ export default function Home() {
               >
                 <Icon className="w-[18px] h-[18px]" />
                 <span className="text-[9px] font-semibold tracking-wide">{label}</span>
+                {id === "profile" && unreadMessageCount > 0 &&
+                  <span className="absolute top-0 right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                    {unreadMessageCount}
+                  </span>
+                }
               </button>
             );
           })}
