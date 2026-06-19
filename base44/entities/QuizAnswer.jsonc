@@ -1,0 +1,51 @@
+{
+  "name": "QuizAnswer",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user who answered"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the user"
+    },
+    "question_id": {
+      "type": "string",
+      "description": "ID of the QuizQuestion answered"
+    },
+    "question_text": {
+      "type": "string",
+      "description": "The question text at time of answering"
+    },
+    "answered_date": {
+      "type": "string",
+      "description": "YYYY-MM-DD in Brunei timezone"
+    },
+    "is_correct": {
+      "type": "boolean",
+      "description": "Whether the user answered correctly"
+    },
+    "selected_option": {
+      "type": "string",
+      "description": "Which option the user picked: A, B, or C"
+    }
+  },
+  "required": [
+    "user_id",
+    "user_name",
+    "question_id",
+    "answered_date",
+    "is_correct"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {
+      "user_id": "__update_disabled__"
+    },
+    "delete": {
+      "user_id": "__deletion_disabled__"
+    }
+  }
+}

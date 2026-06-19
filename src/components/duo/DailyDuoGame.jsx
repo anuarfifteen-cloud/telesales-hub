@@ -182,6 +182,22 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
     setTodayRecord(record);
     saveLastSeenId(question.id);
 
+    // Determine selected option letter
+    const opts = [question.option_a, question.option_b, question.option_c];
+    const optLetters = ["A", "B", "C"];
+    const selectedOptionLetter = optLetters[opts.indexOf(pendingResult.selectedAnswer)] ?? "";
+
+    // Log quiz answer
+    await base44.entities.QuizAnswer.create({
+      user_id: user.id,
+      user_name: user.full_name || user.email,
+      question_id: question.id,
+      question_text: question.question_text,
+      answered_date: today,
+      is_correct: isCorrect,
+      selected_option: selectedOptionLetter,
+    });
+
     // Award tokens if streak just hit 5
     if (newStreak.count >= 5) {
       const freshUser = await base44.auth.me();
