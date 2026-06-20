@@ -51,13 +51,22 @@ export default function InboxView({ user }) {
 
   useEffect(() => {
     if (!user?.id) return;
-    Promise.all([
-      loadMessages(),
-      base44.entities.User.list().catch(() => []),
-    ]).then(([, u]) => {
-      setAllUsers(Array.isArray(u) ? u : []);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+
+    const init = async () => {
+      try {
+        const [, users] = await Promise.all([
+          loadMessages(),
+          base44.entities.User.list(),
+        ]);
+        setAllUsers(Array.isArray(users) ? users : []);
+      } catch (e) {
+        console.error("InboxView init error:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
 
     // Subscribe for real-time updates
     const unsub = base44.entities.Message.subscribe(() => loadMessages());
