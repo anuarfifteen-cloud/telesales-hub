@@ -26,7 +26,9 @@
   ],
   "rls": {
     "read": {},
-    "create": {},
+    "create": {
+      "role": "admin"
+    },
     "update": {
       "role": "admin"
     },
