@@ -182,12 +182,12 @@ export default function Home() {
   const bruneiNow = useBruneiClock(serverTimeRef, localTimeAtFetch);
   const dates = getBookableDates(bruneiNow);
 
-  // Set selectedDate once server-corrected time is available
-  useEffect(() => {
-    if (serverTimeRef && dates.length > 0) {
-      setSelectedDate(dates[0]);
-    }
-  }, [serverTimeRef]);
+  // Set selectedDate — use server time if available, otherwise fall back to local time
+useEffect(() => {
+  if (dates.length > 0 && !selectedDate) {
+    setSelectedDate(dates[0]);
+  }
+}, [serverTimeRef, dates.length]);
   const queryClient = useQueryClient();
 
   const refreshUser = async () => {
@@ -668,10 +668,17 @@ export default function Home() {
 
             {/* Shared date picker */}
             <section>
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                Select Date
-              </p>
-              <div className="grid grid-cols-7 gap-1.5">
+  <div className="flex items-center justify-between mb-2">
+    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+      Select Date
+    </p>
+    {!selectedDate && (
+      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded-full animate-pulse">
+        👆 Tap a date to load slots
+      </span>
+    )}
+  </div>
+  <div className="grid grid-cols-7 gap-1.5">
                 {dates.map((d) =>
               <DateTab
                 key={d}
