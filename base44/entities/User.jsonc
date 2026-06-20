@@ -24,5 +24,8 @@
       "default": false,
       "description": "Whether this user is the defending Super Tap champion, placed on a one-season prize cooldown"
     }
+  },
+  "rls": {
+    "read": {}
   }
 }
