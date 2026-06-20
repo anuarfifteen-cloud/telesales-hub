@@ -203,7 +203,7 @@ export default function TokenVoucher({ user, onUserUpdate }) {
 
         {/* Claiming Panel */}
         <div className="space-y-2">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Redeem Received Code</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Redeem Voucher Code</p>
           <div className="flex gap-2 relative items-center">
             <div className="relative flex-1">
               <input
