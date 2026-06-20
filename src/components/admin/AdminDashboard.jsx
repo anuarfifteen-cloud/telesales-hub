@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ArrowLeft, Upload, CheckCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Upload, CheckCircle, Loader2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { EMPLOYEE_MAP } from "@/lib/employeeMap";
@@ -68,6 +68,36 @@ export default function AdminDashboard({ onBack }) {
   const [liveFeedEnabled, setLiveFeedEnabled] = useState(
     () => localStorage.getItem(LIVE_FEED_KEY) !== "false"
   );
+  const [syncingDirectory, setSyncingDirectory] = useState(false);
+
+  const handleSyncDirectory = async () => {
+    setSyncingDirectory(true);
+    try {
+      const [users, existing] = await Promise.all([
+        base44.entities.User.list(),
+        base44.entities.ContactDirectory.list(),
+      ]);
+      const existingUserIds = new Set(existing.map((e) => e.user_id));
+      const toAdd = users.filter((u) => !existingUserIds.has(u.id));
+      if (toAdd.length === 0) {
+        toast.success("Directory is already up to date.");
+        return;
+      }
+      await base44.entities.ContactDirectory.bulkCreate(
+        toAdd.map((u) => ({
+          user_id: u.id,
+          full_name: u.full_name || "",
+          email: u.email || "",
+          active: true,
+        }))
+      );
+      toast.success(`✅ ${toAdd.length} user(s) added to Contact Directory!`);
+    } catch (e) {
+      toast.error("Sync failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setSyncingDirectory(false);
+    }
+  };
 
   const handleToggleLiveFeed = (val) => {
     setLiveFeedEnabled(val);
@@ -198,6 +228,24 @@ export default function AdminDashboard({ onBack }) {
           >
             <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${liveFeedEnabled ? "translate-x-7" : "translate-x-1"}`} />
           </button>
+        </div>
+
+        {/* Contact Directory Sync */}
+        <div className="bg-white rounded-2xl border border-border p-5 flex items-center justify-between gap-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+          <div>
+            <h3 className="font-bold text-slate-900 text-base">👥 Contact Directory</h3>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Sync all registered users so they appear in the New Message screen for everyone.
+            </p>
+          </div>
+          <Button
+            onClick={handleSyncDirectory}
+            disabled={syncingDirectory}
+            className="flex-shrink-0 gap-2 text-xs font-semibold rounded-xl"
+          >
+            {syncingDirectory ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+            {syncingDirectory ? "Syncing…" : "Sync Now"}
+          </Button>
         </div>
 
         {/* Token Shop Settings */}

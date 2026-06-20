@@ -54,11 +54,15 @@ export default function InboxView({ user }) {
 
     const init = async () => {
       try {
-        const [users] = await Promise.all([
-          base44.entities.User.list(),
+        const [directory] = await Promise.all([
+          base44.entities.ContactDirectory.filter({ active: true }),
           loadMessages(),
         ]);
-        setAllUsers(Array.isArray(users) ? users : []);
+        const normalized = (Array.isArray(directory) ? directory : []).map((u) => ({
+          ...u,
+          id: u.user_id,
+        }));
+        setAllUsers(normalized);
       } catch (e) {
         console.error("InboxView init error:", e);
       } finally {

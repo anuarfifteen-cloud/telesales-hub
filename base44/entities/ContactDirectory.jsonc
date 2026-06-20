@@ -1,0 +1,39 @@
+{
+  "name": "ContactDirectory",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "The Base44 platform user ID"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "User's display name"
+    },
+    "email": {
+      "type": "string",
+      "description": "User's email address"
+    },
+    "active": {
+      "type": "boolean",
+      "description": "Whether this user is active in the directory",
+      "default": true
+    }
+  },
+  "required": [
+    "user_id",
+    "email"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "role": "admin"
+    },
+    "update": {
+      "role": "admin"
+    },
+    "delete": {
+      "role": "admin"
+    }
+  }
+}
