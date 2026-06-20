@@ -53,7 +53,7 @@ export default function InboxView({ user }) {
     if (!user?.id) return;
     Promise.all([
       loadMessages(),
-      base44.entities.User.list(),
+      base44.entities.User.list().catch(() => []),
     ]).then(([, u]) => {
       setAllUsers(u || []);
       setLoading(false);
