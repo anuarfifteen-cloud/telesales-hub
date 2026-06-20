@@ -10,7 +10,6 @@ import AdminSuperTap from "./AdminSuperTap";
 import AdminTokenAuditLog from "./AdminTokenAuditLog";
 import TokenShopSettings from "./TokenShopSettings";
 import QuizMaintenanceToggle from "./QuizMaintenanceToggle";
-import AdminVouchers from "./AdminVouchers";
 
 const LIVE_FEED_KEY = "liveFeedEnabled";
 
@@ -255,12 +254,6 @@ export default function AdminDashboard({ onBack }) {
 
         {/* Token Shop Settings */}
         <TokenShopSettings />
-
-        {/* Voucher Admin */}
-        <div className="bg-white rounded-2xl border border-border p-5 space-y-3" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
-          <h3 className="font-bold text-slate-900 text-base">🎟️ Voucher Management</h3>
-          <AdminVouchers />
-        </div>
 
         {/* Roster upload card */}
         <div className="bg-white rounded-2xl border border-border p-6 space-y-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>

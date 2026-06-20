@@ -1036,7 +1036,7 @@ useEffect(() => {
               <TokenVoucher user={user} onUserUpdate={refreshUser} />
 
               {/* ── BLIND VOUCHER REDEEM ── */}
-              <VoucherRedeem user={user} />
+              <VoucherRedeem user={user} onUserUpdate={refreshUser} />
 
               {/* Official Work Hours */}
               <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">

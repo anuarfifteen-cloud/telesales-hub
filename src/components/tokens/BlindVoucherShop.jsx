@@ -8,32 +8,38 @@ function generateCode() {
   return `BV-${chunk()}-${chunk()}`;
 }
 
+function randomReward() {
+  return Math.floor(Math.random() * 5) + 1; // 1–5
+}
+
 export default function BlindVoucherShop({ user, onUserUpdate }) {
   const [purchasing, setPurchasing] = useState(false);
-  const [generatedCode, setGeneratedCode] = useState(null);
+  const [lastResult, setLastResult] = useState(null); // { code, reward_tokens }
   const [copied, setCopied] = useState(false);
-  const [myVouchers, setMyVouchers] = useState([]);
+  const [activeVouchers, setActiveVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
 
   const tokens = user?.earlyAccessTokens ?? 0;
   const canAfford = tokens >= 2;
 
-  const loadMyVouchers = async () => {
+  const loadActiveVouchers = async () => {
     if (!user?.id) return;
-    const vouchers = await base44.entities.Voucher.filter({ user_id: user.id });
+    const vouchers = await base44.entities.Voucher.filter({ user_id: user.id, status: "active" });
     vouchers.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    setMyVouchers(vouchers);
+    setActiveVouchers(vouchers);
     setLoadingVouchers(false);
   };
 
   useEffect(() => {
-    loadMyVouchers();
+    loadActiveVouchers();
   }, [user?.id]);
 
   const handlePurchase = async () => {
     if (!canAfford || purchasing) return;
     setPurchasing(true);
     const code = generateCode();
+    const reward = randomReward();
+
     await base44.auth.updateMe({ earlyAccessTokens: tokens - 2 });
     await base44.entities.TokenTransaction.create({
       user_id: user.id,
@@ -46,23 +52,22 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
       user_id: user.id,
       user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
       code,
+      reward_tokens: reward,
       status: "active",
       created_at: new Date().toISOString(),
     });
-    setGeneratedCode(code);
+
+    setLastResult({ code, reward_tokens: reward });
     await onUserUpdate();
-    await loadMyVouchers();
+    await loadActiveVouchers();
     setPurchasing(false);
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(generatedCode);
+  const handleCopy = (code) => {
+    navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const redeemedVouchers = myVouchers.filter((v) => v.status === "redeemed");
-  const activeVouchers = myVouchers.filter((v) => v.status === "active");
 
   return (
     <div className="flex flex-col gap-3">
@@ -75,7 +80,7 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
               <h3 className="font-black text-base text-foreground">Blind Voucher</h3>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Spend 2 tokens for a mystery break slot voucher. Reveal your slot on the day!
+              Spend 2 tokens for a mystery voucher worth 1–5 tokens. Redeem it in your Profile tab!
             </p>
           </div>
           <span className="flex-shrink-0 text-xs font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-full">
@@ -83,15 +88,15 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
           </span>
         </div>
 
-        {generatedCode ? (
+        {lastResult ? (
           <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 flex flex-col gap-3">
             <p className="font-bold text-sm text-emerald-700 dark:text-emerald-300 text-center">
               🎉 Your Blind Voucher is ready!
             </p>
             <div className="flex items-center justify-between bg-white dark:bg-slate-900 rounded-lg border border-emerald-200 dark:border-emerald-700 px-4 py-3 gap-3">
-              <span className="font-mono font-black text-lg text-foreground tracking-widest">{generatedCode}</span>
+              <span className="font-mono font-black text-lg text-foreground tracking-widest">{lastResult.code}</span>
               <button
-                onClick={handleCopy}
+                onClick={() => handleCopy(lastResult.code)}
                 className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 transition-colors"
               >
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -99,13 +104,9 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
               </button>
             </div>
             <p className="text-xs text-muted-foreground text-center">
-              Show this code to admin or redeem it below to claim your mystery slot.
+              Redeem this code in your Profile tab to reveal your reward!
             </p>
-            <Button
-              onClick={() => setGeneratedCode(null)}
-              variant="outline"
-              className="w-full text-xs"
-            >
+            <Button onClick={() => setLastResult(null)} variant="outline" className="w-full text-xs">
               Buy Another
             </Button>
           </div>
@@ -125,34 +126,22 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
         )}
       </div>
 
-      {/* My Vouchers — active (unredeemed) */}
+      {/* My Active Vouchers */}
       {!loadingVouchers && activeVouchers.length > 0 && (
         <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col gap-2">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">My Active Vouchers</p>
           {activeVouchers.map((v) => (
-            <div key={v.id} className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2.5">
+            <div key={v.id} className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2.5 gap-2">
               <span className="font-mono font-bold text-sm text-foreground tracking-wider">{v.code}</span>
-              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-full">Active</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* My Mystery Slots — redeemed vouchers with assigned slots */}
-      {!loadingVouchers && redeemedVouchers.length > 0 && (
-        <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col gap-2">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">My Mystery Slots</p>
-          {redeemedVouchers.map((v) => (
-            <div key={v.id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 border border-border rounded-xl px-3 py-2.5">
-              <div className="flex flex-col gap-0.5">
-                <span className="font-mono text-xs text-muted-foreground">{v.code}</span>
-                {v.assigned_slot ? (
-                  <span className="font-bold text-sm text-foreground">🎯 {v.assigned_slot}</span>
-                ) : (
-                  <span className="text-xs text-muted-foreground italic">Awaiting admin assignment…</span>
-                )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleCopy(v.code)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-full">Active</span>
               </div>
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">Redeemed</span>
             </div>
           ))}
         </div>

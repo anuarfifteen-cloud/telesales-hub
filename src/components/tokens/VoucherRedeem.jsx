@@ -3,17 +3,17 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
-export default function VoucherRedeem({ user }) {
+export default function VoucherRedeem({ user, onUserUpdate }) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
+  const [successMsg, setSuccessMsg] = useState(null);
 
   const handleRedeem = async () => {
     if (!code.trim()) return;
     setLoading(true);
     setError(null);
-    setSuccess(false);
+    setSuccessMsg(null);
 
     const results = await base44.entities.Voucher.filter({ code: code.trim().toUpperCase() });
     const voucher = results[0];
@@ -34,9 +34,25 @@ export default function VoucherRedeem({ user }) {
       return;
     }
 
-    await base44.entities.Voucher.update(voucher.id, { status: "redeemed" });
-    setSuccess(true);
+    const freshUser = await base44.auth.me();
+    const currentTokens = freshUser?.earlyAccessTokens ?? 0;
+    const reward = voucher.reward_tokens ?? 1;
+
+    await Promise.all([
+      base44.auth.updateMe({ earlyAccessTokens: currentTokens + reward }),
+      base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+      base44.entities.TokenTransaction.create({
+        user_id: user.id,
+        user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
+        amount: reward,
+        source: `Blind Voucher Redemption (${voucher.code})`,
+        timestamp: new Date().toISOString(),
+      }),
+    ]);
+
+    setSuccessMsg(`🎉 Voucher redeemed! You received ${reward} token${reward !== 1 ? "s" : ""}.`);
     setCode("");
+    await onUserUpdate();
     setLoading(false);
   };
 
@@ -47,7 +63,7 @@ export default function VoucherRedeem({ user }) {
         <input
           type="text"
           value={code}
-          onChange={(e) => { setCode(e.target.value.toUpperCase()); setError(null); setSuccess(false); }}
+          onChange={(e) => { setCode(e.target.value.toUpperCase()); setError(null); setSuccessMsg(null); }}
           placeholder="BV-XXXX-XXXX"
           className="flex-1 font-mono text-sm border border-input rounded-lg px-3 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
         />
@@ -60,11 +76,7 @@ export default function VoucherRedeem({ user }) {
         </Button>
       </div>
       {error && <p className="text-xs text-red-500 font-semibold">{error}</p>}
-      {success && (
-        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-          🎉 Code Redeemed! Admin will assign your slot shortly.
-        </p>
-      )}
+      {successMsg && <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">{successMsg}</p>}
     </div>
   );
 }

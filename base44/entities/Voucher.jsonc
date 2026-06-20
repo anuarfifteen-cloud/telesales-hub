@@ -14,6 +14,10 @@
       "type": "string",
       "description": "Unique voucher code e.g. BV-XXXX-XXXX"
     },
+    "reward_tokens": {
+      "type": "number",
+      "description": "Number of tokens this voucher pays out when redeemed (1-5)"
+    },
     "status": {
       "type": "string",
       "enum": [
@@ -22,10 +26,6 @@
       ],
       "default": "active",
       "description": "active = not yet redeemed, redeemed = used"
-    },
-    "assigned_slot": {
-      "type": "string",
-      "description": "Slot assigned by admin after redemption"
     },
     "created_at": {
       "type": "string",
