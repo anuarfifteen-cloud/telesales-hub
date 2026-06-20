@@ -108,6 +108,17 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const [streakRecord, setStreakRecord] = useState(null); // DB record
   const [todayRecord, setTodayRecord] = useState(() => getTodayRecord());
 
+  // Real-time subscription — keeps streak UI in sync with DB regardless of timing
+  useEffect(() => {
+    if (!user?.id) return;
+    const unsubscribe = base44.entities.QuizStreak.subscribe((event) => {
+      if (event.data?.user_id === user.id) {
+        setStreakRecord(event.data);
+      }
+    });
+    return () => unsubscribe();
+  }, [user?.id]);
+
   // Fetch streak from DB + today's question on mount
   useEffect(() => {
     if (!user?.id) return;
