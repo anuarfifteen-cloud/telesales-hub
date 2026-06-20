@@ -1,0 +1,40 @@
+{
+  "name": "Voucher",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user who owns this voucher"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the user"
+    },
+    "code": {
+      "type": "string",
+      "description": "Unique voucher code e.g. BV-XXXX-XXXX"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "redeemed"
+      ],
+      "default": "active",
+      "description": "active = not yet redeemed, redeemed = used"
+    },
+    "assigned_slot": {
+      "type": "string",
+      "description": "Slot assigned by admin after redemption"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the voucher was created"
+    }
+  },
+  "required": [
+    "user_id",
+    "code",
+    "status"
+  ]
+}

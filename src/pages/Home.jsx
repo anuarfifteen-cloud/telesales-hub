@@ -35,6 +35,7 @@ import FeatureUnlockModal from "@/components/FeatureUnlockModal";
 import DailySpinWheel from "@/components/booking/DailySpinWheel";
 import TokenVoucher from "@/components/booking/MysteryBoxModal";
 import InboxView from "@/components/inbox/InboxView";
+import VoucherRedeem from "@/components/tokens/VoucherRedeem";
 import { toast } from "sonner";
 
 const EMPLOYEES = [
@@ -1033,6 +1034,9 @@ useEffect(() => {
 
               {/* ── TOKEN VOUCHER ── */}
               <TokenVoucher user={user} onUserUpdate={refreshUser} />
+
+              {/* ── BLIND VOUCHER REDEEM ── */}
+              <VoucherRedeem user={user} />
 
               {/* Official Work Hours */}
               <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
