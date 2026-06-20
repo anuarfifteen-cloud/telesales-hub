@@ -39,9 +39,20 @@
     "body"
   ],
   "rls": {
-    "read": {},
+    "read": {
+      "$or": [
+        {
+          "sender_id": "{{user.id}}"
+        },
+        {
+          "recipient_id": "{{user.id}}"
+        }
+      ]
+    },
     "create": {},
-    "update": {},
+    "update": {
+      "recipient_id": "{{user.id}}"
+    },
     "delete": {
       "sender_id": "__deletion_disabled__"
     }
