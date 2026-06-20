@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { CheckCircle, XCircle, Loader2, Gift } from "lucide-react";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -17,40 +17,25 @@ function getYesterdayBrunei() {
   return bruneiNow.toLocaleDateString("en-CA");
 }
 
-// ── LocalStorage helpers ──────────────────────────────────────────────────────
+// ── LocalStorage helpers (today's answer only — not streak) ───────────────────
 function getTodayKey() {
   return `solo_quiz_answered_${getBruneiToday()}`;
 }
-
 function getTodayRecord() {
   const raw = localStorage.getItem(getTodayKey());
   return raw ? JSON.parse(raw) : null;
 }
-
 function saveTodayRecord(data) {
   localStorage.setItem(getTodayKey(), JSON.stringify(data));
 }
-
-function getStreak() {
-  const raw = localStorage.getItem("solo_quiz_streak");
-  return raw ? JSON.parse(raw) : { count: 0, lastCorrectDate: null };
-}
-
-function saveStreak(data) {
-  localStorage.setItem("solo_quiz_streak", JSON.stringify(data));
-}
-
 function getLastSeenId() {
   return localStorage.getItem("solo_quiz_last_id") || null;
 }
-
 function saveLastSeenId(id) {
   localStorage.setItem("solo_quiz_last_id", id);
 }
 
 // ── Streak Pills ──────────────────────────────────────────────────────────────
-// filledDots = number of dots that should show green ticks (completed past days)
-// activeDot = index of the current "today" dot (if answered today), or the next pending dot
 function StreakPills({ filledDots, activeDotIndex, activeDotCorrect, answeredToday }) {
   return (
     <div className="flex flex-col gap-2">
@@ -91,7 +76,8 @@ function StreakPills({ filledDots, activeDotIndex, activeDotCorrect, answeredTod
 }
 
 // ── Already Answered Card ─────────────────────────────────────────────────────
-function AlreadyAnsweredCard({ record, streak }) {
+function AlreadyAnsweredCard({ record, streakRecord }) {
+  const count = streakRecord?.streak_count ?? 0;
   return (
     <div className={`rounded-2xl border p-4 flex flex-col gap-3 ${record.correct ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800" : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"}`}>
       <div className="flex items-center gap-2">
@@ -104,8 +90,8 @@ function AlreadyAnsweredCard({ record, streak }) {
         </p>
       </div>
       <p className="text-xs text-muted-foreground">
-        Current streak: <strong className="text-foreground">{streak.count}</strong> day{streak.count !== 1 ? "s" : ""}
-        {streak.count === 0 ? " — keep going tomorrow!" : streak.count >= 4 ? " — one more for reward! 🔥" : ""}
+        Current streak: <strong className="text-foreground">{count}</strong> day{count !== 1 ? "s" : ""}
+        {count === 0 ? " — keep going tomorrow!" : count >= 4 ? " — one more for reward! 🔥" : ""}
       </p>
       <p className="text-xs text-muted-foreground">Come back tomorrow for your next question.</p>
     </div>
@@ -119,27 +105,37 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const [selected, setSelected] = useState(null);
   const [pendingResult, setPendingResult] = useState(null);
   const [finishing, setFinishing] = useState(false);
-  const [streak, setStreak] = useState(() => getStreak());
+  const [streakRecord, setStreakRecord] = useState(null); // DB record
   const [todayRecord, setTodayRecord] = useState(() => getTodayRecord());
 
+  // Fetch streak from DB + today's question on mount
   useEffect(() => {
-    const alreadyAnswered = getTodayRecord();
-    if (alreadyAnswered) {
-      setTodayRecord(alreadyAnswered);
-      setLoading(false);
-      return;
-    }
+    if (!user?.id) return;
 
-    // Pick a random active question, excluding last seen
-    base44.entities.QuizQuestion.filter({ is_active: true }).then((questions) => {
+    const init = async () => {
+      // Fetch streak from DB
+      const records = await base44.entities.QuizStreak.filter({ user_id: user.id });
+      const dbStreak = records[0] || null;
+      setStreakRecord(dbStreak);
+
+      // If already answered today (localStorage), no need to fetch a question
+      if (getTodayRecord()) {
+        setLoading(false);
+        return;
+      }
+
+      // Pick a random active question, excluding last seen
+      const questions = await base44.entities.QuizQuestion.filter({ is_active: true });
       if (!questions.length) { setLoading(false); return; }
       const lastId = getLastSeenId();
       const pool = questions.length > 1 ? questions.filter(q => q.id !== lastId) : questions;
       const picked = pool[Math.floor(Math.random() * pool.length)];
       setQuestion(picked);
       setLoading(false);
-    });
-  }, []);
+    };
+
+    init();
+  }, [user?.id]);
 
   const handleAnswer = (opt) => {
     if (pendingResult || !question) return;
@@ -160,39 +156,27 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
     const yesterday = getYesterdayBrunei();
     const isCorrect = pendingResult.correct;
 
-    // Compute new streak
-    const currentStreak = getStreak();
-    let newStreak = { ...currentStreak };
-
-    // Check if streak is still continuous
-    if (currentStreak.lastCorrectDate !== yesterday && currentStreak.lastCorrectDate !== null) {
-      // Missed a day — reset first
-      newStreak = { count: 0, lastCorrectDate: null };
-    }
+    // ── Compute new streak values based on DB record ──────────────────────────
+    const current = streakRecord;
+    let newCount = 0;
+    let newLastCorrectDate = null;
+    let newRewardPaid = current?.reward_paid_for_cycle ?? false;
 
     if (isCorrect) {
-      newStreak.count = (newStreak.count || 0) + 1;
-      newStreak.lastCorrectDate = today;
+      const wasConsecutive = current?.last_correct_date === yesterday;
+      newCount = wasConsecutive ? (current.streak_count || 0) + 1 : 1;
+      newLastCorrectDate = today;
     } else {
-      newStreak.count = 0;
-      newStreak.lastCorrectDate = null;
+      // Wrong answer — reset streak
+      newCount = 0;
+      newLastCorrectDate = null;
+      newRewardPaid = false;
     }
 
-    saveStreak(newStreak);
-    setStreak(newStreak);
-
-    // Save today's record
-    const record = { answered: true, correct: isCorrect, questionId: question.id };
-    saveTodayRecord(record);
-    setTodayRecord(record);
-    saveLastSeenId(question.id);
-
-    // Determine selected option letter
+    // ── Log quiz answer (server rejects duplicate via RLS unique constraint) ──
     const opts = [question.option_a, question.option_b, question.option_c];
-    const optLetters = ["A", "B", "C"];
-    const selectedOptionLetter = optLetters[opts.indexOf(pendingResult.selectedAnswer)] ?? "";
+    const selectedOptionLetter = ["A", "B", "C"][opts.indexOf(pendingResult.selectedAnswer)] ?? "";
 
-    // Log quiz answer — server will reject if already answered today (RLS unique constraint)
     try {
       await base44.entities.QuizAnswer.create({
         user_id: user.id,
@@ -204,16 +188,38 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
         selected_option: selectedOptionLetter,
       });
     } catch (e) {
-      // Duplicate submission blocked by server — show friendly message and bail out
-      setTodayRecord({ answered: true, correct: isCorrect, questionId: question.id, duplicate: true });
-      saveTodayRecord({ answered: true, correct: isCorrect, questionId: question.id, duplicate: true });
+      // Duplicate submission blocked server-side
+      const localRecord = { answered: true, correct: isCorrect, questionId: question.id, duplicate: true };
+      saveTodayRecord(localRecord);
+      setTodayRecord(localRecord);
       toast.error("You've already answered today's question. Come back tomorrow! 🌙");
       setFinishing(false);
       return;
     }
 
-    // Award tokens if streak just hit 5
-    if (newStreak.count >= 5) {
+    // ── Check reward eligibility BEFORE updating DB (guard: reward_paid_for_cycle) ──
+    const shouldReward = newCount >= 5 && !newRewardPaid;
+    if (shouldReward) {
+      newRewardPaid = true;
+    }
+
+    // ── Persist streak to DB ──────────────────────────────────────────────────
+    const streakPayload = {
+      streak_count: newCount,
+      last_correct_date: newLastCorrectDate,
+      reward_paid_for_cycle: newRewardPaid,
+    };
+
+    let updatedRecord;
+    if (current?.id) {
+      updatedRecord = await base44.entities.QuizStreak.update(current.id, streakPayload);
+    } else {
+      updatedRecord = await base44.entities.QuizStreak.create({ user_id: user.id, ...streakPayload });
+    }
+    setStreakRecord(updatedRecord);
+
+    // ── Award tokens if streak just completed ────────────────────────────────
+    if (shouldReward) {
       const freshUser = await base44.auth.me();
       const currentTokens = freshUser?.earlyAccessTokens ?? 0;
       await base44.auth.updateMe({ earlyAccessTokens: currentTokens + 2 });
@@ -224,16 +230,26 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
         source: "Daily Quiz — 5-Day Streak",
         timestamp: new Date().toISOString(),
       });
-      saveStreak({ count: 0, lastCorrectDate: null });
-      setStreak({ count: 0, lastCorrectDate: null });
       toast.success("+2 Tokens! 🎉 Streak Complete!");
+
+      // Reset streak count for the new cycle (keep reward_paid_for_cycle = false)
+      const resetPayload = { streak_count: 0, last_correct_date: null, reward_paid_for_cycle: false };
+      const resetRecord = await base44.entities.QuizStreak.update(updatedRecord.id, resetPayload);
+      setStreakRecord(resetRecord);
     }
+
+    // ── Save today's local answer record and clean up ─────────────────────────
+    const localRecord = { answered: true, correct: isCorrect, questionId: question.id };
+    saveTodayRecord(localRecord);
+    setTodayRecord(localRecord);
+    saveLastSeenId(question.id);
 
     await onUserUpdate();
     setFinishing(false);
   };
 
   const options = question ? [question.option_a, question.option_b, question.option_c] : [];
+  const streakCount = streakRecord?.streak_count ?? 0;
 
   return (
     <div className="flex flex-col gap-3">
@@ -255,8 +271,8 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
       {/* Streak Pills */}
       <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
         <StreakPills
-          filledDots={streak.count}
-          activeDotIndex={streak.count}
+          filledDots={streakCount}
+          activeDotIndex={streakCount}
           activeDotCorrect={todayRecord?.correct ?? null}
           answeredToday={!!todayRecord}
         />
@@ -281,7 +297,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
       )}
 
       {!loading && todayRecord && (
-        <AlreadyAnsweredCard record={todayRecord} streak={streak} />
+        <AlreadyAnsweredCard record={todayRecord} streakRecord={streakRecord} />
       )}
 
       {!loading && !todayRecord && !question && (

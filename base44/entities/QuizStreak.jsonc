@@ -1,0 +1,39 @@
+{
+  "name": "QuizStreak",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "The user's ID"
+    },
+    "streak_count": {
+      "type": "number",
+      "description": "Current consecutive correct days",
+      "default": 0
+    },
+    "last_correct_date": {
+      "type": "string",
+      "description": "YYYY-MM-DD of the last day the user answered correctly"
+    },
+    "reward_paid_for_cycle": {
+      "type": "boolean",
+      "description": "Whether the +2 token reward has already been paid for the current 5-day cycle",
+      "default": false
+    }
+  },
+  "required": [
+    "user_id"
+  ],
+  "rls": {
+    "read": {
+      "data.user_id": "{{user.id}}"
+    },
+    "create": {},
+    "update": {
+      "data.user_id": "{{user.id}}"
+    },
+    "delete": {
+      "user_id": "__deletion_disabled__"
+    }
+  }
+}
