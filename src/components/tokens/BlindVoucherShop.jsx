@@ -175,7 +175,7 @@ function RedeemOverlay({ phase, reward, onDone }) {
           </div>
           <p className="text-sm text-muted-foreground">Added to your balance!</p>
           <Button onClick={onDone} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black w-full">
-            Sweet! 🎊
+            Close
           </Button>
         </div>
       )}
