@@ -319,7 +319,7 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
               <h3 className="font-black text-base text-foreground">Blind Voucher</h3>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Spend 2 tokens for a mystery voucher worth 1–5 tokens. Redeem below to claim!
+              Spend 2 tokens for a mystery voucher worth 1–5 tokens. Redeem your code at the Profile tab to claim!
             </p>
           </div>
           <span className="flex-shrink-0 text-xs font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-full">
