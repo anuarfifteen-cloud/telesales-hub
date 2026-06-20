@@ -12,12 +12,12 @@ function initialsOf(name) {
 }
 
 function formatTime(dateStr) {
-  const d = new Date(dateStr);
-  return d.toLocaleString("en-GB", {
-    timeZone: "Asia/Brunei",
+  const utc = new Date(dateStr).getTime();
+  const brunei = new Date(utc + 8 * 60 * 60 * 1000);
+  return brunei.toLocaleString("en-GB", {
     month: "short",
     day: "numeric",
-    hour: "numeric",
+    hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   });
