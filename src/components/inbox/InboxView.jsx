@@ -55,7 +55,7 @@ export default function InboxView({ user }) {
       loadMessages(),
       base44.entities.User.list().catch(() => []),
     ]).then(([, u]) => {
-      setAllUsers(u || []);
+      setAllUsers(Array.isArray(u) ? u : []);
       setLoading(false);
     }).catch(() => setLoading(false));
 

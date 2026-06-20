@@ -67,7 +67,8 @@ export default function ChatThread({ user, peer, messages, onBack, onChanged }) 
       onChanged && onChanged();
     } catch (err) {
       console.error("Send failed:", err);
-      alert("Failed to send message. Please try again.");
+      const msg = err?.message || err?.toString() || "Unknown error";
+      alert(`Failed to send message: ${msg}`);
     } finally {
       setSending(false);
     }
