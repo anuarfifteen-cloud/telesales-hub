@@ -54,9 +54,9 @@ export default function InboxView({ user }) {
 
     const init = async () => {
       try {
-        const [, users] = await Promise.all([
-          loadMessages(),
+        const [users] = await Promise.all([
           base44.entities.User.list(),
+          loadMessages(),
         ]);
         setAllUsers(Array.isArray(users) ? users : []);
       } catch (e) {
