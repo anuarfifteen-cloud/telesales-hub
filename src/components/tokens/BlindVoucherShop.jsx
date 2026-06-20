@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Copy, Check } from "lucide-react";
 
-const VOUCHER_BG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/download.png?v=2";
+
 
 function generateCode() {
   const chunk = () => Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -53,24 +53,23 @@ function playRedeemChime() {
 
 function VoucherCard({ voucher, onCopy, copied }) {
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden shadow-lg" style={{ aspectRatio: "2 / 1" }}>
-      <img src={VOUCHER_BG} alt="voucher" className="absolute inset-0 w-full h-full object-cover" />
-      {/* Content on the right side */}
-      <div className="absolute inset-0 flex flex-col items-end justify-center pr-6 gap-1">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Blind Voucher</span>
+    <div className="w-full rounded-2xl bg-gradient-to-r from-emerald-900 to-emerald-700 border-2 border-dashed border-emerald-400 shadow-lg px-5 py-4 flex items-center gap-4">
+      <span className="text-3xl flex-shrink-0">🎟️</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 mb-1">Blind Voucher</p>
         <div className="flex items-center gap-2">
-          <span className="font-mono font-black text-xl text-slate-800 tracking-widest drop-shadow-sm">{voucher.code}</span>
+          <span className="font-mono font-bold text-white text-lg tracking-widest truncate">{voucher.code}</span>
           <button
             onClick={() => onCopy(voucher.code)}
-            className="p-1 rounded-full bg-white/80 hover:bg-white transition-colors shadow"
+            className="p-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex-shrink-0"
           >
-            {copied === voucher.code ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-600" />}
+            {copied === voucher.code ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5 text-emerald-300" />}
           </button>
         </div>
-        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">
-          Active
-        </span>
       </div>
+      <span className="flex-shrink-0 text-[10px] font-bold text-emerald-300 bg-emerald-800/60 border border-emerald-500 px-2 py-0.5 rounded-full">
+        Active
+      </span>
     </div>
   );
 }
@@ -111,16 +110,11 @@ function RevealOverlay({ phase, reward, onDone }) {
           className="bg-white dark:bg-card rounded-3xl p-8 flex flex-col items-center gap-4 mx-6 text-center shadow-2xl"
           style={{ animation: "popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards" }}
         >
-          <span style={{ fontSize: 60 }}>🎉</span>
-          <h2 className="font-black text-2xl text-foreground">You won!</h2>
-          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-6 py-3">
-            <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="token" className="w-8 h-8" />
-            <span className="font-black text-3xl text-amber-600">{reward}</span>
-            <span className="font-bold text-lg text-amber-700">token{reward !== 1 ? "s" : ""}</span>
-          </div>
-          <p className="text-sm text-muted-foreground">Your voucher code is now active below!</p>
+          <span style={{ fontSize: 60 }}>🎁</span>
+          <h2 className="font-black text-2xl text-foreground">Blind Voucher Activated!</h2>
+          <p className="text-sm text-muted-foreground">Redeem your code below to reveal your mystery reward.</p>
           <Button onClick={onDone} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black w-full">
-            Awesome! 🎊
+            See My Voucher 🎟️
           </Button>
         </div>
       )}
