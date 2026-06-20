@@ -146,82 +146,6 @@ function WheelGraphic({ rotation }) {
   );
 }
 
-// ── Winner Feed (With Date Exposure and Duplicate Checks) ─────────────────────
-function WinnerFeed() {
-  const { data: winners = [] } = useQuery({
-    queryKey: ["spinWinners"],
-    queryFn: () => base44.entities.SpinActivityLog.filter({ is_winner: true }),
-    refetchInterval: 10000, // Faster polling to capture live attempts instantly
-  });
-
-  // Sort logically from newest execution downwards
-  const sortedWinners = [...winners].sort((a, b) => 
-    new Date(b.created_at || b.created_date) - new Date(a.created_at || a.created_date)
-  );
-
-  const top3 = sortedWinners.slice(0, 3);
-
-  if (top3.length === 0) return null;
-
-  return (
-    <div className="bg-white dark:bg-card rounded-xl border border-border px-4 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">⚡ Recent Winners</p>
-      {top3.map((w, i) => {
-        // Extract raw timestamp safely to format the exact string day
-        const executionDate = w.created_at 
-          ? new Date(w.created_at).toLocaleDateString("en-GB", { day: 'numeric', month: 'short' })
-          : "Today";
-
-        // 🧠 ACCURACY ALGORITHM: Check if this user has generated other winning records on this exact date string
-        const userWinsOnThisDate = sortedWinners.filter(log => 
-          log.user_name === w.user_name && 
-          (log.created_at ? new Date(log.created_at).toLocaleDateString("en-CA") : "") === 
-          (w.created_at ? new Date(w.created_at).toLocaleDateString("en-CA") : "")
-        );
-
-        // Find chronological position of this specific win entry
-        const reversedList = [...userWinsOnThisDate].reverse();
-        const winOccurrenceIndex = reversedList.findIndex(log => log.id === w.id);
-        const winCountNumber = winOccurrenceIndex !== -1 ? winOccurrenceIndex + 1 : 1;
-
-        // Trigger flag if they managed to pass validation parameters more than once a day!
-        const isDuplicateAttempt = winCountNumber > 1;
-
-        return (
-          <div key={w.id || i} className="flex flex-col gap-0.5 py-2 border-b border-border last:border-0 w-full">
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-base leading-none flex-shrink-0">🏆</span>
-                <span className="text-sm font-medium text-foreground truncate max-w-[130px] whitespace-nowrap">
-                  {w.user_name}
-                </span>
-                {isDuplicateAttempt && (
-                  <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400 px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse flex-shrink-0">
-                    ⚠️ Void
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex items-center gap-1.5 flex-shrink-0 text-right">
-                <span className="text-xs text-muted-foreground font-medium">won</span>
-                <span className="text-sm font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">
-                  {w.prize_text}
-                </span>
-              </div>
-            </div>
-            
-            {/* Timestamp footprint sub-text bar */}
-            <div className="flex items-center justify-between text-[9px] text-muted-foreground/80 font-mono px-7">
-              <span>Date of Spin: {executionDate}</span>
-              {winCountNumber > 1 && <span className="text-red-500 font-bold">Invalid Entry #{winCountNumber}</span>}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // ── Wheel Modal ───────────────────────────────────────────────────────────────
 function WheelModal({ onClose, onClaim, user, today }) {
   const [rotation, setRotation] = useState(0);
@@ -372,7 +296,6 @@ export default function DailySpinWheel({ user, onUserUpdate }) {
   const alreadySpun = user?.last_spin_date === today;
 
   const handleClaim = async () => {
-    queryClient.invalidateQueries({ queryKey: ["spinWinners"] });
     await onUserUpdate();
     setShowModal(false);
   };
@@ -401,9 +324,6 @@ export default function DailySpinWheel({ user, onUserUpdate }) {
           </button>
         )}
       </div>
-
-      {/* Winner Feed with automated timeline trackers */}
-      <WinnerFeed />
 
       {/* Wheel Modal */}
       {showModal && (
