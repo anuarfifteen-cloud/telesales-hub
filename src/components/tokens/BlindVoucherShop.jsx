@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Copy, Check } from "lucide-react";
 
-const VOUCHER_BG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/download.png";
+const VOUCHER_BG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/download.png?v=2";
 
 function generateCode() {
   const chunk = () => Math.random().toString(36).substring(2, 6).toUpperCase();
