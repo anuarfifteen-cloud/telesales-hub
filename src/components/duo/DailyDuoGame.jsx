@@ -249,21 +249,6 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   return (
     <div className="flex flex-col gap-3">
 
-      {/* Header — always visible */}
-      <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-lg">🧠</span>
-          <h3 className="font-black text-base text-foreground">Daily Quiz</h3>
-          <span className="ml-auto text-[10px] font-bold text-pink-500 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">Solo Daily</span>
-        </div>
-        <div className="text-xs text-muted-foreground space-y-1 mt-1">
-          <p className="font-medium text-foreground">Answer 1 question per day, build a 5-day streak!</p>
-          <div className="bg-muted/20 p-2 rounded-md border border-border/50">
-            <p>🔥 <span className="font-medium text-foreground">5-day streak</span> = <span className="font-bold text-amber-500">+2 Tokens</span></p>
-          </div>
-        </div>
-      </div>
-
       {/* Loading */}
       {loading && (
         <div className="flex justify-center py-10">
@@ -271,7 +256,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
         </div>
       )}
 
-      {/* Maintenance Mode — ONLY this shows when quiz is disabled */}
+      {/* Maintenance Mode — ONLY this, nothing else */}
       {!loading && !quizEnabled && (
         <div className="bg-card rounded-2xl border border-border shadow-sm p-8 flex flex-col items-center gap-3 text-center">
           <span className="text-4xl">🔧</span>
@@ -283,6 +268,20 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
       {/* All quiz content — only when quiz is enabled */}
       {!loading && quizEnabled && (
         <>
+          {/* Header */}
+          <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">🧠</span>
+              <h3 className="font-black text-base text-foreground">Daily Quiz</h3>
+              <span className="ml-auto text-[10px] font-bold text-pink-500 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">Solo Daily</span>
+            </div>
+            <div className="text-xs text-muted-foreground space-y-1 mt-1">
+              <p className="font-medium text-foreground">Answer 1 question per day, build a 5-day streak!</p>
+              <div className="bg-muted/20 p-2 rounded-md border border-border/50">
+                <p>🔥 <span className="font-medium text-foreground">5-day streak</span> = <span className="font-bold text-amber-500">+2 Tokens</span></p>
+              </div>
+            </div>
+          </div>
           {/* Streak Pills */}
           <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
             <StreakPills
