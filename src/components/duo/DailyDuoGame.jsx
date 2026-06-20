@@ -108,17 +108,6 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const [streakRecord, setStreakRecord] = useState(null); // DB record
   const [todayRecord, setTodayRecord] = useState(() => getTodayRecord());
 
-  // Real-time subscription — keeps streak UI in sync with DB regardless of timing
-  useEffect(() => {
-    if (!user?.id) return;
-    const unsubscribe = base44.entities.QuizStreak.subscribe((event) => {
-      if (event.data?.user_id === user.id) {
-        setStreakRecord(event.data);
-      }
-    });
-    return () => unsubscribe();
-  }, [user?.id]);
-
   // Fetch streak from DB + today's question on mount
   useEffect(() => {
     if (!user?.id) return;
@@ -227,7 +216,15 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
     } else {
       updatedRecord = await base44.entities.QuizStreak.create({ user_id: user.id, ...streakPayload });
     }
+
+    // 1. Force UI update immediately
     setStreakRecord(updatedRecord);
+
+    // 2. Schedule re-fetch to confirm sync
+    setTimeout(async () => {
+      const fresh = await base44.entities.QuizStreak.filter({ user_id: user.id });
+      if (fresh?.[0]) setStreakRecord(fresh[0]);
+    }, 500);
 
     // ── Award tokens if streak just completed ────────────────────────────────
     if (shouldReward) {
