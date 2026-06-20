@@ -6,6 +6,11 @@
       "type": "number",
       "description": "Cost in tokens to activate the VIP Early Access Pass",
       "default": 1
+    },
+    "quiz_enabled": {
+      "type": "boolean",
+      "description": "Whether the Daily Quiz is enabled for all users",
+      "default": true
     }
   },
   "required": []

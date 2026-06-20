@@ -107,12 +107,21 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const [finishing, setFinishing] = useState(false);
   const [streakRecord, setStreakRecord] = useState(null); // DB record
   const [todayRecord, setTodayRecord] = useState(() => getTodayRecord());
+  const [quizEnabled, setQuizEnabled] = useState(true);
 
   // Fetch streak from DB + today's question on mount
   useEffect(() => {
     if (!user?.id) return;
 
     const init = async () => {
+      // Check maintenance mode
+      const settings = await base44.entities.AppSettings.list();
+      if (settings[0]?.quiz_enabled === false) {
+        setQuizEnabled(false);
+        setLoading(false);
+        return;
+      }
+
       // Fetch streak from DB
       const records = await base44.entities.QuizStreak.filter({ user_id: user.id });
       const dbStreak = records[0] || null;
@@ -297,6 +306,15 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
         </div>
       </div>
 
+      {/* Maintenance Mode */}
+      {!loading && !quizEnabled && (
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-8 flex flex-col items-center gap-3 text-center">
+          <span className="text-4xl">🔧</span>
+          <p className="font-bold text-sm text-foreground">Daily Quiz is currently under maintenance.</p>
+          <p className="text-xs text-muted-foreground">Please check back later!</p>
+        </div>
+      )}
+
       {/* Content */}
       {loading && (
         <div className="flex justify-center py-10">
@@ -304,11 +322,11 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
         </div>
       )}
 
-      {!loading && todayRecord && (
+      {!loading && quizEnabled && todayRecord && (
         <AlreadyAnsweredCard record={todayRecord} streakRecord={streakRecord} />
       )}
 
-      {!loading && !todayRecord && !question && (
+      {!loading && quizEnabled && !todayRecord && !question && (
         <div className="bg-card rounded-2xl border border-border shadow-sm p-6 flex flex-col items-center gap-3 text-center">
           <span className="text-4xl">📭</span>
           <p className="font-bold text-sm text-foreground">No active questions available.</p>
@@ -316,7 +334,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
         </div>
       )}
 
-      {!loading && !todayRecord && question && (
+      {!loading && quizEnabled && !todayRecord && question && (
         <div className="flex flex-col gap-3">
           {/* Question */}
           <div className="bg-card rounded-2xl border border-border p-4">

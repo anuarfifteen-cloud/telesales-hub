@@ -9,6 +9,7 @@ import AdminSpinLogs from "./AdminSpinLogs";
 import AdminSuperTap from "./AdminSuperTap";
 import AdminTokenAuditLog from "./AdminTokenAuditLog";
 import TokenShopSettings from "./TokenShopSettings";
+import QuizMaintenanceToggle from "./QuizMaintenanceToggle";
 
 const LIVE_FEED_KEY = "liveFeedEnabled";
 
@@ -209,6 +210,9 @@ export default function AdminDashboard({ onBack }) {
           <h2 className="text-xl font-bold">Telesales Hub</h2>
           <p className="text-sm opacity-80 mt-0.5">Manage team data and settings below.</p>
         </div>
+
+        {/* Daily Quiz Maintenance Toggle */}
+        <QuizMaintenanceToggle />
 
         {/* Live Feed Toggle */}
         <div className="bg-white rounded-2xl border border-border p-5 flex items-center justify-between gap-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
