@@ -5,7 +5,10 @@ import ChatThread from "./ChatThread";
 import UserPicker from "./UserPicker";
 
 function timeAgo(dateStr) {
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const utc = new Date(dateStr).getTime();
+  const bruneiNow = Date.now() + 8 * 60 * 60 * 1000;
+  const bruneiDate = utc + 8 * 60 * 60 * 1000;
+  const diff = bruneiNow - bruneiDate;
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
