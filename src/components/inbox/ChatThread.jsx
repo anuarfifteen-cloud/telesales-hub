@@ -13,7 +13,8 @@ function initialsOf(name) {
 
 function formatTime(dateStr) {
   const d = new Date(dateStr);
-  return d.toLocaleString("en-US", {
+  return d.toLocaleString("en-GB", {
+    timeZone: "Asia/Brunei",
     month: "short",
     day: "numeric",
     hour: "numeric",
