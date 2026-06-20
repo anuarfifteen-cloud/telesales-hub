@@ -261,7 +261,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
         <div className="bg-card rounded-2xl border border-border shadow-sm p-8 flex flex-col items-center gap-3 text-center">
           <span className="text-4xl">🔧</span>
           <p className="font-bold text-sm text-foreground">Daily Quiz is currently under maintenance.</p>
-          <p className="text-xs text-muted-foreground">Please check back Next Time!</p>
+          <p className="text-xs text-muted-foreground">Please check again Next Time!</p>
         </div>
       )}
 
