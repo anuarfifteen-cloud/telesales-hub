@@ -192,16 +192,25 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
     const optLetters = ["A", "B", "C"];
     const selectedOptionLetter = optLetters[opts.indexOf(pendingResult.selectedAnswer)] ?? "";
 
-    // Log quiz answer
-    await base44.entities.QuizAnswer.create({
-      user_id: user.id,
-      user_name: user.full_name || user.email,
-      question_id: question.id,
-      question_text: question.question_text,
-      answered_date: today,
-      is_correct: isCorrect,
-      selected_option: selectedOptionLetter,
-    });
+    // Log quiz answer — server will reject if already answered today (RLS unique constraint)
+    try {
+      await base44.entities.QuizAnswer.create({
+        user_id: user.id,
+        user_name: user.full_name || user.email,
+        question_id: question.id,
+        question_text: question.question_text,
+        answered_date: today,
+        is_correct: isCorrect,
+        selected_option: selectedOptionLetter,
+      });
+    } catch (e) {
+      // Duplicate submission blocked by server — show friendly message and bail out
+      setTodayRecord({ answered: true, correct: isCorrect, questionId: question.id, duplicate: true });
+      saveTodayRecord({ answered: true, correct: isCorrect, questionId: question.id, duplicate: true });
+      toast.error("You've already answered today's question. Come back tomorrow! 🌙");
+      setFinishing(false);
+      return;
+    }
 
     // Award tokens if streak just hit 5
     if (newStreak.count >= 5) {
@@ -246,9 +255,10 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
       {/* Streak Pills */}
       <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
         <StreakPills
-          streak={streak}
+          filledDots={streak.count}
+          activeDotIndex={streak.count}
+          activeDotCorrect={todayRecord?.correct ?? null}
           answeredToday={!!todayRecord}
-          correct={todayRecord?.correct ?? null}
         />
       </div>
 
