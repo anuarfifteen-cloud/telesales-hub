@@ -49,31 +49,36 @@ function saveLastSeenId(id) {
 }
 
 // ── Streak Pills ──────────────────────────────────────────────────────────────
-function StreakPills({ streak, answeredToday, correct }) {
+// filledDots = number of dots that should show green ticks (completed past days)
+// activeDot = index of the current "today" dot (if answered today), or the next pending dot
+function StreakPills({ filledDots, activeDotIndex, activeDotCorrect, answeredToday }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">5-Day Streak</span>
-        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">{streak.count}/5</span>
+        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">{filledDots}/5</span>
       </div>
       <div className="flex gap-1.5 justify-center">
         {[0, 1, 2, 3, 4].map((i) => {
-          const isFilled = i < streak.count;
-          const isToday = i === streak.count && answeredToday;
-          const isTodayCorrect = isToday && correct;
+          const isFilled = i < filledDots;
+          const isActive = i === activeDotIndex && answeredToday;
+          const isPending = i === activeDotIndex && !answeredToday;
 
           let cls = "bg-muted border-border text-muted-foreground";
           if (isFilled) cls = "bg-emerald-400 border-emerald-500 text-white";
-          else if (isToday && correct === true) cls = "bg-emerald-400 border-emerald-500 text-white";
-          else if (isToday && correct === false) cls = "bg-red-400 border-red-500 text-white";
-          else if (i === streak.count && !answeredToday) cls = "bg-amber-100 dark:bg-amber-950/40 border-amber-400 text-amber-600 animate-pulse";
+          else if (isActive && activeDotCorrect === true) cls = "bg-emerald-400 border-emerald-500 text-white";
+          else if (isActive && activeDotCorrect === false) cls = "bg-red-400 border-red-500 text-white";
+          else if (isPending) cls = "bg-amber-100 dark:bg-amber-950/40 border-amber-400 text-amber-600 animate-pulse";
 
           return (
             <div
               key={i}
               className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all ${cls}`}
             >
-              {isFilled || (isToday && correct) ? <CheckCircle className="w-4 h-4" /> : (isToday && correct === false) ? <XCircle className="w-4 h-4" /> : i + 1}
+              {isFilled ? <CheckCircle className="w-4 h-4" /> :
+               isActive && activeDotCorrect === true ? <CheckCircle className="w-4 h-4" /> :
+               isActive && activeDotCorrect === false ? <XCircle className="w-4 h-4" /> :
+               i + 1}
             </div>
           );
         })}
