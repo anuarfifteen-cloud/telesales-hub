@@ -98,7 +98,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           </button>
         </div>
         {/* Row 3 */}
-        <div className="grid grid-cols-1 gap-1">
+        <div className="grid grid-cols-2 gap-1">
           <button
             onClick={() => setInnerTab("blindvoucher")}
             className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
