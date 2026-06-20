@@ -40,7 +40,17 @@
   ],
   "rls": {
     "read": {},
-    "create": {},
+    "create": {
+      "$and": [
+        {},
+        {
+          "unique": [
+            "user_id",
+            "answered_date"
+          ]
+        }
+      ]
+    },
     "update": {
       "user_id": "__update_disabled__"
     },
