@@ -974,7 +974,7 @@ useEffect(() => {
                 <button
                   onClick={() => setProfileTab("inbox")}
                   className={`relative flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${profileTab === "inbox" ? "bg-blue-600 text-white shadow-md" : "bg-transparent text-slate-500 hover:text-slate-700"}`}>
-                  <span>💬</span> Coming Soon
+                  <span>💬</span> Inbox
                   {unreadMessageCount > 0 &&
                     <span className="min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
                       {unreadMessageCount}
