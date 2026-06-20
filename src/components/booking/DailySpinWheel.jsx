@@ -252,7 +252,7 @@ function WheelModal({ onClose, onClaim, user, today }) {
             <h3 className="text-xl font-black text-foreground text-center">{result.label}</h3>
             {result.tokens > 0 && (
               <p className="text-sm text-muted-foreground text-center">
-                +{result.tokens} token${result.tokens > 1 ? "s" : ""} will be added to your balance!
+                +{result.tokens} token{result.tokens > 1 ? "s" : ""} will be added to your balance!
               </p>
             )}
             {!result.lockDate && (
