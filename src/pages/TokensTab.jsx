@@ -110,7 +110,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
             🎟️ Blind Voucher
           </button>
           <button
-            onClick={() => setInnerTab("blindvoucher")}
+            onClick={() => setInnerTab("blindvoucher (soon)")}
             className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
               innerTab === "blindvoucher"
                 ? "bg-emerald-600 text-white shadow"
