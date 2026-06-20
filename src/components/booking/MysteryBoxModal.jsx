@@ -57,6 +57,54 @@ export default function TokenVoucher({ user, onUserUpdate }) {
     const formattedCode = claimCode.trim().toUpperCase();
 
     try {
+      // BV- codes: look up in the Voucher entity
+      if (formattedCode.startsWith("BV-")) {
+        const results = await base44.entities.Voucher.filter({ code: formattedCode });
+        const voucher = results[0];
+
+        if (!voucher) {
+          setVoucherStatus({ text: "Code Does Not Exist ❌", color: "text-red-600 dark:text-red-400" });
+          setLoading(false);
+          return toast.error("Invalid voucher code.");
+        }
+        if (voucher.status === "redeemed") {
+          setVoucherStatus({ text: "Already Claimed 🚫", color: "text-amber-600 dark:text-amber-400" });
+          setLoading(false);
+          return toast.error("This voucher has already been redeemed.");
+        }
+        if (voucher.user_id !== user.id) {
+          setVoucherStatus({ text: "Code Does Not Belong to You ❌", color: "text-red-600 dark:text-red-400" });
+          setLoading(false);
+          return toast.error("This code is not yours.");
+        }
+
+        const reward = voucher.reward_tokens ?? 1;
+        const freshUser = await base44.auth.me();
+        const freshTokens = freshUser?.earlyAccessTokens ?? 0;
+
+        await Promise.all([
+          base44.auth.updateMe({ earlyAccessTokens: freshTokens + reward }),
+          base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+          base44.entities.TokenTransaction.create({
+            user_id: user.id,
+            user_name: user.full_name || user.email,
+            amount: reward,
+            source: `Blind Voucher Redemption (${formattedCode})`,
+            timestamp: new Date().toISOString(),
+          }),
+        ]);
+
+        setVoucherStatus({
+          text: `Success! +${reward} ${reward === 1 ? 'Token' : 'Tokens'} Added 🪙`,
+          color: "text-emerald-600 dark:text-emerald-400"
+        });
+        setClaimCode("");
+        await onUserUpdate();
+        toast.success(`Success! Added +${reward} tokens to your balance. 🪙`);
+        return;
+      }
+
+      // VCH- codes: original logic
       const transactions = await base44.entities.TokenTransaction.list();
       const activeTx = transactions.find(t => t.source === `VOUCHER_ACTIVE:${formattedCode}`);
       const claimedTx = transactions.find(t => t.source.startsWith(`VOUCHER_CLAIMED:${formattedCode}`));
@@ -165,7 +213,7 @@ export default function TokenVoucher({ user, onUserUpdate }) {
                   setClaimCode(e.target.value);
                   setVoucherStatus(null);
                 }}
-                placeholder="Paste VCH code here..."
+                placeholder="VCH-XXXXX or BV-XXXX-XXXX"
                 className="w-full text-xs border rounded-lg pl-2.5 pr-14 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background font-mono uppercase tracking-wide"
               />
               <button

@@ -10,7 +10,12 @@ function generateCode() {
   return `BV-${chunk()}-${chunk()}`;
 }
 function randomReward() {
-  return Math.floor(Math.random() * 5) + 1;
+  const roll = Math.random() * 100;
+  if (roll < 40) return 1;  // 40%
+  if (roll < 70) return 2;  // 30%
+  if (roll < 85) return 3;  // 15%
+  if (roll < 95) return 4;  // 10%
+  return 5;                  // 5%
 }
 
 function playChime() {
@@ -346,31 +351,7 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
         </div>
       )}
 
-      {/* Redeem Section */}
-      <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🎟️</span>
-          <p className="text-sm font-black text-foreground">Redeem a Voucher</p>
-        </div>
-        <p className="text-xs text-muted-foreground -mt-1">Enter your voucher code to claim your mystery tokens.</p>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={redeemCode}
-            onChange={(e) => { setRedeemCode(e.target.value.toUpperCase()); setRedeemError(null); }}
-            placeholder="BV-XXXX-XXXX"
-            className="flex-1 font-mono text-sm border border-input rounded-lg px-3 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
-          />
-          <Button
-            onClick={handleRedeem}
-            disabled={!redeemCode.trim() || redeemLoading}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
-          >
-            {redeemLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Redeem"}
-          </Button>
-        </div>
-        {redeemError && <p className="text-xs text-red-500 font-semibold">{redeemError}</p>}
-      </div>
+
     </div>
   );
 }
