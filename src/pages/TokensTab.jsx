@@ -5,6 +5,7 @@ import PerfectTen from "@/components/coinflip/PerfectTen";
 import VipActivityFeed from "@/components/coinflip/VipActivityFeed";
 import DailyDuoGame from "@/components/duo/DailyDuoGame";
 import SuperTapGame from "@/components/supertap/SuperTapGame";
+import BlindVoucherShop from "@/components/tokens/BlindVoucherShop";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin }) {
   const [innerTab, setInnerTab] = useState("milestones");
@@ -96,6 +97,19 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
             ⚡ Super Tap
           </button>
         </div>
+        {/* Row 3 */}
+        <div className="grid grid-cols-1 gap-1">
+          <button
+            onClick={() => setInnerTab("blindvoucher")}
+            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              innerTab === "blindvoucher"
+                ? "bg-emerald-600 text-white shadow"
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            🎟️ Blind Voucher
+          </button>
+        </div>
       </div>
 
       {/* Milestones */}
@@ -128,6 +142,11 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
       {/* Super Tap */}
       {innerTab === "supertap" && (
         <SuperTapGame user={user} />
+      )}
+
+      {/* Blind Voucher */}
+      {innerTab === "blindvoucher" && (
+        <BlindVoucherShop user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {/* VIP Pass */}
