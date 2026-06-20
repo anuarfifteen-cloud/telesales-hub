@@ -49,9 +49,7 @@
         }
       ]
     },
-    "create": {
-      "sender_id": "{{user.id}}"
-    },
+    "create": {},
     "update": {
       "recipient_id": "{{user.id}}"
     },
