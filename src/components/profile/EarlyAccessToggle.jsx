@@ -107,9 +107,13 @@ function MilestoneRow({ milestone, totalBookingCount, index }) {
   );
 }
 
+const VIP_PLUS_PRICE = 5;
+
 export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCount = 0, showMilestones = true }) {
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showPlusConfirm, setShowPlusConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingPlus, setSavingPlus] = useState(false);
   const [vipPrice, setVipPrice] = useState(1);
 
   useEffect(() => {
@@ -121,15 +125,19 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
   }, []);
 
   const tokens = user?.earlyAccessTokens ?? 0;
+
+  // 30-min pass
   const vipExpiresAt = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
   const isVipActive = vipExpiresAt && vipExpiresAt.getTime() > Date.now();
   const canActivate = tokens >= vipPrice && !isVipActive;
 
+  // 1-hour pass
+  const vipPlusExpiresAt = user?.vipPlusExpiresAt ? new Date(user.vipPlusExpiresAt) : null;
+  const isVipPlusActive = vipPlusExpiresAt && vipPlusExpiresAt.getTime() > Date.now();
+  const canActivatePlus = tokens >= VIP_PLUS_PRICE && !isVipPlusActive;
+
   // Find next milestone target for the overall progress bar
   const nextMilestone = MILESTONES.find((m) => totalBookingCount < m.target);
-  const prevTarget = nextMilestone
-    ? (MILESTONES[MILESTONES.indexOf(nextMilestone) - 1]?.target ?? 0)
-    : MILESTONES[MILESTONES.length - 1].target;
   const overallPct = nextMilestone
     ? Math.round((totalBookingCount / nextMilestone.target) * 100)
     : 100;
@@ -142,7 +150,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
       user_id: user.id,
       user_name: user.full_name || user.email,
       amount: -vipPrice,
-      source: "VIP Pass Purchase",
+      source: "VIP Pass Purchase (30-min early)",
       timestamp: new Date().toISOString(),
     });
     await onUserUpdate();
@@ -151,9 +159,26 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
     toast.success("⚡ Early Access activated! You can now book 30 minutes early.");
   };
 
-  const formatExpiry = () => {
-    if (!vipExpiresAt) return "";
-    return vipExpiresAt.toLocaleString("en-US", {
+  const handleActivatePlus = async () => {
+    setSavingPlus(true);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    await base44.auth.updateMe({ earlyAccessTokens: tokens - VIP_PLUS_PRICE, vipPlusExpiresAt: expiresAt });
+    await base44.entities.TokenTransaction.create({
+      user_id: user.id,
+      user_name: user.full_name || user.email,
+      amount: -VIP_PLUS_PRICE,
+      source: "VIP Plus Pass Purchase (1-hour early)",
+      timestamp: new Date().toISOString(),
+    });
+    await onUserUpdate();
+    setSavingPlus(false);
+    setShowPlusConfirm(false);
+    toast.success("🚀 VIP Plus activated! You can now book 1 hour early.");
+  };
+
+  const formatExpiry = (date) => {
+    if (!date) return "";
+    return date.toLocaleString("en-US", {
       month: "short", day: "numeric",
       hour: "numeric", minute: "2-digit", hour12: true,
     });
@@ -164,7 +189,6 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
       {/* ── Milestones ── */}
       {showMilestones && (
         <div className="space-y-3">
-          {/* Overall progress summary */}
           {nextMilestone && (
             <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-2.5 border border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between mb-1.5">
@@ -188,7 +212,6 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
               </p>
             </div>
           )}
-
           {MILESTONES.map((m, i) => (
             <MilestoneRow key={m.target} milestone={m} totalBookingCount={totalBookingCount} index={i} />
           ))}
@@ -197,25 +220,22 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
 
       {/* ── VIP Pass / Spend Tokens ── */}
       {!showMilestones && (
-        <>
+        <div className="space-y-3">
+          {/* ── 30-min pass ── */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Zap className={`w-4 h-4 flex-shrink-0 ${isVipActive ? "text-amber-500" : tokens > 0 ? "text-blue-500" : "text-slate-300 dark:text-slate-600"}`} />
+              <Zap className={`w-4 h-4 flex-shrink-0 ${isVipActive ? "text-amber-500" : tokens >= vipPrice ? "text-blue-500" : "text-slate-300 dark:text-slate-600"}`} />
               <div>
-                <p className={`text-sm font-medium ${isVipActive || tokens > 0 ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
+                <p className={`text-sm font-medium ${isVipActive || tokens >= vipPrice ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
                   ACTIVATE EARLY 30-MINS BOOKING ACCESS
                 </p>
                 {isVipActive ? (
                   <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-none mt-0.5 font-semibold">
-                    ⚡ Active — expires {formatExpiry()}
-                  </p>
-                ) : tokens > 0 ? (
-                  <p className="text-[10px] text-blue-600 dark:text-blue-400 leading-none mt-0.5 font-semibold">
-                    {tokens} token{tokens !== 1 ? "s" : ""} available — book 30 min early for 24h
+                    ⚡ Active — expires {formatExpiry(vipExpiresAt)}
                   </p>
                 ) : (
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-none mt-0.5">
-                    No tokens available
+                  <p className={`text-[10px] leading-none mt-0.5 font-semibold ${tokens >= vipPrice ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}>
+                    {vipPrice} token{vipPrice !== 1 ? "s" : ""} — book 30 min early for 24h
                   </p>
                 )}
               </div>
@@ -229,27 +249,72 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isVipActive ? "translate-x-6" : "translate-x-1"}`} />
             </button>
           </div>
+
+          {/* ── 1-hour pass ── */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Zap className={`w-4 h-4 flex-shrink-0 ${isVipPlusActive ? "text-purple-500" : tokens >= VIP_PLUS_PRICE ? "text-purple-400" : "text-slate-300 dark:text-slate-600"}`} />
+              <div>
+                <p className={`text-sm font-medium ${isVipPlusActive || tokens >= VIP_PLUS_PRICE ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
+                  ACTIVATE EARLY 1-HOUR BOOKING ACCESS
+                </p>
+                {isVipPlusActive ? (
+                  <p className="text-[10px] text-purple-600 dark:text-purple-400 leading-none mt-0.5 font-semibold">
+                    🚀 Active — expires {formatExpiry(vipPlusExpiresAt)}
+                  </p>
+                ) : (
+                  <p className={`text-[10px] leading-none mt-0.5 font-semibold ${tokens >= VIP_PLUS_PRICE ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
+                    {VIP_PLUS_PRICE} tokens — book 1 hour early for 24h
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              disabled={!canActivatePlus || savingPlus}
+              onClick={() => setShowPlusConfirm(true)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
+                ${isVipPlusActive ? "bg-purple-500" : canActivatePlus ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300" : "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-40"}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isVipPlusActive ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+          </div>
+
+          {/* 30-min confirm dialog */}
           <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>⚡ Activate Early Access?</AlertDialogTitle>
+                <AlertDialogTitle>⚡ Activate Early 30-Min Access?</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will consume <strong>{vipPrice} token{vipPrice !== 1 ? "s" : ""}</strong> ({tokens} remaining) and grant you <strong>30-minute early booking access</strong> for the next <strong>24 hours</strong> or until your next successful booking, whichever comes first.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  disabled={saving}
-                  onClick={handleActivate}
-                  className="bg-amber-500 hover:bg-amber-600 text-white"
-                >
+                <AlertDialogAction disabled={saving} onClick={handleActivate} className="bg-amber-500 hover:bg-amber-600 text-white">
                   {saving ? "Activating…" : "Activate"}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        </>
+
+          {/* 1-hour confirm dialog */}
+          <AlertDialog open={showPlusConfirm} onOpenChange={setShowPlusConfirm}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>🚀 Activate Early 1-Hour Access?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will consume <strong>{VIP_PLUS_PRICE} tokens</strong> ({tokens} remaining) and grant you <strong>1-hour early booking access</strong> for the next <strong>24 hours</strong> or until your next successful booking, whichever comes first.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction disabled={savingPlus} onClick={handleActivatePlus} className="bg-purple-500 hover:bg-purple-600 text-white">
+                  {savingPlus ? "Activating…" : "Activate"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       )}
     </>
   );

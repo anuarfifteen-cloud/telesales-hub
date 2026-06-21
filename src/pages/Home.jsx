@@ -368,8 +368,8 @@ useEffect(() => {
       checkMilestones(currentTotalBookingCount);
 
       // Reset VIP early access after a successful booking
-      if (user?.vipExpiresAt) {
-        base44.auth.updateMe({ vipExpiresAt: null }).then(refreshUser);
+      if (user?.vipExpiresAt || user?.vipPlusExpiresAt) {
+        base44.auth.updateMe({ vipExpiresAt: null, vipPlusExpiresAt: null }).then(refreshUser);
       }
     },
     onError: (err, slot, context) => {
@@ -465,9 +465,12 @@ useEffect(() => {
   // Token-based VIP early access check
   const vipExpiresAt = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
   const isVipTokenActive = vipExpiresAt && vipExpiresAt.getTime() > Date.now();
+  const vipPlusExpiresAt = user?.vipPlusExpiresAt ? new Date(user.vipPlusExpiresAt) : null;
+  const isVipPlusTokenActive = vipPlusExpiresAt && vipPlusExpiresAt.getTime() > Date.now();
 
   const unlockTime = selectedDate ? (() => {
     const base = getUnlockTime(selectedDate);
+    if (isVipPlusTokenActive) return new Date(base.getTime() - 60 * 60 * 1000);
     if (isVipTokenActive) return new Date(base.getTime() - 30 * 60 * 1000);
     return base;
   })() : null;
