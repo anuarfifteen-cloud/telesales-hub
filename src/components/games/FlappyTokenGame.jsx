@@ -245,22 +245,33 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
     });
   }, [user?.id]);
 
-  // Idle animation loop
+  // Idle animation loop — use ResizeObserver to detect when canvas becomes visible
   useEffect(() => {
+    if (phase !== "idle") return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    drawIdleScreen(ctx, idlePipesRef.current, tokenImgRef.current);
-    if (phase !== "idle") return;
     let animFrame;
-    const loop = () => {
-      // Scroll idle pipes slowly
-      idlePipesRef.current.forEach(p => { p.x -= 0.8; if (p.x < -PIPE_W) p.x = W + PIPE_W; });
+
+    const startLoop = () => {
+      cancelAnimationFrame(animFrame);
+      const loop = () => {
+        idlePipesRef.current.forEach(p => { p.x -= 0.8; if (p.x < -PIPE_W) p.x = W + PIPE_W; });
+        drawIdleScreen(ctx, idlePipesRef.current, tokenImgRef.current);
+        animFrame = requestAnimationFrame(loop);
+      };
       drawIdleScreen(ctx, idlePipesRef.current, tokenImgRef.current);
       animFrame = requestAnimationFrame(loop);
     };
-    animFrame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animFrame);
+
+    // Draw immediately, and also watch for when element becomes visible
+    startLoop();
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) startLoop();
+    }, { threshold: 0.1 });
+    observer.observe(canvas);
+
+    return () => { cancelAnimationFrame(animFrame); observer.disconnect(); };
   }, [phase]);
 
   const saveScore = useCallback(async (s) => {
