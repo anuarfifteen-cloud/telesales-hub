@@ -245,34 +245,40 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
     });
   }, [user?.id]);
 
-  // Idle animation loop — use ResizeObserver to detect when canvas becomes visible
   useEffect(() => {
-    if (phase !== "idle") return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    let animFrame;
+  if (phase !== "idle") return;
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  let animFrame;
 
-    const startLoop = () => {
-      cancelAnimationFrame(animFrame);
-      const loop = () => {
-        idlePipesRef.current.forEach(p => { p.x -= 0.8; if (p.x < -PIPE_W) p.x = W + PIPE_W; });
-        drawIdleScreen(ctx, idlePipesRef.current, tokenImgRef.current);
-        animFrame = requestAnimationFrame(loop);
-      };
+  const startLoop = () => {
+    cancelAnimationFrame(animFrame);
+    const loop = () => {
+      idlePipesRef.current.forEach(p => { p.x -= 0.8; if (p.x < -PIPE_W) p.x = W + PIPE_W; });
       drawIdleScreen(ctx, idlePipesRef.current, tokenImgRef.current);
       animFrame = requestAnimationFrame(loop);
     };
+    drawIdleScreen(ctx, idlePipesRef.current, tokenImgRef.current);
+    animFrame = requestAnimationFrame(loop);
+  };
 
-    // Draw immediately, and also watch for when element becomes visible
-    startLoop();
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) startLoop();
-    }, { threshold: 0.1 });
-    observer.observe(canvas);
+  // Delay first draw by 120ms to allow layout to complete
+  const initTimer = setTimeout(() => startLoop(), 120);
 
-    return () => { cancelAnimationFrame(animFrame); observer.disconnect(); };
-  }, [phase]);
+  const observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && entries[0].intersectionRatio > 0 && canvasRef.current) {
+      startLoop();
+    }
+  }, { threshold: 0.1 });
+  observer.observe(canvas);
+
+  return () => {
+    clearTimeout(initTimer);
+    cancelAnimationFrame(animFrame);
+    observer.disconnect();
+  };
+}, [phase]);
 
   const saveScore = useCallback(async (s) => {
     if (!user?.id) return;
