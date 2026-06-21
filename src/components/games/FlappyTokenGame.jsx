@@ -427,7 +427,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       <div className="flex flex-col items-center justify-center py-24 gap-3">
         <span className="text-5xl">👀</span>
         <p className="font-black text-lg text-foreground">Coming Soon</p>
-        <p className="text-sm text-muted-foreground">Flappy Token is currently unavailable. Check back soon!</p>
+        <p className="text-sm text-muted-foreground">Check back soon!</p>
       </div>
     );
   }
