@@ -118,7 +118,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             }`}
           >
-            🐦 Flappy Token
+            👀 Coming Soon
           </button>
         </div>
       </div>
