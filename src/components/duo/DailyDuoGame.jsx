@@ -287,11 +287,11 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
           {/* Streak Pills */}
           <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
             <StreakPills
-              filledDots={streakCount}
-              activeDotIndex={streakCount}
-              activeDotCorrect={todayRecord?.correct ?? null}
-              answeredToday={!!todayRecord}
-            />
+  filledDots={streakCount}
+  activeDotIndex={todayRecord ? streakCount - 1 : streakCount}
+  activeDotCorrect={todayRecord?.correct ?? null}
+  answeredToday={!!todayRecord}
+/>
           </div>
 
           {/* Warning Banner */}
