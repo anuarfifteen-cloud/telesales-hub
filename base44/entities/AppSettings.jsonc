@@ -11,6 +11,21 @@
       "type": "boolean",
       "description": "Whether the Daily Quiz is enabled for all users",
       "default": true
+    },
+    "flappy_enabled": {
+      "type": "boolean",
+      "description": "Whether the Flappy Token game is enabled for all users",
+      "default": true
+    },
+    "flappy_difficulty": {
+      "type": "string",
+      "enum": [
+        "easy",
+        "medium",
+        "hard"
+      ],
+      "description": "Difficulty level for the Flappy Token game",
+      "default": "medium"
     }
   },
   "required": []

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Crown, UserX } from "lucide-react";
@@ -28,7 +28,35 @@ function RankBadge({ rank }) {
 export default function AdminFlappyToken() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [settingsId, setSettingsId] = useState(null);
+  const [flappyEnabled, setFlappyEnabled] = useState(true);
+  const [difficulty, setDifficulty] = useState("medium");
+  const [savingSettings, setSavingSettings] = useState(false);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    base44.entities.AppSettings.list().then(rows => {
+      const s = rows[0];
+      if (s) {
+        setSettingsId(s.id);
+        setFlappyEnabled(s.flappy_enabled !== false);
+        setDifficulty(s.flappy_difficulty || "medium");
+      }
+    });
+  }, []);
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    const payload = { flappy_enabled: flappyEnabled, flappy_difficulty: difficulty };
+    if (settingsId) {
+      await base44.entities.AppSettings.update(settingsId, payload);
+    } else {
+      const created = await base44.entities.AppSettings.create(payload);
+      setSettingsId(created.id);
+    }
+    setSavingSettings(false);
+    toast.success("Game settings saved!");
+  };
 
   const { data: scores = [], isLoading: scoresLoading } = useQuery({
     queryKey: ["flappyLeaderboardAdmin"],
@@ -112,6 +140,56 @@ export default function AdminFlappyToken() {
         <p className="text-[10px] font-bold uppercase tracking-widest opacity-75">Admin Panel</p>
         <p className="font-black text-lg">🐦 Flappy Token</p>
         <p className="text-xs opacity-80">Manage the seasonal Flappy Token leaderboard</p>
+      </div>
+
+      {/* Game Settings */}
+      <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 space-y-4">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">⚙️ Game Settings</p>
+
+        {/* Enable/Disable toggle */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Game Enabled</p>
+            <p className="text-xs text-muted-foreground">Off shows "Coming Soon 👀" to players</p>
+          </div>
+          <button
+            onClick={() => setFlappyEnabled(v => !v)}
+            className={`relative inline-flex h-7 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${flappyEnabled ? "bg-emerald-500" : "bg-slate-300"}`}
+            style={{ width: "52px" }}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${flappyEnabled ? "translate-x-7" : "translate-x-1"}`} />
+          </button>
+        </div>
+
+        {/* Difficulty selector */}
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold text-foreground">Difficulty</p>
+          <div className="flex gap-2">
+            {["easy", "medium", "hard"].map(d => (
+              <button
+                key={d}
+                onClick={() => setDifficulty(d)}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold capitalize border transition-all ${
+                  difficulty === d
+                    ? d === "easy" ? "bg-emerald-500 text-white border-emerald-500"
+                      : d === "hard" ? "bg-red-500 text-white border-red-500"
+                      : "bg-yellow-500 text-white border-yellow-500"
+                    : "bg-muted text-muted-foreground border-border"
+                }`}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button
+          onClick={saveSettings}
+          disabled={savingSettings}
+          className="w-full py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50"
+        >
+          {savingSettings ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Save Settings"}
+        </button>
       </div>
 
       {/* End Season Button */}

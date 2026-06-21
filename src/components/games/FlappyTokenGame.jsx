@@ -6,12 +6,13 @@ const W = 360;
 const H = 500;
 const BIRD_X = 70;
 const BIRD_R = 16;
-const GRAVITY = 0.36;
-const JUMP_FORCE = -6.2;
 const PIPE_W = 54;
-const PIPE_GAP = 175;
-const PIPE_SPEED = 2.1;
-const PIPE_INTERVAL = 95;
+
+const DIFFICULTY_SETTINGS = {
+  easy:   { gravity: 0.30, jumpVel: -6.2, pipeGap: 170, pipeSpeed: 1.9, pipeInterval: 105 },
+  medium: { gravity: 0.38, jumpVel: -6.2, pipeGap: 145, pipeSpeed: 2.4, pipeInterval: 90  },
+  hard:   { gravity: 0.46, jumpVel: -6.2, pipeGap: 145, pipeSpeed: 3.2, pipeInterval: 72  },
+};
 
 const TOKEN_IMG_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
 
@@ -106,7 +107,7 @@ function drawBird(ctx, y, vel, tokenImg) {
 function drawIdleScreen(ctx, pipes, tokenImg) {
   drawBackground(ctx);
   // Draw two idle pipes for decoration
-  pipes.forEach(p => drawPipe(ctx, p.x, p.gapY, p.gapY + PIPE_GAP));
+  pipes.forEach(p => drawPipe(ctx, p.x, p.gapY, p.gapY + DIFFICULTY_SETTINGS.medium.pipeGap));
   // Draw coin
   drawBird(ctx, H / 2, 0, tokenImg);
   // TAP TO PLAY text
@@ -228,6 +229,8 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
   const [leaderboardEntry, setLeaderboardEntry] = useState(null);
   const [saving, setSaving] = useState(false);
   const [loadingEntry, setLoadingEntry] = useState(true);
+  const [gameEnabled, setGameEnabled] = useState(true);
+  const [difficulty, setDifficulty] = useState("medium");
 
   // Preload token image
   useEffect(() => {
@@ -236,7 +239,17 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
     tokenImgRef.current = img;
   }, []);
 
-  // Load user personal best
+  // Load settings + user personal best
+  useEffect(() => {
+    base44.entities.AppSettings.list().then(rows => {
+      const s = rows[0];
+      if (s) {
+        setGameEnabled(s.flappy_enabled !== false);
+        setDifficulty(s.flappy_difficulty || "medium");
+      }
+    });
+  }, []);
+
   useEffect(() => {
     if (!user?.id) return;
     base44.entities.FlappyLeaderboard.filter({ user_id: user.id }).then(rows => {
@@ -304,6 +317,8 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
     setSaving(false);
   }, [user?.id, leaderboardEntry]);
 
+  const getDiff = () => DIFFICULTY_SETTINGS[difficulty] || DIFFICULTY_SETTINGS.medium;
+
   const initState = () => ({
     birdY: H / 2, birdVel: 0, pipes: [], frameCount: 0, score: 0, dead: false,
   });
@@ -317,7 +332,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       setIsNewBest(false);
     }
     if (stateRef.current && !stateRef.current.dead) {
-      stateRef.current.birdVel = JUMP_FORCE;
+      stateRef.current.birdVel = getDiff().jumpVel;
       audio.jump();
     }
   }, [phase]);
@@ -342,16 +357,17 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       const s = stateRef.current;
       if (!s || s.dead) return;
 
+      const diff = getDiff();
       s.frameCount++;
-      s.birdVel += GRAVITY;
+      s.birdVel += diff.gravity;
       s.birdY += s.birdVel;
 
-      if (s.frameCount % PIPE_INTERVAL === 0) {
-        const gapY = 70 + Math.random() * (H - PIPE_GAP - 130);
+      if (s.frameCount % diff.pipeInterval === 0) {
+        const gapY = 70 + Math.random() * (H - diff.pipeGap - 130);
         s.pipes.push({ x: W + PIPE_W, gapY, scored: false });
       }
 
-      s.pipes.forEach(p => { p.x -= PIPE_SPEED; });
+      s.pipes.forEach(p => { p.x -= diff.pipeSpeed; });
       s.pipes = s.pipes.filter(p => p.x > -PIPE_W - 10);
 
       s.pipes.forEach(p => {
@@ -367,12 +383,12 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       s.pipes.forEach(p => {
         const inX = BIRD_X + BIRD_R - 4 > p.x && BIRD_X - BIRD_R + 4 < p.x + PIPE_W;
         const inTop = s.birdY - BIRD_R + 4 < p.gapY;
-        const inBot = s.birdY + BIRD_R - 4 > p.gapY + PIPE_GAP;
+        const inBot = s.birdY + BIRD_R - 4 > p.gapY + diff.pipeGap;
         if (inX && (inTop || inBot)) s.dead = true;
       });
 
       drawBackground(ctx);
-      s.pipes.forEach(p => drawPipe(ctx, p.x, p.gapY, p.gapY + PIPE_GAP));
+      s.pipes.forEach(p => drawPipe(ctx, p.x, p.gapY, p.gapY + diff.pipeGap));
       drawBird(ctx, s.birdY, s.birdVel, tokenImgRef.current);
 
       // Score HUD
@@ -406,6 +422,16 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
     return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
 
+  if (!gameEnabled) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3">
+        <span className="text-5xl">👀</span>
+        <p className="font-black text-lg text-foreground">Coming Soon</p>
+        <p className="text-sm text-muted-foreground">Flappy Token is currently unavailable. Check back soon!</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center gap-3 pb-4">
       {/* Canvas */}
@@ -419,9 +445,14 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
           onTouchStart={(e) => { e.preventDefault(); jump(); }}
         />
 
-        {/* Score during play */}
-        {phase === "playing" && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 pointer-events-none">
+        {/* Difficulty badge */}
+        {phase === "idle" && (
+          <div className="absolute top-3 right-3 pointer-events-none">
+            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+              difficulty === "easy" ? "bg-emerald-900/80 border-emerald-400 text-emerald-300" :
+              difficulty === "hard" ? "bg-red-900/80 border-red-400 text-red-300" :
+              "bg-yellow-900/80 border-yellow-400 text-yellow-300"
+            }`}>{difficulty}</span>
           </div>
         )}
 
