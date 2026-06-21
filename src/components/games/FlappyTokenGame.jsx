@@ -156,7 +156,7 @@ function LiveLeaderboard({ currentUserId }) {
       </div>
 
       {/* Instructions */}
-      <div className="px-4 py-3 border-b border-[#00e5ff]/20 flex flex-col gap-2" style={{ background: "#110035" }}>
+      <div className="px-4 py-3 border-b border-[#00e5ff]/20 flex flex-col gap-2 items-center text-center" style={{ background: "#110035" }}>
         <p className="text-[11px] text-white/60 leading-relaxed">
           The leaderboard resets twice a month <span className="text-white/80">(on the 15th and the final day of the month)</span>. Be in the Top 3 when the season ends to win:
         </p>
@@ -196,7 +196,7 @@ function LiveLeaderboard({ currentUserId }) {
                   }
                 </div>
                 <span className="text-xs font-semibold pr-2 leading-tight" style={{ color: isMe ? "#ff00c8" : "#e2e8f0", whiteSpace: "normal", wordBreak: "break-word" }}>
-                  {isMe ? "⭐ " : ""}{s.user_name}
+                  {s.user_name}
                 </span>
                 <span className="text-sm font-black text-right tabular-nums" style={{ color: i === 0 ? "#ffd700" : i === 1 ? "#94a3b8" : i === 2 ? "#c2692a" : "#00e5ff" }}>
                   {s.score}
@@ -247,10 +247,11 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
 
   // Idle animation loop
   useEffect(() => {
-    if (phase !== "idle") return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
+    drawIdleScreen(ctx, idlePipesRef.current, tokenImgRef.current);
+    if (phase !== "idle") return;
     let animFrame;
     const loop = () => {
       // Scroll idle pipes slowly
