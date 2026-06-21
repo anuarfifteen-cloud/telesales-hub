@@ -177,6 +177,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
     const opts = [question.option_a, question.option_b, question.option_c];
     const selectedOptionLetter = ["A", "B", "C"][opts.indexOf(pendingResult.selectedAnswer)] ?? "";
 
+    let duplicateDetected = false;
     try {
       await base44.entities.QuizAnswer.create({
         user_id: user.id,
@@ -188,12 +189,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
         selected_option: selectedOptionLetter,
       });
     } catch (e) {
-      const localRecord = { answered: true, correct: isCorrect, questionId: question.id, duplicate: true };
-      saveTodayRecord(localRecord);
-      setTodayRecord(localRecord);
-      toast.error("You've already answered today's question. Come back tomorrow! 🌙");
-      setFinishing(false);
-      return;
+      duplicateDetected = true;
     }
 
     const shouldReward = newCount >= 5 && !newRewardPaid;
@@ -243,6 +239,9 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
     saveLastSeenId(question.id);
 
     await onUserUpdate();
+    if (duplicateDetected) {
+      toast.info("Streak updated. Your answer was already logged for today.");
+    }
     setFinishing(false);
   };
 
