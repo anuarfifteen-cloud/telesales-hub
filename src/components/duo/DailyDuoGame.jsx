@@ -12,9 +12,8 @@ function getBruneiToday() {
 
 function getYesterdayBrunei() {
   const now = new Date();
-  const bruneiNow = new Date(now.toLocaleString("en-US", { timeZone: BRUNEI_TZ }));
-  bruneiNow.setDate(bruneiNow.getDate() - 1);
-  return bruneiNow.toLocaleDateString("en-CA");
+  now.setDate(now.getDate() - 1);
+  return now.toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
 }
 
 function getTodayKey() {
@@ -75,21 +74,25 @@ function StreakPills({ filledDots, activeDotIndex, activeDotCorrect, answeredTod
 
 function AlreadyAnsweredCard({ record, streakRecord }) {
   const count = streakRecord?.streak_count ?? 0;
+  const streakJustCompleted = record.correct && count === 0;
   return (
     <div className={`rounded-2xl border p-4 flex flex-col gap-3 ${record.correct ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800" : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"}`}>
       <div className="flex items-center gap-2">
-        {record.correct
-          ? <CheckCircle className="w-6 h-6 text-emerald-500" />
-          : <XCircle className="w-6 h-6 text-red-500" />
-        }
+        {record.correct ? <CheckCircle className="w-6 h-6 text-emerald-500" /> : <XCircle className="w-6 h-6 text-red-500" />}
         <p className={`font-black text-sm ${record.correct ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}>
           {record.correct ? "✅ Correct! Well done." : "❌ Incorrect today."}
         </p>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Current streak: <strong className="text-foreground">{count}</strong> day{count !== 1 ? "s" : ""}
-        {count === 0 ? " — keep going tomorrow!" : count >= 4 ? " — one more for reward! 🔥" : ""}
-      </p>
+      {streakJustCompleted ? (
+        <p className="text-xs text-emerald-700 dark:text-emerald-300 font-bold">
+          🎉 Streak complete! You earned 2 tokens. Start a new streak tomorrow!
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Current streak: <strong className="text-foreground">{count}</strong> day{count !== 1 ? "s" : ""}
+          {count >= 4 ? " — one more for reward! 🔥" : ""}
+        </p>
+      )}
       <p className="text-xs text-muted-foreground">Come back tomorrow for your next question.</p>
     </div>
   );
