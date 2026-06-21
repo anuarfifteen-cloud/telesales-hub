@@ -23,6 +23,11 @@
       "type": "boolean",
       "default": false,
       "description": "Whether this user is the defending Super Tap champion, placed on a one-season prize cooldown"
+    },
+    "is_defending_champ_flappy": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this user is the defending Flappy Token champion, placed on a one-season prize cooldown"
     }
   },
   "rls": {
