@@ -161,7 +161,7 @@ function LiveLeaderboard({ currentUserId }) {
         <p className="text-[11px] text-white/60 leading-relaxed">
           The leaderboard resets twice a month <span className="text-white/80">(on the 15th and the final day of the month)</span>. Be in the Top 3 when the season ends to win:
         </p>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap justify-center">
           {[["🥇 1st", "5 Tokens", "#ffd700"], ["🥈 2nd", "2 Tokens", "#94a3b8"], ["🥉 3rd", "1 Token", "#c2692a"]].map(([rank, prize, color]) => (
             <div key={rank} className="flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold border" style={{ borderColor: color + "55", background: color + "18", color }}>
               {rank}: {prize}
@@ -259,39 +259,26 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
   }, [user?.id]);
 
   useEffect(() => {
-  if (phase !== "idle") return;
-  const canvas = canvasRef.current;
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  let animFrame;
+    if (phase !== "idle") return;
+    let animFrame;
+    let running = true;
 
-  const startLoop = () => {
-    cancelAnimationFrame(animFrame);
     const loop = () => {
+      if (!running) return;
+      const canvas = canvasRef.current;
+      if (!canvas || canvas.offsetWidth === 0) {
+        animFrame = requestAnimationFrame(loop);
+        return;
+      }
+      const ctx = canvas.getContext("2d");
       idlePipesRef.current.forEach(p => { p.x -= 0.8; if (p.x < -PIPE_W) p.x = W + PIPE_W; });
       drawIdleScreen(ctx, idlePipesRef.current, tokenImgRef.current);
       animFrame = requestAnimationFrame(loop);
     };
-    drawIdleScreen(ctx, idlePipesRef.current, tokenImgRef.current);
+
     animFrame = requestAnimationFrame(loop);
-  };
-
-  // Delay first draw by 120ms to allow layout to complete
-  const initTimer = setTimeout(() => startLoop(), 120);
-
-  const observer = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting && entries[0].intersectionRatio > 0 && canvasRef.current) {
-      startLoop();
-    }
-  }, { threshold: 0.1 });
-  observer.observe(canvas);
-
-  return () => {
-    clearTimeout(initTimer);
-    cancelAnimationFrame(animFrame);
-    observer.disconnect();
-  };
-}, [phase]);
+    return () => { running = false; cancelAnimationFrame(animFrame); };
+  }, [phase]);
 
   const saveScore = useCallback(async (s) => {
     if (!user?.id) return;
@@ -445,8 +432,8 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
           onTouchStart={(e) => { e.preventDefault(); jump(); }}
         />
 
-        {/* Difficulty badge */}
-        {phase === "idle" && (
+        {/* Difficulty badge — admin only */}
+        {phase === "idle" && user?.role === "admin" && (
           <div className="absolute top-3 right-3 pointer-events-none">
             <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
               difficulty === "easy" ? "bg-emerald-900/80 border-emerald-400 text-emerald-300" :
