@@ -10,9 +10,9 @@ const PIPE_W = 54;
 
 // Values are now per-second (at 60fps baseline)
 const DIFFICULTY_SETTINGS = {
-  easy:   { gravity: 18,  jumpVel: -370, pipeGap: 170, pipeSpeed: 114, pipeIntervalMs: 1750 },
-  medium: { gravity: 22,  jumpVel: -370, pipeGap: 145, pipeSpeed: 144, pipeIntervalMs: 1500 },
-  hard:   { gravity: 27,  jumpVel: -370, pipeGap: 145, pipeSpeed: 192, pipeIntervalMs: 1200 },
+  easy:   { gravity: 18,  jumpVel: -370, pipeGap: 170, pipeSpeed: 228, pipeIntervalMs: 1750 },
+  medium: { gravity: 22,  jumpVel: -370, pipeGap: 145, pipeSpeed: 288, pipeIntervalMs: 1500 },
+  hard:   { gravity: 27,  jumpVel: -370, pipeGap: 145, pipeSpeed: 384, pipeIntervalMs: 1200 },
 };
 
 const TOKEN_IMG_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
@@ -438,10 +438,9 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
         <canvas
           ref={canvasRef}
           width={W} height={H}
-          onClick={jump}
           className="rounded-2xl border-2 cursor-pointer w-full"
           style={{ display: "block", touchAction: "none", borderColor: "#1a0050", background: "#06001a" }}
-          onTouchStart={(e) => { e.preventDefault(); jump(); }}
+          onPointerDown={(e) => { e.preventDefault(); jump(); }}
         />
 
         {/* Difficulty badge — admin only */}
