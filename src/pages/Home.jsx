@@ -302,10 +302,15 @@ useEffect(() => {
         throw new Error("SLOT_FULL");
       }
 
-      // Check if user has active VIP token
+      // Check early access pass timers on fresh account object
       const freshUserForVip = await base44.auth.me();
+      const nowMs = Date.now();
+
+      const vipPlusExp = freshUserForVip?.vipPlusExpiresAt ? new Date(freshUserForVip.vipPlusExpiresAt) : null;
+      const usingVipPlus = vipPlusExp && vipPlusExp.getTime() > nowMs;
+
       const vipExp = freshUserForVip?.vipExpiresAt ? new Date(freshUserForVip.vipExpiresAt) : null;
-      const usingVip = vipExp && vipExp.getTime() > Date.now();
+      const usingVip = vipExp && vipExp.getTime() > nowMs;
 
       // Write the booking
       const newBooking = await base44.entities.Booking.create({
@@ -316,7 +321,8 @@ useEffect(() => {
         user_email: user.email,
         user_name: user.full_name,
         booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ }),
-        vip_used: !!usingVip
+        vip_plus_used: !!usingVipPlus,
+        vip_used: !!usingVip && !usingVipPlus,
       });
 
       // --- POST-WRITE TIMESTAMP TIE-BREAKER ---
