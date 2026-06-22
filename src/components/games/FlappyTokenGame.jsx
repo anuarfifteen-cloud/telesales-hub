@@ -314,10 +314,16 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
   const jump = useCallback(() => {
     if (phase === "idle") {
       audio.startBg();
-      stateRef.current = initState();
+      const s = initState();
+      s.lastTime = performance.now();
+      s.lastPipeTime = performance.now();
+      s.birdVel = getDiff().jumpVel;
+      stateRef.current = s;
       setPhase("playing");
       setScore(0);
       setIsNewBest(false);
+      audio.jump();
+      return;
     }
     if (stateRef.current && !stateRef.current.dead) {
       stateRef.current.birdVel = getDiff().jumpVel;
@@ -403,7 +409,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       rafRef.current = requestAnimationFrame(loop);
     };
 
-    rafRef.current = requestAnimationFrame((ts) => { stateRef.current.lastTime = ts; loop(ts); });
+    rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
   }, [phase, saveScore]);
 
