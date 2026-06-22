@@ -218,9 +218,9 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
             <div className="flex items-center gap-2 min-w-0">
               <Zap className={`w-4 h-4 flex-shrink-0 ${isVipActive ? "text-amber-500" : tokens >= vipPrice ? "text-blue-500" : "text-slate-300 dark:text-slate-600"}`} />
               <div className="min-w-0">
-                <p className={`text-sm font-medium truncate ${isVipActive || tokens >= vipPrice ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
-                  ACTIVATE EARLY 30-MINS BOOKING ACCESS
-                </p>
+                <p className={`text-sm font-medium ${isVipActive || tokens >= vipPrice ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
+  ACTIVATE EARLY 30-MINS BOOKING ACCESS
+</p>
                 {isVipActive ? (
                   <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-none mt-0.5 font-semibold">
                     ⚡ Active — expires {formatExpiry(vipExpiresAt)}
