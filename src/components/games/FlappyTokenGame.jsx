@@ -351,8 +351,8 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       const s = stateRef.current;
       if (!s || s.dead) return;
 
-      if (s.lastTime === null) s.lastTime = timestamp;
-      const dt = Math.min((timestamp - s.lastTime) / 1000, 0.05); // seconds, capped at 50ms
+      if (s.lastTime === null) s.lastTime = timestamp - 16; // seed 1 frame back so first dt is ~16ms, not 0
+      const dt = Math.min((timestamp - s.lastTime) / 1000, 0.03);
       s.lastTime = timestamp;
 
       const diff = getDiff();
