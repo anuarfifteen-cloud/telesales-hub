@@ -252,34 +252,39 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
 
           {/* ── 1-hour pass ── */}
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Zap className={`w-4 h-4 flex-shrink-0 ${isVipPlusActive ? "text-purple-500" : tokens >= VIP_PLUS_PRICE ? "text-purple-400" : "text-slate-300 dark:text-slate-600"}`} />
-              <div>
-                <p className={`text-sm font-medium flex items-center gap-1.5 ${isVipPlusActive || tokens >= VIP_PLUS_PRICE ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
-  <span>ACTIVATE EARLY 1-HOUR BOOKING ACCESS</span>
-  <span className="text-[10px] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse">
-    New
-  </span>
-</p>lusActive ? (
-                  <p className="text-[10px] text-purple-600 dark:text-purple-400 leading-none mt-0.5 font-semibold">
-                    🚀 Active — expires {formatExpiry(vipPlusExpiresAt)}
-                  </p>
-                ) : (
-                  <p className={`text-[10px] leading-none mt-0.5 font-semibold ${tokens >= VIP_PLUS_PRICE ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
-                    {VIP_PLUS_PRICE} tokens — book 1 hour early for 24h
-                  </p>
-                )}
-              </div>
-            </div>
-            <button
-              disabled={!canActivatePlus || savingPlus}
-              onClick={() => setShowPlusConfirm(true)}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
-                ${isVipPlusActive ? "bg-purple-500" : canActivatePlus ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300" : "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-40"}`}
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isVipPlusActive ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-          </div>
+  <div className="flex items-center gap-2">
+    <Zap className={`w-4 h-4 flex-shrink-0 ${isVipPlusActive ? "text-purple-500" : tokens >= VIP_PLUS_PRICE ? "text-purple-400" : "text-slate-300 dark:text-slate-600"}`} />
+    <div>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <p className={`text-sm font-medium ${isVipPlusActive || tokens >= VIP_PLUS_PRICE ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
+          ACTIVATE EARLY 1-HOUR BOOKING ACCESS
+        </p>
+        <span className="text-[10px] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse whitespace-nowrap">
+          New
+        </span>
+      </div>
+
+      {isVipPlusActive ? (
+        <p className="text-[10px] text-purple-600 dark:text-purple-400 leading-none mt-1 font-semibold">
+          🚀 Active — expires {formatExpiry(vipPlusExpiresAt)}
+        </p>
+      ) : (
+        <p className={`text-[10px] leading-none mt-1 font-semibold ${tokens >= VIP_PLUS_PRICE ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
+          {VIP_PLUS_PRICE} tokens — book 1 hour early for 24h
+        </p>
+      )}
+    </div>
+  </div>
+
+  <button
+    disabled={!canActivatePlus || savingPlus}
+    onClick={() => setShowPlusConfirm(true)}
+    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
+      ${isVipPlusActive ? "bg-purple-500" : canActivatePlus ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300" : "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-40"}`}
+  >
+    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isVipPlusActive ? "translate-x-6" : "translate-x-1"}`} />
+  </button>
+</div>
 
           {/* 30-min confirm dialog */}
           <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
