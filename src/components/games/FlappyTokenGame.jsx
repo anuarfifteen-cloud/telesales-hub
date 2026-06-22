@@ -8,10 +8,11 @@ const BIRD_X = 70;
 const BIRD_R = 16;
 const PIPE_W = 54;
 
+// Values are now per-second (at 60fps baseline)
 const DIFFICULTY_SETTINGS = {
-  easy:   { gravity: 0.30, jumpVel: -6.2, pipeGap: 170, pipeSpeed: 1.9, pipeInterval: 105 },
-  medium: { gravity: 0.38, jumpVel: -6.2, pipeGap: 145, pipeSpeed: 2.4, pipeInterval: 90  },
-  hard:   { gravity: 0.46, jumpVel: -6.2, pipeGap: 145, pipeSpeed: 3.2, pipeInterval: 72  },
+  easy:   { gravity: 18,  jumpVel: -370, pipeGap: 170, pipeSpeed: 114, pipeIntervalMs: 1750 },
+  medium: { gravity: 22,  jumpVel: -370, pipeGap: 145, pipeSpeed: 144, pipeIntervalMs: 1500 },
+  hard:   { gravity: 27,  jumpVel: -370, pipeGap: 145, pipeSpeed: 192, pipeIntervalMs: 1200 },
 };
 
 const TOKEN_IMG_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
@@ -307,7 +308,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
   const getDiff = () => DIFFICULTY_SETTINGS[difficulty] || DIFFICULTY_SETTINGS.medium;
 
   const initState = () => ({
-    birdY: H / 2, birdVel: 0, pipes: [], frameCount: 0, score: 0, dead: false,
+    birdY: H / 2, birdVel: 0, pipes: [], lastPipeTime: 0, lastTime: null, score: 0, dead: false,
   });
 
   const jump = useCallback(() => {
@@ -340,21 +341,26 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
 
-    const loop = () => {
+    const loop = (timestamp) => {
       const s = stateRef.current;
       if (!s || s.dead) return;
 
-      const diff = getDiff();
-      s.frameCount++;
-      s.birdVel += diff.gravity;
-      s.birdY += s.birdVel;
+      if (s.lastTime === null) s.lastTime = timestamp;
+      const dt = Math.min((timestamp - s.lastTime) / 1000, 0.05); // seconds, capped at 50ms
+      s.lastTime = timestamp;
 
-      if (s.frameCount % diff.pipeInterval === 0) {
+      const diff = getDiff();
+      s.birdVel += diff.gravity * dt;
+      s.birdY += s.birdVel * dt;
+
+      if (s.lastPipeTime === 0) s.lastPipeTime = timestamp;
+      if (timestamp - s.lastPipeTime >= diff.pipeIntervalMs) {
         const gapY = 70 + Math.random() * (H - diff.pipeGap - 130);
         s.pipes.push({ x: W + PIPE_W, gapY, scored: false });
+        s.lastPipeTime = timestamp;
       }
 
-      s.pipes.forEach(p => { p.x -= diff.pipeSpeed; });
+      s.pipes.forEach(p => { p.x -= diff.pipeSpeed * dt; });
       s.pipes = s.pipes.filter(p => p.x > -PIPE_W - 10);
 
       s.pipes.forEach(p => {
@@ -397,7 +403,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       rafRef.current = requestAnimationFrame(loop);
     };
 
-    rafRef.current = requestAnimationFrame(loop);
+    rafRef.current = requestAnimationFrame((ts) => { stateRef.current.lastTime = ts; loop(ts); });
     return () => cancelAnimationFrame(rafRef.current);
   }, [phase, saveScore]);
 
