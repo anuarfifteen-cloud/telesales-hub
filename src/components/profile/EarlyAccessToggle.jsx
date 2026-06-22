@@ -255,14 +255,14 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
   <div className="flex items-center gap-2">
     <Zap className={`w-4 h-4 flex-shrink-0 ${isVipPlusActive ? "text-purple-500" : tokens >= VIP_PLUS_PRICE ? "text-purple-400" : "text-slate-300 dark:text-slate-600"}`} />
     <div>
-      <div className="flex items-center gap-1.5 flex-nowrap max-w-full">
-  <p className={`text-sm font-medium truncate ${isVipPlusActive || tokens >= VIP_PLUS_PRICE ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
-    ACTIVATE EARLY 1-HOUR BOOKING ACCESS
-  </p>
-  <span className="text-[10px] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse flex-shrink-0 vertical-middle">
-    New
-  </span>
-</div>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <p className={`text-sm font-medium ${isVipPlusActive || tokens >= VIP_PLUS_PRICE ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
+          ACTIVATE EARLY 1-HOUR BOOKING ACCESS
+        </p>
+        <span className="text-[10px] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse whitespace-nowrap">
+          New
+        </span>
+      </div>
 
       {isVipPlusActive ? (
         <p className="text-[10px] text-purple-600 dark:text-purple-400 leading-none mt-1 font-semibold">
