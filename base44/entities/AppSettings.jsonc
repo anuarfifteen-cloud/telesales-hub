@@ -26,6 +26,11 @@
       ],
       "description": "Difficulty level for the Flappy Token game",
       "default": "medium"
+    },
+    "voucher_feed_enabled": {
+      "type": "boolean",
+      "description": "Whether the live voucher activity feed is shown in the Blind Voucher shop",
+      "default": true
     }
   },
   "required": []

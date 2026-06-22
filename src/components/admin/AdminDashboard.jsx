@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ArrowLeft, Upload, CheckCircle, Loader2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
@@ -71,6 +71,30 @@ export default function AdminDashboard({ onBack }) {
     () => localStorage.getItem(LIVE_FEED_KEY) !== "false"
   );
   const [syncingDirectory, setSyncingDirectory] = useState(false);
+  const [settingsId, setSettingsId] = useState(null);
+  const [voucherFeedEnabled, setVoucherFeedEnabled] = useState(true);
+
+  useEffect(() => {
+    base44.entities.AppSettings.list().then(rows => {
+      const s = rows[0];
+      if (s) {
+        setSettingsId(s.id);
+        setVoucherFeedEnabled(s.voucher_feed_enabled !== false);
+      }
+    });
+  }, []);
+
+  const handleToggleVoucherFeed = async (val) => {
+    setVoucherFeedEnabled(val);
+    const payload = { voucher_feed_enabled: val };
+    if (settingsId) {
+      await base44.entities.AppSettings.update(settingsId, payload);
+    } else {
+      const created = await base44.entities.AppSettings.create(payload);
+      setSettingsId(created.id);
+    }
+    toast.success(val ? "Voucher Live Feed enabled." : "Voucher Live Feed disabled.");
+  };
 
   const handleSyncDirectory = async () => {
     setSyncingDirectory(true);
@@ -238,6 +262,26 @@ export default function AdminDashboard({ onBack }) {
             style={{ width: "52px" }}
           >
             <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${liveFeedEnabled ? "translate-x-7" : "translate-x-1"}`} />
+          </button>
+        </div>
+
+        {/* Voucher Live Feed Toggle */}
+        <div className="bg-white rounded-2xl border border-border p-5 flex items-center justify-between gap-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+          <div>
+            <h3 className="font-bold text-slate-900 text-base">🎟️ Voucher Live Activity Feed</h3>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Show the last 5 redeemed voucher claims in the Blind Voucher shop to create FOMO.
+            </p>
+            <p className={`text-xs font-semibold mt-1 ${voucherFeedEnabled ? "text-emerald-600" : "text-slate-400"}`}>
+              {voucherFeedEnabled ? "Currently ON" : "Currently OFF"}
+            </p>
+          </div>
+          <button
+            onClick={() => handleToggleVoucherFeed(!voucherFeedEnabled)}
+            className={`relative inline-flex h-7 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${voucherFeedEnabled ? "bg-emerald-500" : "bg-slate-300"}`}
+            style={{ width: "52px" }}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${voucherFeedEnabled ? "translate-x-7" : "translate-x-1"}`} />
           </button>
         </div>
 

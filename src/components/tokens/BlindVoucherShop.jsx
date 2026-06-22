@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Copy, Check } from "lucide-react";
+import VoucherActivityFeed from "./VoucherActivityFeed";
 
 
 
@@ -195,6 +196,7 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
   const [copied, setCopied] = useState(null);
   const [activeVouchers, setActiveVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
+  const [showVoucherFeed, setShowVoucherFeed] = useState(true);
 
   // Redeem state
   const [redeemCode, setRedeemCode] = useState("");
@@ -213,6 +215,12 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
   };
 
   useEffect(() => { loadActiveVouchers(); }, [user?.id]);
+
+  useEffect(() => {
+    base44.entities.AppSettings.list().then(rows => {
+      if (rows[0]) setShowVoucherFeed(rows[0].voucher_feed_enabled !== false);
+    });
+  }, []);
 
   const handlePurchase = async () => {
     if (!canAfford || purchasing) return;
@@ -351,6 +359,8 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
         </div>
       )}
 
+      {/* Live Activity Feed */}
+      {showVoucherFeed && <VoucherActivityFeed />}
 
     </div>
   );
