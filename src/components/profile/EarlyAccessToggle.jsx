@@ -262,7 +262,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                   </p>
                 ) : (
                   <p className={`text-[10px] leading-none mt-1 font-semibold ${tokens >= VIP_PLUS_PRICE ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
-                    {VIP_PLUS_PRICE} tokens — book 1 hour early
+                    {VIP_PLUS_PRICE} tokens — book 1 hour early.
                   </p>
                 )}
               </div>
