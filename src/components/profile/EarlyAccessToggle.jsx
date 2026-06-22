@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-
 import { base44 } from "@/api/base44Client";
 import { Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,8 +24,6 @@ const MILESTONES = [
 function MilestoneRow({ milestone, totalBookingCount, index }) {
   const done = totalBookingCount >= milestone.target;
   const isNext = !done && (index === 0 || totalBookingCount >= MILESTONES[index - 1].target);
-
-  // progress = bookings so far out of this milestone's total target
   const pct = done ? 100 : Math.round((Math.min(totalBookingCount, milestone.target) / milestone.target) * 100);
 
   const [showAnim, setShowAnim] = useState(false);
@@ -51,7 +48,6 @@ function MilestoneRow({ milestone, totalBookingCount, index }) {
           : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
       }`}
     >
-      {/* Unlock burst animation */}
       <AnimatePresence>
         {showAnim && (
           <motion.div
@@ -73,7 +69,6 @@ function MilestoneRow({ milestone, totalBookingCount, index }) {
             {milestone.label}
           </p>
 
-          {/* Progress bar */}
           <div className="mt-1.5 mb-0.5 h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
             <motion.div
               className={`h-full rounded-full ${done ? milestone.barColor : isNext ? milestone.barColor + " opacity-70" : "bg-slate-400"}`}
@@ -136,11 +131,8 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
   const isVipPlusActive = vipPlusExpiresAt && vipPlusExpiresAt.getTime() > Date.now();
   const canActivatePlus = tokens >= VIP_PLUS_PRICE && !isVipPlusActive;
 
-  // Find next milestone target for the overall progress bar
   const nextMilestone = MILESTONES.find((m) => totalBookingCount < m.target);
-  const overallPct = nextMilestone
-    ? Math.round((totalBookingCount / nextMilestone.target) * 100)
-    : 100;
+  const overallPct = nextMilestone ? Math.round((totalBookingCount / nextMilestone.target) * 100) : 100;
 
   const handleActivate = async () => {
     setSaving(true);
@@ -223,10 +215,10 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
         <div className="space-y-3">
           {/* ── 30-min pass ── */}
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <Zap className={`w-4 h-4 flex-shrink-0 ${isVipActive ? "text-amber-500" : tokens >= vipPrice ? "text-blue-500" : "text-slate-300 dark:text-slate-600"}`} />
-              <div>
-                <p className={`text-sm font-medium ${isVipActive || tokens >= vipPrice ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
+              <div className="min-w-0">
+                <p className={`text-sm font-medium truncate ${isVipActive || tokens >= vipPrice ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
                   ACTIVATE EARLY 30-MINS BOOKING ACCESS
                 </p>
                 {isVipActive ? (
@@ -252,39 +244,39 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
 
           {/* ── 1-hour pass ── */}
           <div className="flex items-center justify-between gap-3">
-  <div className="flex items-center gap-2">
-    <Zap className={`w-4 h-4 flex-shrink-0 ${isVipPlusActive ? "text-purple-500" : tokens >= VIP_PLUS_PRICE ? "text-purple-400" : "text-slate-300 dark:text-slate-600"}`} />
-    <div>
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <p className={`text-sm font-medium ${isVipPlusActive || tokens >= VIP_PLUS_PRICE ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
-          ACTIVATE EARLY 1-HOUR BOOKING ACCESS
-        </p>
-        <span className="text-[10px] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse whitespace-nowrap">
-          New
-        </span>
-      </div>
+            <div className="flex items-center gap-2 min-w-0">
+              <Zap className={`w-4 h-4 flex-shrink-0 ${isVipPlusActive ? "text-purple-500" : tokens >= VIP_PLUS_PRICE ? "text-purple-400" : "text-slate-300 dark:text-slate-600"}`} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-nowrap max-w-full">
+                  <p className={`text-sm font-medium truncate ${isVipPlusActive || tokens >= VIP_PLUS_PRICE ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
+                    ACTIVATE EARLY 1-HOUR BOOKING ACCESS
+                  </p>
+                  <span className="text-[10px] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse flex-shrink-0">
+                    New
+                  </span>
+                </div>
 
-      {isVipPlusActive ? (
-        <p className="text-[10px] text-purple-600 dark:text-purple-400 leading-none mt-1 font-semibold">
-          🚀 Active — expires {formatExpiry(vipPlusExpiresAt)}
-        </p>
-      ) : (
-        <p className={`text-[10px] leading-none mt-1 font-semibold ${tokens >= VIP_PLUS_PRICE ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
-          {VIP_PLUS_PRICE} tokens — book 1 hour early for 24h
-        </p>
-      )}
-    </div>
-  </div>
+                {isVipPlusActive ? (
+                  <p className="text-[10px] text-purple-600 dark:text-purple-400 leading-none mt-1 font-semibold">
+                    🚀 Active — expires {formatExpiry(vipPlusExpiresAt)}
+                  </p>
+                ) : (
+                  <p className={`text-[10px] leading-none mt-1 font-semibold ${tokens >= VIP_PLUS_PRICE ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
+                    {VIP_PLUS_PRICE} tokens — book 1 hour early for 24h
+                  </p>
+                )}
+              </div>
+            </div>
 
-  <button
-    disabled={!canActivatePlus || savingPlus}
-    onClick={() => setShowPlusConfirm(true)}
-    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
-      ${isVipPlusActive ? "bg-purple-500" : canActivatePlus ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300" : "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-40"}`}
-  >
-    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isVipPlusActive ? "translate-x-6" : "translate-x-1"}`} />
-  </button>
-</div>
+            <button
+              disabled={!canActivatePlus || savingPlus}
+              onClick={() => setShowPlusConfirm(true)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
+                ${isVipPlusActive ? "bg-purple-500" : canActivatePlus ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300" : "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-40"}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isVipPlusActive ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+          </div>
 
           {/* 30-min confirm dialog */}
           <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
