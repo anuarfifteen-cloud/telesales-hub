@@ -22,11 +22,11 @@ const PRIZES = [
 
 function rollPrizeIndex() {
   const roll = Math.random() * 100;
-  if (roll < 40) return 0;   // No Luck (40%)
-  if (roll < 70) return 1;   // 1 Token (30%)
-  if (roll < 88) return 2;   // Spin Again (18%)
-  if (roll < 96) return 3;   // 2 Tokens (8%)
-  return 4;                   // Jackpot (4%)
+  if (roll < 50) return 0;   // No Luck (50% chance: 0 to 49.9)
+  if (roll < 78) return 2;   // Spin Again (28% chance: 50 to 77.9)
+  if (roll < 93) return 1;   // 1 Token (15% chance: 78 to 92.9)
+  if (roll < 98) return 3;   // 2 Tokens (5% chance: 93 to 97.9)
+  return 4;                  // Jackpot (2% chance: 98 to 100)
 }
 
 // ── Conic gradient wheel ──────────────────────────────────────────────────────
