@@ -8,11 +8,10 @@ const BIRD_X = 70;
 const BIRD_R = 16;
 const PIPE_W = 54;
 
-// Values are now per-second (at 60fps baseline)
 const DIFFICULTY_SETTINGS = {
-  easy:   { gravity: 18,  jumpVel: -370, pipeGap: 170, pipeSpeed: 228, pipeIntervalMs: 1750 },
-  medium: { gravity: 22,  jumpVel: -370, pipeGap: 145, pipeSpeed: 288, pipeIntervalMs: 1500 },
-  hard:   { gravity: 27,  jumpVel: -370, pipeGap: 145, pipeSpeed: 384, pipeIntervalMs: 1200 },
+  easy:   { gravity: 0.30, jumpVel: -6.2, pipeGap: 170, pipeSpeed: 1.9, pipeInterval: 105 },
+  medium: { gravity: 0.38, jumpVel: -6.2, pipeGap: 145, pipeSpeed: 2.4, pipeInterval: 90  },
+  hard:   { gravity: 0.46, jumpVel: -6.2, pipeGap: 145, pipeSpeed: 3.2, pipeInterval: 72  },
 };
 
 const TOKEN_IMG_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
@@ -308,22 +307,16 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
   const getDiff = () => DIFFICULTY_SETTINGS[difficulty] || DIFFICULTY_SETTINGS.medium;
 
   const initState = () => ({
-    birdY: H / 2, birdVel: 0, pipes: [], lastPipeTime: 0, lastTime: null, score: 0, dead: false,
+    birdY: H / 2, birdVel: 0, pipes: [], frameCount: 0, score: 0, dead: false,
   });
 
   const jump = useCallback(() => {
     if (phase === "idle") {
       audio.startBg();
-      const s = initState();
-      s.lastTime = performance.now();
-      s.lastPipeTime = performance.now();
-      s.birdVel = getDiff().jumpVel;
-      stateRef.current = s;
+      stateRef.current = initState();
       setPhase("playing");
       setScore(0);
       setIsNewBest(false);
-      audio.jump();
-      return;
     }
     if (stateRef.current && !stateRef.current.dead) {
       stateRef.current.birdVel = getDiff().jumpVel;
@@ -347,26 +340,21 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
 
-    const loop = (timestamp) => {
+    const loop = () => {
       const s = stateRef.current;
       if (!s || s.dead) return;
 
-      if (s.lastTime === null) s.lastTime = timestamp - 16; // seed 1 frame back so first dt is ~16ms, not 0
-      const dt = Math.min((timestamp - s.lastTime) / 1000, 0.03);
-      s.lastTime = timestamp;
-
       const diff = getDiff();
-      s.birdVel += diff.gravity * dt;
-      s.birdY += s.birdVel * dt;
+      s.frameCount++;
+      s.birdVel += diff.gravity;
+      s.birdY += s.birdVel;
 
-      if (s.lastPipeTime === 0) s.lastPipeTime = timestamp;
-      if (timestamp - s.lastPipeTime >= diff.pipeIntervalMs) {
+      if (s.frameCount % diff.pipeInterval === 0) {
         const gapY = 70 + Math.random() * (H - diff.pipeGap - 130);
         s.pipes.push({ x: W + PIPE_W, gapY, scored: false });
-        s.lastPipeTime = timestamp;
       }
 
-      s.pipes.forEach(p => { p.x -= diff.pipeSpeed * dt; });
+      s.pipes.forEach(p => { p.x -= diff.pipeSpeed; });
       s.pipes = s.pipes.filter(p => p.x > -PIPE_W - 10);
 
       s.pipes.forEach(p => {
@@ -438,9 +426,10 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
         <canvas
           ref={canvasRef}
           width={W} height={H}
+          onClick={jump}
           className="rounded-2xl border-2 cursor-pointer w-full"
           style={{ display: "block", touchAction: "none", borderColor: "#1a0050", background: "#06001a" }}
-          onPointerDown={(e) => { e.preventDefault(); jump(); }}
+          onTouchStart={(e) => { e.preventDefault(); jump(); }}
         />
 
         {/* Difficulty badge — admin only */}
