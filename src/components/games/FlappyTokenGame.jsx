@@ -8,10 +8,11 @@ const BIRD_X = 70;
 const BIRD_R = 16;
 const PIPE_W = 54;
 
+// Optimized Delta-Time values for perfectly smooth cross-platform speeds
 const DIFFICULTY_SETTINGS = {
-  easy:   { gravity: 0.30, jumpVel: -6.2, pipeGap: 170, pipeSpeed: 1.9, pipeInterval: 105 },
-  medium: { gravity: 0.38, jumpVel: -6.2, pipeGap: 145, pipeSpeed: 2.4, pipeInterval: 90  },
-  hard:   { gravity: 0.46, jumpVel: -6.2, pipeGap: 145, pipeSpeed: 3.2, pipeInterval: 72  },
+  easy:   { gravity: 850,  jumpVel: -280, pipeGap: 170, pipeSpeed: 114, pipeIntervalMs: 1750 },
+  medium: { gravity: 1050, jumpVel: -310, pipeGap: 145, pipeSpeed: 144, pipeIntervalMs: 1500 },
+  hard:   { gravity: 1250, jumpVel: -340, pipeGap: 145, pipeSpeed: 192, pipeIntervalMs: 1200 },
 };
 
 const TOKEN_IMG_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
@@ -89,7 +90,7 @@ function drawPipe(ctx, x, topH, botY) {
 }
 
 function drawBird(ctx, y, vel, tokenImg) {
-  const tilt = Math.min(Math.max(vel * 3.5, -25), 70);
+  const tilt = Math.min(Math.max(vel * 0.15, -25), 70);
   ctx.save();
   ctx.translate(BIRD_X, y); ctx.rotate((tilt * Math.PI) / 180);
   ctx.shadowBlur = 20; ctx.shadowColor = "#ffd700";
@@ -127,7 +128,6 @@ function drawIdleScreen(ctx, pipes, tokenImg) {
 function LiveLeaderboard({ currentUserId }) {
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [champUserIds, setChampUserIds] = useState(new Set());
 
   const load = useCallback(async () => {
@@ -196,19 +196,35 @@ function LiveLeaderboard({ currentUserId }) {
             const isMe = s.user_id === currentUserId;
             return (
               <div key={s.id} className="grid items-center px-4 py-2.5 transition-colors" style={{ gridTemplateColumns: "48px 1fr 64px", background: isMe ? "rgba(255,0,200,0.07)" : i < 3 ? "rgba(0,229,255,0.04)" : "transparent" }}>
+                
+                {/* Column 1: Rank */}
                 <div className="flex items-center">
                   {i < 3
                     ? <span className="text-xl">{medals[i]}</span>
                     : <span className="text-xs font-black" style={{ color: "#00e5ff66" }}>#{i + 1}</span>
                   }
                 </div>
-                <span className="text-xs font-semibold pr-2 leading-tight flex items-center gap-1 flex-wrap" style={{ color: isMe ? "#ff00c8" : "#e2e8f0", whiteSpace: "normal", wordBreak: "break-word" }}>
-                  {s.user_name}
-                  {champUserIds.has(s.user_id) && <span className="text-base flex-shrink-0" title="Defending Champ — Prize Cooldown">👑</span>}
-                </span>
+                
+                {/* Column 2: Player Name & Crown (Fixed Truncation) */}
+                <div className="flex items-center gap-1 pr-2 min-w-0">
+                  <span 
+                    className="text-xs font-semibold leading-tight truncate" 
+                    style={{ color: isMe ? "#ff00c8" : "#e2e8f0" }}
+                  >
+                    {s.user_name}
+                  </span>
+                  {champUserIds.has(s.user_id) && (
+                    <span className="text-base flex-shrink-0 leading-none" title="Defending Champ — Prize Cooldown">
+                      👑
+                    </span>
+                  )}
+                </div>
+
+                {/* Column 3: The Score */}
                 <span className="text-sm font-black text-right tabular-nums" style={{ color: i === 0 ? "#ffd700" : i === 1 ? "#94a3b8" : i === 2 ? "#c2692a" : "#00e5ff" }}>
                   {s.score}
                 </span>
+
               </div>
             );
           })}
@@ -313,26 +329,35 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
 
   const getDiff = () => DIFFICULTY_SETTINGS[difficulty] || DIFFICULTY_SETTINGS.medium;
 
+  // Optimized state tracking for Delta-Time mechanics
   const initState = () => ({
-    birdY: H / 2, birdVel: 0, pipes: [], frameCount: 0, score: 0, dead: false,
+    birdY: H / 2, birdVel: 0, pipes: [], lastPipeTime: 0, lastTime: null, score: 0, dead: false,
   });
 
-  const jump = useCallback(() => {
+  const jump = useCallback((e) => {
+    if (e) e.preventDefault(); // Prevents PC double-click scaling issues
+
     if (phase === "idle") {
       audio.startBg();
-      stateRef.current = initState();
+      const s = initState();
+      s.lastTime = performance.now();
+      s.lastPipeTime = performance.now();
+      s.birdVel = getDiff().jumpVel;
+      stateRef.current = s;
       setPhase("playing");
       setScore(0);
       setIsNewBest(false);
+      audio.jump();
+      return;
     }
     if (stateRef.current && !stateRef.current.dead) {
       stateRef.current.birdVel = getDiff().jumpVel;
       audio.jump();
     }
-  }, [phase]);
+  }, [phase, difficulty]);
 
   const handleKey = useCallback((e) => {
-    if (e.code === "Space" || e.code === "ArrowUp") { e.preventDefault(); jump(); }
+    if (e.code === "Space" || e.code === "ArrowUp") { e.preventDefault(); jump(e); }
   }, [jump]);
 
   useEffect(() => {
@@ -340,28 +365,33 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [handleKey]);
 
-  // Game loop
+  // Delta-Time Game loop
   useEffect(() => {
     if (phase !== "playing") return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
 
-    const loop = () => {
+    const loop = (timestamp) => {
       const s = stateRef.current;
       if (!s || s.dead) return;
 
-      const diff = getDiff();
-      s.frameCount++;
-      s.birdVel += diff.gravity;
-      s.birdY += s.birdVel;
+      if (s.lastTime === null) s.lastTime = timestamp;
+      const dt = Math.min((timestamp - s.lastTime) / 1000, 0.03); // Cap frame delta to protect PC users
+      s.lastTime = timestamp;
 
-      if (s.frameCount % diff.pipeInterval === 0) {
+      const diff = getDiff();
+      s.birdVel += diff.gravity * dt;
+      s.birdY += s.birdVel * dt;
+
+      if (s.lastPipeTime === 0) s.lastPipeTime = timestamp;
+      if (timestamp - s.lastPipeTime >= diff.pipeIntervalMs) {
         const gapY = 70 + Math.random() * (H - diff.pipeGap - 130);
         s.pipes.push({ x: W + PIPE_W, gapY, scored: false });
+        s.lastPipeTime = timestamp;
       }
 
-      s.pipes.forEach(p => { p.x -= diff.pipeSpeed; });
+      s.pipes.forEach(p => { p.x -= diff.pipeSpeed * dt; });
       s.pipes = s.pipes.filter(p => p.x > -PIPE_W - 10);
 
       s.pipes.forEach(p => {
@@ -406,7 +436,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
 
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [phase, saveScore]);
+  }, [phase, saveScore, difficulty]);
 
   const handlePlayAgain = () => {
     setPhase("idle");
@@ -434,9 +464,9 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
           ref={canvasRef}
           width={W} height={H}
           onClick={jump}
-          className="rounded-2xl border-2 cursor-pointer w-full"
+          className="rounded-2xl border-2 cursor-pointer w-full select-none"
           style={{ display: "block", touchAction: "none", borderColor: "#1a0050", background: "#06001a" }}
-          onTouchStart={(e) => { e.preventDefault(); jump(); }}
+          onTouchStart={jump}
         />
 
         {/* Difficulty badge — admin only */}
