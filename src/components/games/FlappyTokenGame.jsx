@@ -128,10 +128,16 @@ function LiveLeaderboard({ currentUserId }) {
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [champUserIds, setChampUserIds] = useState(new Set());
+
   const load = useCallback(async () => {
     setLoading(true);
-    const rows = await base44.entities.FlappyLeaderboard.list("-score", 10);
+    const [rows, users] = await Promise.all([
+      base44.entities.FlappyLeaderboard.list("-score", 10),
+      base44.entities.User.list(),
+    ]);
     setScores(rows);
+    setChampUserIds(new Set(users.filter(u => u.is_defending_champ_flappy).map(u => u.id)));
     setLoading(false);
   }, []);
 
@@ -196,8 +202,9 @@ function LiveLeaderboard({ currentUserId }) {
                     : <span className="text-xs font-black" style={{ color: "#00e5ff66" }}>#{i + 1}</span>
                   }
                 </div>
-                <span className="text-xs font-semibold pr-2 leading-tight" style={{ color: isMe ? "#ff00c8" : "#e2e8f0", whiteSpace: "normal", wordBreak: "break-word" }}>
+                <span className="text-xs font-semibold pr-2 leading-tight flex items-center gap-1 flex-wrap" style={{ color: isMe ? "#ff00c8" : "#e2e8f0", whiteSpace: "normal", wordBreak: "break-word" }}>
                   {s.user_name}
+                  {champUserIds.has(s.user_id) && <span className="text-base flex-shrink-0" title="Defending Champ — Prize Cooldown">👑</span>}
                 </span>
                 <span className="text-sm font-black text-right tabular-nums" style={{ color: i === 0 ? "#ffd700" : i === 1 ? "#94a3b8" : i === 2 ? "#c2692a" : "#00e5ff" }}>
                   {s.score}
