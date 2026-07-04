@@ -132,12 +132,12 @@ function LiveLeaderboard({ currentUserId }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [rows, users] = await Promise.all([
+    const [rows, settingsRows] = await Promise.all([
       base44.entities.FlappyLeaderboard.list("-score", 10),
-      base44.entities.User.list().catch(() => []),
+      base44.entities.AppSettings.list(),
     ]);
     setScores(rows);
-    setChampUserIds(new Set(users.filter(u => u.is_defending_champ_flappy).map(u => u.id)));
+    setChampUserIds(new Set(settingsRows[0]?.defending_champ_flappy_ids || []));
     setLoading(false);
   }, []);
 

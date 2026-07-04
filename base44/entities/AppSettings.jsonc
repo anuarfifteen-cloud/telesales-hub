@@ -31,6 +31,20 @@
       "type": "boolean",
       "description": "Whether the live voucher activity feed is shown in the Blind Voucher shop",
       "default": true
+    },
+    "defending_champ_supertap_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "User IDs of the current Super Tap defending champions (publicly readable for leaderboard crown display)"
+    },
+    "defending_champ_flappy_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "User IDs of the current Flappy Token defending champions (publicly readable for leaderboard crown display)"
     }
   },
   "required": []

@@ -71,15 +71,35 @@ export default function AdminFlappyToken() {
     queryFn: () => base44.entities.User.list(),
   });
 
+  const { data: appSettingsRows = [] } = useQuery({
+    queryKey: ["appSettingsAdminFlappy"],
+    queryFn: () => base44.entities.AppSettings.list(),
+  });
+
   const champUserIds = new Set(allUsers.filter(u => u.is_defending_champ_flappy).map(u => u.id));
   const champs = allUsers.filter(u => u.is_defending_champ_flappy);
   const nonChamps = allUsers.filter(u => !u.is_defending_champ_flappy);
   const eligibleScores = scores.filter(s => !champUserIds.has(s.user_id));
 
+  // Syncs the publicly-readable champ ID list on AppSettings so regular users can see the crown
+  const syncChampSettings = async (championUserIds) => {
+    const settings = appSettingsRows[0];
+    if (settings) {
+      await base44.entities.AppSettings.update(settings.id, { defending_champ_flappy_ids: championUserIds });
+    } else {
+      await base44.entities.AppSettings.create({ defending_champ_flappy_ids: championUserIds });
+    }
+    queryClient.invalidateQueries({ queryKey: ["appSettingsAdminFlappy"] });
+  };
+
   const toggleChamp = async (u, makeChamp) => {
     setChampLoading(u.id);
     try {
       await base44.entities.User.update(u.id, { is_defending_champ_flappy: makeChamp });
+      const updatedChampIds = makeChamp
+        ? [...champUserIds, u.id]
+        : [...champUserIds].filter(id => id !== u.id);
+      await syncChampSettings(updatedChampIds);
       await refetchUsers();
       toast.success(makeChamp ? `👑 ${u.full_name} set as Defending Champ` : `✅ ${u.full_name} removed from Defending Champ`);
     } catch (err) {
@@ -138,6 +158,7 @@ export default function AdminFlappyToken() {
       if (newChampUserId) {
         await base44.entities.User.update(newChampUserId, { is_defending_champ_flappy: true });
       }
+      await syncChampSettings(newChampUserId ? [newChampUserId] : []);
 
       // Delete all leaderboard entries
       const allScores = await base44.entities.FlappyLeaderboard.list();

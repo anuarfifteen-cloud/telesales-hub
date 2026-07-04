@@ -74,13 +74,13 @@ function Leaderboard() {
     refetchInterval: 10000
   });
 
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ["tapUsersPublic"],
-    queryFn: () => base44.entities.User.list(),
+  const { data: appSettingsRows = [] } = useQuery({
+    queryKey: ["appSettingsPublic"],
+    queryFn: () => base44.entities.AppSettings.list(),
     refetchInterval: 60000
   });
 
-  const champUserIds = new Set(allUsers.filter((u) => u.is_defending_champ).map((u) => u.id));
+  const champUserIds = new Set(appSettingsRows[0]?.defending_champ_supertap_ids || []);
 
   return (
     <div className="w-full bg-white dark:bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-cyan-500/20 shadow-xl shadow-slate-200/50 dark:shadow-cyan-950/20 overflow-hidden transition-all duration-300">
@@ -109,7 +109,7 @@ function Leaderboard() {
       ) : (
         <div className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-950/20">
           {scores.map((s, i) => {
-            const isChamp = champUserIds.has(s.user_id) || s.user_name?.includes("Siti Nurafiqah");
+            const isChamp = champUserIds.has(s.user_id);
             return (
               <div key={s.id} className={`flex items-center gap-4 px-5 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-cyan-500/5 ${i < 3 && !isChamp ? "bg-cyan-50/30 dark:bg-cyan-500/[0.02]" : ""}`}>
                 <div className="w-8 flex items-center justify-center flex-shrink-0">

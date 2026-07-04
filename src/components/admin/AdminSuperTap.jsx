@@ -43,15 +43,35 @@ export default function AdminSuperTap() {
     queryFn: () => base44.entities.User.list(),
   });
 
+  const { data: appSettingsRows = [] } = useQuery({
+    queryKey: ["appSettingsAdmin"],
+    queryFn: () => base44.entities.AppSettings.list(),
+  });
+
   const champUserIds = new Set(allUsers.filter(u => u.is_defending_champ).map(u => u.id));
   const eligibleScores = scores.filter(s => !champUserIds.has(s.user_id));
   const champs = allUsers.filter(u => u.is_defending_champ);
   const nonChamps = allUsers.filter(u => !u.is_defending_champ);
 
+  // Syncs the publicly-readable champ ID list on AppSettings so regular users can see the crown
+  const syncChampSettings = async (championUserIds) => {
+    const settings = appSettingsRows[0];
+    if (settings) {
+      await base44.entities.AppSettings.update(settings.id, { defending_champ_supertap_ids: championUserIds });
+    } else {
+      await base44.entities.AppSettings.create({ defending_champ_supertap_ids: championUserIds });
+    }
+    queryClient.invalidateQueries({ queryKey: ["appSettingsAdmin"] });
+  };
+
   const toggleChamp = async (user, makeChamp) => {
     setChampLoading(user.id);
     try {
       await base44.entities.User.update(user.id, { is_defending_champ: makeChamp });
+      const updatedChampIds = makeChamp
+        ? [...champUserIds, user.id]
+        : [...champUserIds].filter(id => id !== user.id);
+      await syncChampSettings(updatedChampIds);
       await refetchUsers();
       queryClient.invalidateQueries({ queryKey: ["tapScores"] });
       toast.success(makeChamp ? `👑 ${user.full_name} set as Defending Champ` : `✅ ${user.full_name} removed from Defending Champ`);
@@ -114,6 +134,7 @@ export default function AdminSuperTap() {
       if (newChampUserId) {
         await base44.entities.User.update(newChampUserId, { is_defending_champ: true });
       }
+      await syncChampSettings(newChampUserId ? [newChampUserId] : []);
 
       // Delete ALL TapScore records
       const allScores = await base44.entities.TapScore.list();
