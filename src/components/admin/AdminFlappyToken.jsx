@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Crown, UserX } from "lucide-react";
+import { Loader2, Crown, UserX, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -32,6 +32,9 @@ export default function AdminFlappyToken() {
   const [flappyEnabled, setFlappyEnabled] = useState(true);
   const [difficulty, setDifficulty] = useState("medium");
   const [savingSettings, setSavingSettings] = useState(false);
+  const [champLoading, setChampLoading] = useState(null);
+  const [showUserPicker, setShowUserPicker] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -70,7 +73,27 @@ export default function AdminFlappyToken() {
 
   const champUserIds = new Set(allUsers.filter(u => u.is_defending_champ_flappy).map(u => u.id));
   const champs = allUsers.filter(u => u.is_defending_champ_flappy);
+  const nonChamps = allUsers.filter(u => !u.is_defending_champ_flappy);
   const eligibleScores = scores.filter(s => !champUserIds.has(s.user_id));
+
+  const toggleChamp = async (u, makeChamp) => {
+    setChampLoading(u.id);
+    try {
+      await base44.entities.User.update(u.id, { is_defending_champ_flappy: makeChamp });
+      await refetchUsers();
+      toast.success(makeChamp ? `👑 ${u.full_name} set as Defending Champ` : `✅ ${u.full_name} removed from Defending Champ`);
+    } catch (err) {
+      toast.error("Error: " + err.message);
+    } finally {
+      setChampLoading(null);
+      setShowUserPicker(false);
+      setPickerSearch("");
+    }
+  };
+
+  const filteredNonChamps = nonChamps.filter(u =>
+    (u.full_name || u.email || "").toLowerCase().includes(pickerSearch.toLowerCase())
+  );
 
   const handleEndSeason = async () => {
     setProcessing(true);
@@ -211,10 +234,52 @@ export default function AdminFlappyToken() {
 
       {/* Defending Champ */}
       <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">👑 Defending Champion (Cooldown)</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">This user is ineligible for prizes next season.</p>
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">👑 Defending Champion (Cooldown)</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">This user is ineligible for prizes next season.</p>
+          </div>
+          <button
+            onClick={() => setShowUserPicker(v => !v)}
+            className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <Plus className="w-3 h-3" /> Add Champ
+          </button>
         </div>
+
+        {showUserPicker && (
+          <div className="border-b border-border px-4 py-3 bg-amber-50 dark:bg-amber-950/20 space-y-2">
+            <input
+              autoFocus
+              value={pickerSearch}
+              onChange={e => setPickerSearch(e.target.value)}
+              placeholder="Search users…"
+              className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-white dark:bg-card focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+            <div className="max-h-48 overflow-y-auto divide-y divide-border rounded-lg border border-border bg-white dark:bg-card">
+              {filteredNonChamps.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">No users found</p>
+              ) : filteredNonChamps.map(u => (
+                <button
+                  key={u.id}
+                  onClick={() => toggleChamp(u, true)}
+                  disabled={champLoading === u.id}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors text-left"
+                >
+                  {champLoading === u.id
+                    ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    : <Crown className="w-4 h-4 text-amber-500" />
+                  }
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{u.full_name || u.email}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {champs.length === 0 ? (
           <div className="py-6 text-center text-muted-foreground text-sm">No defending champion set.</div>
         ) : (
@@ -226,6 +291,14 @@ export default function AdminFlappyToken() {
                   <p className="text-sm font-semibold text-foreground truncate">{u.full_name || u.email}</p>
                   <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Prize Cooldown Active</p>
                 </div>
+                <button
+                  onClick={() => toggleChamp(u, false)}
+                  disabled={champLoading === u.id}
+                  className="flex items-center gap-1 text-xs font-bold text-red-600 hover:text-red-700 border border-red-200 hover:border-red-400 px-2.5 py-1.5 rounded-lg transition-colors bg-white dark:bg-card"
+                >
+                  {champLoading === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserX className="w-3 h-3" />}
+                  Remove
+                </button>
               </div>
             ))}
           </div>

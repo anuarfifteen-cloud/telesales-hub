@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, RefreshCw, Trophy } from "lucide-react";
+import { Loader2, Trophy } from "lucide-react";
 
 const W = 360;
 const H = 500;
@@ -134,7 +134,7 @@ function LiveLeaderboard({ currentUserId }) {
     setLoading(true);
     const [rows, users] = await Promise.all([
       base44.entities.FlappyLeaderboard.list("-score", 10),
-      base44.entities.User.list(),
+      base44.entities.User.list().catch(() => []),
     ]);
     setScores(rows);
     setChampUserIds(new Set(users.filter(u => u.is_defending_champ_flappy).map(u => u.id)));
@@ -150,81 +150,50 @@ function LiveLeaderboard({ currentUserId }) {
   const medals = ["🥇", "🥈", "🥉"];
 
   return (
-    <div className="w-full flex flex-col gap-0 rounded-2xl overflow-hidden border border-[#00e5ff]/30" style={{ background: "#0d0127" }}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#00e5ff]/20">
-        <div className="flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-yellow-400" />
-          <span className="text-yellow-400 font-black text-sm uppercase tracking-wider">🏆 Live Cyber Leaderboard</span>
+    <div className="w-full bg-white dark:bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-cyan-500/20 shadow-xl shadow-slate-200/50 dark:shadow-cyan-950/20 overflow-hidden transition-all duration-300">
+      {/* Info box */}
+      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-cyan-950/40 dark:to-indigo-950/40 border-b border-slate-200 dark:border-cyan-500/20 px-5 py-4">
+        <div className="flex items-center justify-center gap-2 mb-1.5">
+          <Trophy className="w-4 h-4 text-cyan-600 dark:text-cyan-400 animate-pulse" />
+          <p className="text-xs font-black uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Live Cyber Leaderboard</p>
         </div>
-        <button onClick={load} className="flex items-center gap-1 text-[#00e5ff] text-[10px] font-bold opacity-70 hover:opacity-100 transition-opacity">
-          <RefreshCw className="w-3 h-3" /> Refresh
-        </button>
-      </div>
-
-      {/* Instructions */}
-      <div className="px-4 py-3 border-b border-[#00e5ff]/20 flex flex-col gap-2 items-center text-center" style={{ background: "#110035" }}>
-        <p className="text-[11px] text-white/60 leading-relaxed">
-          The leaderboard resets twice a month <span className="text-white/80">(on the 15th and the final day of the month)</span>. Be in the Top 3 when the season ends to win:
+        <p className="text-[11px] text-slate-600 dark:text-slate-300 text-center leading-relaxed">
+          The leaderboard resets twice a month (on the 15th and the final day of the month). Be in the Top 3 when the season ends to win:
         </p>
-        <div className="flex gap-2 flex-wrap justify-center">
-          {[["🥇 1st", "5 Tokens", "#ffd700"], ["🥈 2nd", "2 Tokens", "#94a3b8"], ["🥉 3rd", "1 Token", "#c2692a"]].map(([rank, prize, color]) => (
-            <div key={rank} className="flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold border" style={{ borderColor: color + "55", background: color + "18", color }}>
-              {rank}: {prize}
-            </div>
-          ))}
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2.5">
+          <span className="text-[11px] font-bold bg-cyan-50 dark:bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-200 dark:border-cyan-500/20 text-cyan-700 dark:text-cyan-300">🥇 1st: 5 Tokens</span>
+          <span className="text-[11px] font-bold bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-300">🥈 2nd: 2 Tokens</span>
+          <span className="text-[11px] font-bold bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-300">🥉 3rd: 1 Token</span>
         </div>
-        <p className="text-[10px] text-white/40 leading-relaxed">
+        <p className="text-[10px] mt-2.5 leading-relaxed text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 font-medium">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping mr-0.5" />
           Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players!
         </p>
       </div>
 
-      {/* Column headers */}
-      <div className="grid px-4 py-1.5 border-b border-[#00e5ff]/10" style={{ gridTemplateColumns: "48px 1fr 64px" }}>
-        <span className="text-[10px] font-bold text-[#00e5ff]/50 uppercase tracking-widest">Rank</span>
-        <span className="text-[10px] font-bold text-[#00e5ff]/50 uppercase tracking-widest">Player</span>
-        <span className="text-[10px] font-bold text-[#00e5ff]/50 uppercase tracking-widest text-right">Score</span>
-      </div>
-
       {loading ? (
-        <div className="py-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-[#00e5ff]/50" /></div>
+        <div className="py-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
       ) : scores.length === 0 ? (
-        <div className="py-6 text-center text-[#00e5ff]/40 text-sm">No scores yet. Be the first!</div>
+        <div className="py-10 text-center text-slate-400 dark:text-slate-500 text-sm tracking-wide">Awaiting first contestant. Enter the grid!</div>
       ) : (
-        <div className="divide-y divide-[#00e5ff]/10">
+        <div className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-950/20">
           {scores.map((s, i) => {
-            const isMe = s.user_id === currentUserId;
+            const isChamp = champUserIds.has(s.user_id);
             return (
-              <div key={s.id} className="grid items-center px-4 py-2.5 transition-colors" style={{ gridTemplateColumns: "48px 1fr 64px", background: isMe ? "rgba(255,0,200,0.07)" : i < 3 ? "rgba(0,229,255,0.04)" : "transparent" }}>
-                
-                {/* Column 1: Rank */}
-                <div className="flex items-center">
+              <div key={s.id} className={`flex items-center gap-4 px-5 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-cyan-500/5 ${i < 3 && !isChamp ? "bg-cyan-50/30 dark:bg-cyan-500/[0.02]" : ""}`}>
+                <div className="w-8 flex items-center justify-center flex-shrink-0">
                   {i < 3
                     ? <span className="text-xl">{medals[i]}</span>
-                    : <span className="text-xs font-black" style={{ color: "#00e5ff66" }}>#{i + 1}</span>
+                    : <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] font-black text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">#{i + 1}</span>
                   }
                 </div>
-                
-                {/* Column 2: Player Name & Crown (Fixed Truncation) */}
-                <div className="flex items-center gap-1 pr-2 min-w-0">
-                  <span 
-                    className="text-xs font-semibold leading-tight truncate" 
-                    style={{ color: isMe ? "#ff00c8" : "#e2e8f0" }}
-                  >
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate" style={{ wordBreak: "break-word" }}>
                     {s.user_name}
                   </span>
-                  {champUserIds.has(s.user_id) && (
-                    <span className="text-base flex-shrink-0 leading-none" title="Defending Champ — Prize Cooldown">
-                      👑
-                    </span>
-                  )}
+                  {isChamp && <span className="text-base flex-shrink-0" title="Defending Champ — Prize Cooldown">👑</span>}
                 </div>
-
-                {/* Column 3: The Score */}
-                <span className="text-sm font-black text-right tabular-nums" style={{ color: i === 0 ? "#ffd700" : i === 1 ? "#94a3b8" : i === 2 ? "#c2692a" : "#00e5ff" }}>
-                  {s.score}
-                </span>
-
+                <span className="text-sm font-black text-cyan-600 dark:text-cyan-400 tracking-wider tabular-nums flex-shrink-0 bg-cyan-50 dark:bg-cyan-950/30 px-2.5 py-1 rounded-lg border border-cyan-100 dark:border-cyan-500/10">{s.score} pts</span>
               </div>
             );
           })}
