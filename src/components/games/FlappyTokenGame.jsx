@@ -105,23 +105,13 @@ function drawBird(ctx, y, vel, tokenImg) {
   ctx.restore();
 }
 
+// MOCHI UPDATE: Removed the canvas text drawing here. We now handle it beautifully in the React DOM layer.
 function drawIdleScreen(ctx, pipes, tokenImg) {
   drawBackground(ctx);
   // Draw two idle pipes for decoration
   pipes.forEach(p => drawPipe(ctx, p.x, p.gapY, p.gapY + DIFFICULTY_SETTINGS.medium.pipeGap));
   // Draw coin
   drawBird(ctx, H / 2, 0, tokenImg);
-  // TAP TO PLAY text
-  ctx.save();
-  ctx.shadowBlur = 30; ctx.shadowColor = "#ff00c8";
-  ctx.fillStyle = "#ff00c8";
-  ctx.font = "bold 30px monospace"; ctx.textAlign = "center";
-  ctx.fillText("TAP TO PLAY", W / 2, H / 2 - 60);
-  ctx.shadowBlur = 10; ctx.shadowColor = "#00e5ff";
-  ctx.fillStyle = "#00e5ff";
-  ctx.font = "12px monospace";
-  ctx.fillText("CLICK  •  TAP  •  SPACE", W / 2, H / 2 - 32);
-  ctx.restore();
 }
 
 // ── Live Leaderboard ──────────────────────────────────────────────────────────
@@ -150,50 +140,54 @@ function LiveLeaderboard({ currentUserId }) {
   const medals = ["🥇", "🥈", "🥉"];
 
   return (
-    <div className="w-full bg-white dark:bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-cyan-500/20 shadow-xl shadow-slate-200/50 dark:shadow-cyan-950/20 overflow-hidden transition-all duration-300">
+    <div className="w-full bg-[#0a0530]/90 backdrop-blur-xl rounded-2xl border border-[#00e5ff]/30 shadow-[0_0_25px_rgba(0,229,255,0.15)] overflow-hidden transition-all duration-300">
       {/* Info box */}
-      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-cyan-950/40 dark:to-indigo-950/40 border-b border-slate-200 dark:border-cyan-500/20 px-5 py-4">
-        <div className="flex items-center justify-center gap-2 mb-1.5">
-          <Trophy className="w-4 h-4 text-cyan-600 dark:text-cyan-400 animate-pulse" />
-          <p className="text-xs font-black uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Live Cyber Leaderboard</p>
+      <div className="bg-gradient-to-b from-[#06001a] to-transparent border-b border-[#ff00c8]/20 px-5 py-5 relative">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#ff00c8] to-transparent opacity-60"></div>
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <Trophy className="w-5 h-5 text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse" />
+          <p className="text-sm font-black uppercase tracking-widest text-[#00e5ff] drop-shadow-[0_0_5px_rgba(0,229,255,0.8)]">Live Cyber Grid</p>
         </div>
-        <p className="text-[11px] text-slate-600 dark:text-slate-300 text-center leading-relaxed">
-          The leaderboard resets twice a month (on the 15th and the final day of the month). Be in the Top 3 when the season ends to win:
+        <p className="text-[11px] text-[#00e5ff]/70 text-center leading-relaxed">
+          The grid resets twice a month (15th & Final Day). Claim the Top 3 to extract tokens:
         </p>
-        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2.5">
-          <span className="text-[11px] font-bold bg-cyan-50 dark:bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-200 dark:border-cyan-500/20 text-cyan-700 dark:text-cyan-300">🥇 1st: 5 Tokens</span>
-          <span className="text-[11px] font-bold bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-300">🥈 2nd: 2 Tokens</span>
-          <span className="text-[11px] font-bold bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-300">🥉 3rd: 1 Token</span>
+        <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 mt-3">
+          <span className="text-[11px] font-black bg-[#ffd700]/10 px-3 py-1 rounded-md border border-[#ffd700]/40 text-[#ffd700] shadow-[0_0_10px_rgba(255,215,0,0.1)]">🥇 1ST: 5 TOKENS</span>
+          <span className="text-[11px] font-black bg-[#c0c0c0]/10 px-3 py-1 rounded-md border border-[#c0c0c0]/40 text-[#c0c0c0] shadow-[0_0_10px_rgba(192,192,192,0.1)]">🥈 2ND: 2 TOKENS</span>
+          <span className="text-[11px] font-black bg-[#cd7f32]/10 px-3 py-1 rounded-md border border-[#cd7f32]/40 text-[#cd7f32] shadow-[0_0_10px_rgba(205,127,50,0.1)]">🥉 3RD: 1 TOKEN</span>
         </div>
-        <p className="text-[10px] mt-2.5 leading-relaxed text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 font-medium">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping mr-0.5" />
-          Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players!
+        <p className="text-[10px] mt-4 leading-relaxed text-[#ff00c8] flex items-center justify-center gap-1.5 font-bold">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff00c8] animate-ping" />
+          Defending Champs (👑) enter a 1-season prize cooldown!
         </p>
       </div>
 
       {loading ? (
-        <div className="py-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+        <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-[#00e5ff]" /></div>
       ) : scores.length === 0 ? (
-        <div className="py-10 text-center text-slate-400 dark:text-slate-500 text-sm tracking-wide">Awaiting first contestant. Enter the grid!</div>
+        <div className="py-12 text-center text-[#00e5ff]/50 text-sm tracking-widest font-bold uppercase">Awaiting first runner. Enter the grid!</div>
       ) : (
-        <div className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-950/20">
+        <div className="divide-y divide-[#00e5ff]/10 bg-transparent">
           {scores.map((s, i) => {
             const isChamp = champUserIds.has(s.user_id);
+            const isTop3 = i < 3 && !isChamp;
             return (
-              <div key={s.id} className={`flex items-center gap-4 px-5 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-cyan-500/5 ${i < 3 && !isChamp ? "bg-cyan-50/30 dark:bg-cyan-500/[0.02]" : ""}`}>
+              <div key={s.id} className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-[#00e5ff]/5 ${isTop3 ? "bg-[#00e5ff]/[0.03]" : ""}`}>
                 <div className="w-8 flex items-center justify-center flex-shrink-0">
                   {i < 3
-                    ? <span className="text-xl">{medals[i]}</span>
-                    : <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] font-black text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">#{i + 1}</span>
+                    ? <span className="text-2xl drop-shadow-md">{medals[i]}</span>
+                    : <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[#06001a] text-[11px] font-black text-[#00e5ff]/50 border border-[#00e5ff]/20 shadow-inner">#{i + 1}</span>
                   }
                 </div>
                 <div className="flex-1 min-w-0 flex items-center gap-2">
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate" style={{ wordBreak: "break-word" }}>
+                  <span className={`text-sm font-bold truncate ${isTop3 ? 'text-white' : 'text-white/70'}`} style={{ wordBreak: "break-word" }}>
                     {s.user_name}
                   </span>
-                  {isChamp && <span className="text-base flex-shrink-0" title="Defending Champ — Prize Cooldown">👑</span>}
+                  {isChamp && <span className="text-base flex-shrink-0 drop-shadow-[0_0_5px_#ffd700]" title="Defending Champ — Prize Cooldown">👑</span>}
                 </div>
-                <span className="text-sm font-black text-cyan-600 dark:text-cyan-400 tracking-wider tabular-nums flex-shrink-0 bg-cyan-50 dark:bg-cyan-950/30 px-2.5 py-1 rounded-lg border border-cyan-100 dark:border-cyan-500/10">{s.score} pts</span>
+                <span className="text-sm font-black text-[#ff00c8] tracking-widest tabular-nums flex-shrink-0 bg-[#ff00c8]/10 px-3 py-1.5 rounded-lg border border-[#ff00c8]/30 shadow-[0_0_10px_rgba(255,0,200,0.2)]">
+                  {s.score} PTS
+                </span>
               </div>
             );
           })}
@@ -387,7 +381,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       // Score HUD
       ctx.save();
       ctx.shadowBlur = 20; ctx.shadowColor = "#ff00c8";
-      ctx.fillStyle = "#ff00c8"; ctx.font = "bold 36px monospace";
+      ctx.fillStyle = "#ff00c8"; ctx.font = "bold 42px monospace";
       ctx.textAlign = "center"; ctx.fillText(s.score, W / 2, 52);
       ctx.restore();
 
@@ -412,71 +406,96 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
   };
 
   if (loadingEntry) {
-    return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+    return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#00e5ff]" /></div>;
   }
 
   if (!gameEnabled) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3">
+      <div className="flex flex-col items-center justify-center py-24 gap-3 bg-[#0a0530] rounded-2xl border border-[#ff00c8]/30">
         <span className="text-5xl">👀</span>
-        <p className="font-black text-lg text-foreground">Coming Soon</p>
-        <p className="text-sm text-muted-foreground">Check back soon!</p>
+        <p className="font-black text-lg text-[#00e5ff] tracking-widest uppercase">System Offline</p>
+        <p className="text-sm text-white/50">Check back soon for the next run!</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-3 pb-4">
-      {/* Canvas */}
-      <div className="relative w-full" style={{ maxWidth: W }}>
+    <div className="flex flex-col items-center gap-6 pb-6">
+      {/* Canvas Container */}
+      <div className="relative w-full shadow-[0_0_40px_rgba(0,229,255,0.15)] rounded-2xl" style={{ maxWidth: W }}>
         <canvas
           ref={canvasRef}
           width={W} height={H}
           onClick={jump}
-          className="rounded-2xl border-2 cursor-pointer w-full select-none"
-          style={{ display: "block", touchAction: "none", borderColor: "#1a0050", background: "#06001a" }}
+          className="rounded-2xl border border-[#00e5ff]/50 cursor-pointer w-full select-none"
+          style={{ display: "block", touchAction: "none", background: "#06001a" }}
           onTouchStart={jump}
         />
 
         {/* Difficulty badge — admin only */}
         {phase === "idle" && user?.role === "admin" && (
-          <div className="absolute top-3 right-3 pointer-events-none">
-            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
-              difficulty === "easy" ? "bg-emerald-900/80 border-emerald-400 text-emerald-300" :
-              difficulty === "hard" ? "bg-red-900/80 border-red-400 text-red-300" :
-              "bg-yellow-900/80 border-yellow-400 text-yellow-300"
-            }`}>{difficulty}</span>
+          <div className="absolute top-4 right-4 pointer-events-none">
+            <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md border shadow-lg ${
+              difficulty === "easy" ? "bg-emerald-950/80 border-emerald-500 text-emerald-400 shadow-emerald-500/20" :
+              difficulty === "hard" ? "bg-red-950/80 border-red-500 text-red-400 shadow-red-500/20" :
+              "bg-[#ffd700]/10 border-[#ffd700]/50 text-[#ffd700] shadow-[#ffd700]/20"
+            }`}>MOD: {difficulty}</span>
           </div>
         )}
 
-        {/* GAME OVER overlay */}
+        {/* HTML OVERLAY: IDLE SCREEN (MOCHI Upgrade) */}
+        {phase === "idle" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl pointer-events-none bg-[#06001a]/40 backdrop-blur-[2px]">
+            <h1 className="font-black text-4xl text-center leading-none tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-[#ff00c8] to-[#990078] drop-shadow-[0_0_15px_rgba(255,0,200,0.8)]">
+              TAP TO<br/>PLAY
+            </h1>
+            <div className="bg-[#00e5ff]/10 border border-[#00e5ff]/30 px-4 py-1.5 rounded-full backdrop-blur-md">
+              <p className="text-[#00e5ff] font-bold tracking-[0.2em] text-xs drop-shadow-[0_0_5px_rgba(0,229,255,0.8)]">
+                CLICK • TAP • SPACE
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* HTML OVERLAY: GAME OVER (MOCHI Upgrade) */}
         {phase === "dead" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl gap-3"
-               style={{ background: "rgba(6,0,26,0.88)", backdropFilter: "blur(4px)" }}>
-            <p className="font-black text-lg tracking-[0.25em] uppercase"
-               style={{ color: "#ff00c8", textShadow: "0 0 18px #ff00c8" }}>Game Over</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl gap-5 bg-[#06001a]/85 backdrop-blur-md border border-[#ff00c8]/40">
+            <p className="font-black text-2xl tracking-[0.3em] uppercase text-[#ff00c8] drop-shadow-[0_0_15px_rgba(255,0,200,1)] text-center">
+              Connection<br/>Lost
+            </p>
 
-            <div className="rounded-2xl px-8 py-4 flex flex-col items-center gap-1"
-                 style={{ background: "#1a0050", border: "1px solid #ff00c8" }}>
-              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#ff00c8" }}>Score</p>
-              <p className="font-black text-5xl tabular-nums"
-                 style={{ color: "#ffd700", textShadow: "0 0 20px #ffd700" }}>{finalScore}</p>
+            <div className="rounded-xl px-12 py-5 flex flex-col items-center gap-1 bg-[#1a0050]/80 border border-[#00e5ff]/50 shadow-[0_0_30px_rgba(0,229,255,0.2)] backdrop-blur-sm relative overflow-hidden">
+              {/* Decorative top border glow */}
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#00e5ff] to-transparent"></div>
+              
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#00e5ff]/80">Final Score</p>
+              <p className="font-black text-6xl tabular-nums text-[#ffd700] drop-shadow-[0_0_20px_rgba(255,215,0,0.8)]">
+                {finalScore}
+              </p>
+              
               {isNewBest && (
-                <p className="text-xs font-bold" style={{ color: "#ffd700" }}>⚡ NEW SESSION BEST! ⚡</p>
+                <div className="mt-2 mb-1 bg-[#ff00c8]/20 px-4 py-1 rounded-md border border-[#ff00c8]/50 shadow-[0_0_10px_rgba(255,0,200,0.3)]">
+                  <p className="text-[10px] font-black tracking-widest text-[#ff00c8] animate-pulse">⚡ NEW RECORD ⚡</p>
+                </div>
               )}
-              {saving
-                ? <p className="text-[10px]" style={{ color: "#00e5ff" }}>Saving to leaderboard…</p>
-                : <p className="text-[10px]" style={{ color: "#00e5ff" }}>Score saved to leaderboard</p>
-              }
+              
+              <div className="h-4 mt-2 flex items-center justify-center">
+                  {saving ? (
+                    <p className="text-[10px] font-bold tracking-widest uppercase text-[#00e5ff]/70 flex items-center gap-1.5">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Syncing...
+                    </p>
+                  ) : (
+                    <p className="text-[10px] font-bold tracking-widest uppercase text-[#00e5ff] drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">
+                      Grid Updated
+                    </p>
+                  )}
+              </div>
             </div>
 
-            <div className="flex gap-3 mt-1">
-              <button onClick={handlePlayAgain}
-                className="px-5 py-2 rounded-xl font-black text-sm"
-                style={{ background: "#00e5ff", color: "#06001a", boxShadow: "0 0 16px #00e5ff" }}>
-                PLAY AGAIN
-              </button>
-            </div>
+            <button onClick={handlePlayAgain}
+              className="mt-2 px-8 py-3 rounded-lg font-black text-sm tracking-widest bg-transparent border-2 border-[#00e5ff] text-[#00e5ff] hover:bg-[#00e5ff] hover:text-[#06001a] transition-all duration-300 shadow-[0_0_15px_rgba(0,229,255,0.3)] hover:shadow-[0_0_25px_rgba(0,229,255,0.8)]">
+              REBOOT SYSTEM
+            </button>
           </div>
         )}
       </div>
