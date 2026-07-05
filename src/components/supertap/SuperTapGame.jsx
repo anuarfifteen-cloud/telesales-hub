@@ -288,7 +288,7 @@ export default function SuperTapGame({ user }) {
 
   return (
     // FIX: Removed overflow-hidden, removed min-h-[85vh], changed justify-center to justify-start, added pb-24
-    <div className="relative flex flex-col items-center justify-start text-center w-full max-w-md mx-auto p-4 pb-24 gap-5 select-none bg-[#0a0530] rounded-3xl shadow-[0_0_40px_rgba(0,243,255,0.1)]">
+    <div className="relative flex flex-col items-center justify-start text-center w-full max-w-md mx-auto px-4 pt-6 pb-24 gap-5 select-none bg-[#0a0530] rounded-3xl shadow-[0_0_40px_rgba(0,243,255,0.1)]">
       
       {/* THE MATRIX BACKGROUND GRID (Now contained cleanly) */}
       <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none z-0">
@@ -310,11 +310,11 @@ export default function SuperTapGame({ user }) {
       `}</style>
 
       {/* Header */}
-      <div className="w-full relative py-1 flex flex-col items-center justify-center z-10">
-        <h2 className="text-2xl font-black text-[#00f3ff] drop-shadow-[0_0_10px_rgba(0,243,255,0.8)] tracking-widest flex items-center justify-center gap-2">
-          SUPER TAP 2.0 <Zap className="w-5 h-5 text-[#00f3ff] fill-[#00f3ff] animate-pulse" />
+      <div className="w-full relative flex flex-col items-center justify-center z-10">
+        <h2 className="text-xl sm:text-2xl font-black text-[#00f3ff] drop-shadow-[0_0_10px_rgba(0,243,255,0.8)] tracking-widest flex flex-wrap items-center justify-center gap-2 leading-tight">
+          SUPER TAP 2.0 <Zap className="w-5 h-5 text-[#00f3ff] fill-[#00f3ff] animate-pulse flex-shrink-0" />
         </h2>
-        <p className="text-[10px] font-black uppercase tracking-widest text-[#00f3ff]/60 mt-1">Grid Overload Matrix</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-[#00f3ff]/60 mt-1.5">Grid Overload Matrix</p>
       </div>
 
       {/* HUD Board */}
