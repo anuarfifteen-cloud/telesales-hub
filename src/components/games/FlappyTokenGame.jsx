@@ -8,7 +8,7 @@ const BIRD_X = 70;
 const BIRD_R = 16;
 const PIPE_W = 54;
 
-// Optimized Delta-Time values for perfectly smooth cross-platform speeds
+// Optimized Delta-Time values - UNTOUCHED to preserve original gameplay feel
 const DIFFICULTY_SETTINGS = {
   easy:   { gravity: 850,  jumpVel: -280, pipeGap: 170, pipeSpeed: 114, pipeIntervalMs: 1750 },
   medium: { gravity: 1050, jumpVel: -310, pipeGap: 145, pipeSpeed: 144, pipeIntervalMs: 1500 },
@@ -17,7 +17,7 @@ const DIFFICULTY_SETTINGS = {
 
 const TOKEN_IMG_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
 
-// ── Stars ────────────────────────────────────────────────────────────────────
+// ── Stars & Environment ──────────────────────────────────────────────────────
 const STARS = Array.from({ length: 80 }, () => ({
   x: Math.random() * W, y: Math.random() * H,
   r: 0.5 + Math.random() * 1.5, a: 0.3 + Math.random() * 0.7,
@@ -65,27 +65,83 @@ function createAudio() {
 }
 const audio = createAudio();
 
-// ── Draw helpers ─────────────────────────────────────────────────────────────
+// ── Draw helpers (MOCHI VISUAL OVERHAUL) ──────────────────────────────────────
 function drawBackground(ctx) {
+  // 1. Deep Space Nebula
   const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, "#06001a"); bg.addColorStop(1, "#0a0530");
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  bg.addColorStop(0, "#020008");
+  bg.addColorStop(0.4, "#06001a");
+  bg.addColorStop(1, "#0f073d");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // 2. Digital Grid (Subtle Sales Horizon)
+  ctx.strokeStyle = "rgba(0, 229, 255, 0.08)";
+  ctx.lineWidth = 1;
+  for(let i = 0; i < W; i += 40) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke();
+  }
+  for(let j = 0; j < H; j += 40) {
+    ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(W, j); ctx.stroke();
+  }
+
+  // 3. Stars
   STARS.forEach(s => {
-    ctx.save(); ctx.globalAlpha = s.a; ctx.fillStyle = "#ffffff";
-    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = s.a;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
   });
 }
 
 function drawPipe(ctx, x, topH, botY) {
   ctx.save();
-  ctx.shadowBlur = 22; ctx.shadowColor = "#00e5ff";
-  const grad = ctx.createLinearGradient(x, 0, x + PIPE_W, 0);
-  grad.addColorStop(0, "#006070"); grad.addColorStop(0.4, "#00d4f5"); grad.addColorStop(1, "#004f5c");
-  ctx.fillStyle = grad;
-  ctx.fillRect(x, 0, PIPE_W, topH);
-  ctx.fillStyle = "#00e5ff"; ctx.fillRect(x - 5, topH - 14, PIPE_W + 10, 14);
-  ctx.fillStyle = grad; ctx.fillRect(x, botY, PIPE_W, H - botY);
-  ctx.fillStyle = "#00e5ff"; ctx.fillRect(x - 5, botY, PIPE_W + 10, 14);
+  
+  // Design: Neural Conduit (Metal casing with Plasma core)
+  const casingGrad = ctx.createLinearGradient(x, 0, x + PIPE_W, 0);
+  casingGrad.addColorStop(0, "#12002b");
+  casingGrad.addColorStop(0.5, "#2a0052");
+  casingGrad.addColorStop(1, "#12002b");
+
+  const plasmaCore = ctx.createLinearGradient(x + 15, 0, x + PIPE_W - 15, 0);
+  plasmaCore.addColorStop(0, "rgba(0, 229, 255, 0)");
+  plasmaCore.addColorStop(0.5, "rgba(0, 229, 255, 0.6)");
+  plasmaCore.addColorStop(1, "rgba(0, 229, 255, 0)");
+
+  const drawConduit = (y, h, isTop) => {
+    // Main Body
+    ctx.fillStyle = casingGrad;
+    ctx.fillRect(x, y, PIPE_W, h);
+    
+    // Plasma Glow line
+    ctx.fillStyle = plasmaCore;
+    ctx.fillRect(x + 15, y, PIPE_W - 30, h);
+
+    // Structural Ribs
+    ctx.fillStyle = "rgba(0, 229, 255, 0.15)";
+    for (let i = 15; i < h - 15; i += 25) {
+      ctx.fillRect(x, y + i, PIPE_W, 2);
+    }
+
+    // Glowing Cap (Emitter)
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "#00e5ff";
+    ctx.fillStyle = "#00e5ff";
+    if (isTop) {
+      ctx.fillRect(x - 4, y + h - 12, PIPE_W + 8, 12);
+      ctx.fillStyle = "white";
+      ctx.fillRect(x + 2, y + h - 10, PIPE_W - 4, 2); // Highlight
+    } else {
+      ctx.fillRect(x - 4, y, PIPE_W + 8, 12);
+      ctx.fillStyle = "white";
+      ctx.fillRect(x + 2, y + 2, PIPE_W - 4, 2); // Highlight
+    }
+  };
+
+  drawConduit(0, topH, true);
+  drawConduit(botY, H - botY, false);
+  
   ctx.restore();
 }
 
@@ -93,7 +149,11 @@ function drawBird(ctx, y, vel, tokenImg) {
   const tilt = Math.min(Math.max(vel * 0.15, -25), 70);
   ctx.save();
   ctx.translate(BIRD_X, y); ctx.rotate((tilt * Math.PI) / 180);
-  ctx.shadowBlur = 20; ctx.shadowColor = "#ffd700";
+  
+  // Golden Aura
+  ctx.shadowBlur = 25;
+  ctx.shadowColor = "#ffd700";
+  
   if (tokenImg?.complete && tokenImg.naturalWidth > 0) {
     ctx.drawImage(tokenImg, -BIRD_R - 2, -BIRD_R - 2, (BIRD_R + 2) * 2, (BIRD_R + 2) * 2);
   } else {
@@ -105,12 +165,9 @@ function drawBird(ctx, y, vel, tokenImg) {
   ctx.restore();
 }
 
-// MOCHI UPDATE: Removed the canvas text drawing here. We now handle it beautifully in the React DOM layer.
 function drawIdleScreen(ctx, pipes, tokenImg) {
   drawBackground(ctx);
-  // Draw two idle pipes for decoration
   pipes.forEach(p => drawPipe(ctx, p.x, p.gapY, p.gapY + DIFFICULTY_SETTINGS.medium.pipeGap));
-  // Draw coin
   drawBird(ctx, H / 2, 0, tokenImg);
 }
 
@@ -141,7 +198,6 @@ function LiveLeaderboard({ currentUserId }) {
 
   return (
     <div className="w-full bg-[#0a0530]/90 backdrop-blur-xl rounded-2xl border border-[#00e5ff]/30 shadow-[0_0_25px_rgba(0,229,255,0.15)] overflow-hidden transition-all duration-300">
-      {/* Info box */}
       <div className="bg-gradient-to-b from-[#06001a] to-transparent border-b border-[#ff00c8]/20 px-5 py-5 relative">
         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#ff00c8] to-transparent opacity-60"></div>
         <div className="flex items-center justify-center gap-3 mb-2">
@@ -218,14 +274,12 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
   const [gameEnabled, setGameEnabled] = useState(true);
   const [difficulty, setDifficulty] = useState("medium");
 
-  // Preload token image
   useEffect(() => {
     const img = new Image();
     img.src = TOKEN_IMG_URL;
     tokenImgRef.current = img;
   }, []);
 
-  // Load settings + user personal best
   useEffect(() => {
     base44.entities.AppSettings.list().then(rows => {
       const s = rows[0];
@@ -248,7 +302,6 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
     if (phase !== "idle") return;
     let animFrame;
     let running = true;
-
     const loop = () => {
       if (!running) return;
       const canvas = canvasRef.current;
@@ -261,7 +314,6 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       drawIdleScreen(ctx, idlePipesRef.current, tokenImgRef.current);
       animFrame = requestAnimationFrame(loop);
     };
-
     animFrame = requestAnimationFrame(loop);
     return () => { running = false; cancelAnimationFrame(animFrame); };
   }, [phase]);
@@ -292,14 +344,12 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
 
   const getDiff = () => DIFFICULTY_SETTINGS[difficulty] || DIFFICULTY_SETTINGS.medium;
 
-  // Optimized state tracking for Delta-Time mechanics
   const initState = () => ({
     birdY: H / 2, birdVel: 0, pipes: [], lastPipeTime: 0, lastTime: null, score: 0, dead: false,
   });
 
   const jump = useCallback((e) => {
-    if (e) e.preventDefault(); // Prevents PC double-click scaling issues
-
+    if (e) e.preventDefault();
     if (phase === "idle") {
       audio.startBg();
       const s = initState();
@@ -328,7 +378,6 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [handleKey]);
 
-  // Delta-Time Game loop
   useEffect(() => {
     if (phase !== "playing") return;
     const canvas = canvasRef.current;
@@ -340,7 +389,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       if (!s || s.dead) return;
 
       if (s.lastTime === null) s.lastTime = timestamp;
-      const dt = Math.min((timestamp - s.lastTime) / 1000, 0.03); // Cap frame delta to protect PC users
+      const dt = Math.min((timestamp - s.lastTime) / 1000, 0.03);
       s.lastTime = timestamp;
 
       const diff = getDiff();
@@ -365,7 +414,6 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
         }
       });
 
-      // Collision
       if (s.birdY - BIRD_R < 0 || s.birdY + BIRD_R > H) s.dead = true;
       s.pipes.forEach(p => {
         const inX = BIRD_X + BIRD_R - 4 > p.x && BIRD_X - BIRD_R + 4 < p.x + PIPE_W;
@@ -378,7 +426,6 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       s.pipes.forEach(p => drawPipe(ctx, p.x, p.gapY, p.gapY + diff.pipeGap));
       drawBird(ctx, s.birdY, s.birdVel, tokenImgRef.current);
 
-      // Score HUD
       ctx.save();
       ctx.shadowBlur = 20; ctx.shadowColor = "#ff00c8";
       ctx.fillStyle = "#ff00c8"; ctx.font = "bold 42px monospace";
@@ -393,17 +440,13 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
         saveScore(fs);
         return;
       }
-
       rafRef.current = requestAnimationFrame(loop);
     };
-
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
   }, [phase, saveScore, difficulty]);
 
-  const handlePlayAgain = () => {
-    setPhase("idle");
-  };
+  const handlePlayAgain = () => { setPhase("idle"); };
 
   if (loadingEntry) {
     return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#00e5ff]" /></div>;
@@ -421,7 +464,6 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
 
   return (
     <div className="flex flex-col items-center gap-6 pb-6">
-      {/* Canvas Container */}
       <div className="relative w-full shadow-[0_0_40px_rgba(0,229,255,0.15)] rounded-2xl" style={{ maxWidth: W }}>
         <canvas
           ref={canvasRef}
@@ -432,18 +474,16 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
           onTouchStart={jump}
         />
 
-        {/* Difficulty badge — admin only */}
         {phase === "idle" && user?.role === "admin" && (
           <div className="absolute top-4 right-4 pointer-events-none">
             <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md border shadow-lg ${
-              difficulty === "easy" ? "bg-emerald-950/80 border-emerald-500 text-emerald-400 shadow-emerald-500/20" :
+              difficulty === "easy" ? "bg-emerald-950/80 border-emerald-400 text-emerald-400 shadow-emerald-500/20" :
               difficulty === "hard" ? "bg-red-950/80 border-red-500 text-red-400 shadow-red-500/20" :
               "bg-[#ffd700]/10 border-[#ffd700]/50 text-[#ffd700] shadow-[#ffd700]/20"
             }`}>MOD: {difficulty}</span>
           </div>
         )}
 
-        {/* HTML OVERLAY: IDLE SCREEN (MOCHI Upgrade) */}
         {phase === "idle" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl pointer-events-none bg-[#06001a]/40 backdrop-blur-[2px]">
             <h1 className="font-black text-4xl text-center leading-none tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-[#ff00c8] to-[#990078] drop-shadow-[0_0_15px_rgba(255,0,200,0.8)]">
@@ -457,41 +497,28 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
           </div>
         )}
 
-        {/* HTML OVERLAY: GAME OVER (MOCHI Upgrade) */}
         {phase === "dead" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl gap-5 bg-[#06001a]/85 backdrop-blur-md border border-[#ff00c8]/40">
             <p className="font-black text-2xl tracking-[0.3em] uppercase text-[#ff00c8] drop-shadow-[0_0_15px_rgba(255,0,200,1)] text-center">
               Connection<br/>Lost
             </p>
-
             <div className="rounded-xl px-12 py-5 flex flex-col items-center gap-1 bg-[#1a0050]/80 border border-[#00e5ff]/50 shadow-[0_0_30px_rgba(0,229,255,0.2)] backdrop-blur-sm relative overflow-hidden">
-              {/* Decorative top border glow */}
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#00e5ff] to-transparent"></div>
-              
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#00e5ff]/80">Final Score</p>
-              <p className="font-black text-6xl tabular-nums text-[#ffd700] drop-shadow-[0_0_20px_rgba(255,215,0,0.8)]">
-                {finalScore}
-              </p>
-              
+              <p className="font-black text-6xl tabular-nums text-[#ffd700] drop-shadow-[0_0_20px_rgba(255,215,0,0.8)]">{finalScore}</p>
               {isNewBest && (
                 <div className="mt-2 mb-1 bg-[#ff00c8]/20 px-4 py-1 rounded-md border border-[#ff00c8]/50 shadow-[0_0_10px_rgba(255,0,200,0.3)]">
                   <p className="text-[10px] font-black tracking-widest text-[#ff00c8] animate-pulse">⚡ NEW RECORD ⚡</p>
                 </div>
               )}
-              
               <div className="h-4 mt-2 flex items-center justify-center">
-                  {saving ? (
-                    <p className="text-[10px] font-bold tracking-widest uppercase text-[#00e5ff]/70 flex items-center gap-1.5">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Syncing...
-                    </p>
-                  ) : (
-                    <p className="text-[10px] font-bold tracking-widest uppercase text-[#00e5ff] drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">
-                      Grid Updated
-                    </p>
-                  )}
+                {saving ? (
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-[#00e5ff]/70 flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Syncing...</p>
+                ) : (
+                  <p className="text-[10px] font-black tracking-widest uppercase text-[#00e5ff] drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">Grid Updated</p>
+                )}
               </div>
             </div>
-
             <button onClick={handlePlayAgain}
               className="mt-2 px-8 py-3 rounded-lg font-black text-sm tracking-widest bg-transparent border-2 border-[#00e5ff] text-[#00e5ff] hover:bg-[#00e5ff] hover:text-[#06001a] transition-all duration-300 shadow-[0_0_15px_rgba(0,229,255,0.3)] hover:shadow-[0_0_25px_rgba(0,229,255,0.8)]">
               REBOOT SYSTEM
@@ -499,8 +526,6 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
           </div>
         )}
       </div>
-
-      {/* Live Leaderboard */}
       <div className="w-full" style={{ maxWidth: W }}>
         <LiveLeaderboard currentUserId={user?.id} />
       </div>
