@@ -285,14 +285,16 @@ export default function SuperTapGame({ user }) {
   const currentTPS = elapsedTime > 0 && !isOver ? (currentScore / elapsedTime).toFixed(1) : (isOver ? (currentScore / 10).toFixed(1) : "0.0");
 
   return (
-    /* MOCHI FIX: MASSIVE OUTER SCROLL WRAPPER */
     <div 
-      className="w-full flex flex-col items-center justify-start overflow-y-auto px-2 sm:px-4 pt-28 pb-40" 
-      style={{ minHeight: "100vh", WebkitOverflowScrolling: "touch" }}
+      className="w-full h-full flex flex-col items-center justify-start overflow-y-auto px-2 sm:px-4" 
+      style={{ WebkitOverflowScrolling: "touch" }}
     >
       
-      {/* THE ACTUAL GAME CARD (With shrink-0 so it never gets crushed) */}
-      <div className="relative flex flex-col items-center justify-start text-center w-full max-w-md mx-auto p-4 gap-5 select-none bg-[#0a0530] rounded-3xl shadow-[0_0_40px_rgba(0,243,255,0.1)] shrink-0">
+      {/* 🛑 BRUTE FORCE TOP SPACER: Forces the game down past the fixed header 🛑 */}
+      <div className="w-full h-28 sm:h-32 shrink-0 pointer-events-none"></div>
+
+      {/* THE ACTUAL GAME CARD */}
+      <div className="relative flex flex-col items-center justify-start text-center w-full max-w-md mx-auto p-4 gap-5 select-none bg-[#0a0530] rounded-3xl shadow-[0_0_40px_rgba(0,243,255,0.1)] shrink-0 z-10">
         
         {/* THE MATRIX BACKGROUND GRID */}
         <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none z-0">
@@ -447,6 +449,10 @@ export default function SuperTapGame({ user }) {
         {/* Leaderboard Terminal Panel */}
         <Leaderboard />
       </div>
+
+      {/* 🛑 BRUTE FORCE BOTTOM SPACER: Forces clearance for bottom nav 🛑 */}
+      <div className="w-full h-32 sm:h-40 shrink-0 pointer-events-none"></div>
+
     </div>
   );
 }
