@@ -310,15 +310,15 @@ export default function SuperTapGame({ user }) {
       `}</style>
 
       {/* Header */}
-      <div className="w-full relative flex flex-col items-center justify-center z-10">
-        <h2 className="text-xl sm:text-2xl font-black text-[#00f3ff] drop-shadow-[0_0_10px_rgba(0,243,255,0.8)] tracking-widest flex flex-wrap items-center justify-center gap-2 leading-tight">
-          SUPER TAP 2.0 <Zap className="w-5 h-5 text-[#00f3ff] fill-[#00f3ff] animate-pulse flex-shrink-0" />
+      <div className="w-full relative flex flex-col items-center justify-center z-10 mb-1">
+        <h2 className="text-lg font-black text-[#00f3ff] drop-shadow-[0_0_10px_rgba(0,243,255,0.8)] tracking-widest whitespace-nowrap flex items-center justify-center gap-1.5 leading-none">
+          SUPER TAP 2.0 <Zap className="w-4 h-4 text-[#00f3ff] fill-[#00f3ff] animate-pulse flex-shrink-0" />
         </h2>
-        <p className="text-[10px] font-black uppercase tracking-widest text-[#00f3ff]/60 mt-1.5">Grid Overload Matrix</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-[#00f3ff]/60 mt-1.5 leading-none">Grid Overload Matrix</p>
       </div>
 
       {/* HUD Board */}
-      <div className="w-full grid grid-cols-2 gap-3 bg-[#110a3a]/80 border border-[#00f3ff]/30 p-4 rounded-2xl shadow-[0_0_20px_rgba(0,243,255,0.1)] backdrop-blur-md z-10">
+      <div className="w-full grid grid-cols-2 gap-3 bg-[#110a3a]/80 border border-[#00f3ff]/30 p-4 rounded-2xl shadow-[0_0_20px_rgba(0,243,255,0.1)] backdrop-blur-md z-10 mt-2">
         
         {/* TIMER SECTION */}
         <div className="flex flex-col items-center justify-center relative pr-2 border-r border-[#00f3ff]/20">
