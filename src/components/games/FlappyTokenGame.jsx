@@ -17,12 +17,6 @@ const DIFFICULTY_SETTINGS = {
 
 const TOKEN_IMG_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
 
-// ── Stars & Environment ──────────────────────────────────────────────────────
-const STARS = Array.from({ length: 80 }, () => ({
-  x: Math.random() * W, y: Math.random() * H,
-  r: 0.5 + Math.random() * 1.5, a: 0.3 + Math.random() * 0.7,
-}));
-
 // ── Audio ────────────────────────────────────────────────────────────────────
 function createAudio() {
   let ctx = null;
@@ -65,49 +59,62 @@ function createAudio() {
 }
 const audio = createAudio();
 
-// ── Draw helpers (MOCHI VISUAL OVERHAUL) ──────────────────────────────────────
+// ── Draw helpers (MOCHI DAYLIGHT OVERHAUL) ────────────────────────────────────
 function drawBackground(ctx) {
-  // 1. Deep Space Nebula
+  // 1. Bright Daylight Sky Gradient
   const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, "#020008");
-  bg.addColorStop(0.4, "#06001a");
-  bg.addColorStop(1, "#0f073d");
+  bg.addColorStop(0, "#4BA3E3");   // Deep sky blue at the top
+  bg.addColorStop(0.5, "#87CEEB"); // Mid sky
+  bg.addColorStop(1, "#E0F6FF");   // Light misty horizon
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // 2. Digital Grid (Subtle Sales Horizon)
-  ctx.strokeStyle = "rgba(0, 229, 255, 0.08)";
-  ctx.lineWidth = 1;
-  for(let i = 0; i < W; i += 40) {
-    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke();
-  }
-  for(let j = 0; j < H; j += 40) {
-    ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(W, j); ctx.stroke();
-  }
+  // 2. The Sun
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(W * 0.8, H * 0.15, 35, 0, Math.PI * 2);
+  ctx.fillStyle = "#FFFDE7";
+  ctx.shadowBlur = 60;
+  ctx.shadowColor = "#FFD700";
+  ctx.fill();
+  ctx.restore();
 
-  // 3. Stars
-  STARS.forEach(s => {
+  // 3. Fluffy Clouds Helper
+  const drawCloud = (cx, cy, scale, opacity) => {
     ctx.save();
-    ctx.globalAlpha = s.a;
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, 25 * scale, Math.PI * 0.5, Math.PI * 1.5);
+    ctx.arc(cx + 25 * scale, cy - 20 * scale, 30 * scale, Math.PI * 1, Math.PI * 2);
+    ctx.arc(cx + 60 * scale, cy - 10 * scale, 25 * scale, Math.PI * 1.2, Math.PI * 2);
+    ctx.arc(cx + 70 * scale, cy, 20 * scale, Math.PI * 1.5, Math.PI * 0.5);
+    ctx.closePath();
+    ctx.fill();
     ctx.restore();
-  });
+  };
+
+  // Draw scattered clouds
+  drawCloud(20, 120, 0.8, 0.9);
+  drawCloud(220, 80, 1.2, 0.8);
+  drawCloud(150, 300, 1.1, 0.85);
+  drawCloud(-20, 420, 1.4, 0.7);
 }
 
 function drawPipe(ctx, x, topH, botY) {
   ctx.save();
   
-  // Design: Neural Conduit (Metal casing with Plasma core)
+  // Design: Neural Conduit (Dark metal casing to contrast with the bright sky)
   const casingGrad = ctx.createLinearGradient(x, 0, x + PIPE_W, 0);
-  casingGrad.addColorStop(0, "#12002b");
-  casingGrad.addColorStop(0.5, "#2a0052");
-  casingGrad.addColorStop(1, "#12002b");
+  casingGrad.addColorStop(0, "#1a1a24");
+  casingGrad.addColorStop(0.5, "#3d3d4e");
+  casingGrad.addColorStop(1, "#1a1a24");
 
   const plasmaCore = ctx.createLinearGradient(x + 15, 0, x + PIPE_W - 15, 0);
-  plasmaCore.addColorStop(0, "rgba(0, 229, 255, 0)");
-  plasmaCore.addColorStop(0.5, "rgba(0, 229, 255, 0.6)");
-  plasmaCore.addColorStop(1, "rgba(0, 229, 255, 0)");
+  plasmaCore.addColorStop(0, "rgba(200, 100, 255, 0)");
+  plasmaCore.addColorStop(0.5, "rgba(200, 100, 255, 0.8)"); // Purple plasma glow
+  plasmaCore.addColorStop(1, "rgba(200, 100, 255, 0)");
 
   const drawConduit = (y, h, isTop) => {
     // Main Body
@@ -119,23 +126,23 @@ function drawPipe(ctx, x, topH, botY) {
     ctx.fillRect(x + 15, y, PIPE_W - 30, h);
 
     // Structural Ribs
-    ctx.fillStyle = "rgba(0, 229, 255, 0.15)";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
     for (let i = 15; i < h - 15; i += 25) {
-      ctx.fillRect(x, y + i, PIPE_W, 2);
+      ctx.fillRect(x, y + i, PIPE_W, 3);
     }
 
     // Glowing Cap (Emitter)
     ctx.shadowBlur = 15;
-    ctx.shadowColor = "#00e5ff";
-    ctx.fillStyle = "#00e5ff";
+    ctx.shadowColor = "#c864ff";
+    ctx.fillStyle = "#2c2c3a";
     if (isTop) {
       ctx.fillRect(x - 4, y + h - 12, PIPE_W + 8, 12);
-      ctx.fillStyle = "white";
-      ctx.fillRect(x + 2, y + h - 10, PIPE_W - 4, 2); // Highlight
+      ctx.fillStyle = "#c864ff";
+      ctx.fillRect(x + 2, y + h - 10, PIPE_W - 4, 2); 
     } else {
       ctx.fillRect(x - 4, y, PIPE_W + 8, 12);
-      ctx.fillStyle = "white";
-      ctx.fillRect(x + 2, y + 2, PIPE_W - 4, 2); // Highlight
+      ctx.fillStyle = "#c864ff";
+      ctx.fillRect(x + 2, y + 2, PIPE_W - 4, 2); 
     }
   };
 
@@ -197,14 +204,14 @@ function LiveLeaderboard({ currentUserId }) {
   const medals = ["🥇", "🥈", "🥉"];
 
   return (
-    <div className="w-full bg-[#0a0530]/90 backdrop-blur-xl rounded-2xl border border-[#00e5ff]/30 shadow-[0_0_25px_rgba(0,229,255,0.15)] overflow-hidden transition-all duration-300">
+    <div className="w-full bg-[#0a0530]/90 backdrop-blur-xl rounded-2xl border border-[#c864ff]/30 shadow-[0_0_25px_rgba(200,100,255,0.15)] overflow-hidden transition-all duration-300">
       <div className="bg-gradient-to-b from-[#06001a] to-transparent border-b border-[#ff00c8]/20 px-5 py-5 relative">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#ff00c8] to-transparent opacity-60"></div>
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#c864ff] to-transparent opacity-60"></div>
         <div className="flex items-center justify-center gap-3 mb-2">
           <Trophy className="w-5 h-5 text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse" />
-          <p className="text-sm font-black uppercase tracking-widest text-[#00e5ff] drop-shadow-[0_0_5px_rgba(0,229,255,0.8)]">Live Cyber Grid</p>
+          <p className="text-sm font-black uppercase tracking-widest text-[#c864ff] drop-shadow-[0_0_5px_rgba(200,100,255,0.8)]">Live Grid Scores</p>
         </div>
-        <p className="text-[11px] text-[#00e5ff]/70 text-center leading-relaxed">
+        <p className="text-[11px] text-[#c864ff]/70 text-center leading-relaxed">
           The grid resets twice a month (15th & Final Day). Claim the Top 3 to extract tokens:
         </p>
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 mt-3">
@@ -219,20 +226,20 @@ function LiveLeaderboard({ currentUserId }) {
       </div>
 
       {loading ? (
-        <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-[#00e5ff]" /></div>
+        <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-[#c864ff]" /></div>
       ) : scores.length === 0 ? (
-        <div className="py-12 text-center text-[#00e5ff]/50 text-sm tracking-widest font-bold uppercase">Awaiting first runner. Enter the grid!</div>
+        <div className="py-12 text-center text-[#c864ff]/50 text-sm tracking-widest font-bold uppercase">Awaiting first runner. Enter the grid!</div>
       ) : (
-        <div className="divide-y divide-[#00e5ff]/10 bg-transparent">
+        <div className="divide-y divide-[#c864ff]/10 bg-transparent">
           {scores.map((s, i) => {
             const isChamp = champUserIds.has(s.user_id);
             const isTop3 = i < 3 && !isChamp;
             return (
-              <div key={s.id} className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-[#00e5ff]/5 ${isTop3 ? "bg-[#00e5ff]/[0.03]" : ""}`}>
+              <div key={s.id} className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-[#c864ff]/5 ${isTop3 ? "bg-[#c864ff]/[0.03]" : ""}`}>
                 <div className="w-8 flex items-center justify-center flex-shrink-0">
                   {i < 3
                     ? <span className="text-2xl drop-shadow-md">{medals[i]}</span>
-                    : <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[#06001a] text-[11px] font-black text-[#00e5ff]/50 border border-[#00e5ff]/20 shadow-inner">#{i + 1}</span>
+                    : <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[#06001a] text-[11px] font-black text-[#c864ff]/50 border border-[#c864ff]/20 shadow-inner">#{i + 1}</span>
                   }
                 </div>
                 <div className="flex-1 min-w-0 flex items-center gap-2">
@@ -427,9 +434,12 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       drawBird(ctx, s.birdY, s.birdVel, tokenImgRef.current);
 
       ctx.save();
-      ctx.shadowBlur = 20; ctx.shadowColor = "#ff00c8";
-      ctx.fillStyle = "#ff00c8"; ctx.font = "bold 42px monospace";
-      ctx.textAlign = "center"; ctx.fillText(s.score, W / 2, 52);
+      ctx.shadowBlur = 20; ctx.shadowColor = "#ffffff";
+      ctx.fillStyle = "#ffffff"; ctx.font = "bold 46px monospace";
+      ctx.textAlign = "center"; 
+      ctx.strokeStyle = "#1a1a24"; ctx.lineWidth = 4;
+      ctx.strokeText(s.score, W / 2, 52); // Added stroke so text pops against white clouds
+      ctx.fillText(s.score, W / 2, 52);
       ctx.restore();
 
       if (s.dead) {
@@ -449,14 +459,14 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
   const handlePlayAgain = () => { setPhase("idle"); };
 
   if (loadingEntry) {
-    return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#00e5ff]" /></div>;
+    return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[#c864ff]" /></div>;
   }
 
   if (!gameEnabled) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 bg-[#0a0530] rounded-2xl border border-[#ff00c8]/30">
         <span className="text-5xl">👀</span>
-        <p className="font-black text-lg text-[#00e5ff] tracking-widest uppercase">System Offline</p>
+        <p className="font-black text-lg text-[#c864ff] tracking-widest uppercase">System Offline</p>
         <p className="text-sm text-white/50">Check back soon for the next run!</p>
       </div>
     );
@@ -464,13 +474,13 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
 
   return (
     <div className="flex flex-col items-center gap-6 pb-6">
-      <div className="relative w-full shadow-[0_0_40px_rgba(0,229,255,0.15)] rounded-2xl" style={{ maxWidth: W }}>
+      <div className="relative w-full shadow-[0_0_40px_rgba(135,206,235,0.3)] rounded-2xl" style={{ maxWidth: W }}>
         <canvas
           ref={canvasRef}
           width={W} height={H}
           onClick={jump}
-          className="rounded-2xl border border-[#00e5ff]/50 cursor-pointer w-full select-none"
-          style={{ display: "block", touchAction: "none", background: "#06001a" }}
+          className="rounded-2xl border border-[#E0F6FF]/50 cursor-pointer w-full select-none"
+          style={{ display: "block", touchAction: "none", background: "#87CEEB" }}
           onTouchStart={jump}
         />
 
@@ -485,12 +495,12 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
         )}
 
         {phase === "idle" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl pointer-events-none bg-[#06001a]/40 backdrop-blur-[2px]">
-            <h1 className="font-black text-4xl text-center leading-none tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-[#ff00c8] to-[#990078] drop-shadow-[0_0_15px_rgba(255,0,200,0.8)]">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl pointer-events-none bg-[#000000]/30 backdrop-blur-[2px]">
+            <h1 className="font-black text-4xl text-center leading-none tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] to-[#e0e0e0] drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]">
               TAP TO<br/>PLAY
             </h1>
-            <div className="bg-[#00e5ff]/10 border border-[#00e5ff]/30 px-4 py-1.5 rounded-full backdrop-blur-md">
-              <p className="text-[#00e5ff] font-bold tracking-[0.2em] text-xs drop-shadow-[0_0_5px_rgba(0,229,255,0.8)]">
+            <div className="bg-[#000000]/40 border border-[#ffffff]/30 px-4 py-1.5 rounded-full backdrop-blur-md">
+              <p className="text-[#ffffff] font-bold tracking-[0.2em] text-xs drop-shadow-[0_0_5px_rgba(0,0,0,0.8)]">
                 CLICK • TAP • SPACE
               </p>
             </div>
@@ -498,13 +508,13 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
         )}
 
         {phase === "dead" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl gap-5 bg-[#06001a]/85 backdrop-blur-md border border-[#ff00c8]/40">
-            <p className="font-black text-2xl tracking-[0.3em] uppercase text-[#ff00c8] drop-shadow-[0_0_15px_rgba(255,0,200,1)] text-center">
-              Connection<br/>Lost
+          <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl gap-5 bg-[#000000]/60 backdrop-blur-md border border-[#c864ff]/40">
+            <p className="font-black text-2xl tracking-[0.3em] uppercase text-[#ffffff] drop-shadow-[0_0_15px_rgba(200,100,255,1)] text-center">
+              Run<br/>Ended
             </p>
-            <div className="rounded-xl px-12 py-5 flex flex-col items-center gap-1 bg-[#1a0050]/80 border border-[#00e5ff]/50 shadow-[0_0_30px_rgba(0,229,255,0.2)] backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#00e5ff] to-transparent"></div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#00e5ff]/80">Final Score</p>
+            <div className="rounded-xl px-12 py-5 flex flex-col items-center gap-1 bg-[#1a1a24]/90 border border-[#c864ff]/50 shadow-[0_0_30px_rgba(200,100,255,0.2)] backdrop-blur-sm relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#c864ff] to-transparent"></div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#c864ff]/80">Final Score</p>
               <p className="font-black text-6xl tabular-nums text-[#ffd700] drop-shadow-[0_0_20px_rgba(255,215,0,0.8)]">{finalScore}</p>
               {isNewBest && (
                 <div className="mt-2 mb-1 bg-[#ff00c8]/20 px-4 py-1 rounded-md border border-[#ff00c8]/50 shadow-[0_0_10px_rgba(255,0,200,0.3)]">
@@ -513,15 +523,15 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
               )}
               <div className="h-4 mt-2 flex items-center justify-center">
                 {saving ? (
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-[#00e5ff]/70 flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Syncing...</p>
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-[#c864ff]/70 flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Syncing...</p>
                 ) : (
-                  <p className="text-[10px] font-black tracking-widest uppercase text-[#00e5ff] drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">Grid Updated</p>
+                  <p className="text-[10px] font-black tracking-widest uppercase text-[#c864ff] drop-shadow-[0_0_5px_rgba(200,100,255,0.5)]">Grid Updated</p>
                 )}
               </div>
             </div>
             <button onClick={handlePlayAgain}
-              className="mt-2 px-8 py-3 rounded-lg font-black text-sm tracking-widest bg-transparent border-2 border-[#00e5ff] text-[#00e5ff] hover:bg-[#00e5ff] hover:text-[#06001a] transition-all duration-300 shadow-[0_0_15px_rgba(0,229,255,0.3)] hover:shadow-[0_0_25px_rgba(0,229,255,0.8)]">
-              REBOOT SYSTEM
+              className="mt-2 px-8 py-3 rounded-lg font-black text-sm tracking-widest bg-transparent border-2 border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff] hover:text-[#000000] transition-all duration-300 shadow-[0_0_15px_rgba(255,255,255,0.3)] hover:shadow-[0_0_25px_rgba(255,255,255,0.8)]">
+              RESTART
             </button>
           </div>
         )}
