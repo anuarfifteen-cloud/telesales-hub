@@ -950,7 +950,9 @@ useEffect(() => {
 
         {/* ── TOKENS TAB ── */}
         {activeTab === "tokens" && (
-          <TokensTab user={user} onUserUpdate={refreshUser} totalBookingCount={totalBookingCount} isAdmin={isAdmin} />
+          <div className="min-h-screen overflow-y-auto flex flex-col items-center justify-start w-full pt-24 pb-32 bg-background">
+            <TokensTab user={user} onUserUpdate={refreshUser} totalBookingCount={totalBookingCount} isAdmin={isAdmin} />
+          </div>
         )}
 
         {/* ── ADMIN TAB ── */}

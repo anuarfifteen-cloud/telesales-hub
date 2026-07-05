@@ -288,7 +288,7 @@ export default function SuperTapGame({ user }) {
 
   return (
     // FIX: Removed overflow-hidden, removed min-h-[85vh], changed justify-center to justify-start, added pb-24
-    <div className="relative flex flex-col items-center justify-start text-center w-full max-w-md mx-auto px-4 pt-6 pb-24 gap-5 select-none bg-[#0a0530] rounded-3xl shadow-[0_0_40px_rgba(0,243,255,0.1)]">
+    <div className="relative flex flex-col items-center justify-start text-center w-full max-w-md mx-auto mt-8 px-4 pt-6 pb-24 gap-5 select-none bg-[#0a0530] rounded-3xl shadow-[0_0_40px_rgba(0,243,255,0.1)]">
       
       {/* THE MATRIX BACKGROUND GRID (Now contained cleanly) */}
       <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none z-0">
