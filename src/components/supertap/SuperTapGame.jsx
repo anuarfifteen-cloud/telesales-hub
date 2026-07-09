@@ -281,6 +281,7 @@ export default function SuperTapGame({ user }) {
   };
 
   const displayTime = isOver ? "0.0" : timeLeft.toFixed(1);
+  const shrinkScale = Math.max(0.3, 1 - Math.floor(currentScore / 20) * 0.1);
 
   return (
     <div className="flex flex-col items-center justify-center text-center w-full max-w-md mx-auto p-4 gap-6 select-none">
@@ -355,11 +356,11 @@ export default function SuperTapGame({ user }) {
             WebkitTapHighlightColor: "transparent",
             touchAction: "none",
             border: "4px solid #2a2a35",
-            transform: tapped ? "scale(0.95)" : "scale(1)",
+            transform: tapped ? `scale(${shrinkScale * 0.94})` : `scale(${shrinkScale})`,
             boxShadow: tapped ?
               "0 0 50px 15px rgba(255,0,234,0.6), inset 0 4px 12px rgba(255,255,255,0.4)" :
               "0 15px 40px rgba(0,0,0,0.6), 0 0 25px rgba(255,0,234,0.3), inset 0 -8px 0 rgba(0,0,0,0.3), inset 0 6px 12px rgba(255,255,255,0.15)",
-            transition: "transform 0.05s ease, box-shadow 0.05s ease"
+            transition: "transform 0.15s ease, box-shadow 0.05s ease"
           }}
         >
           {/* Wave Ripple Components */}
