@@ -22,6 +22,15 @@
     "last_played": {
       "type": "string",
       "description": "ISO timestamp of the last time this user played"
+    },
+    "daily_high_score": {
+      "type": "number",
+      "description": "The user's best tap count for the current daily flash challenge",
+      "default": 0
+    },
+    "daily_date": {
+      "type": "string",
+      "description": "YYYY-MM-DD (local timezone) of the daily_high_score"
     }
   },
   "required": [

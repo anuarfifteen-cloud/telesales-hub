@@ -67,10 +67,20 @@ function RankBadge({ rank }) {
   );
 }
 
+function getLocalDateStr() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function Leaderboard() {
+  const [activeTab, setActiveTab] = useState("season");
+
   const { data: scores = [] } = useQuery({
     queryKey: ["tapScores"],
-    queryFn: () => base44.entities.TapScore.list("-high_score", 10),
+    queryFn: () => base44.entities.TapScore.list("-high_score", 50),
     refetchInterval: 10000
   });
 
@@ -81,35 +91,82 @@ function Leaderboard() {
   });
 
   const champUserIds = new Set(appSettingsRows[0]?.defending_champ_supertap_ids || []);
+  const today = getLocalDateStr();
+
+  const seasonScores = scores.slice(0, 10);
+  const dailyScores = scores
+    .filter((s) => s.daily_date === today && (s.daily_high_score ?? 0) > 0)
+    .sort((a, b) => (b.daily_high_score ?? 0) - (a.daily_high_score ?? 0))
+    .slice(0, 10);
+
+  const displayScores = activeTab === "season" ? seasonScores : dailyScores;
 
   return (
     <div className="w-full bg-[#0a0530]/90 backdrop-blur-md rounded-2xl border border-[#00f3ff]/30 shadow-[0_0_25px_rgba(0,243,255,0.15)] overflow-hidden transition-all duration-300">
-      {/* Info box */}
-      <div className="bg-gradient-to-r from-[#06001a] to-[#0a0530] border-b border-[#ff00ea]/20 px-5 py-4">
-        <div className="flex items-center justify-center gap-2 mb-1.5">
-          <Trophy className="w-4 h-4 text-[#ffd700] drop-shadow-[0_0_5px_rgba(255,215,0,0.8)] animate-pulse" />
-          <p className="text-xs font-black uppercase tracking-wider text-[#00f3ff] drop-shadow-[0_0_5px_rgba(0,243,255,0.5)]">Live Cyber Leaderboard</p>
-        </div>
-        <p className="text-[11px] text-[#00f3ff]/70 text-center leading-relaxed">
-          The leaderboard resets twice a month (on the 15th and the final day of the month). Be in the Top 3 when the season ends to win:
-        </p>
-        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2.5">
-          <span className="text-[11px] font-bold bg-[#ffd700]/10 px-2 py-0.5 rounded border border-[#ffd700]/40 text-[#ffd700]">🥇 1st: 5 Tokens</span>
-          <span className="text-[11px] font-bold bg-[#c0c0c0]/10 px-2 py-0.5 rounded border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2nd: 2 Tokens</span>
-          <span className="text-[11px] font-bold bg-[#cd7f32]/10 px-2 py-0.5 rounded border border-[#cd7f32]/40 text-[#cd7f32]">🥉 3rd: 1 Token</span>
-        </div>
-        <p className="text-[10px] mt-2.5 leading-relaxed text-[#ff00ea] flex items-center justify-center gap-1 font-medium">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff00ea] animate-ping mr-0.5" />
-          Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players!
-        </p>
+      {/* Tab Toggle */}
+      <div className="flex gap-2 px-4 pt-4">
+        <button
+          onClick={() => setActiveTab("season")}
+          className={`flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest border transition-all ${
+            activeTab === "season"
+              ? "bg-[#ff00ea]/10 border-[#ff00ea] text-[#ff00ea] shadow-[0_0_12px_rgba(255,0,234,0.4)]"
+              : "bg-transparent border-[#00f3ff]/20 text-[#00f3ff]/40"
+          }`}
+        >
+          Season Matrix
+        </button>
+        <button
+          onClick={() => setActiveTab("daily")}
+          className={`flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest border transition-all ${
+            activeTab === "daily"
+              ? "bg-[#ff00ea]/10 border-[#ff00ea] text-[#ff00ea] shadow-[0_0_12px_rgba(255,0,234,0.4)]"
+              : "bg-transparent border-[#00f3ff]/20 text-[#00f3ff]/40"
+          }`}
+        >
+          Today's Flash
+        </button>
       </div>
 
-      {scores.length === 0 ? (
-        <div className="py-10 text-center text-[#00f3ff]/50 text-sm tracking-wide font-bold uppercase">Awaiting first contestant. Enter the grid!</div>
+      {/* Info box */}
+      <div className="bg-gradient-to-r from-[#06001a] to-[#0a0530] border-b border-[#ff00ea]/20 px-5 py-4 mt-4">
+        <div className="flex items-center justify-center gap-2 mb-1.5">
+          <Trophy className="w-4 h-4 text-[#ffd700] drop-shadow-[0_0_5px_rgba(255,215,0,0.8)] animate-pulse" />
+          <p className="text-xs font-black uppercase tracking-wider text-[#00f3ff] drop-shadow-[0_0_5px_rgba(0,243,255,0.5)]">
+            {activeTab === "season" ? "Live Cyber Leaderboard" : "Flash Challenge (Daily)"}
+          </p>
+        </div>
+        {activeTab === "season" ? (
+          <>
+            <p className="text-[11px] text-[#00f3ff]/70 text-center leading-relaxed">
+              The leaderboard resets twice a month (on the 15th and the final day of the month). Be in the Top 3 when the season ends to win:
+            </p>
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2.5">
+              <span className="text-[11px] font-bold bg-[#ffd700]/10 px-2 py-0.5 rounded border border-[#ffd700]/40 text-[#ffd700]">🥇 1st: 5 Tokens</span>
+              <span className="text-[11px] font-bold bg-[#c0c0c0]/10 px-2 py-0.5 rounded border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2nd: 2 Tokens</span>
+              <span className="text-[11px] font-bold bg-[#cd7f32]/10 px-2 py-0.5 rounded border border-[#cd7f32]/40 text-[#cd7f32]">🥉 3rd: 1 Token</span>
+            </div>
+            <p className="text-[10px] mt-2.5 leading-relaxed text-[#ff00ea] flex items-center justify-center gap-1 font-medium">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff00ea] animate-ping mr-0.5" />
+              Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players!
+            </p>
+          </>
+        ) : (
+          <p className="text-[11px] text-[#00f3ff]/70 text-center leading-relaxed">
+            Random Flash Challenges! Admin will announce events and distribute Voucher prizes to top players today.
+          </p>
+        )}
+      </div>
+
+      {displayScores.length === 0 ? (
+        <div className="py-10 text-center text-[#00f3ff]/50 text-sm tracking-wide font-bold uppercase">
+          {activeTab === "season" ? "Awaiting first contestant. Enter the grid!" : "No flash scores yet today. Be the first!"}
+        </div>
       ) : (
         <div className="divide-y divide-[#00f3ff]/10 bg-transparent">
-          {scores.map((s, i) => {
+          {displayScores.map((s, i) => {
             const isChamp = champUserIds.has(s.user_id);
+            const score = activeTab === "season" ? s.high_score : s.daily_high_score;
+            const tps = (score / 10).toFixed(1);
             return (
               <div key={s.id} className={`flex items-center gap-4 px-5 py-3 transition-colors hover:bg-[#00f3ff]/5 ${i < 3 && !isChamp ? "bg-[#00f3ff]/[0.03]" : ""}`}>
                 <div className="w-8 flex items-center justify-center flex-shrink-0">
@@ -121,7 +178,10 @@ function Leaderboard() {
                   </span>
                   {isChamp && <span className="text-base flex-shrink-0 drop-shadow-[0_0_5px_#ffd700]" title="Defending Champ — Prize Cooldown">👑</span>}
                 </div>
-                <span className="text-sm font-black text-[#ff00ea] tracking-wider tabular-nums flex-shrink-0 bg-[#ff00ea]/10 px-2.5 py-1 rounded-lg border border-[#ff00ea]/30">{s.high_score} taps</span>
+                <span className="flex flex-col items-center justify-center text-[#ff00ea] flex-shrink-0 bg-[#ff00ea]/10 px-2.5 py-1 rounded-lg border border-[#ff00ea]/30 leading-tight">
+                  <span className="text-sm font-black tracking-wider tabular-nums">{score} TAPS</span>
+                  <span className="text-[9px] font-bold tabular-nums text-[#00f3ff]">{tps} TPS</span>
+                </span>
               </div>
             );
           })}
@@ -169,6 +229,7 @@ export default function SuperTapGame({ user }) {
     if (!user) return;
     setSaving(true);
     try {
+      const today = getLocalDateStr();
       const existing = await base44.entities.TapScore.filter({ user_id: user.id });
       if (existing.length === 0) {
         await base44.entities.TapScore.create({
@@ -176,20 +237,23 @@ export default function SuperTapGame({ user }) {
           user_name: user.full_name || user.email,
           user_email: user.email,
           high_score: score,
-          last_played: new Date().toISOString()
+          last_played: new Date().toISOString(),
+          daily_high_score: score,
+          daily_date: today
         });
         setNewRecord(true);
       } else {
         const record = existing[0];
-        if (score > record.high_score) {
-          await base44.entities.TapScore.update(record.id, {
-            high_score: score,
-            last_played: new Date().toISOString()
-          });
-          setNewRecord(true);
-        } else {
-          setNewRecord(false);
-        }
+        const isNewDay = record.daily_date !== today;
+        const dailyHighScore = isNewDay ? score : Math.max(record.daily_high_score ?? 0, score);
+        const isAllTimeRecord = score > record.high_score;
+        await base44.entities.TapScore.update(record.id, {
+          high_score: isAllTimeRecord ? score : record.high_score,
+          last_played: new Date().toISOString(),
+          daily_high_score: dailyHighScore,
+          daily_date: today
+        });
+        setNewRecord(isAllTimeRecord);
       }
       queryClient.invalidateQueries({ queryKey: ["tapScores"] });
     } finally {
