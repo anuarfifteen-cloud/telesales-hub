@@ -293,11 +293,12 @@ export default function SuperTapGame({ user }) {
 
   return (
     <div 
-      /* ⚡ FIX: Changed pb-4 to pb-32 to push content ABOVE the floating navigation bar! */
-      className="w-full flex flex-col items-center px-2 sm:px-4 pt-1 pb-32" 
+      /* ⚡ FIX 1 & 2: Removed forced height constraints (no h-screen or min-h-[85vh]). 
+         Added pb-32 to push the overflowing leaderboard safely above your app's floating bottom navigation bar. */
+      className="w-full h-full flex flex-col items-center px-2 sm:px-4 pt-1 pb-32" 
       style={{ WebkitOverflowScrolling: "touch" }}
     >
-      {/* THE ACTUAL GAME CARD */}
+      {/* THE ACTUAL GAME CARD - Removed fixed max-height constraints here too so it can grow natively */}
       <div className="relative flex flex-col items-center justify-start text-center w-full max-w-md mx-auto p-4 gap-5 select-none bg-[#0a0530] rounded-3xl shadow-[0_0_40px_rgba(0,243,255,0.1)] shrink-0 z-10">
         
         {/* THE MATRIX BACKGROUND GRID */}
