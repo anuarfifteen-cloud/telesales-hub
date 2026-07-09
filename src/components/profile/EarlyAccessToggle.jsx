@@ -323,7 +323,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                   </p>
                 ) : (
                   <p className={`text-[10px] leading-none mt-1 font-semibold ${diamonds > 0 ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
-                    1 💎 diamond — 7 days priority access.
+                    1 💎 diamond — 7 days priority access. Easrly Booking Access 6pm.
                   </p>
                 )}
               </div>
