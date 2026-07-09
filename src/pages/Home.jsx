@@ -556,7 +556,7 @@ useEffect(() => {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 pt-24 pb-32 min-h-screen overflow-y-auto space-y-4">
+      <main className="max-w-2xl mx-auto px-4 pt-3 pb-6 space-y-4">
 
         {/* ── BOOKING TAB ── */}
         {activeTab === "booking" &&
@@ -950,9 +950,7 @@ useEffect(() => {
 
         {/* ── TOKENS TAB ── */}
         {activeTab === "tokens" && (
-          <div className="flex flex-col items-center justify-start w-full">
-            <TokensTab user={user} onUserUpdate={refreshUser} totalBookingCount={totalBookingCount} isAdmin={isAdmin} />
-          </div>
+          <TokensTab user={user} onUserUpdate={refreshUser} totalBookingCount={totalBookingCount} isAdmin={isAdmin} />
         )}
 
         {/* ── ADMIN TAB ── */}
