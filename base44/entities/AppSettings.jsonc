@@ -7,6 +7,11 @@
       "description": "Cost in tokens to activate the VIP Early Access Pass",
       "default": 1
     },
+    "diamond_price": {
+      "type": "number",
+      "description": "Fixed cost in tokens to purchase 1 diamond",
+      "default": 25
+    },
     "quiz_enabled": {
       "type": "boolean",
       "description": "Whether the Daily Quiz is enabled for all users",

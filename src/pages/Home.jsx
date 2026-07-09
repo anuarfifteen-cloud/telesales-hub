@@ -173,6 +173,75 @@ export default function Home() {
           title: "🚀 Legend Status!",
           message: "INCREDIBLE! 100 bookings! You've earned a massive 20 Early Access tokens. You are a true Telesales legend!"
         });
+        return;
+      }
+    }
+
+    // Combined milestone at 250 bookings: award 1 diamond + 25 tokens
+    if (totalCount >= 250) {
+      const freshUser = await base44.auth.me();
+      const awarded = freshUser?.milestoneTokensAwarded || {};
+      if (!awarded["250"]) {
+        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
+        const currentDiamonds = freshUser?.diamonds ?? 0;
+        await base44.auth.updateMe({
+          earlyAccessTokens: currentTokens + 25,
+          diamonds: currentDiamonds + 1,
+          milestoneTokensAwarded: { ...awarded, "250": true }
+        });
+        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 25, source: "Booking Milestone — 250 Bookings", timestamp: new Date().toISOString() });
+        await refreshUser();
+        setUnlockModal({
+          open: true,
+          title: "💠 250 Bookings Milestone!",
+          message: "Phenomenal! You've hit 250 bookings and earned 1 Diamond + 25 Early Access tokens!"
+        });
+        return;
+      }
+    }
+
+    // Combined milestone at 500 bookings: award 3 diamonds + 30 tokens
+    if (totalCount >= 500) {
+      const freshUser = await base44.auth.me();
+      const awarded = freshUser?.milestoneTokensAwarded || {};
+      if (!awarded["500"]) {
+        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
+        const currentDiamonds = freshUser?.diamonds ?? 0;
+        await base44.auth.updateMe({
+          earlyAccessTokens: currentTokens + 30,
+          diamonds: currentDiamonds + 3,
+          milestoneTokensAwarded: { ...awarded, "500": true }
+        });
+        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 30, source: "Booking Milestone — 500 Bookings", timestamp: new Date().toISOString() });
+        await refreshUser();
+        setUnlockModal({
+          open: true,
+          title: "🔷 500 Bookings Milestone!",
+          message: "Outstanding! You've hit 500 bookings and earned 3 Diamonds + 30 Early Access tokens!"
+        });
+        return;
+      }
+    }
+
+    // Combined milestone at 1000 bookings: award 5 diamonds + 50 tokens
+    if (totalCount >= 1000) {
+      const freshUser = await base44.auth.me();
+      const awarded = freshUser?.milestoneTokensAwarded || {};
+      if (!awarded["1000"]) {
+        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
+        const currentDiamonds = freshUser?.diamonds ?? 0;
+        await base44.auth.updateMe({
+          earlyAccessTokens: currentTokens + 50,
+          diamonds: currentDiamonds + 5,
+          milestoneTokensAwarded: { ...awarded, "1000": true }
+        });
+        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 50, source: "Booking Milestone — 1000 Bookings", timestamp: new Date().toISOString() });
+        await refreshUser();
+        setUnlockModal({
+          open: true,
+          title: "🏆 1000 Bookings Milestone!",
+          message: "LEGENDARY! You've hit 1000 bookings and earned 5 Diamonds + 50 Early Access tokens!"
+        });
       }
     }
   };
