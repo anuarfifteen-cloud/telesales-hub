@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trophy, Zap, Timer, RotateCcw, Activity } from "lucide-react";
+import { Trophy, Medal, Zap, Timer, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 
 // ── Sound Engine (Web Audio API) ──────────────────────────────────────────────
 function createAudioCtx() {
@@ -56,12 +57,12 @@ function playEndSound(ctx) {
 }
 
 function RankBadge({ rank }) {
-  if (rank === 1) return <span className="text-2xl drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse">🥇</span>;
-  if (rank === 2) return <span className="text-2xl drop-shadow-[0_0_8px_rgba(192,192,192,0.8)]">🥈</span>;
-  if (rank === 3) return <span className="text-2xl drop-shadow-[0_0_8px_rgba(205,127,50,0.8)]">🥉</span>;
+  if (rank === 1) return <span className="text-xl animate-bounce">🥇</span>;
+  if (rank === 2) return <span className="text-xl">🥈</span>;
+  if (rank === 3) return <span className="text-xl">🥉</span>;
   return (
-    <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[#06001a] text-[11px] font-black text-[#00e5ff]/50 border border-[#00e5ff]/20 shadow-inner">
-      #{rank}
+    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] font-black text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+      {rank}
     </span>
   );
 }
@@ -82,51 +83,45 @@ function Leaderboard() {
   const champUserIds = new Set(appSettingsRows[0]?.defending_champ_supertap_ids || []);
 
   return (
-    <div className="w-full bg-[#0a0530]/90 backdrop-blur-xl rounded-2xl border border-[#00e5ff]/30 shadow-[0_0_25px_rgba(0,229,255,0.15)] overflow-hidden transition-all duration-300 relative z-10 shrink-0">
-      <div className="bg-gradient-to-b from-[#06001a] to-transparent border-b border-[#ff00ea]/20 px-5 py-4 relative">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#ff00ea] to-transparent opacity-60"></div>
+    <div className="w-full bg-white dark:bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-cyan-500/20 shadow-xl shadow-slate-200/50 dark:shadow-cyan-950/20 overflow-hidden transition-all duration-300">
+      {/* Info box */}
+      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-cyan-950/40 dark:to-indigo-950/40 border-b border-slate-200 dark:border-cyan-500/20 px-5 py-4">
         <div className="flex items-center justify-center gap-2 mb-1.5">
-          <Trophy className="w-4 h-4 text-[#ffd700] drop-shadow-[0_0_5px_rgba(255,215,0,0.8)] animate-pulse" />
-          <p className="text-xs font-black uppercase tracking-wider text-[#00f3ff] drop-shadow-[0_0_5px_rgba(0,243,255,0.5)]">Live Cyber Leaderboard</p>
+          <Trophy className="w-4 h-4 text-cyan-600 dark:text-cyan-400 animate-pulse" />
+          <p className="text-xs font-black uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Live Cyber Leaderboard</p>
         </div>
-        <p className="text-[10px] text-[#00f3ff]/70 text-center leading-relaxed">
-          The grid resets twice a month (15th & Final Day). Claim the Top 3 to extract tokens:
+        <p className="text-[11px] text-slate-600 dark:text-slate-300 text-center leading-relaxed">
+          The leaderboard resets twice a month (on the 15th and the final day of the month). Be in the Top 3 when the season ends to win:
         </p>
-        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2.5">
-          <span className="text-[10px] font-black bg-[#ffd700]/10 px-2 py-0.5 rounded border border-[#ffd700]/40 text-[#ffd700]">🥇 1ST: 5 TOKENS</span>
-          <span className="text-[10px] font-black bg-[#c0c0c0]/10 px-2 py-0.5 rounded border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2ND: 2 TOKENS</span>
-          <span className="text-[10px] font-black bg-[#cd7f32]/10 px-2 py-0.5 rounded border border-[#cd7f32]/40 text-[#cd7f32]">🥉 3RD: 1 TOKEN</span>
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2.5">
+          <span className="text-[11px] font-bold bg-cyan-50 dark:bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-200 dark:border-cyan-500/20 text-cyan-700 dark:text-cyan-300">🥇 1st: 5 Tokens</span>
+          <span className="text-[11px] font-bold bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-300">🥈 2nd: 2 Tokens</span>
+          <span className="text-[11px] font-bold bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-300">🥉 3rd: 1 Token</span>
         </div>
+        <p className="text-[10px] mt-2.5 leading-relaxed text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 font-medium">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping mr-0.5" />
+          Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players!
+        </p>
       </div>
 
       {scores.length === 0 ? (
-        <div className="py-10 text-center text-[#00f3ff]/50 font-bold tracking-widest text-xs uppercase">Awaiting first runner. Enter the grid!</div>
+        <div className="py-10 text-center text-slate-400 dark:text-slate-500 text-sm tracking-wide">Awaiting first contestant. Enter the grid!</div>
       ) : (
-        <div className="divide-y divide-[#00f3ff]/10 bg-transparent">
+        <div className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-950/20">
           {scores.map((s, i) => {
             const isChamp = champUserIds.has(s.user_id);
-            const isTop3 = i < 3 && !isChamp;
             return (
-              <div key={s.id} className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[#00f3ff]/5 ${isTop3 ? "bg-[#00f3ff]/[0.03]" : ""}`}>
+              <div key={s.id} className={`flex items-center gap-4 px-5 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-cyan-500/5 ${i < 3 && !isChamp ? "bg-cyan-50/30 dark:bg-cyan-500/[0.02]" : ""}`}>
                 <div className="w-8 flex items-center justify-center flex-shrink-0">
                   <RankBadge rank={i + 1} />
                 </div>
-                
-                {/* ⚡ Perfectly Synced Truncation & Crown Alignment Wrapper */}
-                <div className="flex-1 min-w-0 flex items-center gap-1 pr-2">
-                  <span className={`text-sm font-bold leading-tight truncate ${isTop3 ? 'text-white' : 'text-white/70'}`}>
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate" style={{ wordBreak: "break-word" }}>
                     {s.user_name}
                   </span>
-                  {isChamp && (
-                    <span className="text-base flex-shrink-0 drop-shadow-[0_0_5px_#ffd700] leading-none" title="Defending Champ — Prize Cooldown">
-                      👑
-                    </span>
-                  )}
+                  {isChamp && <span className="text-base flex-shrink-0" title="Defending Champ — Prize Cooldown">👑</span>}
                 </div>
-
-                <span className="text-sm font-black text-[#ff00ea] tracking-widest tabular-nums flex-shrink-0 bg-[#ff00ea]/10 px-2 py-1 rounded-lg border border-[#ff00ea]/30 shadow-[0_0_10px_rgba(255,0,234,0.2)]">
-                  {s.high_score} TAPS
-                </span>
+                <span className="text-sm font-black text-cyan-600 dark:text-cyan-400 tracking-wider tabular-nums flex-shrink-0 bg-cyan-50 dark:bg-cyan-950/30 px-2.5 py-1 rounded-lg border border-cyan-100 dark:border-cyan-500/10">{s.high_score} taps</span>
               </div>
             );
           })}
@@ -286,174 +281,144 @@ export default function SuperTapGame({ user }) {
   };
 
   const displayTime = isOver ? "0.0" : timeLeft.toFixed(1);
-  const timePercentage = (timeLeft / 10) * 100;
-  
-  const elapsedTime = 10.0 - timeLeft;
-  const currentTPS = elapsedTime > 0 && !isOver ? (currentScore / elapsedTime).toFixed(1) : (isOver ? (currentScore / 10).toFixed(1) : "0.0");
 
   return (
-    <div 
-      /* ⚡ FIX 1 & 2: Removed forced height constraints (no h-screen or min-h-[85vh]). 
-         Added pb-32 to push the overflowing leaderboard safely above your app's floating bottom navigation bar. */
-      className="w-full h-full flex flex-col items-center px-2 sm:px-4 pt-1 pb-32" 
-      style={{ WebkitOverflowScrolling: "touch" }}
-    >
-      {/* THE ACTUAL GAME CARD - Removed fixed max-height constraints here too so it can grow natively */}
-      <div className="relative flex flex-col items-center justify-start text-center w-full max-w-md mx-auto p-4 gap-5 select-none bg-[#0a0530] rounded-3xl shadow-[0_0_40px_rgba(0,243,255,0.1)] shrink-0 z-10">
-        
-        {/* THE MATRIX BACKGROUND GRID */}
-        <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none z-0">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#00f3ff15_1px,transparent_1px),linear-gradient(to_bottom,#00f3ff15_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_40%,transparent_100%)]"></div>
-        </div>
-        
-        {/* Dynamic Floating Styles */}
-        <style>{`
-          @keyframes floatUpLeft {
-            0% { transform: translate(0px, 0px) scale(0.8); opacity: 1; }
-            100% { transform: translate(-30px, -60px) scale(1.3); opacity: 0; }
-          }
-          @keyframes floatUpRight {
-            0% { transform: translate(0px, 0px) scale(0.8); opacity: 1; }
-            100% { transform: translate(30px, -60px) scale(1.3); opacity: 0; }
-          }
-          .animate-float-1 { animation: floatUpLeft 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards; }
-          .animate-float-2 { animation: floatUpRight 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards; }
-        `}</style>
+    <div className="flex flex-col items-center justify-center text-center w-full max-w-md mx-auto p-4 gap-6 select-none">
+      
+      {/* Dynamic Floating Styles */}
+      <style>{`
+        @keyframes floatUp {
+          0% { transform: translateY(0px) scale(0.8); opacity: 1; }
+          100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
+        }
+        .animate-float { animation: floatUp 0.55s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards; }
+      `}</style>
 
-        {/* Header */}
-        <div className="w-full relative py-1 flex flex-col items-center justify-center z-10 shrink-0">
-          <h2 className="text-2xl font-black text-[#00f3ff] drop-shadow-[0_0_10px_rgba(0,243,255,0.8)] tracking-widest flex items-center justify-center gap-2">
-            SUPER TAP 2.0 <Zap className="w-5 h-5 text-[#00f3ff] fill-[#00f3ff] animate-pulse" />
-          </h2>
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#00f3ff]/60 mt-1">Grid Overload Matrix</p>
-        </div>
-
-        {/* HUD Board */}
-        <div className="w-full grid grid-cols-2 gap-3 bg-[#110a3a]/80 border border-[#00f3ff]/30 p-4 rounded-2xl shadow-[0_0_20px_rgba(0,243,255,0.1)] backdrop-blur-md z-10 shrink-0">
-          
-          {/* TIMER SECTION */}
-          <div className="flex flex-col items-center justify-center relative pr-2 border-r border-[#00f3ff]/20">
-            <div className="flex items-center gap-1 text-[#00f3ff]/70 text-[10px] font-black uppercase tracking-widest mb-1">
-              <Timer className="w-3 h-3 text-[#00f3ff]" /> Time Left
-            </div>
-            <span className={`text-4xl font-black tracking-tighter tabular-nums transition-colors duration-200 ${parseFloat(displayTime) <= 3 && !isOver ? "text-[#ff00ea] drop-shadow-[0_0_15px_rgba(255,0,234,0.8)] animate-pulse" : "text-[#00f3ff] drop-shadow-[0_0_10px_rgba(0,243,255,0.6)]"}`}>
-              {displayTime}s
-            </span>
-            <div className="w-full max-w-[100px] h-2 bg-[#06001a] rounded-full mt-2 overflow-hidden shadow-inner border border-[#00f3ff]/20">
-              <div 
-                className={`h-full rounded-full transition-all duration-100 ${parseFloat(displayTime) <= 3 ? "bg-[#ff00ea] shadow-[0_0_10px_#ff00ea]" : "bg-[#00f3ff] shadow-[0_0_10px_#00f3ff]"}`}
-                style={{ width: `${timePercentage}%` }}
-              />
-            </div>
-          </div>
-          
-          {/* SCORE SECTION */}
-          <div className="flex flex-col items-center justify-center relative pl-2">
-            <div className="text-[#00f3ff]/70 text-[10px] font-black uppercase tracking-widest mb-1">
-              Total Taps
-            </div>
-            <span
-              key={currentScore}
-              className="text-4xl font-black tracking-tighter tabular-nums text-[#ff00ea] drop-shadow-[0_0_15px_rgba(255,0,234,0.6)]"
-              style={{ transform: currentScore > 0 ? "scale(1.1)" : "none", transition: "transform 0.05s ease-out" }}
-            >
-              {currentScore}
-            </span>
-            <div className="flex items-center gap-1 mt-2 bg-[#06001a] px-2.5 py-0.5 rounded-full border border-[#ff00ea]/30">
-              <Activity className="w-2.5 h-2.5 text-[#ff00ea]" />
-              <span className="text-[9px] font-black tracking-widest text-[#ff00ea]">TPS: {currentTPS}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Evaluation Feedback Banner */}
-        {isOver && (
-          <div className="w-full z-10 shrink-0">
-            <div className={`rounded-xl px-3 py-3 text-center backdrop-blur-md transition-all animate-in fade-in zoom-in-95 duration-200 border ${newRecord ? "bg-[#ff00ea]/10 border-[#ff00ea]/50 shadow-[0_0_20px_rgba(255,0,234,0.2)]" : "bg-[#110a3a]/80 border-[#00f3ff]/30"}`}>
-              {saving ? (
-                <p className="text-[10px] font-bold text-[#00f3ff]/80 tracking-widest uppercase animate-pulse">Syncing matrix...</p>
-              ) : newRecord ? (
-                <p className="text-xs font-extrabold text-[#ff00ea] drop-shadow-[0_0_8px_#ff00ea] uppercase tracking-widest">⚡ GRID BREACH: {currentScore} TAPS! ⚡</p>
-              ) : (
-                <p className="text-[10px] font-bold text-[#00f3ff]/80 uppercase tracking-widest">Run Complete: <span className="text-[#00f3ff] font-black">{currentScore} taps</span> logged.</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Core Tap Button Frame Layout */}
-        <div className="w-full flex items-center justify-center my-2 relative z-10 shrink-0">
-          <button
-            onPointerDown={handleTap}
-            onPointerUp={handlePointerRelease}
-            onPointerLeave={handlePointerRelease}
-            disabled={isOver}
-            className="relative overflow-hidden w-48 h-48 sm:w-56 sm:h-56 rounded-full text-white font-black tracking-widest uppercase transition-all select-none disabled:opacity-50 disabled:cursor-not-allowed outline-none flex items-center justify-center bg-gradient-to-br from-[#ff00ea] to-[#800075]"
-            style={{
-              WebkitTapHighlightColor: "transparent",
-              touchAction: "none",
-              transform: tapped ? "scale(0.94) translateY(6px)" : "scale(1)",
-              border: "6px solid #2a2a35",
-              boxShadow: tapped ?
-                "0 0 40px 15px rgba(255,0,234,0.6), inset 0 5px 15px rgba(255,255,255,0.5), inset 0 -5px 20px rgba(0,0,0,0.6)" :
-                "0 15px 40px rgba(0,0,0,0.8), 0 0 25px rgba(255,0,234,0.3), inset 0 -10px 20px rgba(0,0,0,0.5), inset 0 8px 15px rgba(255,255,255,0.4)",
-              transition: "transform 0.05s cubic-bezier(0.18, 0.89, 0.32, 1.28), box-shadow 0.05s ease"
-            }}
-          >
-            {ripples.map((r) => (
-              <span
-                key={r.id}
-                className="absolute rounded-full bg-white/40 animate-ping pointer-events-none"
-                style={{
-                  width: 80, height: 80,
-                  left: r.x - 40, top: r.y - 40,
-                  animationDuration: "0.4s",
-                  animationIterationCount: 1
-                }}
-              />
-            ))}
-
-            {popups.map((p) => {
-              const isCyan = p.id % 2 === 0;
-              const animationClass = isCyan ? "animate-float-1" : "animate-float-2";
-              return (
-                <span
-                  key={p.id}
-                  className={`absolute text-2xl font-black pointer-events-none select-none z-30 ${animationClass} ${
-                    isCyan ? "text-[#00f3ff] drop-shadow-[0_0_10px_#00f3ff]" : "text-[#ffffff] drop-shadow-[0_0_10px_#ffffff]"
-                  }`}
-                  style={{ left: p.x - 15, top: p.y - 15 }}
-                >
-                  +1
-                </span>
-              );
-            })}
-
-            <span className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-extrabold flex flex-col items-center justify-center tracking-widest">
-              {isOver ? (
-                <span className="text-white/60 text-xs">OVERLOAD</span>
-              ) : isPlaying ? (
-                <span className="text-3xl font-black tracking-widest text-white drop-shadow-[0_0_8px_#ffffff]">TAP!</span>
-              ) : (
-                <span className="text-2xl font-black tracking-widest text-white/90">TAP</span>
-              )}
-            </span>
-          </button>
-        </div>
-
-        {/* Initialization Reset Button Panel */}
-        {isOver && !saving && (
-          <button
-            onClick={handleReset}
-            className="flex items-center justify-center gap-2 bg-transparent border-2 border-[#00f3ff] text-[#00f3ff] hover:bg-[#00f3ff] hover:text-[#06001a] px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all z-10 shrink-0 shadow-[0_0_15px_rgba(0,243,255,0.2)] hover:shadow-[0_0_25px_rgba(0,243,255,0.6)]"
-          >
-            <RotateCcw className="w-3.5 h-3.5" /> Re-Engage Matrix
-          </button>
-        )}
-
-        {/* Leaderboard Terminal Panel */}
-        <Leaderboard />
+      {/* Header */}
+      <div className="w-full relative py-2 flex flex-col items-center justify-center">
+        <div className="absolute inset-0 bg-cyan-500/10 blur-2xl rounded-full pointer-events-none" />
+        <h2 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 via-sky-400 to-indigo-600 dark:from-cyan-400 dark:via-sky-300 dark:to-indigo-400 tracking-tight flex items-center justify-center gap-1.5">
+          SUPER TAP 2.0 <Zap className="w-6 h-6 text-cyan-500 dark:text-cyan-400 fill-cyan-500 dark:fill-cyan-400 animate-pulse" />
+        </h2>
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mt-1">Grid Overload Matrix</p>
       </div>
+
+      {/* HUD Board */}
+      <div className="w-full grid grid-cols-2 gap-4 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 p-4 rounded-2xl shadow-md dark:shadow-inner backdrop-blur-sm">
+        <div className="flex flex-col items-center justify-center p-2 relative group">
+          <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
+            <Timer className="w-3 h-3 text-slate-400 dark:text-slate-500" /> Time Left
+          </div>
+          <span className={`text-4xl font-black tracking-tighter tabular-nums transition-colors duration-200 ${parseFloat(displayTime) <= 3 && !isOver ? "text-rose-500 dark:text-rose-400 drop-shadow-[0_0_12px_rgba(244,63,94,0.4)]" : "text-cyan-600 dark:text-cyan-400"}`}>
+            {displayTime}s
+          </span>
+        </div>
+        
+        <div className="flex flex-col items-center justify-center p-2 border-l border-slate-200 dark:border-slate-800/80 relative">
+          <div className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
+            Total Taps
+          </div>
+          <span
+            key={currentScore}
+            className="text-4xl font-black tracking-tighter tabular-nums text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_10px_rgba(129,140,248,0.2)]"
+            style={{ transform: currentScore > 0 ? "scale(1.05)" : "none", transition: "transform 0.05s ease-out" }}
+          >
+            {currentScore}
+          </span>
+        </div>
+      </div>
+
+      {/* Evaluation Feedback Banner */}
+      {isOver && (
+        <div className="w-full">
+          <div className={`rounded-xl px-4 py-3.5 text-center backdrop-blur-md transition-all animate-in fade-in zoom-in-95 duration-200 border ${newRecord ? "bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.05)]" : "bg-slate-50 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800"}`}>
+            {saving ? (
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider uppercase animate-pulse">Syncing core network scores...</p>
+            ) : newRecord ? (
+              <p className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 drop-shadow-sm">⚡ RECORD BREAK! Ultimate Tier: {currentScore} Taps!</p>
+            ) : (
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Run completed: <span className="text-cyan-600 dark:text-cyan-400 font-bold">{currentScore} taps</span> recorded. Push limits next round!</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Core Tap Button Frame Layout */}
+      <div className="w-full flex items-center justify-center my-2 relative">
+        <button
+          onPointerDown={handleTap}
+          onPointerUp={handlePointerRelease}
+          onPointerLeave={handlePointerRelease}
+          disabled={isOver}
+          className={`relative overflow-hidden w-52 h-52 rounded-full text-white text-2xl font-black tracking-tight uppercase shadow-2xl transition-all select-none disabled:opacity-40 disabled:cursor-not-allowed outline-none border-4 border-slate-100 dark:border-slate-950 flex items-center justify-center
+            ${tapped ?
+              "bg-gradient-to-b from-cyan-300 via-sky-400 to-indigo-500 shadow-cyan-400/50" :
+              "bg-gradient-to-b from-cyan-500 via-indigo-600 to-slate-900 shadow-indigo-950/60"
+            }`
+          }
+          style={{
+            WebkitTapHighlightColor: "transparent",
+            touchAction: "none",
+            transform: tapped ? "scale(0.94)" : "scale(1)",
+            boxShadow: tapped ?
+              "0 0 50px 15px rgba(34,211,238,0.4), inset 0 4px 12px rgba(255,255,255,0.4)" :
+              "0 20px 40px rgba(0,0,0,0.3), inset 0 -8px 0 rgba(0,0,0,0.3), inset 0 6px 12px rgba(255,255,255,0.15)",
+            transition: "transform 0.05s ease, box-shadow 0.05s ease"
+          }}
+        >
+          {/* Wave Ripple Components */}
+          {ripples.map((r) => (
+            <span
+              key={r.id}
+              className="absolute rounded-full bg-cyan-400/40 animate-ping pointer-events-none"
+              style={{
+                width: 90, height: 90,
+                left: r.x - 45, top: r.y - 45,
+                animationDuration: "0.45s",
+                animationIterationCount: 1
+              }}
+            />
+          ))}
+
+          {/* Hit Float Markers */}
+          {popups.map((p) => (
+            <span
+              key={p.id}
+              className="absolute text-xl font-black text-cyan-100 dark:text-cyan-200 pointer-events-none select-none animate-float z-30 drop-shadow-[0_2px_8px_rgba(34,211,238,0.6)]"
+              style={{ left: p.x - 12, top: p.y - 20 }}
+            >
+              +1
+            </span>
+          ))}
+
+          {/* Visual Grid Concentric Rim Overlay */}
+          <span className="absolute inset-2.5 rounded-full border border-cyan-400/20 pointer-events-none mix-blend-overlay" />
+          <span className="absolute inset-4 rounded-full border border-white/5 pointer-events-none" />
+          
+          <span className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] font-extrabold flex flex-col items-center justify-center gap-0.5 tracking-wider text-sm">
+            {isOver ? (
+              <span className="text-slate-300 text-xs">Terminated</span>
+            ) : isPlaying ? (
+              <span className="text-xl font-black tracking-widest animate-pulse">TAP!</span>
+            ) : (
+              <span className="text-xl font-black tracking-widest">TAP</span>
+            )}
+          </span>
+        </button>
+      </div>
+
+      {/* Initialization Reset Button Panel */}
+      {isOver && !saving && (
+        <button
+          onClick={handleReset}
+          className="flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white px-7 py-3 rounded-full font-black text-xs uppercase tracking-widest hover:brightness-110 shadow-lg shadow-indigo-950/40 active:scale-95 transition-all"
+        >
+          <RotateCcw className="w-3.5 h-3.5" /> Re-Engage Module
+        </button>
+      )}
+
+      {/* Leaderboard Terminal Panel */}
+      <Leaderboard />
     </div>
   );
 }
