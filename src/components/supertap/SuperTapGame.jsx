@@ -286,12 +286,10 @@ export default function SuperTapGame({ user }) {
 
   return (
     <div 
-      className="w-full h-full flex flex-col items-center justify-start overflow-y-auto px-2 sm:px-4" 
+      className="w-full flex flex-col items-center justify-start px-2 sm:px-4 pb-4" 
       style={{ WebkitOverflowScrolling: "touch" }}
     >
       
-      {/* 🛑 BRUTE FORCE TOP SPACER: Forces the game down past the fixed header 🛑 */}
-      <div className="w-full h-28 sm:h-32 shrink-0 pointer-events-none"></div>
 
       {/* THE ACTUAL GAME CARD */}
       <div className="relative flex flex-col items-center justify-start text-center w-full max-w-md mx-auto p-4 gap-5 select-none bg-[#0a0530] rounded-3xl shadow-[0_0_40px_rgba(0,243,255,0.1)] shrink-0 z-10">
@@ -450,8 +448,6 @@ export default function SuperTapGame({ user }) {
         <Leaderboard />
       </div>
 
-      {/* 🛑 BRUTE FORCE BOTTOM SPACER: Forces clearance for bottom nav 🛑 */}
-      <div className="w-full h-32 sm:h-40 shrink-0 pointer-events-none"></div>
 
     </div>
   );
