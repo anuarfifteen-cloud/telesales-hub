@@ -61,7 +61,7 @@ export default function DiamondBalanceCard({ user, onUserUpdate }) {
           <span className="text-3xl font-black text-foreground">{diamonds}</span>
           <span className="text-xs text-muted-foreground">diamonds available</span>
         </div>
-        <img src={DIAMOND_IMAGE_URL} alt="diamond" className="w-14 h-14 object-contain" />
+        <img src={DIAMOND_IMAGE_URL} alt="diamond" className="w-24 h-24 object-contain" />
       </div>
 
       <button
