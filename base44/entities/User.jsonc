@@ -28,6 +28,19 @@
       "type": "boolean",
       "default": false,
       "description": "Whether this user is the defending Flappy Token champion, placed on a one-season prize cooldown"
+    },
+    "diamonds": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of diamonds the user has purchased"
+    },
+    "last_diamond_purchase_date": {
+      "type": "string",
+      "description": "ISO timestamp of the user's last diamond purchase, used for the 30-day cooldown"
+    },
+    "active_pass_expiry": {
+      "type": "string",
+      "description": "ISO timestamp of when the user's 7-Day Priority Access pass expires"
     }
   },
   "rls": {

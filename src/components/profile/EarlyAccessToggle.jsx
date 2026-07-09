@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Zap } from "lucide-react";
+import PriorityPassCard from "@/components/profile/PriorityPassCard";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertDialog,
@@ -251,9 +252,6 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                   <p className={`text-sm font-medium ${isVipPlusActive || tokens >= VIP_PLUS_PRICE ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
   ACTIVATE EARLY 1-HRS BOOKING ACCESS
 </p>
-                  <span className="text-[10px] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse flex-shrink-0">
-                    New
-                  </span>
                 </div>
 
                 {isVipPlusActive ? (
@@ -277,6 +275,9 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isVipPlusActive ? "translate-x-6" : "translate-x-1"}`} />
             </button>
           </div>
+
+          {/* ── 7-Day Priority Access ── */}
+          <PriorityPassCard user={user} onUserUpdate={onUserUpdate} />
 
           {/* 30-min confirm dialog */}
           <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
