@@ -373,23 +373,26 @@ export default function SuperTapGame({ user }) {
       )}
 
       {/* Core Tap Button Frame Layout */}
-      <div className="w-full flex items-center justify-center my-2 relative z-10">
+      <div className="w-full flex items-center justify-center my-2 relative">
         <button
           onPointerDown={handleTap}
           onPointerUp={handlePointerRelease}
           onPointerLeave={handlePointerRelease}
           disabled={isOver}
-          // FIX: Reduced from w-60 h-60 to w-48 h-48 for better mobile fit
-          className="relative overflow-hidden w-48 h-48 sm:w-56 sm:h-56 rounded-full text-white font-black tracking-widest uppercase transition-all select-none disabled:opacity-50 disabled:cursor-not-allowed outline-none flex items-center justify-center bg-gradient-to-br from-[#ff00ea] to-[#800075]"
+          className={`relative overflow-hidden w-52 h-52 rounded-full text-white text-2xl font-black tracking-tight uppercase shadow-2xl transition-all select-none disabled:opacity-40 disabled:cursor-not-allowed outline-none border-4 border-slate-100 dark:border-slate-950 flex items-center justify-center
+            ${tapped ?
+              "bg-gradient-to-b from-cyan-300 via-sky-400 to-indigo-500 shadow-cyan-400/50" :
+              "bg-gradient-to-b from-cyan-500 via-indigo-600 to-slate-900 shadow-indigo-950/60"
+            }`
+          }
           style={{
             WebkitTapHighlightColor: "transparent",
             touchAction: "none",
-            transform: tapped ? "scale(0.94) translateY(6px)" : "scale(1)",
-            border: "6px solid #2a2a35",
+            transform: tapped ? "scale(0.94)" : "scale(1)",
             boxShadow: tapped ?
-              "0 0 40px 15px rgba(255,0,234,0.6), inset 0 5px 15px rgba(255,255,255,0.5), inset 0 -5px 20px rgba(0,0,0,0.6)" :
-              "0 15px 40px rgba(0,0,0,0.8), 0 0 25px rgba(255,0,234,0.3), inset 0 -10px 20px rgba(0,0,0,0.5), inset 0 8px 15px rgba(255,255,255,0.4)",
-            transition: "transform 0.05s cubic-bezier(0.18, 0.89, 0.32, 1.28), box-shadow 0.05s ease"
+              "0 0 50px 15px rgba(34,211,238,0.4), inset 0 4px 12px rgba(255,255,255,0.4)" :
+              "0 20px 40px rgba(0,0,0,0.3), inset 0 -8px 0 rgba(0,0,0,0.3), inset 0 6px 12px rgba(255,255,255,0.15)",
+            transition: "transform 0.05s ease, box-shadow 0.05s ease"
           }}
         >
           {/* Wave Ripple Components */}
