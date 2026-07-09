@@ -7,14 +7,11 @@ import DailyDuoGame from "@/components/duo/DailyDuoGame";
 import SuperTapGame from "@/components/supertap/SuperTapGame";
 import BlindVoucherShop from "@/components/tokens/BlindVoucherShop";
 import FlappyTokenGame from "@/components/games/FlappyTokenGame";
-import DiamondPurchaseCard from "@/components/tokens/DiamondPurchaseCard";
-import { Gem } from "lucide-react";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin }) {
   const [innerTab, setInnerTab] = useState("milestones");
   // tabs: milestones | vip | duo | perfect10 | coinflip
   const tokens = user?.earlyAccessTokens ?? 0;
-  const diamonds = user?.diamonds ?? 0;
 
   return (
     <div className="flex flex-col gap-4 pb-4">
@@ -24,9 +21,6 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Your Balance</span>
           <span className="text-3xl font-black text-foreground">{tokens}</span>
           <span className="text-xs text-muted-foreground">tokens available</span>
-          <span className="flex items-center gap-1 mt-1.5 text-xs font-bold text-indigo-500">
-            <Gem className="w-3.5 h-3.5" /> {diamonds} diamonds
-          </span>
         </div>
         <img
           src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png"
@@ -34,9 +28,6 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           className="w-14 h-14"
         />
       </div>
-
-      {/* Diamond Purchase */}
-      <DiamondPurchaseCard user={user} onUserUpdate={onUserUpdate} />
 
       {/* Row 1: Milestones | VIP Pass | Daily Quiz */}
       {/* Row 2: Coin Flip  | Perfect 10 */}

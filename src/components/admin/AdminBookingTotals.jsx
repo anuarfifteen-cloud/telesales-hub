@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Trash2, Plus, ChevronDown, ChevronUp, Zap, Pencil, Check, X } from "lucide-react";
+import { Trash2, Plus, ChevronDown, ChevronUp, Zap, Gem, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { format as tzFormat } from "date-fns-tz";
@@ -16,6 +16,8 @@ export default function AdminBookingTotals() {
   const [saving, setSaving] = useState(false);
   const [editingTokensFor, setEditingTokensFor] = useState(null);
   const [tokenEditValue, setTokenEditValue] = useState("");
+  const [editingDiamondsFor, setEditingDiamondsFor] = useState(null);
+  const [diamondEditValue, setDiamondEditValue] = useState("");
 
   const { data: allBookings = [], isLoading } = useQuery({
     queryKey: ["all-bookings-admin"],
@@ -48,6 +50,7 @@ export default function AdminBookingTotals() {
       name: userEntity?.full_name || bookings[0]?.user_name || email,
       userId: userEntity?.id || null,
       tokens: userEntity?.earlyAccessTokens ?? 0,
+      diamonds: userEntity?.diamonds ?? 0,
       bookings,
       total: bookings.length,
     };
@@ -60,6 +63,15 @@ export default function AdminBookingTotals() {
     queryClient.invalidateQueries({ queryKey: ["all-users-admin"] });
     setEditingTokensFor(null);
     toast.success("Tokens updated.");
+  };
+
+  const handleSaveDiamonds = async (userId, newVal) => {
+    const parsed = parseInt(newVal, 10);
+    if (isNaN(parsed) || parsed < 0) { toast.error("Enter a valid diamond count."); return; }
+    await base44.entities.User.update(userId, { diamonds: parsed });
+    queryClient.invalidateQueries({ queryKey: ["all-users-admin"] });
+    setEditingDiamondsFor(null);
+    toast.success("Diamonds updated.");
   };
 
   const handleDelete = async (bookingId) => {
@@ -105,9 +117,10 @@ export default function AdminBookingTotals() {
     <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 space-y-3">
       <p className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wide">📊 All Users Booking Totals</p>
       <div className="space-y-2">
-        {userList.map(({ email, name, bookings, total, tokens, userId }) => {
+        {userList.map(({ email, name, bookings, total, tokens, diamonds, userId }) => {
           const isExpanded = expandedUser === email;
           const isEditingTokens = editingTokensFor === email;
+          const isEditingDiamonds = editingDiamondsFor === email;
           return (
             <div key={email} className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               {/* User Row */}
@@ -129,6 +142,9 @@ export default function AdminBookingTotals() {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className="text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-700 flex items-center gap-1">
                     <Zap className="w-2.5 h-2.5" />{tokens}
+                  </span>
+                  <span className="text-xs font-bold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-700 flex items-center gap-1">
+                    <Gem className="w-2.5 h-2.5" />{diamonds}
                   </span>
                   <span className="text-xs font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-700">
                     {total} bookings
@@ -162,6 +178,35 @@ export default function AdminBookingTotals() {
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{tokens} tokens</span>
                           <button onClick={e => { e.stopPropagation(); setEditingTokensFor(email); setTokenEditValue(String(tokens)); }} className="text-slate-300 hover:text-amber-500 transition-colors">
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Diamond Editor */}
+                  {userId && (
+                    <div className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 rounded-lg px-2.5 py-2 mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <Gem className="w-3.5 h-3.5 text-indigo-500" />
+                        <span className="text-xs font-semibold text-indigo-800 dark:text-indigo-300">Diamonds</span>
+                      </div>
+                      {isEditingDiamonds ? (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number" min="0" value={diamondEditValue}
+                            onChange={e => setDiamondEditValue(e.target.value)}
+                            className="w-16 text-xs border border-indigo-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-400 text-center"
+                            autoFocus
+                          />
+                          <button onClick={() => handleSaveDiamonds(userId, diamondEditValue)} className="text-emerald-500 hover:text-emerald-700"><Check className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setEditingDiamondsFor(null)} className="text-slate-400 hover:text-slate-600"><X className="w-3.5 h-3.5" /></button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">{diamonds} 💎</span>
+                          <button onClick={e => { e.stopPropagation(); setEditingDiamondsFor(email); setDiamondEditValue(String(diamonds)); }} className="text-slate-300 hover:text-indigo-500 transition-colors">
                             <Pencil className="w-3 h-3" />
                           </button>
                         </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Zap } from "lucide-react";
 import PriorityPassCard from "@/components/profile/PriorityPassCard";
+import DiamondPurchaseCard from "@/components/tokens/DiamondPurchaseCard";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertDialog,
@@ -276,8 +277,11 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
             </button>
           </div>
 
-          {/* ── 7-Day Priority Access ── */}
-          <PriorityPassCard user={user} onUserUpdate={onUserUpdate} />
+          {/* ── Diamond Wallet + 7-Day Priority Access (Twin Cards) ── */}
+          <div className="grid grid-cols-2 gap-4 items-stretch">
+            <DiamondPurchaseCard user={user} onUserUpdate={onUserUpdate} />
+            <PriorityPassCard user={user} onUserUpdate={onUserUpdate} />
+          </div>
 
           {/* 30-min confirm dialog */}
           <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>

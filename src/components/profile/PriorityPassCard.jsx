@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Gem } from "lucide-react";
 import { formatCountdown } from "@/lib/countdown";
 import {
   AlertDialog,
@@ -41,39 +40,36 @@ export default function PriorityPassCard({ user, onUserUpdate }) {
   };
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2 min-w-0">
-        <Gem className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-purple-500" : canActivate ? "text-purple-400" : "text-slate-300 dark:text-slate-600"}`} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 flex-nowrap max-w-full">
-            <p className={`text-sm font-medium ${isActive || canActivate ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
-              7-DAY PRIORITY ACCESS
-            </p>
-            <span className="text-[10px] font-black bg-purple-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse flex-shrink-0">
-              New
-            </span>
-          </div>
-
-          {isActive ? (
-            <p className="text-[10px] text-purple-600 dark:text-purple-400 leading-none mt-1 font-semibold">
-              💎 Active for: {formatCountdown(activeExpiry)}
-            </p>
-          ) : (
-            <p className={`text-[10px] leading-none mt-1 font-semibold ${canActivate ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
-              {diamonds > 0 ? "1 diamond — unlock 6:00 PM early access." : "Requires 1 diamond to activate."}
-            </p>
-          )}
+    <div className="bg-slate-900 dark:bg-slate-950 rounded-2xl p-4 flex flex-col justify-between h-full">
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">7-Day Priority</span>
+          <span className="text-[9px] font-black bg-purple-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider flex-shrink-0">
+            New
+          </span>
         </div>
+        {isActive ? (
+          <p className="text-xs text-purple-400 font-semibold leading-snug">
+            Active for {formatCountdown(activeExpiry)}
+          </p>
+        ) : (
+          <p className="text-xs text-slate-400 leading-snug">
+            {diamonds > 0 ? "1 💎 — unlock 6:00 PM early access." : "Requires 1 diamond to activate."}
+          </p>
+        )}
       </div>
 
-      <button
-        disabled={!canActivate || saving}
-        onClick={() => setShowConfirm(true)}
-        className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
-          ${isActive ? "bg-purple-500 cursor-not-allowed" : canActivate ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300" : "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-40"}`}
-      >
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isActive ? "translate-x-6" : "translate-x-1"}`} />
-      </button>
+      <div className="mt-3 flex items-center justify-between">
+        <span className="text-xs font-medium text-slate-300">{isActive ? "Enabled" : "Activate"}</span>
+        <button
+          disabled={!canActivate || saving}
+          onClick={() => setShowConfirm(true)}
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
+            ${isActive ? "bg-purple-500 cursor-not-allowed" : canActivate ? "bg-slate-700 hover:bg-slate-600" : "bg-slate-800 cursor-not-allowed opacity-40"}`}
+        >
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isActive ? "translate-x-6" : "translate-x-1"}`} />
+        </button>
+      </div>
 
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent>

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Gem, Loader2 } from "lucide-react";
+import { Gem, Loader2, Info } from "lucide-react";
 import { formatCountdown } from "@/lib/countdown";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 
 const MIN_PRICE = 20;
@@ -58,35 +59,44 @@ export default function DiamondPurchaseCard({ user, onUserUpdate }) {
   };
 
   return (
-    <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Gem className="w-4 h-4 text-indigo-500" />
-          <span className="text-sm font-bold text-foreground">Emergency Diamond Buy</span>
+    <div className="bg-slate-900 dark:bg-slate-950 rounded-2xl p-4 flex flex-col justify-between h-full">
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <Gem className="w-3.5 h-3.5 text-indigo-400" /> Diamonds
+          </span>
+          <Popover>
+            <PopoverTrigger className="text-slate-500 hover:text-slate-300 transition-colors" aria-label="Price info">
+              <Info className="w-3.5 h-3.5" />
+            </PopoverTrigger>
+            <PopoverContent className="w-56 text-xs p-3 space-y-1">
+              <p className="font-semibold text-foreground">Dynamic Diamond Price</p>
+              <p className="text-muted-foreground">Office Total: {totalOfficeTokens}</p>
+              <p className="text-muted-foreground">Avg: {averageUserTokens}</p>
+              <p className="text-muted-foreground">Min: {MIN_PRICE} Tokens</p>
+            </PopoverContent>
+          </Popover>
         </div>
-        <span className="text-xs font-semibold text-indigo-500">Your Diamonds: {diamonds}</span>
+        <p className="text-3xl font-black text-white leading-none">{diamonds}</p>
       </div>
 
-      <button
-        onClick={handleBuy}
-        disabled={saving || onCooldown || !canAfford}
-        className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white text-sm font-bold transition-colors"
-      >
-        {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : `Buy 1 Diamond — ${currentDiamondPrice} Tokens`}
-      </button>
+      <div className="mt-3">
+        <button
+          onClick={handleBuy}
+          disabled={saving || onCooldown || !canAfford}
+          className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-xs font-bold transition-colors"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : `Buy 1 💎 — ${currentDiamondPrice} Tokens`}
+        </button>
 
-      {onCooldown && (
-        <p className="text-xs text-center text-amber-600 dark:text-amber-400 font-semibold">
-          Available in: {formatCountdown(cooldownEnd)}
-        </p>
-      )}
-      {!onCooldown && !canAfford && (
-        <p className="text-xs text-center text-slate-400">Not enough tokens to buy a diamond.</p>
-      )}
-
-      <p className="text-xs text-slate-400 dark:text-slate-500">
-        Office Economy: {totalOfficeTokens} total tokens hoarded (Avg: {averageUserTokens}). Diamond price scales with the office average. Minimum price is always 20 Tokens.
-      </p>
+        {onCooldown ? (
+          <p className="text-[10px] text-center text-amber-400 font-semibold mt-1.5">
+            Available in: {formatCountdown(cooldownEnd)}
+          </p>
+        ) : !canAfford ? (
+          <p className="text-[10px] text-center text-slate-500 mt-1.5">Not enough tokens</p>
+        ) : null}
+      </div>
     </div>
   );
 }
