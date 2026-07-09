@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Zap } from "lucide-react";
-import PriorityPassCard from "@/components/profile/PriorityPassCard";
-import DiamondPurchaseCard from "@/components/tokens/DiamondPurchaseCard";
+import { Zap, Gem } from "lucide-react";
+import { formatCountdown } from "@/lib/countdown";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertDialog,
@@ -109,9 +108,18 @@ const VIP_PLUS_PRICE = 5;
 export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCount = 0, showMilestones = true }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showPlusConfirm, setShowPlusConfirm] = useState(false);
+  const [showPriorityConfirm, setShowPriorityConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingPlus, setSavingPlus] = useState(false);
+  const [savingPriority, setSavingPriority] = useState(false);
   const [vipPrice, setVipPrice] = useState(1);
+  const [, setTick] = useState(0);
+
+  // Re-render every 30s so the priority pass countdown stays live
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     base44.entities.AppSettings.list().then((rows) => {
@@ -132,6 +140,12 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
   const vipPlusExpiresAt = user?.vipPlusExpiresAt ? new Date(user.vipPlusExpiresAt) : null;
   const isVipPlusActive = vipPlusExpiresAt && vipPlusExpiresAt.getTime() > Date.now();
   const canActivatePlus = tokens >= VIP_PLUS_PRICE && !isVipPlusActive;
+
+  // 7-day priority pass
+  const diamonds = user?.diamonds ?? 0;
+  const priorityExpiresAt = user?.active_pass_expiry ? new Date(user.active_pass_expiry) : null;
+  const isPriorityActive = priorityExpiresAt && priorityExpiresAt.getTime() > Date.now();
+  const canActivatePriority = diamonds > 0 && !isPriorityActive;
 
   const nextMilestone = MILESTONES.find((m) => totalBookingCount < m.target);
   const overallPct = nextMilestone ? Math.round((totalBookingCount / nextMilestone.target) * 100) : 100;
@@ -168,6 +182,16 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
     setSavingPlus(false);
     setShowPlusConfirm(false);
     toast.success("🚀 VIP Plus activated! You can now book 1 hour early.");
+  };
+
+  const handleActivatePriority = async () => {
+    setSavingPriority(true);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    await base44.auth.updateMe({ diamonds: diamonds - 1, active_pass_expiry: expiresAt });
+    await onUserUpdate();
+    setSavingPriority(false);
+    setShowPriorityConfirm(false);
+    toast.success("💎 7-Day Priority Access activated!");
   };
 
   const formatExpiry = (date) => {
@@ -277,10 +301,38 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
             </button>
           </div>
 
-          {/* ── Diamond Wallet + 7-Day Priority Access (Twin Cards) ── */}
-          <div className="grid grid-cols-2 gap-4 items-stretch">
-            <DiamondPurchaseCard user={user} onUserUpdate={onUserUpdate} />
-            <PriorityPassCard user={user} onUserUpdate={onUserUpdate} />
+          {/* ── 7-Day Priority Access ── */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <Gem className={`w-4 h-4 flex-shrink-0 ${isPriorityActive ? "text-purple-500" : diamonds > 0 ? "text-purple-400" : "text-slate-300 dark:text-slate-600"}`} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className={`text-sm font-medium ${isPriorityActive || diamonds > 0 ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
+                    ACTIVATE 7-DAY PRIORITY ACCESS
+                  </p>
+                  <span className="text-[9px] font-black bg-purple-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider flex-shrink-0">
+                    New
+                  </span>
+                </div>
+                {isPriorityActive ? (
+                  <p className="text-[10px] text-purple-600 dark:text-purple-400 leading-none mt-1 font-semibold">
+                    💎 Active — {formatCountdown(priorityExpiresAt)} left
+                  </p>
+                ) : (
+                  <p className={`text-[10px] leading-none mt-1 font-semibold ${diamonds > 0 ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
+                    1 💎 diamond — 7 days priority access.
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              disabled={!canActivatePriority || savingPriority}
+              onClick={() => setShowPriorityConfirm(true)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
+                ${isPriorityActive ? "bg-purple-500" : canActivatePriority ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300" : "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-40"}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isPriorityActive ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
           </div>
 
           {/* 30-min confirm dialog */}
@@ -314,6 +366,24 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction disabled={savingPlus} onClick={handleActivatePlus} className="bg-purple-500 hover:bg-purple-600 text-white">
                   {savingPlus ? "Activating…" : "Activate"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* 7-day priority confirm dialog */}
+          <AlertDialog open={showPriorityConfirm} onOpenChange={setShowPriorityConfirm}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>💎 Activate 7-Day Priority Access?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will consume <strong>1 diamond</strong> ({diamonds} remaining) and grant you <strong>priority booking access</strong> for the next <strong>7 days</strong>.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction disabled={savingPriority} onClick={handleActivatePriority} className="bg-purple-500 hover:bg-purple-600 text-white">
+                  {savingPriority ? "Activating…" : "Activate"}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

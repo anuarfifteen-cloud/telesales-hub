@@ -9,7 +9,7 @@ import { toast } from "sonner";
 const MIN_PRICE = 20;
 const COOLDOWN_DAYS = 30;
 
-export default function DiamondPurchaseCard({ user, onUserUpdate }) {
+export default function DiamondBalanceCard({ user, onUserUpdate }) {
   const [saving, setSaving] = useState(false);
   const [, setTick] = useState(0);
 
@@ -25,7 +25,7 @@ export default function DiamondPurchaseCard({ user, onUserUpdate }) {
   });
 
   const eligibleUsers = allUsers.filter(
-    (u) => u.role !== "admin" && (u.earlyAccessTokens ?? 0) <= 900
+    (u) => u.role !== "admin" && (u.earlyAccessTokens ?? 0) <= 300
   );
   const totalOfficeTokens = eligibleUsers.reduce((sum, u) => sum + (u.earlyAccessTokens ?? 0), 0);
   const averageUserTokens = eligibleUsers.length > 0 ? Math.floor(totalOfficeTokens / eligibleUsers.length) : 0;
@@ -59,44 +59,44 @@ export default function DiamondPurchaseCard({ user, onUserUpdate }) {
   };
 
   return (
-    <div className="bg-slate-900 dark:bg-slate-950 rounded-2xl p-4 flex flex-col justify-between h-full">
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-            <Gem className="w-3.5 h-3.5 text-indigo-400" /> Diamonds
+    <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+            Diamonds
+            <Popover>
+              <PopoverTrigger className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Price info">
+                <Info className="w-3 h-3" />
+              </PopoverTrigger>
+              <PopoverContent className="w-56 text-xs p-3 space-y-1">
+                <p className="font-semibold text-foreground">Dynamic Diamond Price</p>
+                <p className="text-muted-foreground">Office Total: {totalOfficeTokens}</p>
+                <p className="text-muted-foreground">Avg: {averageUserTokens}</p>
+                <p className="text-muted-foreground">Min: {MIN_PRICE} Tokens</p>
+              </PopoverContent>
+            </Popover>
           </span>
-          <Popover>
-            <PopoverTrigger className="text-slate-500 hover:text-slate-300 transition-colors" aria-label="Price info">
-              <Info className="w-3.5 h-3.5" />
-            </PopoverTrigger>
-            <PopoverContent className="w-56 text-xs p-3 space-y-1">
-              <p className="font-semibold text-foreground">Dynamic Diamond Price</p>
-              <p className="text-muted-foreground">Office Total: {totalOfficeTokens}</p>
-              <p className="text-muted-foreground">Avg: {averageUserTokens}</p>
-              <p className="text-muted-foreground">Min: {MIN_PRICE} Tokens</p>
-            </PopoverContent>
-          </Popover>
+          <span className="text-3xl font-black text-foreground">{diamonds}</span>
+          <span className="text-xs text-muted-foreground">diamonds owned</span>
         </div>
-        <p className="text-3xl font-black text-white leading-none">{diamonds}</p>
+        <Gem className="w-14 h-14 text-indigo-400 flex-shrink-0" strokeWidth={1.5} />
       </div>
 
-      <div className="mt-3">
-        <button
-          onClick={handleBuy}
-          disabled={saving || onCooldown || !canAfford}
-          className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-xs font-bold transition-colors"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : `Buy 1 💎 — ${currentDiamondPrice} Tokens`}
-        </button>
+      <button
+        onClick={handleBuy}
+        disabled={saving || onCooldown || !canAfford}
+        className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-400 dark:disabled:text-slate-500 text-white text-xs font-bold transition-colors"
+      >
+        {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : `Buy 1 💎 — ${currentDiamondPrice} Tokens`}
+      </button>
 
-        {onCooldown ? (
-          <p className="text-[10px] text-center text-amber-400 font-semibold mt-1.5">
-            Available in: {formatCountdown(cooldownEnd)}
-          </p>
-        ) : !canAfford ? (
-          <p className="text-[10px] text-center text-slate-500 mt-1.5">Not enough tokens</p>
-        ) : null}
-      </div>
+      {onCooldown ? (
+        <p className="text-[10px] text-center text-amber-500 font-semibold">
+          Available in: {formatCountdown(cooldownEnd)}
+        </p>
+      ) : !canAfford ? (
+        <p className="text-[10px] text-center text-muted-foreground">Not enough tokens</p>
+      ) : null}
     </div>
   );
 }
