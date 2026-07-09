@@ -21,14 +21,14 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         {/* Token Balance Card */}
         <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 flex items-center justify-between">
           <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Your Balance</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Token Balance</span>
             <span className="text-3xl font-black text-foreground">{tokens}</span>
             <span className="text-xs text-muted-foreground">tokens available</span>
           </div>
           <img
             src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png"
             alt="token"
-            className="w-14 h-14"
+            className="w-14 h-14 object-contain"
           />
         </div>
 

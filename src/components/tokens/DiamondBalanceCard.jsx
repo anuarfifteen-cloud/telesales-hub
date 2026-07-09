@@ -5,7 +5,7 @@ import { formatCountdown } from "@/lib/countdown";
 import { toast } from "sonner";
 
 const COOLDOWN_DAYS = 30;
-const DIAMOND_IMAGE_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/869b22c1d_Gemini_Generated_Image_3fwfra3fwfra3fwf.png";
+const DIAMOND_IMAGE_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b52888c95_Gemini_Generated_Image_3fwfra3fwfra3fwf-removebg-preview.png";
 
 export default function DiamondBalanceCard({ user, onUserUpdate }) {
   const [saving, setSaving] = useState(false);
@@ -57,11 +57,11 @@ export default function DiamondBalanceCard({ user, onUserUpdate }) {
     <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Your Diamonds</span>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Diamond Balance</span>
           <span className="text-3xl font-black text-foreground">{diamonds}</span>
           <span className="text-xs text-muted-foreground">diamonds available</span>
         </div>
-        <img src={DIAMOND_IMAGE_URL} alt="diamond" className="w-14 h-14" />
+        <img src={DIAMOND_IMAGE_URL} alt="diamond" className="w-14 h-14 object-contain" />
       </div>
 
       <button
