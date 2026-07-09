@@ -123,7 +123,7 @@ function Leaderboard() {
               : "bg-transparent border-[#00f3ff]/20 text-[#00f3ff]/40"
           }`}
         >
-          Today's Flash
+          Today's Leaderboard
         </button>
       </div>
 
