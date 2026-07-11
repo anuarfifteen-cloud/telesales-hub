@@ -11,7 +11,7 @@ const PIPE_W = 54;
 const DIFFICULTY_SETTINGS = {
   easy:   { gravity: 850,  jumpVel: -280, pipeGap: 170, pipeSpeed: 114, pipeIntervalMs: 1750 },
   medium: { gravity: 1050, jumpVel: -310, pipeGap: 145, pipeSpeed: 144, pipeIntervalMs: 1500 },
-  hard:   { gravity: 1300, jumpVel: -350, pipeGap: 115, pipeSpeed: 200, pipeIntervalMs: 1100 },
+  hard:   { gravity: 1300, jumpVel: -350, pipeGap: 170, pipeSpeed: 200, pipeIntervalMs: 1100 },
 };
 
 const TOKEN_IMG_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
