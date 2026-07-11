@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
 
-const REWARD_EMOJI = { 1: "🎟️", 2: "✨", 3: "💎", 4: "🔥", 5: "👑" };
+const REWARD_EMOJI = { 1: "🎟️", 2: "✨", 3: "💰", 4: "🔥", 5: "👑" };
 const FOMO_LINES = [
   "just scored big!",
   "got lucky!",
