@@ -41,6 +41,7 @@ const PM_DEFAULTS  = ["MB / BUNDLE PLAN", "REPORT / SIMPACK", "OUTBOUND / EASI S
 const OFF_DEFAULTS = ["", "", "", ""];
 
 const TASK_COLORS = [
+  { match: /Report/i,          bg: "bg-emerald-100", text: "text-emerald-800" },
   { match: /outbound/i,      bg: "bg-blue-100",    text: "text-blue-800"    },
   { match: /simpack/i,       bg: "bg-red-600",     text: "text-white"       },
   { match: /inbound/i,       bg: "bg-green-100",   text: "text-green-800"   },
@@ -52,7 +53,6 @@ const TASK_COLORS = [
   { match: /bundle/i,        bg: "bg-indigo-100",  text: "text-indigo-800"  },
   { match: /pl\b/i,          bg: "bg-pink-100",    text: "text-pink-800"    },
   { match: /al\b/i,          bg: "bg-red-100",     text: "text-red-800"     },
-  { match: /lead/i,          bg: "bg-emerald-100", text: "text-emerald-800" },
 ];
 
 function taskBadgeColor(task) {
