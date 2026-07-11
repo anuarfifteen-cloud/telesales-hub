@@ -41,9 +41,9 @@ const PM_DEFAULTS  = ["MB / BUNDLE PLAN", "REPORT / SIMPACK", "OUTBOUND / EASI S
 const OFF_DEFAULTS = ["", "", "", ""];
 
 const TASK_COLORS = [
+  { match: /outbound/i,      bg: "bg-blue-100",    text: "text-blue-800"    },
   { match: /simpack/i,       bg: "bg-red-600",     text: "text-white"       },
   { match: /inbound/i,       bg: "bg-green-100",   text: "text-green-800"   },
-  { match: /outbound/i,      bg: "bg-blue-100",    text: "text-blue-800"    },
   { match: /chat/i,          bg: "bg-cyan-100",    text: "text-cyan-800"    },
   { match: /report/i,        bg: "bg-purple-100",  text: "text-purple-800"  },
   { match: /yayasan/i,       bg: "bg-orange-100",  text: "text-orange-800"  },
