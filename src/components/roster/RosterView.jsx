@@ -37,7 +37,7 @@ function Avatar({ name, abbreviation }) {
 }
 
 const AM_DEFAULTS  = ["SIMPACK", "ONLINE ORDER", "INBOUND (MB)", "OUTBOUND", "MB / BUNDLE PLAN"];
-const PM_DEFAULTS  = ["MB / BUNDLE PLAN", "REPORT / SIMPACK", "OUTBOUND / EASI SP", "SIMPACK", "MB & CHPL"];
+const PM_DEFAULTS  = ["MB / BUNDLE PLAN", "REPORT / SIMPACK", "OUTBOUND / SIMPACK", "SIMPACK", "MB & CHPL"];
 const OFF_DEFAULTS = ["", "", "", ""];
 
 const TASK_COLORS = [
