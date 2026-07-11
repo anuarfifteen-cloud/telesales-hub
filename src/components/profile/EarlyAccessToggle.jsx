@@ -312,10 +312,10 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <p className={`text-sm font-medium ${isPriorityActive || diamonds > 0 ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
                     ACTIVATE 7-DAY PRIORITY ACCESS
-                  </p>
                   <span className="text-[9px] font-black bg-purple-500 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider flex-shrink-0">
                     New
                   </span>
+                  </p>
                 </div>
                 {isPriorityActive ? (
                   <p className="text-[10px] text-purple-600 dark:text-purple-400 leading-none mt-1 font-semibold">
