@@ -281,6 +281,8 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                   <p className={`text-sm font-medium ${isVipPlusActive || tokens >= VIP_PLUS_PRICE ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
   ACTIVATE EARLY 1-HRS BOOKING ACCESS
 </p>
+
+<p> </p>
                 </div>
 
                 {isVipPlusActive ?
