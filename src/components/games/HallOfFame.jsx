@@ -33,20 +33,20 @@ const THEMES = {
 
 export function LeaderboardViewToggle({ view, setView, gameName }) {
   const t = THEMES[gameName] || THEMES.flappy;
-  const dailyActive = view === "daily";
+  const liveActive = view === "live";
   const fameActive = view === "halloffame";
   return (
     <div className="flex gap-2">
       <button
-        onClick={() => setView("daily")}
+        onClick={() => setView("live")}
         className="flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest border transition-all"
         style={
-          dailyActive
+          liveActive
             ? { borderColor: t.accent2, color: t.accent2, boxShadow: `0 0 12px ${t.accent2}66`, background: `${t.accent2}1a` }
             : { borderColor: `${t.accent}40`, color: `${t.accent}66`, background: "transparent" }
         }
       >
-        Daily Leaderboard
+        Live Scores
       </button>
       <button
         onClick={() => setView("halloffame")}
@@ -120,6 +120,7 @@ export default function HallOfFame({ gameName }) {
                   {c.user_name}
                 </span>
                 <span className="text-[10px] uppercase tracking-widest" style={{ color: t.accent, opacity: 0.6 }}>
+                  Season: {c.season_date_awarded}
                 </span>
               </div>
               <span

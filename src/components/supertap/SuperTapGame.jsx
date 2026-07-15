@@ -77,7 +77,8 @@ function getLocalDateStr() {
 }
 
 function Leaderboard() {
-  const [view, setView] = useState("daily");
+  const [view, setView] = useState("live");
+  const [activeTab, setActiveTab] = useState("season");
 
   const { data: scores = [] } = useQuery({
     queryKey: ["tapScores"],
@@ -94,10 +95,13 @@ function Leaderboard() {
   const champUserIds = new Set(appSettingsRows[0]?.defending_champ_supertap_ids || []);
   const today = getLocalDateStr();
 
+  const seasonScores = scores.slice(0, 10);
   const dailyScores = scores
     .filter((s) => s.daily_date === today && (s.daily_high_score ?? 0) > 0)
     .sort((a, b) => (b.daily_high_score ?? 0) - (a.daily_high_score ?? 0))
     .slice(0, 10);
+
+  const displayScores = activeTab === "season" ? seasonScores : dailyScores;
 
   if (view === "halloffame") {
     return (
@@ -112,37 +116,69 @@ function Leaderboard() {
     <div className="w-full space-y-3">
       <LeaderboardViewToggle view={view} setView={setView} gameName="supertap" />
       <div className="w-full bg-[#0a0530]/90 backdrop-blur-md rounded-2xl border border-[#00f3ff]/30 shadow-[0_0_25px_rgba(0,243,255,0.15)] overflow-hidden transition-all duration-300">
+      {/* Tab Toggle */}
+      <div className="flex gap-2 px-4 pt-4">
+        <button
+          onClick={() => setActiveTab("season")}
+          className={`flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest border transition-all ${
+            activeTab === "season"
+              ? "bg-[#ff00ea]/10 border-[#ff00ea] text-[#ff00ea] shadow-[0_0_12px_rgba(255,0,234,0.4)]"
+              : "bg-transparent border-[#00f3ff]/20 text-[#00f3ff]/40"
+          }`}
+        >
+          Season Leaderboard
+        </button>
+        <button
+          onClick={() => setActiveTab("daily")}
+          className={`flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest border transition-all ${
+            activeTab === "daily"
+              ? "bg-[#ff00ea]/10 border-[#ff00ea] text-[#ff00ea] shadow-[0_0_12px_rgba(255,0,234,0.4)]"
+              : "bg-transparent border-[#00f3ff]/20 text-[#00f3ff]/40"
+          }`}
+        >
+          Today's Leaderboard
+        </button>
+      </div>
+
       {/* Info box */}
-      <div className="bg-gradient-to-r from-[#06001a] to-[#0a0530] border-b border-[#ff00ea]/20 px-5 py-4">
+      <div className="bg-gradient-to-r from-[#06001a] to-[#0a0530] border-b border-[#ff00ea]/20 px-5 py-4 mt-4">
         <div className="flex items-center justify-center gap-2 mb-1.5">
           <Trophy className="w-4 h-4 text-[#ffd700] drop-shadow-[0_0_5px_rgba(255,215,0,0.8)] animate-pulse" />
           <p className="text-xs font-black uppercase tracking-wider text-[#00f3ff] drop-shadow-[0_0_5px_rgba(0,243,255,0.5)]">
-            Daily Leaderboard
+            {activeTab === "season" ? "Live Cyber Leaderboard" : "Flash Challenge (Daily)"}
           </p>
         </div>
-        <p className="text-[11px] text-[#00f3ff]/70 text-center leading-relaxed">
-          The leaderboard resets twice a month (on the 16th and after the final day of the month). Be in the Top 3 when the season ends to win:
-        </p>
-        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2.5">
-          <span className="text-[11px] font-bold bg-[#ffd700]/10 px-2 py-0.5 rounded border border-[#ffd700]/40 text-[#ffd700]">🥇 1st: 5 Tokens</span>
-          <span className="text-[11px] font-bold bg-[#c0c0c0]/10 px-2 py-0.5 rounded border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2nd: 2 Tokens</span>
-          <span className="text-[11px] font-bold bg-[#cd7f32]/10 px-2 py-0.5 rounded border border-[#cd7f32]/40 text-[#cd7f32]">🥉 3rd: 1 Token</span>
-        </div>
-        <p className="text-[10px] mt-2.5 leading-relaxed text-[#ff00ea] flex items-center justify-center gap-1 font-medium">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff00ea] animate-ping mr-0.5" />
-          Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players!
-        </p>
+        {activeTab === "season" ? (
+          <>
+            <p className="text-[11px] text-[#00f3ff]/70 text-center leading-relaxed">
+              The leaderboard resets twice a month (on the 16th and after the final day of the month). Be in the Top 3 when the season ends to win:
+            </p>
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2.5">
+              <span className="text-[11px] font-bold bg-[#ffd700]/10 px-2 py-0.5 rounded border border-[#ffd700]/40 text-[#ffd700]">🥇 1st: 5 Tokens</span>
+              <span className="text-[11px] font-bold bg-[#c0c0c0]/10 px-2 py-0.5 rounded border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2nd: 2 Tokens</span>
+              <span className="text-[11px] font-bold bg-[#cd7f32]/10 px-2 py-0.5 rounded border border-[#cd7f32]/40 text-[#cd7f32]">🥉 3rd: 1 Token</span>
+            </div>
+            <p className="text-[10px] mt-2.5 leading-relaxed text-[#ff00ea] flex items-center justify-center gap-1 font-medium">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff00ea] animate-ping mr-0.5" />
+              Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players!
+            </p>
+          </>
+        ) : (
+          <p className="text-[11px] text-[#00f3ff]/70 text-center leading-relaxed">
+            Random Flash Challenges! Admin will announce events and distribute Voucher prizes to top players today.
+          </p>
+        )}
       </div>
 
-      {dailyScores.length === 0 ? (
+      {displayScores.length === 0 ? (
         <div className="py-10 text-center text-[#00f3ff]/50 text-sm tracking-wide font-bold uppercase">
-          No flash scores yet today. Be the first!
+          {activeTab === "season" ? "Awaiting first contestant. Enter the grid!" : "No flash scores yet today. Be the first!"}
         </div>
       ) : (
         <div className="divide-y divide-[#00f3ff]/10 bg-transparent">
-          {dailyScores.map((s, i) => {
+          {displayScores.map((s, i) => {
             const isChamp = champUserIds.has(s.user_id);
-            const score = s.daily_high_score;
+            const score = activeTab === "season" ? s.high_score : s.daily_high_score;
             const tps = (score / 10).toFixed(1);
             return (
               <div key={s.id} className={`flex items-center gap-4 px-5 py-3 transition-colors hover:bg-[#00f3ff]/5 ${i < 3 && !isChamp ? "bg-[#00f3ff]/[0.03]" : ""}`}>
