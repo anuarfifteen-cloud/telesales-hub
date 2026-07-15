@@ -120,7 +120,6 @@ export default function HallOfFame({ gameName }) {
                   {c.user_name}
                 </span>
                 <span className="text-[10px] uppercase tracking-widest" style={{ color: t.accent, opacity: 0.6 }}>
-                  Season: {c.season_date_awarded}
                 </span>
               </div>
               <span
