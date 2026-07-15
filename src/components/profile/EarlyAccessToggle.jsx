@@ -240,8 +240,9 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
       }
 
       {/* ── VIP Pass / Spend Tokens ── */}
-      {!showMilestones &&
-      <div className="space-y-3">
+      {!showMilestones && (
+        <>
+        <div className="space-y-3">
           {/* ── 30-min pass ── */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
@@ -301,44 +302,65 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                 ${isVipPlusActive ? "bg-purple-500" : canActivatePlus ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300" : "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-40"}`}>
             
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isVipPlusActive ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-          </div>
+              </button>
+              </div>
+              </div>
 
-          {/* ── 7-Day Priority Access ── */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <Gem className={`w-4 h-4 flex-shrink-0 ${isPriorityActive ? "text-purple-500" : diamonds > 0 ? "text-purple-400" : "text-slate-300 dark:text-slate-600"}`} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <p className={`text-sm font-medium ${isPriorityActive || diamonds > 0 ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
-                    ACTIVATE 7-DAY PRIORITY ACCESS
-                  <span className="text-[9px] font-black bg-purple-500 text-white rounded-md uppercase tracking-wider flex-shrink-0 mx-2 px-1 py-1">NEW
+              {/* ── 7-Day Priority Access — Premium Diamond Card ── */}
+              <div className="relative overflow-hidden rounded-2xl p-5 border border-purple-300/50 dark:border-purple-700/50 shadow-[0_8px_30px_rgba(147,51,234,0.18)] bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-800 dark:from-purple-900 dark:via-indigo-900 dark:to-purple-950">
+              <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-12 -left-8 w-32 h-32 rounded-full bg-purple-300/20 blur-3xl pointer-events-none" />
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
 
-                  </span>
-                  </p>
+              <div className="relative flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner">
+                <Gem className={`w-6 h-6 ${isPriorityActive ? "text-white" : diamonds > 0 ? "text-purple-100" : "text-white/40"}`} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-black tracking-wide text-white uppercase">7-Day Priority Access</p>
+                  <span className="text-[8px] font-black bg-white text-purple-700 rounded px-1.5 py-0.5 uppercase tracking-wider">New</span>
                 </div>
                 {isPriorityActive ?
-              <p className="text-[10px] text-purple-600 dark:text-purple-400 leading-none mt-1 font-semibold">
+              <p className="text-[11px] text-purple-100 leading-none mt-1.5 font-semibold flex items-center gap-1.5">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
                     💎 Active — {formatCountdown(priorityExpiresAt)} left
                   </p> :
 
-              <p className={`text-[10px] leading-none mt-1 font-semibold ${diamonds > 0 ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
-                    1 diamond — Book at 6pm for next 7 days.
+              <p className="text-[11px] leading-none mt-1.5 font-semibold text-purple-100/90">
+                    1 💎 Diamond — Unlock booking at <span className="text-white font-black">6:00 PM</span> for 7 days.
                   </p>
-              }
+                }
               </div>
-            </div>
-            <button
-            disabled={!canActivatePriority || savingPriority}
-            onClick={() => setShowPriorityConfirm(true)}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
-                ${isPriorityActive ? "bg-purple-500" : canActivatePriority ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300" : "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-40"}`}>
-            
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isPriorityActive ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-          </div>
+              </div>
+              <button
+              disabled={!canActivatePriority || savingPriority}
+              onClick={() => setShowPriorityConfirm(true)}
+              className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none border
+                ${isPriorityActive ? "bg-emerald-400 border-emerald-300" : canActivatePriority ? "bg-white/25 hover:bg-white/40 border-white/30" : "bg-white/10 cursor-not-allowed opacity-50 border-white/10"}`}>
 
-          {/* 30-min confirm dialog */}
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${isPriorityActive ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+              </div>
+
+              <div className="relative mt-4 pt-3 border-t border-white/15 grid grid-cols-3 gap-2 text-center">
+              <div>
+              <p className="text-[9px] font-bold text-white/50 uppercase tracking-wider">Earliest</p>
+              <p className="text-xs font-black text-white">6:00 PM</p>
+              </div>
+              <div>
+              <p className="text-[9px] font-bold text-white/50 uppercase tracking-wider">Duration</p>
+              <p className="text-xs font-black text-white">7 Days</p>
+              </div>
+              <div>
+              <p className="text-[9px] font-bold text-white/50 uppercase tracking-wider">Cost</p>
+              <p className="text-xs font-black text-white">1 💎</p>
+              </div>
+              </div>
+              </div>
+
+              {/* 30-min confirm dialog */}
           <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -391,8 +413,8 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        </div>
-      }
+        </>
+      )}
     </>);
 
 }

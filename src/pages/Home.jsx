@@ -543,10 +543,15 @@ useEffect(() => {
   const vipPlusExpiresAt = user?.vipPlusExpiresAt ? new Date(user.vipPlusExpiresAt) : null;
   const isVipPlusTokenActive = vipPlusExpiresAt && vipPlusExpiresAt.getTime() > Date.now();
 
+  // 7-Day Priority Pass (diamond-purchased) — books at 6:00 PM (90 min early)
+  const priorityExpiresAt = user?.active_pass_expiry ? new Date(user.active_pass_expiry) : null;
+  const isPriorityActive = priorityExpiresAt && priorityExpiresAt.getTime() > Date.now();
+
   const unlockTime = selectedDate ? (() => {
-    const base = getUnlockTime(selectedDate);
-    if (isVipPlusTokenActive) return new Date(base.getTime() - 60 * 60 * 1000);
-    if (isVipTokenActive) return new Date(base.getTime() - 30 * 60 * 1000);
+    const base = getUnlockTime(selectedDate); // 7:30 PM Brunei
+    if (isPriorityActive) return new Date(base.getTime() - 90 * 60 * 1000); // → 6:00 PM
+    if (isVipPlusTokenActive) return new Date(base.getTime() - 60 * 60 * 1000); // → 6:30 PM
+    if (isVipTokenActive) return new Date(base.getTime() - 30 * 60 * 1000); // → 7:00 PM
     return base;
   })() : null;
 
@@ -789,11 +794,12 @@ useEffect(() => {
                 const prevDay = new Date(y, mo - 1, d - 1);
                 const dayNum = prevDay.getDate();
                 const monthName = prevDay.toLocaleDateString("en-US", { month: "long" });
+                const openLabel = tzFormat(effectiveUnlockTime, "h:mm a", { timeZone: TZ });
                 return (
                   <div className="mt-2 bg-amber-50 dark:bg-amber-950/40 border border-orange-200 dark:border-orange-800 rounded-lg p-3">
                           <p className="font-bold text-orange-800 dark:text-orange-300 text-sm">🔒 Booking not open yet.</p>
                           <p className="text-orange-700 dark:text-orange-400 text-sm mt-0.5">
-                            Bookings open on {dayNum} {monthName} {unlockHour % 12 === 0 ? 12 : unlockHour % 12}:{String(unlockMinute).padStart(2, "0")} {unlockHour >= 12 ? "PM" : "AM"}.
+                            Bookings open on {dayNum} {monthName} {openLabel}.
                           </p>
                         </div>);
               })()}
