@@ -237,7 +237,7 @@ function LiveLeaderboard({ currentUserId }) {
           <p className="text-sm font-black uppercase tracking-widest text-[#c864ff] drop-shadow-[0_0_5px_rgba(200,100,255,0.8)]">Live Grid Scores</p>
         </div>
         <p className="text-[11px] text-[#c864ff]/70 text-center leading-relaxed">
-          The grid resets twice a month (15th & Final Day). Claim the Top 3 to extract tokens:
+          The grid resets twice a month (16th & day after Final Day). Claim the Top 3 to extract tokens:
         </p>
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 mt-3">
           <span className="text-[11px] font-black bg-[#ffd700]/10 px-3 py-1 rounded-md border border-[#ffd700]/40 text-[#ffd700]">🥇 1ST: 5 TOKENS</span>
@@ -246,7 +246,7 @@ function LiveLeaderboard({ currentUserId }) {
         </div>
         <p className="text-[10px] mt-4 leading-relaxed text-[#ff00c8] flex items-center justify-center gap-1.5 font-bold">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff00c8] animate-ping" />
-          The leaderboard resets twice a month (on the 16th and after the final day of the month). Be in the Top 3 when the season ends to win:
+          Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players!
         </p>
       </div>
 
