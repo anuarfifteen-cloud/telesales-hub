@@ -151,7 +151,7 @@ function Leaderboard() {
         {activeTab === "season" ? (
           <>
             <p className="text-[11px] text-[#00f3ff]/70 text-center leading-relaxed">
-              The leaderboard resets twice a month (on the 15th and the final day of the month). Be in the Top 3 when the season ends to win:
+              The leaderboard resets twice a month (on the 16th and after the final day of the month). Be in the Top 3 when the season ends to win:
             </p>
             <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2.5">
               <span className="text-[11px] font-bold bg-[#ffd700]/10 px-2 py-0.5 rounded border border-[#ffd700]/40 text-[#ffd700]">🥇 1st: 5 Tokens</span>
