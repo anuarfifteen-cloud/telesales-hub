@@ -246,7 +246,7 @@ function LiveLeaderboard({ currentUserId }) {
         </div>
         <p className="text-[10px] mt-4 leading-relaxed text-[#ff00c8] flex items-center justify-center gap-1.5 font-bold">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff00c8] animate-ping" />
-          Defending Champs (👑) enter a 1-season prize cooldown!
+          The leaderboard resets twice a month (on the 16th and after the final day of the month). Be in the Top 3 when the season ends to win:
         </p>
       </div>
 
