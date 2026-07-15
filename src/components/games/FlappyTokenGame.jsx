@@ -192,8 +192,13 @@ function drawIdleScreen(ctx, pipes, tokenImg) {
 }
 
 // ── Live Leaderboard ──────────────────────────────────────────────────────────
+function getTodayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function LiveLeaderboard({ currentUserId }) {
-  const [view, setView] = useState("live");
+  const [view, setView] = useState("daily");
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [champUserIds, setChampUserIds] = useState(new Set());
@@ -201,10 +206,17 @@ function LiveLeaderboard({ currentUserId }) {
   const load = useCallback(async () => {
     setLoading(true);
     const [rows, settingsRows] = await Promise.all([
-      base44.entities.FlappyLeaderboard.list("-score", 10),
+      base44.entities.FlappyLeaderboard.list("-score", 100),
       base44.entities.AppSettings.list(),
     ]);
-    setScores(rows);
+    const today = getTodayStr();
+    const todayRows = rows.filter((s) => {
+      if (!s.updated_at) return false;
+      const d = new Date(s.updated_at);
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      return ds === today;
+    }).slice(0, 10);
+    setScores(todayRows);
     setChampUserIds(new Set(settingsRows[0]?.defending_champ_flappy_ids || []));
     setLoading(false);
   }, []);
@@ -234,7 +246,7 @@ function LiveLeaderboard({ currentUserId }) {
         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#c864ff] to-transparent opacity-60"></div>
         <div className="flex items-center justify-center gap-3 mb-2">
           <Trophy className="w-5 h-5 text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse" />
-          <p className="text-sm font-black uppercase tracking-widest text-[#c864ff] drop-shadow-[0_0_5px_rgba(200,100,255,0.8)]">Live Grid Scores</p>
+          <p className="text-sm font-black uppercase tracking-widest text-[#c864ff] drop-shadow-[0_0_5px_rgba(200,100,255,0.8)]">Daily Leaderboard</p>
         </div>
         <p className="text-[11px] text-[#c864ff]/70 text-center leading-relaxed">
           The grid resets twice a month (16th & day after Final Day). Claim the Top 3 to extract tokens:
@@ -253,7 +265,7 @@ function LiveLeaderboard({ currentUserId }) {
       {loading ? (
         <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-[#c864ff]" /></div>
       ) : scores.length === 0 ? (
-        <div className="py-12 text-center text-[#c864ff]/50 text-sm tracking-widest font-bold uppercase">Awaiting first runner. Enter the grid!</div>
+        <div className="py-12 text-center text-[#c864ff]/50 text-sm tracking-widest font-bold uppercase">No scores today yet. Be the first!</div>
       ) : (
         <div className="divide-y divide-[#c864ff]/10 bg-transparent">
           {scores.map((s, i) => {
