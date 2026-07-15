@@ -359,7 +359,7 @@ export default function SuperTapGame({ user }) {
   };
 
   const displayTime = isOver ? "0.0" : timeLeft.toFixed(1);
-  const shrinkScale = Math.max(0.3, 1 - Math.floor(currentScore / 20) * 0.1);
+  const shrinkScale = Math.max(0.3, 1 - Math.floor(currentScore / 10) * 0.1);
 
   return (
     <div className="flex flex-col items-center justify-center text-center w-full max-w-md mx-auto p-4 gap-6 select-none">
