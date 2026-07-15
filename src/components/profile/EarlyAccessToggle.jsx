@@ -310,7 +310,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
 
 
               {/* ── 7-Day Priority Access — Premium Diamond Card ── */}
-              <div className="relative overflow-hidden rounded-2xl p-5 border border-purple-300/50 dark:border-purple-700/50 shadow-[0_8px_30px_rgba(147,51,234,0.18)] bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-800 dark:from-purple-900 dark:via-indigo-900 dark:to-purple-950 my-3">
+              <div className="relative overflow-hidden rounded-2xl p-5 border border-purple-300/50 dark:border-purple-700/50 shadow-[0_8px_30px_rgba(147,51,234,0.18)] bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-800 dark:from-purple-900 dark:via-indigo-900 dark:to-purple-950 my-5">
               <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-white/10 blur-3xl pointer-events-none" />
               <div className="absolute -bottom-12 -left-8 w-32 h-32 rounded-full bg-purple-300/20 blur-3xl pointer-events-none" />
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
