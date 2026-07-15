@@ -240,8 +240,8 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
       }
 
       {/* ── VIP Pass / Spend Tokens ── */}
-      {!showMilestones && (
-        <>
+      {!showMilestones &&
+      <>
         <div className="space-y-3">
           {/* ── 30-min pass ── */}
           <div className="flex items-center justify-between gap-3">
@@ -252,20 +252,20 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
   ACTIVATE EARLY 30-MINS BOOKING ACCESS
 </p>
                 {isVipActive ?
-              <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-none mt-0.5 font-semibold">
+                <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-none mt-0.5 font-semibold">
                     ⚡ Active — expires {formatExpiry(vipExpiresAt)}
                   </p> :
 
-              <p className={`text-[10px] leading-none mt-0.5 font-semibold ${tokens >= vipPrice ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}>
+                <p className={`text-[10px] leading-none mt-0.5 font-semibold ${tokens >= vipPrice ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}>
                     {vipPrice} token{vipPrice !== 1 ? "s" : ""} — book 30 min early.
                   </p>
-              }
+                }
               </div>
             </div>
             <button
-            disabled={!canActivate || saving}
-            onClick={() => setShowConfirm(true)}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
+              disabled={!canActivate || saving}
+              onClick={() => setShowConfirm(true)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
                 ${isVipActive ? "bg-amber-500" : canActivate ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300" : "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-40"}`}>
             
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isVipActive ? "translate-x-6" : "translate-x-1"}`} />
@@ -284,21 +284,21 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                 </div>
 
                 {isVipPlusActive ?
-              <p className="text-[10px] text-purple-600 dark:text-purple-400 leading-none mt-1 font-semibold">
+                <p className="text-[10px] text-purple-600 dark:text-purple-400 leading-none mt-1 font-semibold">
                     🚀 Active — expires {formatExpiry(vipPlusExpiresAt)}
                   </p> :
 
-              <p className={`text-[10px] leading-none mt-1 font-semibold ${tokens >= VIP_PLUS_PRICE ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
+                <p className={`text-[10px] leading-none mt-1 font-semibold ${tokens >= VIP_PLUS_PRICE ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
                     {VIP_PLUS_PRICE} tokens — book 1 hour early.
                   </p>
-              }
+                }
               </div>
             </div>
 
             <button
-            disabled={!canActivatePlus || savingPlus}
-            onClick={() => setShowPlusConfirm(true)}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
+              disabled={!canActivatePlus || savingPlus}
+              onClick={() => setShowPlusConfirm(true)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none
                 ${isVipPlusActive ? "bg-purple-500" : canActivatePlus ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300" : "bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-40"}`}>
             
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isVipPlusActive ? "translate-x-6" : "translate-x-1"}`} />
@@ -307,7 +307,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
               </div>
 
               {/* ── 7-Day Priority Access — Premium Diamond Card ── */}
-              <div className="relative overflow-hidden rounded-2xl p-5 border border-purple-300/50 dark:border-purple-700/50 shadow-[0_8px_30px_rgba(147,51,234,0.18)] bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-800 dark:from-purple-900 dark:via-indigo-900 dark:to-purple-950">
+              <div className="relative overflow-hidden rounded-2xl p-5 border border-purple-300/50 dark:border-purple-700/50 shadow-[0_8px_30px_rgba(147,51,234,0.18)] bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-800 dark:from-purple-900 dark:via-indigo-900 dark:to-purple-950 my-5">
               <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-white/10 blur-3xl pointer-events-none" />
               <div className="absolute -bottom-12 -left-8 w-32 h-32 rounded-full bg-purple-300/20 blur-3xl pointer-events-none" />
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
@@ -323,12 +323,12 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                   <span className="text-[8px] font-black bg-white text-purple-700 rounded px-1.5 py-0.5 uppercase tracking-wider">New</span>
                 </div>
                 {isPriorityActive ?
-              <p className="text-[11px] text-purple-100 leading-none mt-1.5 font-semibold flex items-center gap-1.5">
+                <p className="text-[11px] text-purple-100 leading-none mt-1.5 font-semibold flex items-center gap-1.5">
                     <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
                     💎 Active — {formatCountdown(priorityExpiresAt)} left
                   </p> :
 
-              <p className="text-[11px] leading-none mt-1.5 font-semibold text-purple-100/90">
+                <p className="text-[11px] leading-none mt-1.5 font-semibold text-purple-100/90">
                     1 💎 Diamond — Unlock booking at <span className="text-white font-black">6:00 PM</span> for 7 days.
                   </p>
                 }
@@ -414,7 +414,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
             </AlertDialogContent>
           </AlertDialog>
         </>
-      )}
+      }
     </>);
 
 }
