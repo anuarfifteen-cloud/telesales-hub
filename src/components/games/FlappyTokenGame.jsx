@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Trophy } from "lucide-react";
+import HallOfFame, { LeaderboardViewToggle } from "@/components/games/HallOfFame";
 
 const W = 360;
 const H = 500;
@@ -192,6 +193,7 @@ function drawIdleScreen(ctx, pipes, tokenImg) {
 
 // ── Live Leaderboard ──────────────────────────────────────────────────────────
 function LiveLeaderboard({ currentUserId }) {
+  const [view, setView] = useState("live");
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [champUserIds, setChampUserIds] = useState(new Set());
@@ -215,8 +217,19 @@ function LiveLeaderboard({ currentUserId }) {
 
   const medals = ["🥇", "🥈", "🥉"];
 
+  if (view === "halloffame") {
+    return (
+      <div className="w-full space-y-3">
+        <LeaderboardViewToggle view={view} setView={setView} gameName="flappy" />
+        <HallOfFame gameName="flappy" />
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full bg-[#0a0530]/90 backdrop-blur-xl rounded-2xl border border-[#c864ff]/30 shadow-[0_0_25px_rgba(200,100,255,0.15)] overflow-hidden transition-all duration-300">
+    <div className="w-full space-y-3">
+      <LeaderboardViewToggle view={view} setView={setView} gameName="flappy" />
+      <div className="w-full bg-[#0a0530]/90 backdrop-blur-xl rounded-2xl border border-[#c864ff]/30 shadow-[0_0_25px_rgba(200,100,255,0.15)] overflow-hidden transition-all duration-300">
       <div className="bg-gradient-to-b from-[#06001a] to-transparent border-b border-[#ff00c8]/20 px-5 py-5 relative">
         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#c864ff] to-transparent opacity-60"></div>
         <div className="flex items-center justify-center gap-3 mb-2">
@@ -268,6 +281,7 @@ function LiveLeaderboard({ currentUserId }) {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trophy, Medal, Zap, Timer, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import HallOfFame, { LeaderboardViewToggle } from "@/components/games/HallOfFame";
 
 // ── Sound Engine (Web Audio API) ──────────────────────────────────────────────
 function createAudioCtx() {
@@ -76,6 +77,7 @@ function getLocalDateStr() {
 }
 
 function Leaderboard() {
+  const [view, setView] = useState("live");
   const [activeTab, setActiveTab] = useState("season");
 
   const { data: scores = [] } = useQuery({
@@ -101,8 +103,19 @@ function Leaderboard() {
 
   const displayScores = activeTab === "season" ? seasonScores : dailyScores;
 
+  if (view === "halloffame") {
+    return (
+      <div className="w-full space-y-3">
+        <LeaderboardViewToggle view={view} setView={setView} gameName="supertap" />
+        <HallOfFame gameName="supertap" />
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full bg-[#0a0530]/90 backdrop-blur-md rounded-2xl border border-[#00f3ff]/30 shadow-[0_0_25px_rgba(0,243,255,0.15)] overflow-hidden transition-all duration-300">
+    <div className="w-full space-y-3">
+      <LeaderboardViewToggle view={view} setView={setView} gameName="supertap" />
+      <div className="w-full bg-[#0a0530]/90 backdrop-blur-md rounded-2xl border border-[#00f3ff]/30 shadow-[0_0_25px_rgba(0,243,255,0.15)] overflow-hidden transition-all duration-300">
       {/* Tab Toggle */}
       <div className="flex gap-2 px-4 pt-4">
         <button
@@ -187,6 +200,7 @@ function Leaderboard() {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -1,0 +1,57 @@
+{
+  "name": "GameChampions",
+  "type": "object",
+  "properties": {
+    "game_name": {
+      "type": "string",
+      "enum": [
+        "flappy",
+        "supertap"
+      ],
+      "description": "Which game this champion won (flappy = Flappy Token, supertap = Super Taps)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User ID of the champion"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the champion"
+    },
+    "score": {
+      "type": "number",
+      "description": "The winning score at season end",
+      "default": 0
+    },
+    "season_date_awarded": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the season ended and the award was granted (YYYY-MM-DD)"
+    }
+  },
+  "required": [
+    "game_name",
+    "user_id",
+    "user_name",
+    "score",
+    "season_date_awarded"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
