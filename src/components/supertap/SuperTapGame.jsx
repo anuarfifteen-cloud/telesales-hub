@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trophy, Medal, Zap, Timer, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
-import HallOfFame, { PrimaryTabs, SubTabs, isTodayRecord } from "@/components/games/HallOfFame";
+import HallOfFame, { PrimaryTabs, SubTabs } from "@/components/games/HallOfFame";
 
 // ── Sound Engine (Web Audio API) ──────────────────────────────────────────────
 function createAudioCtx() {
@@ -69,11 +69,7 @@ function RankBadge({ rank }) {
 }
 
 function getLocalDateStr() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" });
 }
 
 function Leaderboard() {
@@ -94,9 +90,10 @@ function Leaderboard() {
 
   const champUserIds = new Set(appSettingsRows[0]?.defending_champ_supertap_ids || []);
 
+  const today = getLocalDateStr();
   const seasonScores = scores.slice(0, 10);
   const dailyScores = scores
-    .filter((s) => isTodayRecord(s) && (s.daily_high_score ?? 0) > 0)
+    .filter((s) => s.daily_date === today && (s.daily_high_score ?? 0) > 0)
     .sort((a, b) => (b.daily_high_score ?? 0) - (a.daily_high_score ?? 0))
     .slice(0, 10);
 
