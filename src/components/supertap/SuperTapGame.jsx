@@ -434,13 +434,13 @@ export default function SuperTapGame({ user }) {
             WebkitTapHighlightColor: "transparent",
             touchAction: "none",
             border: "4px solid #2a2a35",
-            /* ⚡ Changed from 0.94 to 0.88 for a deeper shrink */
-            transform: tapped ? `scale(${shrinkScale * 0.88})` : `scale(${shrinkScale})`,
+            /* ⚡ Dropped from 0.88 to 0.76 for double the compression depth */
+            transform: tapped ? `scale(${shrinkScale * 0.76})` : `scale(${shrinkScale})`,
             boxShadow: tapped ?
               "0 0 50px 15px rgba(255,0,234,0.6), inset 0 4px 12px rgba(255,255,255,0.4)" :
               "0 15px 40px rgba(0,0,0,0.6), 0 0 25px rgba(255,0,234,0.3), inset 0 -8px 0 rgba(0,0,0,0.3), inset 0 6px 12px rgba(255,255,255,0.15)",
-            /* ⚡ Changed transform transition from 0.15s to 0.05s for a faster snap */
-            transition: "transform 0.05s ease, box-shadow 0.05s ease"
+            /* ⚡ Cut from 0.05s to 0.02s for lightning-fast snap speed */
+            transition: "transform 0.02s ease, box-shadow 0.02s ease"
           }}
         >
           {/* Wave Ripple Components */}
