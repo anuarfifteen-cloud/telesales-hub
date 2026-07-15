@@ -434,8 +434,8 @@ export default function SuperTapGame({ user }) {
             WebkitTapHighlightColor: "transparent",
             touchAction: "none",
             border: "4px solid #2a2a35",
-            /* ⚡ Dropped from 0.60 to 0.50 for double the compression depth */
-            transform: tapped ? `scale(${shrinkScale * 0.50})` : `scale(${shrinkScale})`,
+            /* ⚡ Dropped from 0.50 to 0.30 for double the compression depth */
+            transform: tapped ? `scale(${shrinkScale * 0.30})` : `scale(${shrinkScale})`,
             boxShadow: tapped ?
               "0 0 50px 15px rgba(255,0,234,0.6), inset 0 4px 12px rgba(255,255,255,0.4)" :
               "0 15px 40px rgba(0,0,0,0.6), 0 0 25px rgba(255,0,234,0.3), inset 0 -8px 0 rgba(0,0,0,0.3), inset 0 6px 12px rgba(255,255,255,0.15)",
