@@ -17,15 +17,15 @@ const PRIZES = [
   { label: "1 Token! 🪙",    tokens: 1, isWinner: true,  emoji: "🪙", lockDate: true,  wheelColor: "#1d4ed8", textColor: "#fff",     dotColor: "bg-blue-700"   },
   { label: "Spin Again! 🔄", tokens: 0, isWinner: false, emoji: "🔄", lockDate: false, wheelColor: "#d97706", textColor: "#1e293b",  dotColor: "bg-amber-600"  },
   { label: "Lucky Two! 🌟",  tokens: 2, isWinner: true,  emoji: "🌟", lockDate: true,  wheelColor: "#15803d", textColor: "#fff",     dotColor: "bg-green-700"  },
-  { label: "JACKPOT! 💎",    tokens: 3, isWinner: true,  emoji: "💎", lockDate: true,  wheelColor: "#b45309", textColor: "#fff",     dotColor: "bg-yellow-700" },
+  { label: "JACKPOT! 🏆",    tokens: 3, isWinner: true,  emoji: "💎", lockDate: true,  wheelColor: "#b45309", textColor: "#fff",     dotColor: "bg-yellow-700" },
 ];
 
 function rollPrizeIndex() {
   const roll = Math.random() * 100;
-  if (roll < 50) return 0;   // No Luck (50% chance: 0 to 49.9)
-  if (roll < 78) return 2;   // Spin Again (28% chance: 50 to 77.9)
-  if (roll < 93) return 1;   // 1 Token (15% chance: 78 to 92.9)
-  if (roll < 98) return 3;   // 2 Tokens (5% chance: 93 to 97.9)
+  if (roll < 60) return 0;   // No Luck (60% chance: 0 to 59.9)
+  if (roll < 80) return 1;   // 1 Token (20% chance: 60 to 79.9)
+  if (roll < 90) return 3;   // 2 Tokens (10% chance: 80 to 89.9)
+  if (roll < 98) return 2;   // Spin Again (8% chance: 90 to 97.9)
   return 4;                  // Jackpot (2% chance: 98 to 100)
 }
 
