@@ -31,35 +31,65 @@ const THEMES = {
   },
 };
 
-export function LeaderboardViewToggle({ view, setView, gameName }) {
-  const t = THEMES[gameName] || THEMES.flappy;
-  const liveActive = view === "live";
-  const fameActive = view === "halloffame";
+const TAB_ACTIVE = "bg-[#ff00ea]/10 border-[#ff00ea] text-[#ff00ea] shadow-[0_0_10px_rgba(255,0,234,0.5)]";
+const TAB_INACTIVE = "bg-transparent border-white/10 text-white/40 hover:text-white/70 hover:border-white/25";
+
+export function PrimaryTabs({ primaryTab, setPrimaryTab }) {
   return (
-    <div className="flex gap-2">
+    <div className="w-full flex gap-2 p-1.5 bg-[#0a0530]/80 rounded-xl border border-white/10 backdrop-blur">
       <button
-        onClick={() => setView("live")}
-        className="flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest border transition-all"
-        style={
-          liveActive
-            ? { borderColor: t.accent2, color: t.accent2, boxShadow: `0 0 12px ${t.accent2}66`, background: `${t.accent2}1a` }
-            : { borderColor: `${t.accent}40`, color: `${t.accent}66`, background: "transparent" }
-        }
+        onClick={() => setPrimaryTab("live")}
+        className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ${
+          primaryTab === "live" ? TAB_ACTIVE : TAB_INACTIVE
+        }`}
       >
-        Live Scores
+        LIVE SCORES
       </button>
       <button
-        onClick={() => setView("halloffame")}
-        className="flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest border transition-all"
-        style={
-          fameActive
-            ? { borderColor: "#ffd700", color: "#ffd700", boxShadow: "0 0 12px rgba(255,215,0,0.5)", background: "rgba(255,215,0,0.15)" }
-            : { borderColor: `${t.accent}40`, color: `${t.accent}66`, background: "transparent" }
-        }
+        onClick={() => setPrimaryTab("hall_of_fame")}
+        className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ${
+          primaryTab === "hall_of_fame" ? TAB_ACTIVE : TAB_INACTIVE
+        }`}
       >
-        🏆 Hall of Fame
+        🏆 HALL OF FAME
       </button>
     </div>
+  );
+}
+
+export function SubTabs({ subTab, setSubTab }) {
+  return (
+    <div className="flex gap-2 px-4 pt-4">
+      <button
+        onClick={() => setSubTab("daily")}
+        className={`flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest border transition-all ${
+          subTab === "daily" ? TAB_ACTIVE : TAB_INACTIVE
+        }`}
+      >
+        DAILY LEADERBOARD
+      </button>
+      <button
+        onClick={() => setSubTab("season")}
+        className={`flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest border transition-all ${
+          subTab === "season" ? TAB_ACTIVE : TAB_INACTIVE
+        }`}
+      >
+        SEASON LEADERBOARD
+      </button>
+    </div>
+  );
+}
+
+export function isTodayRecord(rec) {
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" });
+  const check = (ts) => {
+    if (!ts) return false;
+    const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) return false;
+    return d.toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" }) === today;
+  };
+  return (
+    check(rec.updated_at) || check(rec.created_at) || check(rec.updated_date) || check(rec.created_date)
   );
 }
 

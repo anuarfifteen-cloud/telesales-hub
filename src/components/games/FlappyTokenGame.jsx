@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Trophy } from "lucide-react";
-import HallOfFame, { LeaderboardViewToggle } from "@/components/games/HallOfFame";
+import HallOfFame, { PrimaryTabs, SubTabs, isTodayRecord } from "@/components/games/HallOfFame";
 
 const W = 360;
 const H = 500;
@@ -193,7 +193,8 @@ function drawIdleScreen(ctx, pipes, tokenImg) {
 
 // ── Live Leaderboard ──────────────────────────────────────────────────────────
 function LiveLeaderboard({ currentUserId }) {
-  const [view, setView] = useState("live");
+  const [primaryTab, setPrimaryTab] = useState("live");
+  const [subTab, setSubTab] = useState("daily");
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [champUserIds, setChampUserIds] = useState(new Set());
@@ -201,7 +202,7 @@ function LiveLeaderboard({ currentUserId }) {
   const load = useCallback(async () => {
     setLoading(true);
     const [rows, settingsRows] = await Promise.all([
-      base44.entities.FlappyLeaderboard.list("-score", 10),
+      base44.entities.FlappyLeaderboard.list("-score", 100),
       base44.entities.AppSettings.list(),
     ]);
     setScores(rows);
@@ -217,10 +218,15 @@ function LiveLeaderboard({ currentUserId }) {
 
   const medals = ["🥇", "🥈", "🥉"];
 
-  if (view === "halloffame") {
+  const displayScores =
+    subTab === "season"
+      ? scores.slice(0, 10)
+      : scores.filter((s) => isTodayRecord(s)).slice(0, 10);
+
+  if (primaryTab === "hall_of_fame") {
     return (
       <div className="w-full space-y-3">
-        <LeaderboardViewToggle view={view} setView={setView} gameName="flappy" />
+        <PrimaryTabs primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} />
         <HallOfFame gameName="flappy" />
       </div>
     );
@@ -228,59 +234,70 @@ function LiveLeaderboard({ currentUserId }) {
 
   return (
     <div className="w-full space-y-3">
-      <LeaderboardViewToggle view={view} setView={setView} gameName="flappy" />
+      <PrimaryTabs primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} />
       <div className="w-full bg-[#0a0530]/90 backdrop-blur-xl rounded-2xl border border-[#c864ff]/30 shadow-[0_0_25px_rgba(200,100,255,0.15)] overflow-hidden transition-all duration-300">
-      <div className="bg-gradient-to-b from-[#06001a] to-transparent border-b border-[#ff00c8]/20 px-5 py-5 relative">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#c864ff] to-transparent opacity-60"></div>
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <Trophy className="w-5 h-5 text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse" />
-          <p className="text-sm font-black uppercase tracking-widest text-[#c864ff] drop-shadow-[0_0_5px_rgba(200,100,255,0.8)]">Live Grid Scores</p>
-        </div>
-        <p className="text-[11px] text-[#c864ff]/70 text-center leading-relaxed">
-          The grid resets twice a month (16th & day after Final Day). Claim the Top 3 to extract tokens:
-        </p>
-        <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 mt-3">
-          <span className="text-[11px] font-black bg-[#ffd700]/10 px-3 py-1 rounded-md border border-[#ffd700]/40 text-[#ffd700]">🥇 1ST: 5 TOKENS</span>
-          <span className="text-[11px] font-black bg-[#c0c0c0]/10 px-3 py-1 rounded-md border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2ND: 2 TOKENS</span>
-          <span className="text-[11px] font-black bg-[#cd7f32]/10 px-3 py-1 rounded-md border border-[#cd7f32]/40 text-[#cd7f32]">🥉 3RD: 1 TOKEN</span>
-        </div>
-        <p className="text-[10px] mt-4 leading-relaxed text-[#ff00c8] flex items-center justify-center gap-1.5 font-bold">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff00c8] animate-ping" />
-          Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players!
-        </p>
-      </div>
-
-      {loading ? (
-        <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-[#c864ff]" /></div>
-      ) : scores.length === 0 ? (
-        <div className="py-12 text-center text-[#c864ff]/50 text-sm tracking-widest font-bold uppercase">Awaiting first runner. Enter the grid!</div>
-      ) : (
-        <div className="divide-y divide-[#c864ff]/10 bg-transparent">
-          {scores.map((s, i) => {
-            const isChamp = champUserIds.has(s.user_id);
-            const isTop3 = i < 3 && !isChamp;
-            return (
-              <div key={s.id} className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-[#c864ff]/5 ${isTop3 ? "bg-[#c864ff]/[0.03]" : ""}`}>
-                <div className="w-8 flex items-center justify-center flex-shrink-0">
-                  {i < 3
-                    ? <span className="text-2xl drop-shadow-md">{medals[i]}</span>
-                    : <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[#06001a] text-[11px] font-black text-[#c864ff]/50 border border-[#c864ff]/20 shadow-inner">#{i + 1}</span>
-                  }
-                </div>
-                <div className="flex-1 min-w-0 flex items-center gap-2">
-                  <span className={`text-sm font-bold truncate ${isTop3 ? "text-white" : "text-white/70"}`} style={{ wordBreak: "break-word" }}>
-                    {s.user_name}
-                  </span>
-                  {isChamp && <span className="text-base flex-shrink-0 drop-shadow-[0_0_5px_#ffd700]" title="Defending Champ — Prize Cooldown">👑</span>}
-                </div>
-                <span className="text-sm font-black text-[#ff00c8] tracking-widest tabular-nums flex-shrink-0 bg-[#ff00c8]/10 px-3 py-1.5 rounded-lg border border-[#ff00c8]/30 shadow-[0_0_10px_rgba(255,0,200,0.2)]">
-                  {s.score} PTS
-                </span>
+        <SubTabs subTab={subTab} setSubTab={setSubTab} />
+        <div className="bg-gradient-to-b from-[#06001a] to-transparent border-b border-[#ff00c8]/20 px-5 py-5 relative">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#c864ff] to-transparent opacity-60"></div>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <Trophy className="w-5 h-5 text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse" />
+            <p className="text-sm font-black uppercase tracking-widest text-[#c864ff] drop-shadow-[0_0_5px_rgba(200,100,255,0.8)]">
+              {subTab === "season" ? "Live Grid Scores" : "Daily Grid Challenge"}
+            </p>
+          </div>
+          {subTab === "season" ? (
+            <>
+              <p className="text-[11px] text-[#c864ff]/70 text-center leading-relaxed">
+                The grid resets twice a month (16th & day after Final Day). Claim the Top 3 to extract tokens:
+              </p>
+              <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 mt-3">
+                <span className="text-[11px] font-black bg-[#ffd700]/10 px-3 py-1 rounded-md border border-[#ffd700]/40 text-[#ffd700]">🥇 1ST: 5 TOKENS</span>
+                <span className="text-[11px] font-black bg-[#c0c0c0]/10 px-3 py-1 rounded-md border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2ND: 2 TOKENS</span>
+                <span className="text-[11px] font-black bg-[#cd7f32]/10 px-3 py-1 rounded-md border border-[#cd7f32]/40 text-[#cd7f32]">🥉 3RD: 1 TOKEN</span>
               </div>
-            );
-          })}
+              <p className="text-[10px] mt-4 leading-relaxed text-[#ff00c8] flex items-center justify-center gap-1.5 font-bold">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff00c8] animate-ping" />
+                Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players!
+              </p>
+            </>
+          ) : (
+            <p className="text-[11px] text-[#c864ff]/70 text-center leading-relaxed mt-1">
+              Today's runs only. Push your score up the daily grid — entries reset every evening!
+            </p>
+          )}
         </div>
-      )}
+
+        {loading ? (
+          <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-[#c864ff]" /></div>
+        ) : displayScores.length === 0 ? (
+          <div className="py-12 text-center text-[#c864ff]/50 text-sm tracking-widest font-bold uppercase">{subTab === "season" ? "Awaiting first runner. Enter the grid!" : "No scores posted today. Be the first!"}</div>
+        ) : (
+          <div className="divide-y divide-[#c864ff]/10 bg-transparent">
+            {displayScores.map((s, i) => {
+              const isChamp = champUserIds.has(s.user_id);
+              const isTop3 = i < 3 && !isChamp;
+              return (
+                <div key={s.id} className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-[#c864ff]/5 ${isTop3 ? "bg-[#c864ff]/[0.03]" : ""}`}>
+                  <div className="w-8 flex items-center justify-center flex-shrink-0">
+                    {i < 3
+                      ? <span className="text-2xl drop-shadow-md">{medals[i]}</span>
+                      : <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[#06001a] text-[11px] font-black text-[#c864ff]/50 border border-[#c864ff]/20 shadow-inner">#{i + 1}</span>
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                    <span className={`text-sm font-bold truncate ${isTop3 ? "text-white" : "text-white/70"}`} style={{ wordBreak: "break-word" }}>
+                      {s.user_name}
+                    </span>
+                    {isChamp && <span className="text-base flex-shrink-0 drop-shadow-[0_0_5px_#ffd700]" title="Defending Champ — Prize Cooldown">👑</span>}
+                  </div>
+                  <span className="text-sm font-black text-[#ff00c8] tracking-widest tabular-nums flex-shrink-0 bg-[#ff00c8]/10 px-3 py-1.5 rounded-lg border border-[#ff00c8]/30 shadow-[0_0_10px_rgba(255,0,200,0.2)]">
+                    {s.score} PTS
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
