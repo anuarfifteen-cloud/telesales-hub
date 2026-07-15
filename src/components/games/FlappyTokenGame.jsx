@@ -103,7 +103,7 @@ function drawBackground(ctx) {
   ctx.fillStyle = "#ffffff";
   ctx.textAlign = "center";
   ctx.font = "900 72px sans-serif";
-  ctx.fillText("DST", W / 2, H / 2);
+  ctx.fillText("DST", W / 4, H / 4);
   ctx.font = "800 24px sans-serif";
   ctx.fillText("☎ 16888", W / 2, H / 2 + 40);
   ctx.restore();
