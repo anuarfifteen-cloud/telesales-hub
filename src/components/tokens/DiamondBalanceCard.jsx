@@ -10,6 +10,7 @@ const DIAMOND_IMAGE_URL = "https://media.base44.com/images/public/6a02849f1b6bb0
 export default function DiamondBalanceCard({ user, onUserUpdate }) {
   const [saving, setSaving] = useState(false);
   const [diamondPrice, setDiamondPrice] = useState(25);
+  const [storeOpen, setStoreOpen] = useState(false);
   const [, setTick] = useState(0);
 
   // Re-render every 30s so the cooldown countdown stays live
@@ -20,9 +21,15 @@ export default function DiamondBalanceCard({ user, onUserUpdate }) {
 
   useEffect(() => {
     base44.entities.AppSettings.list().then((rows) => {
-      if (rows.length > 0 && rows[0].diamond_price != null) {
-        setDiamondPrice(rows[0].diamond_price);
-      }
+      const s = rows[0];
+      if (!s) return;
+      if (s.diamond_price != null) setDiamondPrice(s.diamond_price);
+      const enabled = s.diamond_store_enabled === true;
+      const start = s.diamond_store_start_time ? new Date(s.diamond_store_start_time) : null;
+      const end = s.diamond_store_end_time ? new Date(s.diamond_store_end_time) : null;
+      const now = Date.now();
+      const withinWindow = !!(start && end && now >= start.getTime() && now <= end.getTime());
+      setStoreOpen(enabled && withinWindow);
     });
   }, []);
 
@@ -64,21 +71,25 @@ export default function DiamondBalanceCard({ user, onUserUpdate }) {
         <img src={DIAMOND_IMAGE_URL} alt="diamond" className="w-24 h-24 object-contain" />
       </div>
 
-      <button
-        onClick={handleBuy}
-        disabled={saving || onCooldown || !canAfford}
-        className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-400 dark:disabled:text-slate-500 text-white text-xs font-bold transition-colors"
-      >
-        {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : `Buy 1 💎 — ${diamondPrice} Tokens`}
-      </button>
+      {storeOpen && (
+        <>
+          <button
+            onClick={handleBuy}
+            disabled={saving || onCooldown || !canAfford}
+            className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-400 dark:disabled:text-slate-500 text-white text-xs font-bold transition-colors"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : `Buy 1 💎 — ${diamondPrice} Tokens`}
+          </button>
 
-      {onCooldown ? (
-        <p className="text-[10px] text-center text-amber-500 font-semibold">
-          Available in: {formatCountdown(cooldownEnd)}
-        </p>
-      ) : !canAfford ? (
-        <p className="text-[10px] text-center text-muted-foreground">Not enough tokens</p>
-      ) : null}
+          {onCooldown ? (
+            <p className="text-[10px] text-center text-amber-500 font-semibold">
+              Available in: {formatCountdown(cooldownEnd)}
+            </p>
+          ) : !canAfford ? (
+            <p className="text-[10px] text-center text-muted-foreground">Not enough tokens</p>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

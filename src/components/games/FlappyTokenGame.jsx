@@ -15,6 +15,7 @@ const DIFFICULTY_SETTINGS = {
 };
 
 const TOKEN_IMG_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
+const BRAND_WORDS = ["EASI", "MOBI", "FREEDOM", "INFINITY"];
 
 // ── Audio ────────────────────────────────────────────────────────────────────
 function createAudio() {
@@ -95,6 +96,17 @@ function drawBackground(ctx) {
   drawCloud(220, 80, 1.2, 0.8);
   drawCloud(150, 300, 1.1, 0.85);
   drawCloud(-20, 420, 1.4, 0.7);
+
+  // ── DST Corporate Watermark ──
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.font = "900 72px sans-serif";
+  ctx.fillText("DST", W / 2, H / 2);
+  ctx.font = "800 24px sans-serif";
+  ctx.fillText("☎ 16888", W / 2, H / 2 + 40);
+  ctx.restore();
 }
 
 function drawPipe(ctx, x, topH, botY) {
@@ -110,6 +122,8 @@ function drawPipe(ctx, x, topH, botY) {
   plasmaCore.addColorStop(0.5, "rgba(200, 100, 255, 0.8)");
   plasmaCore.addColorStop(1, "rgba(200, 100, 255, 0)");
 
+  const brandWord = BRAND_WORDS[Math.floor(topH) % 4];
+
   const drawConduit = (y, h, isTop) => {
     ctx.fillStyle = casingGrad;
     ctx.fillRect(x, y, PIPE_W, h);
@@ -121,6 +135,17 @@ function drawPipe(ctx, x, topH, botY) {
     for (let i = 15; i < h - 15; i += 25) {
       ctx.fillRect(x, y + i, PIPE_W, 3);
     }
+
+    // ── DST Branded pipe text ──
+    ctx.save();
+    ctx.translate(x + PIPE_W / 2, y + h / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.font = "bold 12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(brandWord, 0, 0);
+    ctx.restore();
 
     ctx.shadowBlur = 15;
     ctx.shadowColor = "#c864ff";
@@ -533,6 +558,10 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
                 CLICK • TAP • SPACE
               </p>
             </div>
+            <div className="absolute bottom-4 flex flex-col items-center gap-0.5">
+              <p className="text-[11px] font-bold text-white/80 tracking-wide">Powered by DST | ☎ 16888</p>
+              <p className="text-[9px] text-white/50 tracking-widest">Easi • Mobi • Freedom • Infinity</p>
+            </div>
           </div>
         )}
 
@@ -578,6 +607,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
                 {saving ? "SAVING..." : "PLAY AGAIN"}
               </button>
             </div>
+            <p className="text-[10px] text-white/40 font-semibold mb-1">Powered by DST | ☎ 16888</p>
           </div>
         )}
       </div>

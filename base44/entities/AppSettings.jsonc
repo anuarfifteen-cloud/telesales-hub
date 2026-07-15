@@ -50,6 +50,19 @@
         "type": "string"
       },
       "description": "User IDs of the current Flappy Token defending champions (publicly readable for leaderboard crown display)"
+    },
+    "diamond_store_enabled": {
+      "type": "boolean",
+      "description": "Master toggle to enable/disable Diamond purchasing",
+      "default": false
+    },
+    "diamond_store_start_time": {
+      "type": "string",
+      "description": "ISO datetime when the Diamond Store opens for purchasing"
+    },
+    "diamond_store_end_time": {
+      "type": "string",
+      "description": "ISO datetime when the Diamond Store closes for purchasing"
     }
   },
   "required": []
