@@ -36,8 +36,8 @@ const THEMES = [
     id: "gamer",
     name: "Retro",
     price: 30,
-    description: "16-bit arcade cabinet.",
-    preview: "linear-gradient(135deg, #14101e 0%, #00e676 38%, #f06292 72%, #00e5ff 100%)",
+    description: "90s PC neubrutalist.",
+    preview: "linear-gradient(135deg, #fdf6ee 0%, #00b4d8 40%, #ff85a1 72%, #ffb703 100%)",
   },
 ];
 

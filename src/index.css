@@ -119,38 +119,38 @@
     --ring: 340 85% 50%;
   }
 
-  /* ───────────────────────── GAMER / RETRO — 16-bit Arcade ─────────────────────────
+  /* ───────────────────────── GAMER / RETRO — 90s PC Neubrutalist ─────────────────────────
      (RGB intent → HSL equivalents for Tailwind's hsl(var(--...)) maps)
-     --background  20 12 28     → 270 40% 8%      Classic arcade dark purple-indigo
-     --foreground  255 255 255  → 0 0% 100%
-     --card        36 24 50     → 268 35% 14%     Solid retro block card bg
-     --card-fg     255 255 255  → 0 0% 100%
-     --primary     0 230 118    → 151 82% 45%     Gameboy green (active states)
-     --primary-fg  0 0 0        → 0 0% 0%
-     --border      240 98 146   → 340 83% 66%     8-bit pink/magenta block outlines
-     --muted       50 40 65     → 264 24% 21%
-     --muted-fg    200 190 210  → 270 18% 78%
+     --background  253 246 238  → 32 79% 96%    Creamy off-white
+     --foreground  26 26 26    → 0 0% 10%      Deep ink black text
+     --card        255 255 255 → 0 0% 100%     Pure crisp white containers
+     --card-fg     26 26 26    → 0 0% 10%
+     --primary     0 180 216   → 190 74% 42%   Retro Desktop Teal
+     --primary-fg  255 255 255 → 0 0% 100%
+     --border      26 26 26    → 0 0% 10%      Thick ink-black structural lines
+     --muted       240 230 220 → 30 40% 90%
+     --muted-fg    100 100 100 → 0 0% 39%
   */
   [data-theme="gamer"], [data-theme="retro"] {
-    --background: 270 40% 8%;
-    --foreground: 0 0% 100%;
-    --card: 268 35% 14%;
-    --card-foreground: 0 0% 100%;
-    --popover: 268 35% 14%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 151 82% 45%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 264 24% 21%;
-    --secondary-foreground: 270 18% 85%;
-    --muted: 264 24% 21%;
-    --muted-foreground: 270 18% 78%;
-    --accent: 190 100% 50%;
-    --accent-foreground: 270 40% 8%;
+    --background: 32 79% 96%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 190 74% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 40% 90%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 30 40% 90%;
+    --muted-foreground: 0 0% 39%;
+    --accent: 43 96% 52%;
+    --accent-foreground: 0 0% 10%;
     --destructive: 0 80% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 340 83% 66%;
-    --input: 264 24% 21%;
-    --ring: 151 82% 45%;
+    --border: 0 0% 10%;
+    --input: 0 0% 90%;
+    --ring: 190 74% 42%;
   }
 
 }
@@ -162,61 +162,69 @@
   body {
     @apply bg-background text-foreground font-inter;
   }
-  /* ── Gamer/Retro: 16-bit Arcade UI Engine ── */
-  /* Primary buttons = physical arcade buttons with bottom bevel shadow */
+  /* ── Gamer/Retro: 90s PC Neubrutalist UI Engine ── */
+  /* Primary buttons & active states — blocky with flat black drop shadow */
   [data-theme="gamer"] .bg-primary,
   [data-theme="retro"] .bg-primary,
   [data-theme="gamer"] [data-active="true"],
   [data-theme="retro"] [data-active="true"] {
-    background-color: #00e676 !important;
+    background-color: #00b4d8 !important;
     background-image: none !important;
-    color: #000000 !important;
-    border: 3px solid #ffffff !important;
-    border-bottom: 6px solid #00a354 !important;
-    border-radius: 4px !important;
+    color: #ffffff !important;
+    border: 3px solid #1a1a1a !important;
+    box-shadow: 4px 4px 0px #1a1a1a !important;
+    border-radius: 12px !important;
     font-weight: 900 !important;
-    box-shadow: 0 4px 0 #000000 !important;
     transform: none !important;
   }
-  [data-theme="gamer"] .bg-primary:active,
-  [data-theme="retro"] .bg-primary:active {
-    border-bottom-width: 3px !important;
-    margin-top: 3px;
+
+  /* Active date blocks & active tab indicators — vintage pink bubblegum */
+  [data-theme="gamer"] .select-date-card-active,
+  [data-theme="retro"] .select-date-card-active,
+  [data-theme="gamer"] .active-tab-indicator,
+  [data-theme="retro"] .active-tab-indicator {
+    background-color: #ff85a1 !important;
+    color: #1a1a1a !important;
+    border: 3px solid #1a1a1a !important;
+    box-shadow: 3px 3px 0px #1a1a1a !important;
   }
 
-  /* Structural block outlines — double-line cyber-cyan console borders */
+  /* Standard structural cards — solid black outlines + block shadow */
   [data-theme="gamer"] .border-border,
   [data-theme="retro"] .border-border,
   [data-theme="gamer"] .border-amber-500,
   [data-theme="retro"] .border-amber-500,
   [data-theme="gamer"] .border-orange-600,
-  [data-theme="retro"] .border-orange-600,
-  [data-theme="gamer"] .active-tab-indicator,
-  [data-theme="retro"] .active-tab-indicator {
-    border: 4px double #00e5ff !important;
-    background: #241832 !important;
-    box-shadow: none !important;
+  [data-theme="retro"] .border-orange-600 {
+    border: 3px solid #1a1a1a !important;
+    background-color: #ffffff !important;
+    border-radius: 16px !important;
+    box-shadow: 4px 4px 0px #1a1a1a !important;
   }
 
-  /* Yellow accent labels & highlighted times (classic 16-bit menu yellow) */
+  /* Accent texts, highlighted times & titles — goldenrod highlight block */
   [data-theme="gamer"] .text-primary,
   [data-theme="retro"] .text-primary,
   [data-theme="gamer"] .time-highlight,
-  [data-theme="retro"] .time-highlight,
-  [data-theme="gamer"] .text-amber-500,
-  [data-theme="retro"] .text-amber-500 {
-    color: #ffff00 !important;
+  [data-theme="retro"] .time-highlight {
+    color: #1a1a1a !important;
     font-weight: 900 !important;
+    background-color: #ffb703 !important;
+    padding: 2px 6px !important;
+    border: 2px solid #1a1a1a !important;
+    border-radius: 4px !important;
   }
 
-  /* Status badges — blocky outlined green on dark */
+  /* Status badges & milestone fills — teal block */
   [data-theme="gamer"] .bg-green-600,
   [data-theme="retro"] .bg-green-600,
   [data-theme="gamer"] .bg-emerald-600,
-  [data-theme="retro"] .bg-emerald-600 {
-    background-color: #241832 !important;
-    border: 2px solid #00e676 !important;
-    color: #00e676 !important;
+  [data-theme="retro"] .bg-emerald-600,
+  [data-theme="gamer"] .progress-bar-fill,
+  [data-theme="retro"] .progress-bar-fill {
+    background-color: #00b4d8 !important;
+    border: 2px solid #1a1a1a !important;
+    color: #ffffff !important;
   }
 
   /* ── Gold: Premium Metallic Gradient Engine ── */

@@ -4,14 +4,14 @@
  * Cosmetic themes can force a color-scheme mode (dark or light) that overrides
  * the user's manual dark-mode toggle:
  *   - gold  → dark
- *   - gamer → dark
+ *   - gamer → light
  *   - pink  → light
  * The default theme respects the user's stored preference.
  */
 
 export const THEME_MODE_LOCK = {
   gold: "dark",
-  gamer: "dark",
+  gamer: "light",
   pink: "light",
 };
 
