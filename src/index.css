@@ -163,68 +163,124 @@
     @apply bg-background text-foreground font-inter;
   }
   /* ── Gamer/Retro: 90s PC Neubrutalist UI Engine ── */
-  /* Primary buttons & active states — blocky with flat black drop shadow */
-  [data-theme="gamer"] .bg-primary,
-  [data-theme="retro"] .bg-primary,
-  [data-theme="gamer"] [data-active="true"],
-  [data-theme="retro"] [data-active="true"] {
-    background-color: #00b4d8 !important;
-    background-image: none !important;
-    color: #ffffff !important;
-    border: 3px solid #1a1a1a !important;
-    box-shadow: 4px 4px 0px #1a1a1a !important;
-    border-radius: 12px !important;
-    font-weight: 900 !important;
-    transform: none !important;
+
+  /* 1. Card containers — only structural div/section with a border + rounded corner */
+  [data-theme="gamer"] div.rounded-2xl.border,
+  [data-theme="retro"] div.rounded-2xl.border,
+  [data-theme="gamer"] div.rounded-xl.border,
+  [data-theme="retro"] div.rounded-xl.border,
+  [data-theme="gamer"] div.rounded-lg.border,
+  [data-theme="retro"] div.rounded-lg.border,
+  [data-theme="gamer"] section.rounded-2xl.border,
+  [data-theme="retro"] section.rounded-2xl.border,
+  [data-theme="gamer"] section.rounded-xl.border,
+  [data-theme="retro"] section.rounded-xl.border,
+  [data-theme="gamer"] section.rounded-lg.border,
+  [data-theme="retro"] section.rounded-lg.border {
+    border: 3px solid #1a1a1a;
+    box-shadow: 4px 4px 0px #1a1a1a;
+    border-radius: 12px;
+    background: #ffffff;
   }
 
-  /* Active date blocks & active tab indicators — vintage pink bubblegum */
-  [data-theme="gamer"] .select-date-card-active,
-  [data-theme="retro"] .select-date-card-active,
+  /* 2. All buttons — blocky with flat black drop shadow */
+  [data-theme="gamer"] button,
+  [data-theme="retro"] button {
+    border: 3px solid #1a1a1a;
+    box-shadow: 3px 3px 0px #1a1a1a;
+    border-radius: 8px;
+    font-weight: 900;
+  }
+
+  /* 3. Primary buttons — retro teal */
+  [data-theme="gamer"] button.bg-primary,
+  [data-theme="retro"] button.bg-primary {
+    background-color: #00b4d8;
+    color: #ffffff;
+  }
+
+  /* 4. Active/selected buttons & tabs — bubblegum pink */
+  [data-theme="gamer"] button.select-date-card-active,
+  [data-theme="retro"] button.select-date-card-active,
+  [data-theme="gamer"] button.active-tab-indicator,
+  [data-theme="retro"] button.active-tab-indicator,
   [data-theme="gamer"] .active-tab-indicator,
   [data-theme="retro"] .active-tab-indicator {
-    background-color: #ff85a1 !important;
-    color: #1a1a1a !important;
-    border: 3px solid #1a1a1a !important;
-    box-shadow: 3px 3px 0px #1a1a1a !important;
+    background-color: #ff85a1;
+    color: #1a1a1a;
   }
 
-  /* Standard structural cards — solid black outlines + block shadow */
-  [data-theme="gamer"] .border-border,
-  [data-theme="retro"] .border-border,
-  [data-theme="gamer"] .border-amber-500,
-  [data-theme="retro"] .border-amber-500,
-  [data-theme="gamer"] .border-orange-600,
-  [data-theme="retro"] .border-orange-600 {
-    border: 3px solid #1a1a1a !important;
-    background-color: #ffffff !important;
-    border-radius: 16px !important;
-    box-shadow: 4px 4px 0px #1a1a1a !important;
+  /* 6. Bottom nav pill buttons override — inactive flat, active pink block */
+  [data-theme="gamer"] nav button,
+  [data-theme="retro"] nav button {
+    border: none;
+    box-shadow: none;
+    border-radius: 9999px;
+    color: #888888;
+    font-weight: 700;
+  }
+  [data-theme="gamer"] nav button.bg-primary,
+  [data-theme="retro"] nav button.bg-primary {
+    background-color: #ff85a1;
+    color: #1a1a1a;
+    border: 2px solid #1a1a1a;
+    box-shadow: 2px 2px 0px #1a1a1a;
   }
 
-  /* Accent texts, highlighted times & titles — goldenrod highlight block */
+  /* 5. Input fields */
+  [data-theme="gamer"] input,
+  [data-theme="retro"] input,
+  [data-theme="gamer"] select,
+  [data-theme="retro"] select,
+  [data-theme="gamer"] textarea,
+  [data-theme="retro"] textarea {
+    border: 2px solid #1a1a1a;
+    box-shadow: 2px 2px 0px #1a1a1a;
+    border-radius: 6px;
+    background: #ffffff;
+  }
+
+  /* 8. .text-primary — retro teal text, no background, no border */
   [data-theme="gamer"] .text-primary,
-  [data-theme="retro"] .text-primary,
+  [data-theme="retro"] .text-primary {
+    color: #00b4d8;
+    font-weight: 900;
+  }
+
+  /* 9. Highlighted time/label — goldenrod block, no border/shadow */
   [data-theme="gamer"] .time-highlight,
   [data-theme="retro"] .time-highlight {
-    color: #1a1a1a !important;
-    font-weight: 900 !important;
-    background-color: #ffb703 !important;
-    padding: 2px 6px !important;
-    border: 2px solid #1a1a1a !important;
-    border-radius: 4px !important;
+    background-color: #ffb703;
+    color: #1a1a1a;
+    padding: 2px 6px;
+    border-radius: 4px;
   }
 
-  /* Status badges & milestone fills — teal block */
+  /* 10. Progress bars & filled status indicators */
   [data-theme="gamer"] .bg-green-600,
   [data-theme="retro"] .bg-green-600,
   [data-theme="gamer"] .bg-emerald-600,
   [data-theme="retro"] .bg-emerald-600,
   [data-theme="gamer"] .progress-bar-fill,
   [data-theme="retro"] .progress-bar-fill {
-    background-color: #00b4d8 !important;
-    border: 2px solid #1a1a1a !important;
-    color: #ffffff !important;
+    background-color: #00b4d8;
+    border: 1px solid #1a1a1a;
+    color: #ffffff;
+  }
+
+  /* 12. App header — clean cream + thick ink underline, no shadow blur */
+  [data-theme="gamer"] header,
+  [data-theme="retro"] header {
+    background: #fdf6ee !important;
+    border-bottom: 3px solid #1a1a1a !important;
+    box-shadow: none !important;
+    border-radius: 0;
+  }
+
+  /* 13. Chunky text baseline for the theme */
+  [data-theme="gamer"],
+  [data-theme="retro"] {
+    font-weight: 700;
   }
 
   /* ── Gold: Premium Metallic Gradient Engine ── */
