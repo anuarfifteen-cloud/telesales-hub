@@ -293,7 +293,7 @@ function LiveLeaderboard({ currentUserId }) {
                     }
                   </div>
                   <div className="flex-1 min-w-0 flex items-center gap-2">
-                    <span className="text-sm font-bold text-[#1a1a1a] leading-tight" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                    <span className="text-sm font-bold text-white leading-tight" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
                       {s.user_name}
                     </span>
                     {isChamp && <span className="text-base flex-shrink-0 drop-shadow-[0_0_5px_#ffd700]" title="Defending Champ — Prize Cooldown">👑</span>}
@@ -610,7 +610,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
         {/* Game Over overlay */}
         {phase === "dead" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl gap-2 bg-[#000000]/70 backdrop-blur-md border border-[#c864ff]/40">
-            <p className="font-black text-2xl tracking-[0.3em] uppercase text-[#ffffff] drop-shadow-[0_0_15px_rgba(200,100,255,1)] text-center mt-4">
+            <p className="font-black text-2xl tracking-[0.3em] uppercase text-white drop-shadow-[0_0_15px_rgba(200,100,255,1)] text-center mt-4">
               Run<br/>Ended
             </p>
 
@@ -649,7 +649,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
                 {saving ? "SAVING..." : "PLAY AGAIN"}
               </button>
             </div>
-            <p className="text-[10px] text-white/40 font-semibold mb-1">Powered by DST | ☎ 16888</p>
+            <p className="text-[10px] text-white font-semibold mb-1">Powered by DST | ☎ 16888</p>
           </div>
         )}
       </div>
