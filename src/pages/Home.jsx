@@ -594,7 +594,7 @@ useEffect(() => {
   return (
     <div className="min-h-screen bg-background font-inter pb-32">
       {/* Header */}
-      <header className="bg-white dark:bg-slate-900 sticky top-0 z-10" style={{ boxShadow: "0 1px 12px 0 rgba(0,0,0,0.08)" }}>
+      <header className="bg-card border-b border-border sticky top-0 z-10" style={{ boxShadow: "0 1px 12px 0 rgba(0,0,0,0.08)" }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           {/* Left: logo + app title */}
           <div className="flex items-center gap-2">
@@ -602,7 +602,7 @@ useEffect(() => {
               src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/a6f4605c6_generated_image.png"
               alt="Telesales Hub logo"
               className="h-9 w-9 rounded-xl object-cover flex-shrink-0" />
-            <h1 className="text-xl text-slate-900 dark:text-white leading-tight" style={{ fontFamily: "'Pacifico', cursive" }}>Telesales Hub</h1>
+            <h1 className="text-xl text-foreground leading-tight" style={{ fontFamily: "'Pacifico', cursive" }}>Telesales Hub</h1>
           </div>
 
           {/* Right: token balance, admin badge, bell */}
@@ -653,8 +653,8 @@ useEffect(() => {
               onClick={() => setInnerTab("book")}
               className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
               innerTab === "book" ?
-              "bg-blue-600 text-white shadow-md" :
-              "bg-transparent text-slate-500 hover:text-slate-700"}`
+              "bg-primary text-primary-foreground shadow-md" :
+              "bg-transparent text-muted-foreground hover:text-foreground"}`
               }>
                 <span>📆</span>
                 Book a Slot
@@ -663,8 +663,8 @@ useEffect(() => {
               onClick={() => setInnerTab("schedule")}
               className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
               innerTab === "schedule" ?
-              "bg-blue-600 text-white shadow-md" :
-              "bg-transparent text-slate-500 hover:text-slate-700"}`
+              "bg-primary text-primary-foreground shadow-md" :
+              "bg-transparent text-muted-foreground hover:text-foreground"}`
               }>
                 <span>📋</span>
                 Daily Schedule
@@ -824,11 +824,11 @@ useEffect(() => {
               const isDisabled = !user || isMutating || isLocked || hasBreakBookingToday;
 
               return (
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-4 py-3 flex items-center justify-between gap-3">
+                <div className="rounded-xl border border-border bg-card px-4 py-3 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-base">🏖️</span>
                         <div>
-                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Off-Day / DST Pop Up</p>
+                          <p className="text-sm font-semibold text-foreground">Off-Day / DST Pop Up</p>
                           {hasBreakBookingToday && !dstBooking ?
                       <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Already booked a slot today</p> :
                       <p className="text-[11px] text-muted-foreground">Friday AM Shift may earn one booking credit here</p>
@@ -879,7 +879,7 @@ useEffect(() => {
                             <button
                         disabled={isDisabled}
                         onClick={() => setShowDstConfirm(true)}
-                        className="flex-shrink-0 text-[11px] font-bold bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 disabled:bg-slate-400 flex items-center gap-1 tabular-nums">
+                        className="flex-shrink-0 text-[11px] font-bold bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 disabled:bg-muted flex items-center gap-1 tabular-nums">
                               {dstCountdown ?
                         <>
                                   <Clock className="w-3 h-3 flex-shrink-0" />
@@ -1064,12 +1064,12 @@ useEffect(() => {
               <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1.5">
                 <button
                   onClick={() => setProfileTab("profile")}
-                  className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${profileTab === "profile" ? "bg-blue-600 text-white shadow-md" : "bg-transparent text-slate-500 hover:text-slate-700"}`}>
+                  className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${profileTab === "profile" ? "bg-primary text-primary-foreground shadow-md" : "bg-transparent text-muted-foreground hover:text-foreground"}`}>
                   <span>👤</span> Profile
                 </button>
                 <button
                   onClick={() => setProfileTab("inbox")}
-                  className={`relative flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${profileTab === "inbox" ? "bg-blue-600 text-white shadow-md" : "bg-transparent text-slate-500 hover:text-slate-700"}`}>
+                  className={`relative flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${profileTab === "inbox" ? "bg-primary text-primary-foreground shadow-md" : "bg-transparent text-muted-foreground hover:text-foreground"}`}>
                   <span>💬</span> Inbox
                   {unreadMessageCount > 0 &&
                     <span className="min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
@@ -1099,11 +1099,11 @@ useEffect(() => {
 
               {/* Avatar + Name */}
               <div className="flex flex-col items-center pt-4 gap-2">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg ring-4 ring-blue-100 dark:ring-blue-900">
-                  <span className="text-2xl font-bold text-white">{initials}</span>
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/70 to-primary flex items-center justify-center shadow-lg ring-4 ring-primary/20">
+                  <span className="text-2xl font-bold text-primary-foreground">{initials}</span>
                 </div>
                 <div className="text-center">
-                  <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100 leading-tight">
+                  <h2 className="text-lg font-bold text-foreground leading-tight">
                     {user?.full_name || "My Profile"}
                   </h2>
                   <p className="text-xs text-muted-foreground dark:text-gray-400 mt-0.5">{user?.email}</p>
@@ -1111,7 +1111,7 @@ useEffect(() => {
               </div>
 
               {/* Stats Bar */}
-              <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+              <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 text-center">All-Time</p>
                 <div className="grid grid-cols-3 divide-x divide-border">
                   {[
@@ -1120,7 +1120,7 @@ useEffect(() => {
                   { label: "PM", value: pmCount }].
                   map(({ label, value }) =>
                   <div key={label} className="flex flex-col items-center gap-0.5 px-2">
-                      <span className="text-2xl font-bold text-slate-800 dark:text-gray-100">{value}</span>
+                      <span className="text-2xl font-bold text-foreground">{value}</span>
                       <span className="text-[11px] text-muted-foreground dark:text-gray-400">{label}</span>
                     </div>
                   )}
@@ -1136,7 +1136,7 @@ useEffect(() => {
 
 
               {/* Official Work Hours */}
-              <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+              <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
                 <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">⏰ Official Work Hours</p>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 rounded-xl px-3 py-2.5 border border-amber-100 dark:border-amber-800">
@@ -1157,24 +1157,24 @@ useEffect(() => {
               </div>
 
               {/* App Settings */}
-              <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+              <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
                 <p className="text-xs font-bold text-slate-700 dark:text-gray-300 mb-3 uppercase tracking-wide">⚙️ APP SETTINGS</p>
                 <div className="space-y-4">
                   {/* Dark Mode */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Moon className={`w-4 h-4 ${darkModeUnlocked ? "text-slate-500 dark:text-slate-400" : "text-slate-300 dark:text-slate-600"}`} />
+                      <Moon className={`w-4 h-4 ${darkModeUnlocked ? "text-muted-foreground" : "text-muted-foreground/50"}`} />
                       <div>
-                        <span className={`text-sm font-medium ${darkModeUnlocked ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>Dark Mode</span>
+                        <span className={`text-sm font-medium ${darkModeUnlocked ? "text-foreground" : "text-muted-foreground"}`}>Dark Mode</span>
                         {!darkModeUnlocked &&
-                          <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-none mt-0.5">🔒 Unlocks at 5 Bookings</p>
+                          <p className="text-[10px] text-muted-foreground leading-none mt-0.5">🔒 Unlocks at 5 Bookings</p>
                         }
                       </div>
                     </div>
                     {darkModeUnlocked ? (
                       <button
                         onClick={() => handleToggleDarkMode(!isDarkMode)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isDarkMode ? "bg-blue-600" : "bg-slate-200"}`}>
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isDarkMode ? "bg-primary" : "bg-muted"}`}>
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isDarkMode ? "translate-x-6" : "translate-x-1"}`} />
                       </button>
                     ) : (
@@ -1244,19 +1244,10 @@ useEffect(() => {
       {/* ── FLOATING PILL BOTTOM NAVIGATION ── */}
       <nav className="fixed bottom-6 left-0 right-0 z-20 flex justify-center pointer-events-none">
         <div
-          className="pointer-events-auto flex items-center justify-around px-3 py-1.5 rounded-full"
+          className="pointer-events-auto flex items-center justify-around px-3 py-1.5 rounded-full bg-card/90 border border-border backdrop-blur-xl shadow-lg"
           style={{
             width: "90%",
             maxWidth: "420px",
-            background: isDarkMode
-              ? "rgba(15, 23, 42, 0.92)"
-              : "rgba(255, 255, 255, 0.92)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06)",
-            border: isDarkMode
-              ? "1px solid rgba(255,255,255,0.10)"
-              : "1px solid rgba(0,0,0,0.08)",
           }}
         >
           {[
@@ -1272,8 +1263,8 @@ useEffect(() => {
                 onClick={() => setActiveTab(id)}
                 className={`relative flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-full transition-all ${
                   isActive
-                    ? "bg-blue-600 text-white"
-                    : isDarkMode ? "text-slate-400" : "text-slate-400"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground"
                 }`}
               >
                 <Icon className="w-[18px] h-[18px]" />

@@ -93,10 +93,10 @@ export default function ThemeShop({ user, onUserUpdate }) {
   };
 
   return (
-    <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+    <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
       <div className="flex items-center gap-2 mb-3">
         <Palette className="w-4 h-4 text-primary" />
-        <p className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wide">🎨 Theme Shop</p>
+        <p className="text-xs font-bold text-foreground uppercase tracking-wide">🎨 Theme Shop</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         {THEMES.map((theme) => {
