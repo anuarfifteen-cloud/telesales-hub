@@ -57,6 +57,47 @@ export default function TokenVoucher({ user, onUserUpdate }) {
     const formattedCode = claimCode.trim().toUpperCase();
 
     try {
+      // DG- codes: public diamond gift vouchers (claimable by anyone)
+      if (formattedCode.startsWith("DG-")) {
+        const results = await base44.entities.Voucher.filter({ code: formattedCode });
+        const voucher = results[0];
+
+        if (!voucher) {
+          setVoucherStatus({ text: "Code Does Not Exist ❌", color: "text-red-600 dark:text-red-400" });
+          setLoading(false);
+          return toast.error("Invalid voucher code.");
+        }
+        if (voucher.status === "redeemed") {
+          setVoucherStatus({ text: "Already Claimed 🚫", color: "text-amber-600 dark:text-amber-400" });
+          setLoading(false);
+          return toast.error("This voucher has already been claimed.");
+        }
+
+        const freshUser = await base44.auth.me();
+        const currentDiamonds = freshUser?.diamonds ?? 0;
+
+        await Promise.all([
+          base44.auth.updateMe({ diamonds: currentDiamonds + 1 }),
+          base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+          base44.entities.TokenTransaction.create({
+            user_id: user.id,
+            user_name: user.full_name || user.email,
+            amount: 0,
+            source: `Diamond Gift Voucher Redemption (${formattedCode})`,
+            timestamp: new Date().toISOString(),
+          }),
+        ]);
+
+        setVoucherStatus({
+          text: "💎 Diamond Claimed! +1 Diamond added!",
+          color: "text-cyan-600 dark:text-cyan-400",
+        });
+        setClaimCode("");
+        await onUserUpdate();
+        toast.success("💎 You claimed a VIP Diamond from a gift voucher!");
+        return;
+      }
+
       // BV- codes: look up in the Voucher entity
       if (formattedCode.startsWith("BV-")) {
         const results = await base44.entities.Voucher.filter({ code: formattedCode });
@@ -213,7 +254,7 @@ export default function TokenVoucher({ user, onUserUpdate }) {
                   setClaimCode(e.target.value);
                   setVoucherStatus(null);
                 }}
-                placeholder="VCH-XXXXX or BV-XXXX-XXXX"
+                placeholder="VCH-XXXXX, BV-XXXX-XXXX or DG-XXXXX-XXXXX"
                 className="w-full text-xs border rounded-lg pl-2.5 pr-14 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background font-mono uppercase tracking-wide"
               />
               <button

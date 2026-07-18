@@ -12,6 +12,7 @@ import AdminGameHistory from "./AdminGameHistory";
 import AdminTokenAuditLog from "./AdminTokenAuditLog";
 import TokenShopSettings from "./TokenShopSettings";
 import QuizMaintenanceToggle from "./QuizMaintenanceToggle";
+import AdminGiftVoucherGen from "./AdminGiftVoucherGen";
 
 const LIVE_FEED_KEY = "liveFeedEnabled";
 
@@ -309,6 +310,9 @@ export default function AdminDashboard({ onBack }) {
             {syncingDirectory ? "Syncing…" : "Sync Now"}
           </Button>
         </div>
+
+        {/* Diamond Gift Voucher Generator */}
+        <AdminGiftVoucherGen />
 
         {/* Token Shop Settings */}
         <TokenShopSettings />
