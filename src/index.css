@@ -60,30 +60,38 @@
   [data-theme="default"] {
   }
 
-  /* ───────────────────────── GOLD ─────────────────────────
-     Very dark charcoal background, slightly lighter charcoal cards
-     with a subtle gold border, metallic gold primary, white headings,
-     soft gold / light gray muted text. */
+  /* ───────────────────────── GOLD — Obsidian & Brushed Gold ─────────────────────────
+     (RGB intent → HSL equivalents so Tailwind's hsl(var(--...)) maps render correctly)
+     --background  13 13 16      → 240 10% 6%      Deep obsidian black
+     --foreground  255 255 255   → 0 0% 100%       Pure crisp white
+     --card        22 22 26      → 240 8% 9%       Sleek dark charcoal
+     --card-fg     245 242 235   → 42 33% 94%      Warm off-white
+     --primary     212 175 55    → 46 65% 52%      Champagne metallic gold
+     --primary-fg  18 18 22      → 240 10% 8%      Near-black button text
+     --border      55 46 28      → 40 33% 16%      Dark metallic bronze
+     --muted       28 28 34      → 240 10% 12%     Deep charcoal
+     --muted-fg    165 155 140   → 36 12% 60%      Warm muted gray
+  */
   [data-theme="gold"] {
-    --background: 30 5% 7%;
-    --foreground: 0 0% 98%;
-    --card: 30 5% 11%;
-    --card-foreground: 0 0% 98%;
-    --popover: 30 5% 11%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 43 85% 58%;
-    --primary-foreground: 30 8% 9%;
+    --background: 240 10% 6%;
+    --foreground: 0 0% 100%;
+    --card: 240 8% 9%;
+    --card-foreground: 42 33% 94%;
+    --popover: 240 8% 9%;
+    --popover-foreground: 42 33% 94%;
+    --primary: 46 65% 52%;
+    --primary-foreground: 240 10% 8%;
     --secondary: 36 6% 16%;
-    --secondary-foreground: 43 70% 80%;
-    --muted: 36 6% 16%;
-    --muted-foreground: 43 35% 72%;
-    --accent: 43 50% 20%;
-    --accent-foreground: 43 90% 80%;
+    --secondary-foreground: 46 70% 80%;
+    --muted: 240 10% 12%;
+    --muted-foreground: 36 12% 60%;
+    --accent: 46 50% 20%;
+    --accent-foreground: 46 90% 80%;
     --destructive: 0 60% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 43 60% 30%;
-    --input: 43 35% 20%;
-    --ring: 43 85% 58%;
+    --border: 40 33% 16%;
+    --input: 40 25% 14%;
+    --ring: 46 65% 52%;
   }
 
   /* ───────────────────────── PINK ─────────────────────────
@@ -150,6 +158,29 @@
   [data-theme="gamer"] .shadow-sm,
   [data-theme="gamer"] .shadow-md {
     box-shadow: var(--card-glow);
+  }
+
+  /* ── Gold: Premium Metallic Gradient Engine ── */
+  [data-theme="gold"] .bg-primary,
+  [data-theme="gold"] [data-active="true"],
+  [data-theme="gold"] .active-tab-indicator {
+    background: linear-gradient(135deg, #a37a29 0%, #d4af37 25%, #fef1c9 50%, #d4af37 75%, #a37a29 100%) !important;
+    border: 1px solid #ffe8a3 !important;
+    color: #121216 !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 20px rgba(212, 175, 55, 0.15) !important;
+  }
+
+  /* Polished gold outlines for container cards and selection frames */
+  [data-theme="gold"] .border-border,
+  [data-theme="gold"] .card-frame-gold {
+    border-color: rgba(212, 175, 55, 0.35) !important;
+    box-shadow: inset 0 0 8px rgba(212, 175, 55, 0.03);
+  }
+
+  /* Gold Text Accent Handling for Titles and Highlights */
+  [data-theme="gold"] .text-primary {
+    color: #d4af37 !important;
   }
 }
 
