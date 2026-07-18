@@ -35,22 +35,38 @@ export default function VoucherRedeem({ user, onUserUpdate }) {
     }
 
     const freshUser = await base44.auth.me();
-    const currentTokens = freshUser?.earlyAccessTokens ?? 0;
     const reward = voucher.reward_tokens ?? 1;
 
-    await Promise.all([
-      base44.auth.updateMe({ earlyAccessTokens: currentTokens + reward }),
-      base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
-      base44.entities.TokenTransaction.create({
-        user_id: user.id,
-        user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
-        amount: reward,
-        source: `Blind Voucher Redemption (${voucher.code})`,
-        timestamp: new Date().toISOString(),
-      }),
-    ]);
+    if (reward === 999) {
+      const currentDiamonds = freshUser?.diamonds ?? 0;
+      await Promise.all([
+        base44.auth.updateMe({ diamonds: currentDiamonds + 1 }),
+        base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+        base44.entities.TokenTransaction.create({
+          user_id: user.id,
+          user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
+          amount: 0,
+          source: `Blind Voucher Redemption — DIAMOND (${voucher.code})`,
+          timestamp: new Date().toISOString(),
+        }),
+      ]);
+      setSuccessMsg("💎 JACKPOT! You won a VIP Diamond!");
+    } else {
+      const currentTokens = freshUser?.earlyAccessTokens ?? 0;
+      await Promise.all([
+        base44.auth.updateMe({ earlyAccessTokens: currentTokens + reward }),
+        base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+        base44.entities.TokenTransaction.create({
+          user_id: user.id,
+          user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
+          amount: reward,
+          source: `Blind Voucher Redemption (${voucher.code})`,
+          timestamp: new Date().toISOString(),
+        }),
+      ]);
+      setSuccessMsg(`🎉 Voucher redeemed! You received ${reward} token${reward !== 1 ? "s" : ""}.`);
+    }
 
-    setSuccessMsg(`🎉 Voucher redeemed! You received ${reward} token${reward !== 1 ? "s" : ""}.`);
     setCode("");
     await onUserUpdate();
     setLoading(false);

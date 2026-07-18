@@ -12,11 +12,12 @@ function generateCode() {
 }
 function randomReward() {
   const roll = Math.random() * 100;
-  if (roll < 40) return 1;  // 40%
-  if (roll < 70) return 2;  // 30%
-  if (roll < 85) return 3;  // 15%
-  if (roll < 95) return 4;  // 10%
-  return 5;                  // 5%
+  if (roll < 1) return 999;   // 1% — VIP Diamond (secret value)
+  if (roll < 41) return 1;    // 40%
+  if (roll < 71) return 2;    // 30%
+  if (roll < 86) return 3;    // 15%
+  if (roll < 96) return 4;    // 10%
+  return 5;                  // 4%
 }
 
 function playChime() {
@@ -173,13 +174,22 @@ function RedeemOverlay({ phase, reward, onDone }) {
           className="bg-white dark:bg-card rounded-3xl p-8 flex flex-col items-center gap-4 mx-6 text-center shadow-2xl z-10"
           style={{ animation: "popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards" }}
         >
-          <span style={{ fontSize: 60 }}>🎉</span>
-          <h2 className="font-black text-2xl text-foreground">Redeemed!</h2>
-          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl px-6 py-3">
-            <span className="font-black text-3xl text-emerald-600">+{reward}</span>
-            <span className="font-bold text-lg text-emerald-700">token{reward !== 1 ? "s" : ""}</span>
+          <span style={{ fontSize: 60 }}>{reward === 999 ? "💎" : "🎉"}</span>
+          <h2 className="font-black text-2xl text-foreground">{reward === 999 ? "JACKPOT! 💎" : "Redeemed!"}</h2>
+          <div className={`flex items-center gap-2 border rounded-2xl px-6 py-3 ${reward === 999 ? "bg-purple-50 border-purple-200" : "bg-emerald-50 border-emerald-200"}`}>
+            {reward === 999 ? (
+              <>
+                <span className="font-black text-3xl text-purple-600">+1 💎</span>
+                <span className="font-bold text-lg text-purple-700">VIP Diamond</span>
+              </>
+            ) : (
+              <>
+                <span className="font-black text-3xl text-emerald-600">+{reward}</span>
+                <span className="font-bold text-lg text-emerald-700">token{reward !== 1 ? "s" : ""}</span>
+              </>
+            )}
           </div>
-          <p className="text-sm text-muted-foreground">Added to your balance!</p>
+          <p className="text-sm text-muted-foreground">{reward === 999 ? "Added to your Diamond balance!" : "Added to your balance!"}</p>
           <Button onClick={onDone} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black w-full">
             Close
           </Button>
@@ -269,19 +279,34 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
 
     const reward = voucher.reward_tokens ?? 1;
     const freshUser = await base44.auth.me();
-    const currentTokens = freshUser?.earlyAccessTokens ?? 0;
 
-    await Promise.all([
-      base44.auth.updateMe({ earlyAccessTokens: currentTokens + reward }),
-      base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
-      base44.entities.TokenTransaction.create({
-        user_id: user.id,
-        user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
-        amount: reward,
-        source: `Blind Voucher Redemption (${voucher.code})`,
-        timestamp: new Date().toISOString(),
-      }),
-    ]);
+    if (reward === 999) {
+      const currentDiamonds = freshUser?.diamonds ?? 0;
+      await Promise.all([
+        base44.auth.updateMe({ diamonds: currentDiamonds + 1 }),
+        base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+        base44.entities.TokenTransaction.create({
+          user_id: user.id,
+          user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
+          amount: 0,
+          source: `Blind Voucher Redemption — DIAMOND (${voucher.code})`,
+          timestamp: new Date().toISOString(),
+        }),
+      ]);
+    } else {
+      const currentTokens = freshUser?.earlyAccessTokens ?? 0;
+      await Promise.all([
+        base44.auth.updateMe({ earlyAccessTokens: currentTokens + reward }),
+        base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+        base44.entities.TokenTransaction.create({
+          user_id: user.id,
+          user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
+          amount: reward,
+          source: `Blind Voucher Redemption (${voucher.code})`,
+          timestamp: new Date().toISOString(),
+        }),
+      ]);
+    }
 
     setRedeemCode("");
     await onUserUpdate();
@@ -327,7 +352,7 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
               <h3 className="font-black text-base text-foreground">Blind Voucher</h3>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Spend 2 tokens for a mystery voucher worth 1–5 tokens. Redeem your code at the Profile tab to claim!
+              Spend 2 tokens for a mystery voucher worth 1–5 tokens, or a rare 💎 VIP Diamond (1% chance). Redeem your code at the Profile tab to claim!
             </p>
           </div>
           <span className="flex-shrink-0 text-xs font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-full">
