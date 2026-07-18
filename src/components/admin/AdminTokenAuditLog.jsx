@@ -19,11 +19,23 @@ function getBruneiDateStr(ts) {
 export default function AdminTokenAuditLog() {
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
-  const [selectedDate, setSelectedDate] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ["tokenTransactions"],
-    queryFn: () => base44.entities.TokenTransaction.list("-timestamp", 200),
+    queryFn: async () => {
+      const LIMIT = 5000;
+      let skip = 0;
+      let all = [];
+      while (true) {
+        const batch = await base44.entities.TokenTransaction.list("-timestamp", LIMIT, skip);
+        all = all.concat(batch);
+        if (batch.length < LIMIT) break;
+        skip += LIMIT;
+      }
+      return all;
+    },
     refetchInterval: 30000,
   });
 
@@ -33,11 +45,13 @@ export default function AdminTokenAuditLog() {
     const name = t.user_name || "";
     if (search.trim() && !name.toLowerCase().includes(search.toLowerCase())) return false;
     if (selectedUser && name !== selectedUser) return false;
-    if (selectedDate && getBruneiDateStr(t.timestamp) !== selectedDate) return false;
+    const d = getBruneiDateStr(t.timestamp);
+    if (dateFrom && d < dateFrom) return false;
+    if (dateTo && d > dateTo) return false;
     return true;
   });
 
-  const hasFilters = search.trim() || selectedUser || selectedDate;
+  const hasFilters = search.trim() || selectedUser || dateFrom || dateTo;
 
   return (
     <div className="flex flex-col gap-4">
@@ -53,29 +67,43 @@ export default function AdminTokenAuditLog() {
         />
       </div>
 
-      {/* Date + User filters */}
+      {/* User filter */}
+      <select
+        value={selectedUser}
+        onChange={e => setSelectedUser(e.target.value)}
+        className="text-sm border border-border rounded-xl bg-background text-foreground px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
+      >
+        <option value="">All users</option>
+        {uniqueUsers.map(u => (
+          <option key={u} value={u}>{u}</option>
+        ))}
+      </select>
+
+      {/* Date range filter */}
       <div className="grid grid-cols-2 gap-2">
-        <select
-          value={selectedUser}
-          onChange={e => setSelectedUser(e.target.value)}
-          className="text-sm border border-border rounded-xl bg-background text-foreground px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <option value="">All users</option>
-          {uniqueUsers.map(u => (
-            <option key={u} value={u}>{u}</option>
-          ))}
-        </select>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={e => setSelectedDate(e.target.value)}
-          className="text-sm border border-border rounded-xl bg-background text-foreground px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">From</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+            className="w-full text-sm border border-border rounded-xl bg-background text-foreground px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">To</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={e => setDateTo(e.target.value)}
+            className="w-full text-sm border border-border rounded-xl bg-background text-foreground px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
       </div>
 
       {hasFilters && (
         <button
-          onClick={() => { setSearch(""); setSelectedUser(""); setSelectedDate(""); }}
+          onClick={() => { setSearch(""); setSelectedUser(""); setDateFrom(""); setDateTo(""); }}
           className="self-start text-xs font-semibold text-primary hover:underline"
         >
           Clear all filters
@@ -102,7 +130,7 @@ export default function AdminTokenAuditLog() {
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
         <div className="px-4 py-3 border-b border-border">
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            {filtered.length} record{filtered.length !== 1 ? "s" : ""}{selectedUser ? ` · ${selectedUser}` : ""}{selectedDate ? ` · ${selectedDate}` : ""}{search ? ` · "${search}"` : ""}
+            {filtered.length} record{filtered.length !== 1 ? "s" : ""}{selectedUser ? ` · ${selectedUser}` : ""}{dateFrom || dateTo ? ` · ${dateFrom || "…"} → ${dateTo || "…"}` : ""}{search ? ` · "${search}"` : ""}
           </p>
         </div>
 
