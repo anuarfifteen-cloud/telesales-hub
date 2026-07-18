@@ -55,6 +55,98 @@
     --input: 220 13% 24%;
     --ring: 221 83% 60%;
   }
+
+  [data-theme="default"] {
+  }
+
+  [data-theme="gold"] {
+    --background: 36 6% 9%;
+    --foreground: 43 75% 72%;
+    --card: 36 6% 13%;
+    --card-foreground: 43 80% 78%;
+    --popover: 36 6% 12%;
+    --popover-foreground: 43 80% 78%;
+    --primary: 43 90% 58%;
+    --primary-foreground: 36 6% 9%;
+    --secondary: 36 6% 18%;
+    --secondary-foreground: 43 70% 72%;
+    --muted: 36 6% 18%;
+    --muted-foreground: 43 40% 60%;
+    --accent: 43 50% 22%;
+    --accent-foreground: 43 90% 72%;
+    --destructive: 0 60% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 43 50% 32%;
+    --input: 43 35% 24%;
+    --ring: 43 90% 58%;
+  }
+
+  [data-theme="pink"] {
+    --background: 340 55% 94%;
+    --foreground: 340 65% 28%;
+    --card: 0 0% 100%;
+    --card-foreground: 340 70% 24%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 340 70% 24%;
+    --primary: 340 78% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 340 30% 92%;
+    --secondary-foreground: 340 60% 30%;
+    --muted: 340 30% 92%;
+    --muted-foreground: 340 40% 50%;
+    --accent: 340 45% 88%;
+    --accent-foreground: 340 70% 35%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 340 50% 82%;
+    --input: 340 40% 86%;
+    --ring: 340 78% 56%;
+  }
+
+  [data-theme="gamer"] {
+    --background: 240 10% 4%;
+    --foreground: 180 100% 65%;
+    --card: 240 10% 7%;
+    --card-foreground: 180 100% 72%;
+    --popover: 240 10% 7%;
+    --popover-foreground: 180 100% 72%;
+    --primary: 320 100% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 10% 14%;
+    --secondary-foreground: 180 100% 70%;
+    --muted: 240 10% 14%;
+    --muted-foreground: 180 60% 50%;
+    --accent: 320 100% 18%;
+    --accent-foreground: 320 100% 65%;
+    --destructive: 0 90% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 180 100% 40%;
+    --input: 180 60% 25%;
+    --ring: 320 100% 56%;
+    --glow: 0 0 18px rgba(0, 243, 255, 0.45);
+  }
+
+  [data-theme="retro"] {
+    --background: 270 55% 8%;
+    --foreground: 120 100% 55%;
+    --card: 270 45% 12%;
+    --card-foreground: 120 100% 62%;
+    --popover: 270 45% 12%;
+    --popover-foreground: 120 100% 62%;
+    --primary: 120 90% 45%;
+    --primary-foreground: 270 55% 8%;
+    --secondary: 270 45% 17%;
+    --secondary-foreground: 120 90% 60%;
+    --muted: 270 45% 17%;
+    --muted-foreground: 120 50% 50%;
+    --accent: 320 100% 40%;
+    --accent-foreground: 320 100% 72%;
+    --destructive: 0 80% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 320 100% 55%;
+    --input: 320 70% 40%;
+    --ring: 120 100% 50%;
+  }
 }
 
 @layer base {

@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import FeatureUnlockModal from "@/components/FeatureUnlockModal";
 import DailySpinWheel from "@/components/booking/DailySpinWheel";
 import TokenVoucher from "@/components/booking/MysteryBoxModal";
+import ThemeShop from "@/components/profile/ThemeShop";
 import InboxView from "@/components/inbox/InboxView";
 import { toast } from "sonner";
 
@@ -276,6 +277,10 @@ useEffect(() => {
     refreshUser().catch(() => {});
     applyTheme(getStoredTheme());
   }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", user?.activeTheme || "default");
+  }, [user?.activeTheme]);
 
   const handleToggleDarkMode = (val) => {
     setIsDarkMode(val);
@@ -1124,6 +1129,9 @@ useEffect(() => {
 
               {/* ── TOKEN VOUCHER ── */}
               <TokenVoucher user={user} onUserUpdate={refreshUser} />
+
+              {/* ── THEME SHOP ── */}
+              <ThemeShop user={user} onUserUpdate={refreshUser} />
 
 
 
