@@ -243,7 +243,7 @@ function LiveLeaderboard({ currentUserId }) {
   return (
     <div className="w-full space-y-3">
       <PrimaryTabs primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} />
-      <div className="w-full bg-[#0a0530]/90 backdrop-blur-xl rounded-2xl border border-[#c864ff]/30 shadow-[0_0_25px_rgba(200,100,255,0.15)] overflow-hidden transition-all duration-300">
+      <div className="w-full retro-light-panel bg-[#0a0530]/90 backdrop-blur-xl rounded-2xl border border-[#c864ff]/30 shadow-[0_0_25px_rgba(200,100,255,0.15)] overflow-hidden transition-all duration-300">
         <SubTabs subTab={subTab} setSubTab={setSubTab} />
         <div className="bg-gradient-to-b from-[#06001a] to-transparent border-b border-[#ff00c8]/20 px-5 py-5 relative">
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#c864ff] to-transparent opacity-60"></div>

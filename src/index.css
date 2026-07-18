@@ -283,6 +283,25 @@
     font-weight: 700;
   }
 
+  /* ── Gamer/Retro: light-mode readability for always-dark game panels ── */
+  [data-theme="gamer"] .retro-light-panel,
+  [data-theme="retro"] .retro-light-panel {
+    background: #ffffff !important;
+    border: 3px solid #1a1a1a !important;
+    box-shadow: 4px 4px 0px #1a1a1a !important;
+    border-radius: 12px !important;
+  }
+  [data-theme="gamer"] .retro-light-panel .text-white,
+  [data-theme="retro"] .retro-light-panel .text-white {
+    color: #1a1a1a !important;
+  }
+  [data-theme="gamer"] .retro-light-panel .bg-gradient-to-b,
+  [data-theme="retro"] .retro-light-panel .bg-gradient-to-b,
+  [data-theme="gamer"] .retro-light-panel .bg-gradient-to-r,
+  [data-theme="retro"] .retro-light-panel .bg-gradient-to-r {
+    background: transparent !important;
+  }
+
   /* ── Gold: Premium Metallic Gradient Engine ── */
   [data-theme="gold"] .bg-primary,
   [data-theme="gold"] [data-active="true"],
