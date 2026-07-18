@@ -293,7 +293,7 @@ function LiveLeaderboard({ currentUserId }) {
                     }
                   </div>
                   <div className="flex-1 min-w-0 flex items-center gap-2">
-                    <span className={`text-sm font-bold truncate ${isTop3 ? "text-white" : "text-white/70"}`} style={{ wordBreak: "break-word" }}>
+                    <span className="text-sm font-bold text-[#1a1a1a] leading-tight" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
                       {s.user_name}
                     </span>
                     {isChamp && <span className="text-base flex-shrink-0 drop-shadow-[0_0_5px_#ffd700]" title="Defending Champ — Prize Cooldown">👑</span>}
@@ -644,7 +644,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
 
               <button
                 onClick={handleSaveAndRestart}
-                className="w-full px-4 py-3 rounded-lg font-black text-sm tracking-widest bg-transparent border-2 border-[#ffffff] text-[#ffffff] hover:bg-[#ffffff] hover:text-[#000000] transition-all duration-300 shadow-[0_0_15px_rgba(255,255,255,0.3)] hover:shadow-[0_0_25px_rgba(255,255,255,0.8)]"
+                className="w-full px-4 py-3 rounded-lg font-black text-sm tracking-widest bg-[#1a1a1a] border-2 border-[#1a1a1a] text-white hover:bg-black hover:text-white transition-all duration-300 shadow-[0_0_15px_rgba(255,255,255,0.3)]"
               >
                 {saving ? "SAVING..." : "PLAY AGAIN"}
               </button>
