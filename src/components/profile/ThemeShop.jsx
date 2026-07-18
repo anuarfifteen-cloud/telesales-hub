@@ -36,8 +36,8 @@ const THEMES = [
     id: "gamer",
     name: "Retro",
     price: 30,
-    description: "Synthwave neon & hot pink.",
-    preview: "linear-gradient(135deg, #0d081b 0%, #ff007f 50%, #00f0ff 100%)",
+    description: "16-bit arcade cabinet.",
+    preview: "linear-gradient(135deg, #14101e 0%, #00e676 38%, #f06292 72%, #00e5ff 100%)",
   },
 ];
 

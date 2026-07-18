@@ -119,39 +119,38 @@
     --ring: 340 85% 50%;
   }
 
-  /* ───────────────────────── GAMER / RETRO — Synthwave Neon ─────────────────────────
+  /* ───────────────────────── GAMER / RETRO — 16-bit Arcade ─────────────────────────
      (RGB intent → HSL equivalents for Tailwind's hsl(var(--...)) maps)
-     --background  13 8 27       → 256 54% 7%      Deep midnight cosmic purple
-     --foreground  255 255 255   → 0 0% 100%        Crisp white text
-     --card        25 17 46      → 256 46% 12%      Rich dark magenta-purple
-     --card-fg     255 220 240   → 326 100% 93%     Warm pink-white
-     --primary     255 0 127     → 330 100% 50%     Neon hot pink
-     --primary-fg  255 255 255   → 0 0% 100%
-     --border      90 35 110     → 284 52% 28%      Dark purple borders
-     --muted       36 24 64      → 258 46% 17%
-     --muted-fg    180 150 190   → 285 23% 67%
-     --accent (cyber cyan)       → 190 100% 50%    Time / highlight marker
+     --background  20 12 28     → 270 40% 8%      Classic arcade dark purple-indigo
+     --foreground  255 255 255  → 0 0% 100%
+     --card        36 24 50     → 268 35% 14%     Solid retro block card bg
+     --card-fg     255 255 255  → 0 0% 100%
+     --primary     0 230 118    → 151 82% 45%     Gameboy green (active states)
+     --primary-fg  0 0 0        → 0 0% 0%
+     --border      240 98 146   → 340 83% 66%     8-bit pink/magenta block outlines
+     --muted       50 40 65     → 264 24% 21%
+     --muted-fg    200 190 210  → 270 18% 78%
   */
   [data-theme="gamer"], [data-theme="retro"] {
-    --background: 256 54% 7%;
+    --background: 270 40% 8%;
     --foreground: 0 0% 100%;
-    --card: 256 46% 12%;
-    --card-foreground: 326 100% 93%;
-    --popover: 256 46% 12%;
+    --card: 268 35% 14%;
+    --card-foreground: 0 0% 100%;
+    --popover: 268 35% 14%;
     --popover-foreground: 0 0% 100%;
-    --primary: 330 100% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 258 40% 20%;
-    --secondary-foreground: 330 80% 80%;
-    --muted: 258 46% 17%;
-    --muted-foreground: 285 23% 67%;
+    --primary: 151 82% 45%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 264 24% 21%;
+    --secondary-foreground: 270 18% 85%;
+    --muted: 264 24% 21%;
+    --muted-foreground: 270 18% 78%;
     --accent: 190 100% 50%;
-    --accent-foreground: 256 54% 7%;
-    --destructive: 0 90% 55%;
+    --accent-foreground: 270 40% 8%;
+    --destructive: 0 80% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 284 52% 28%;
-    --input: 284 40% 22%;
-    --ring: 330 100% 50%;
+    --border: 340 83% 66%;
+    --input: 264 24% 21%;
+    --ring: 151 82% 45%;
   }
 
 }
@@ -163,40 +162,61 @@
   body {
     @apply bg-background text-foreground font-inter;
   }
-  /* ── Gamer/Retro: Neon Glow Engine ── */
+  /* ── Gamer/Retro: 16-bit Arcade UI Engine ── */
+  /* Primary buttons = physical arcade buttons with bottom bevel shadow */
   [data-theme="gamer"] .bg-primary,
   [data-theme="retro"] .bg-primary,
   [data-theme="gamer"] [data-active="true"],
-  [data-theme="retro"] [data-active="true"],
-  [data-theme="gamer"] .active-tab-indicator,
-  [data-theme="retro"] .active-tab-indicator {
-    background: linear-gradient(135deg, #ff007f 0%, #aa00ff 100%) !important;
-    border: 1px solid #ff99cc !important;
-    color: #ffffff !important;
-    font-weight: 800 !important;
-    box-shadow: 0 0 15px rgba(255, 0, 127, 0.5) !important;
+  [data-theme="retro"] [data-active="true"] {
+    background-color: #00e676 !important;
+    background-image: none !important;
+    color: #000000 !important;
+    border: 3px solid #ffffff !important;
+    border-bottom: 6px solid #00a354 !important;
+    border-radius: 4px !important;
+    font-weight: 900 !important;
+    box-shadow: 0 4px 0 #000000 !important;
+    transform: none !important;
+  }
+  [data-theme="gamer"] .bg-primary:active,
+  [data-theme="retro"] .bg-primary:active {
+    border-bottom-width: 3px !important;
+    margin-top: 3px;
   }
 
+  /* Structural block outlines — double-line cyber-cyan console borders */
   [data-theme="gamer"] .border-border,
   [data-theme="retro"] .border-border,
-  [data-theme="gamer"] .select-date-card-active,
-  [data-theme="retro"] .select-date-card-active {
-    border-color: #00f0ff !important;
-    box-shadow: 0 0 10px rgba(0, 240, 255, 0.3), inset 0 0 5px rgba(0, 240, 255, 0.1) !important;
+  [data-theme="gamer"] .border-amber-500,
+  [data-theme="retro"] .border-amber-500,
+  [data-theme="gamer"] .border-orange-600,
+  [data-theme="retro"] .border-orange-600,
+  [data-theme="gamer"] .active-tab-indicator,
+  [data-theme="retro"] .active-tab-indicator {
+    border: 4px double #00e5ff !important;
+    background: #241832 !important;
+    box-shadow: none !important;
   }
 
+  /* Yellow accent labels & highlighted times (classic 16-bit menu yellow) */
   [data-theme="gamer"] .text-primary,
-  [data-theme="retro"] .text-primary {
-    color: #ff007f !important;
-    text-shadow: 0 0 8px rgba(255, 0, 127, 0.4);
+  [data-theme="retro"] .text-primary,
+  [data-theme="gamer"] .time-highlight,
+  [data-theme="retro"] .time-highlight,
+  [data-theme="gamer"] .text-amber-500,
+  [data-theme="retro"] .text-amber-500 {
+    color: #ffff00 !important;
+    font-weight: 900 !important;
   }
 
-  [data-theme="gamer"] .text-accent,
-  [data-theme="retro"] .text-accent,
-  [data-theme="gamer"] .time-highlight,
-  [data-theme="retro"] .time-highlight {
-    color: #00f0ff !important;
-    text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+  /* Status badges — blocky outlined green on dark */
+  [data-theme="gamer"] .bg-green-600,
+  [data-theme="retro"] .bg-green-600,
+  [data-theme="gamer"] .bg-emerald-600,
+  [data-theme="retro"] .bg-emerald-600 {
+    background-color: #241832 !important;
+    border: 2px solid #00e676 !important;
+    color: #00e676 !important;
   }
 
   /* ── Gold: Premium Metallic Gradient Engine ── */
