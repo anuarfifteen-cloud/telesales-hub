@@ -11,8 +11,15 @@ function formatTimestamp(ts) {
   });
 }
 
+function getBruneiDateStr(ts) {
+  if (!ts) return "";
+  return new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" });
+}
+
 export default function AdminTokenAuditLog() {
   const [search, setSearch] = useState("");
+  const [selectedUser, setSelectedUser] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
 
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ["tokenTransactions"],
@@ -20,11 +27,17 @@ export default function AdminTokenAuditLog() {
     refetchInterval: 30000,
   });
 
-  const filtered = search.trim()
-    ? transactions.filter(t =>
-        (t.user_name || "").toLowerCase().includes(search.toLowerCase())
-      )
-    : transactions;
+  const uniqueUsers = [...new Set(transactions.map(t => t.user_name).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+
+  const filtered = transactions.filter(t => {
+    const name = t.user_name || "";
+    if (search.trim() && !name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (selectedUser && name !== selectedUser) return false;
+    if (selectedDate && getBruneiDateStr(t.timestamp) !== selectedDate) return false;
+    return true;
+  });
+
+  const hasFilters = search.trim() || selectedUser || selectedDate;
 
   return (
     <div className="flex flex-col gap-4">
@@ -39,6 +52,35 @@ export default function AdminTokenAuditLog() {
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
+
+      {/* Date + User filters */}
+      <div className="grid grid-cols-2 gap-2">
+        <select
+          value={selectedUser}
+          onChange={e => setSelectedUser(e.target.value)}
+          className="text-sm border border-border rounded-xl bg-background text-foreground px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option value="">All users</option>
+          {uniqueUsers.map(u => (
+            <option key={u} value={u}>{u}</option>
+          ))}
+        </select>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={e => setSelectedDate(e.target.value)}
+          className="text-sm border border-border rounded-xl bg-background text-foreground px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+
+      {hasFilters && (
+        <button
+          onClick={() => { setSearch(""); setSelectedUser(""); setSelectedDate(""); }}
+          className="self-start text-xs font-semibold text-primary hover:underline"
+        >
+          Clear all filters
+        </button>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-2">
@@ -60,7 +102,7 @@ export default function AdminTokenAuditLog() {
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
         <div className="px-4 py-3 border-b border-border">
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            {filtered.length} record{filtered.length !== 1 ? "s" : ""}{search ? ` for "${search}"` : ""}
+            {filtered.length} record{filtered.length !== 1 ? "s" : ""}{selectedUser ? ` · ${selectedUser}` : ""}{selectedDate ? ` · ${selectedDate}` : ""}{search ? ` · "${search}"` : ""}
           </p>
         </div>
 
@@ -70,7 +112,7 @@ export default function AdminTokenAuditLog() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-10 text-center text-muted-foreground text-sm">
-            {search ? "No records match that name." : "No token transactions yet."}
+            {hasFilters ? "No records match your filters." : "No token transactions yet."}
           </div>
         ) : (
           <div className="divide-y divide-border max-h-[60vh] overflow-y-auto">
