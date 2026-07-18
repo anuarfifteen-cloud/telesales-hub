@@ -5,7 +5,7 @@ import PerfectTen from "@/components/coinflip/PerfectTen";
 import VipActivityFeed from "@/components/coinflip/VipActivityFeed";
 import DailyDuoGame from "@/components/duo/DailyDuoGame";
 import SuperTapGame from "@/components/supertap/SuperTapGame";
-import BlindVoucher from "@/components/tokens/BlindVoucher";
+import BlindVoucherShop from "@/components/tokens/BlindVoucherShop";
 import FlappyTokenGame from "@/components/games/FlappyTokenGame";
 import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
 
@@ -164,7 +164,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
 
       {/* Blind Voucher */}
       {innerTab === "blindvoucher" && (
-        <BlindVoucher user={user} onUserUpdate={onUserUpdate} />
+        <BlindVoucherShop user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {/* Flappy Token */}
