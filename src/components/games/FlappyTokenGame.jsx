@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Trophy } from "lucide-react";
-import HallOfFame, { PrimaryTabs, SubTabs, isTodayRecord } from "@/components/games/HallOfFame";
+import HallOfFame, { PrimaryTabs, SubTabs } from "@/components/games/HallOfFame";
 
 const W = 360;
 const H = 500;
@@ -17,6 +17,10 @@ const DIFFICULTY_SETTINGS = {
 
 const TOKEN_IMG_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
 const BRAND_WORDS = ["EASI", "MOBI", "FREEDOM", "INFINITY"];
+
+function getBruneiDateStr() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" });
+}
 
 // ── Audio ────────────────────────────────────────────────────────────────────
 function createAudio() {
@@ -217,11 +221,15 @@ function LiveLeaderboard({ currentUserId }) {
   }, [load]);
 
   const medals = ["🥇", "🥈", "🥉"];
+  const today = getBruneiDateStr();
 
   const displayScores =
     subTab === "season"
       ? scores.slice(0, 10)
-      : scores.filter((s) => isTodayRecord(s)).slice(0, 10);
+      : scores
+          .filter((s) => s.daily_date === today && (s.daily_score ?? 0) > 0)
+          .sort((a, b) => (b.daily_score ?? 0) - (a.daily_score ?? 0))
+          .slice(0, 10);
 
   if (primaryTab === "hall_of_fame") {
     return (
@@ -291,7 +299,7 @@ function LiveLeaderboard({ currentUserId }) {
                     {isChamp && <span className="text-base flex-shrink-0 drop-shadow-[0_0_5px_#ffd700]" title="Defending Champ — Prize Cooldown">👑</span>}
                   </div>
                   <span className="text-sm font-black text-[#ff00c8] tracking-widest tabular-nums flex-shrink-0 bg-[#ff00c8]/10 px-3 py-1.5 rounded-lg border border-[#ff00c8]/30 shadow-[0_0_10px_rgba(255,0,200,0.2)]">
-                    {s.score} PTS
+                    {subTab === "season" ? s.score : (s.daily_score ?? 0)} PTS
                   </span>
                 </div>
               );
@@ -374,23 +382,26 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
   const saveScore = useCallback(async (s) => {
     if (!user?.id) return;
     setSaving(true);
+    const today = getBruneiDateStr();
     const currentBest = leaderboardEntry?.score ?? 0;
     const newBest = s > currentBest;
-    if (newBest) {
-      const payload = {
-        user_id: user.id,
-        user_name: user.full_name || user.email?.split("@")[0] || "Player",
-        score: s,
-        updated_at: new Date().toISOString(),
-      };
-      let updated;
-      if (leaderboardEntry?.id) {
-        updated = await base44.entities.FlappyLeaderboard.update(leaderboardEntry.id, payload);
-      } else {
-        updated = await base44.entities.FlappyLeaderboard.create(payload);
-      }
-      setLeaderboardEntry(updated);
+    const isNewDay = leaderboardEntry?.daily_date !== today;
+    const dailyScore = isNewDay ? s : Math.max(leaderboardEntry?.daily_score ?? 0, s);
+    const payload = {
+      user_id: user.id,
+      user_name: user.full_name || user.email?.split("@")[0] || "Player",
+      score: newBest ? s : currentBest,
+      daily_score: dailyScore,
+      daily_date: today,
+      updated_at: new Date().toISOString(),
+    };
+    let updated;
+    if (leaderboardEntry?.id) {
+      updated = await base44.entities.FlappyLeaderboard.update(leaderboardEntry.id, payload);
+    } else {
+      updated = await base44.entities.FlappyLeaderboard.create(payload);
     }
+    setLeaderboardEntry(updated);
     setIsNewBest(newBest);
     setSaving(false);
   }, [user?.id, leaderboardEntry]);
