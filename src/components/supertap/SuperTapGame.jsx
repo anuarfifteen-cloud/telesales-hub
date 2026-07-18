@@ -139,7 +139,7 @@ function Leaderboard() {
             </>
           ) : (
             <p className="text-[11px] text-muted-foreground dark:text-[#00f3ff]/70 text-center leading-relaxed">
-              Random Flash Challenges! Admin will announce events and distribute Voucher prizes to top players today.
+              Today's runs only. Push your score up the daily grid — entries reset every evening!
             </p>
           )}
         </div>
