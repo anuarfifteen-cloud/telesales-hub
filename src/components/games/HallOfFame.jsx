@@ -31,12 +31,12 @@ const THEMES = {
   },
 };
 
-const TAB_ACTIVE = "bg-[#ff00ea]/10 border-[#ff00ea] text-[#ff00ea] shadow-[0_0_10px_rgba(255,0,234,0.5)]";
-const TAB_INACTIVE = "bg-transparent border-white/10 text-white/40 hover:text-white/70 hover:border-white/25";
+const TAB_ACTIVE = "bg-primary/10 border-primary text-primary dark:bg-[#ff00ea]/10 dark:border-[#ff00ea] dark:text-[#ff00ea] dark:shadow-[0_0_10px_rgba(255,0,234,0.5)]";
+const TAB_INACTIVE = "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 dark:bg-transparent dark:border-white/10 dark:text-white/40 dark:hover:text-white/70 dark:hover:border-white/25";
 
 export function PrimaryTabs({ primaryTab, setPrimaryTab }) {
   return (
-    <div className="w-full flex gap-2 p-1.5 bg-[#0a0530]/80 rounded-xl border border-white/10 backdrop-blur">
+    <div className="w-full flex gap-2 p-1.5 bg-muted rounded-xl border border-border backdrop-blur dark:bg-[#0a0530]/80 dark:border-white/10">
       <button
         onClick={() => setPrimaryTab("live")}
         className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ${
