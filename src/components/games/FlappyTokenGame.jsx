@@ -250,7 +250,7 @@ function LiveLeaderboard({ currentUserId }) {
           <div className="flex items-center justify-center gap-3 mb-2">
             <Trophy className="w-5 h-5 text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse" />
             <p className="text-sm font-black uppercase tracking-widest text-[#c864ff] drop-shadow-[0_0_5px_rgba(200,100,255,0.8)]">
-              {subTab === "season" ? "Live Grid Scores" : "Daily Grid Challenge"}
+              {subTab === "season" ? "Live Grid Scores" : "Daily Challenge"}
             </p>
           </div>
           {subTab === "season" ? (
