@@ -199,18 +199,20 @@
     color: #ffffff;
   }
 
-  /* 4. Active/selected buttons & tabs — bubblegum pink */
+  /* 4. Active/selected buttons & tabs — golden yellow */
   [data-theme="gamer"] button.select-date-card-active,
   [data-theme="retro"] button.select-date-card-active,
   [data-theme="gamer"] button.active-tab-indicator,
   [data-theme="retro"] button.active-tab-indicator,
   [data-theme="gamer"] .active-tab-indicator,
   [data-theme="retro"] .active-tab-indicator {
-    background-color: #ff85a1;
+    background-color: #ffb703;
     color: #1a1a1a;
+    border: 3px solid #1a1a1a;
+    box-shadow: 3px 3px 0px #1a1a1a;
   }
 
-  /* 6. Bottom nav pill buttons override — inactive flat, active pink block */
+  /* 6. Bottom nav pill buttons override — inactive flat, active yellow block */
   [data-theme="gamer"] nav button,
   [data-theme="retro"] nav button {
     border: none;
@@ -221,7 +223,7 @@
   }
   [data-theme="gamer"] nav button.bg-primary,
   [data-theme="retro"] nav button.bg-primary {
-    background-color: #ff85a1;
+    background-color: #ffb703;
     color: #1a1a1a;
     border: 2px solid #1a1a1a;
     box-shadow: 2px 2px 0px #1a1a1a;
@@ -247,10 +249,10 @@
     font-weight: 900;
   }
 
-  /* 9. Highlighted time/label — goldenrod block, no border/shadow */
+  /* 9. Highlighted time/label — retro green block, no border/shadow */
   [data-theme="gamer"] .time-highlight,
   [data-theme="retro"] .time-highlight {
-    background-color: #ffb703;
+    background-color: #7bc67e;
     color: #1a1a1a;
     padding: 2px 6px;
     border-radius: 4px;
@@ -263,7 +265,7 @@
   [data-theme="retro"] .bg-emerald-600,
   [data-theme="gamer"] .progress-bar-fill,
   [data-theme="retro"] .progress-bar-fill {
-    background-color: #00b4d8;
+    background-color: #7bc67e;
     border: 1px solid #1a1a1a;
     color: #ffffff;
   }
@@ -300,6 +302,43 @@
   [data-theme="gamer"] .retro-light-panel .bg-gradient-to-r,
   [data-theme="retro"] .retro-light-panel .bg-gradient-to-r {
     background: transparent !important;
+  }
+
+  /* ── Gamer/Retro: light-background text contrast fixes ── */
+
+  /* 8. Default all text inside cards to ink black */
+  [data-theme="gamer"] .bg-card *,
+  [data-theme="retro"] .bg-card *,
+  [data-theme="gamer"] .bg-white *,
+  [data-theme="retro"] .bg-white * {
+    color: #1a1a1a;
+  }
+  [data-theme="gamer"] button *,
+  [data-theme="retro"] button * {
+    color: inherit;
+  }
+
+  /* 9. Leaderboard header text — force ink black */
+  [data-theme="gamer"] .text-\[\#c864ff\],
+  [data-theme="retro"] .text-\[\#c864ff\],
+  [data-theme="gamer"] .text-\[\#ff00c8\],
+  [data-theme="retro"] .text-\[\#ff00c8\],
+  [data-theme="gamer"] .text-white,
+  [data-theme="retro"] .text-white {
+    color: #1a1a1a !important;
+  }
+
+  /* 10. Token badge pills in leaderboard — ink black text */
+  [data-theme="gamer"] span.bg-\[\#ffd700\],
+  [data-theme="retro"] span.bg-\[\#ffd700\],
+  [data-theme="gamer"] span.text-\[\#ffd700\],
+  [data-theme="retro"] span.text-\[\#ffd700\],
+  [data-theme="gamer"] span.text-\[\#c0c0c0\],
+  [data-theme="retro"] span.text-\[\#c0c0c0\],
+  [data-theme="gamer"] span.text-\[\#cd7f32\],
+  [data-theme="retro"] span.text-\[\#cd7f32\] {
+    color: #1a1a1a !important;
+    font-weight: 900 !important;
   }
 
   /* ── Gold: Premium Metallic Gradient Engine ── */
