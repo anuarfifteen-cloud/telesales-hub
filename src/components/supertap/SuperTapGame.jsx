@@ -121,6 +121,7 @@ function Leaderboard() {
             <p className="text-xs font-black uppercase tracking-wider text-cyan-700 dark:text-[#00f3ff] dark:drop-shadow-[0_0_5px_rgba(0,243,255,0.5)]">
               {subTab === "season" ? "Live Cyber Leaderboard" : "Flash Challenge (Daily)"}
             </p>
+            <p Today's runs only. Push your score up the daily grid — entries reset every evening! </p>
           </div>
           {subTab === "season" ? (
             <>
