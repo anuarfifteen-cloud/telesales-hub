@@ -11,7 +11,7 @@ export default function DateTab({ dateStr, isSelected, onClick }) {
       onClick={onClick}
       className={`flex flex-col items-center w-full py-2.5 rounded-xl transition-all font-inter ${
         isSelected
-          ? "bg-primary text-primary-foreground shadow-md"
+          ? "bg-primary text-primary-foreground shadow-md select-date-card-active"
           : "bg-card text-muted-foreground hover:bg-secondary border border-border"
       }`}
     >

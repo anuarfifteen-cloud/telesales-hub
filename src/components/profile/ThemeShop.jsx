@@ -34,10 +34,10 @@ const THEMES = [
   },
   {
     id: "gamer",
-    name: "Gamer",
+    name: "Retro",
     price: 30,
-    description: "Pitch black & neon glow.",
-    preview: "linear-gradient(135deg, #050505 0%, #00f3ff 50%, #ff00ea 100%)",
+    description: "Synthwave neon & hot pink.",
+    preview: "linear-gradient(135deg, #0d081b 0%, #ff007f 50%, #00f0ff 100%)",
   },
 ];
 

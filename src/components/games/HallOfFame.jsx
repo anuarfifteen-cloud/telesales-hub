@@ -4,16 +4,16 @@ import { Crown, Loader2 } from "lucide-react";
 
 const THEMES = {
   flappy: {
-    border: "border-[#00d4d4]/30",
-    glow: "shadow-[0_0_25px_rgba(0,212,212,0.15)]",
-    accent: "#00d4d4",
-    accent2: "#7df9ff",
-    bgFrom: "from-[#001414]",
-    divider: "divide-[#00d4d4]/10",
-    hover: "hover:bg-[#00d4d4]/5",
-    headerBorder: "border-[#7df9ff]/20",
-    badgeBorder: "border-[#7df9ff]/30",
-    badgeBg: "bg-[#7df9ff]/10",
+    border: "border-[#c864ff]/30",
+    glow: "shadow-[0_0_25px_rgba(200,100,255,0.15)]",
+    accent: "#c864ff",
+    accent2: "#ff00c8",
+    bgFrom: "from-[#06001a]",
+    divider: "divide-[#c864ff]/10",
+    hover: "hover:bg-[#c864ff]/5",
+    headerBorder: "border-[#ff00c8]/20",
+    badgeBorder: "border-[#ff00c8]/30",
+    badgeBg: "bg-[#ff00c8]/10",
     unit: "PTS",
   },
   supertap: {

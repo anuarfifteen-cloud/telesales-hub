@@ -11,7 +11,7 @@ export default function LiveClock({ now }) {
   return (
     <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-2.5">
       <span className="text-xs text-muted-foreground">{datePart}</span>
-      <span className="text-sm font-bold tabular-nums text-primary">{timePart}</span>
+      <span className="text-sm font-bold tabular-nums text-primary time-highlight">{timePart}</span>
       <span className="text-xs text-muted-foreground font-medium">Brunei Time</span>
     </div>
   );

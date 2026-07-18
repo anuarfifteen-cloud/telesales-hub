@@ -119,31 +119,39 @@
     --ring: 340 85% 50%;
   }
 
-  /* ───────────────────────── GAMER ─────────────────────────
-     Pitch black background, very dark gray (#111) cards, bright cyberpunk
-     cyan primary, neon cyan borders with a subtle glow. */
-  [data-theme="gamer"] {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 95%;
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 185 100% 50%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 185 100% 70%;
-    --muted: 0 0% 14%;
-    --muted-foreground: 185 40% 62%;
-    --accent: 185 100% 18%;
-    --accent-foreground: 185 100% 70%;
+  /* ───────────────────────── GAMER / RETRO — Synthwave Neon ─────────────────────────
+     (RGB intent → HSL equivalents for Tailwind's hsl(var(--...)) maps)
+     --background  13 8 27       → 256 54% 7%      Deep midnight cosmic purple
+     --foreground  255 255 255   → 0 0% 100%        Crisp white text
+     --card        25 17 46      → 256 46% 12%      Rich dark magenta-purple
+     --card-fg     255 220 240   → 326 100% 93%     Warm pink-white
+     --primary     255 0 127     → 330 100% 50%     Neon hot pink
+     --primary-fg  255 255 255   → 0 0% 100%
+     --border      90 35 110     → 284 52% 28%      Dark purple borders
+     --muted       36 24 64      → 258 46% 17%
+     --muted-fg    180 150 190   → 285 23% 67%
+     --accent (cyber cyan)       → 190 100% 50%    Time / highlight marker
+  */
+  [data-theme="gamer"], [data-theme="retro"] {
+    --background: 256 54% 7%;
+    --foreground: 0 0% 100%;
+    --card: 256 46% 12%;
+    --card-foreground: 326 100% 93%;
+    --popover: 256 46% 12%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 330 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 258 40% 20%;
+    --secondary-foreground: 330 80% 80%;
+    --muted: 258 46% 17%;
+    --muted-foreground: 285 23% 67%;
+    --accent: 190 100% 50%;
+    --accent-foreground: 256 54% 7%;
     --destructive: 0 90% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 185 100% 50%;
-    --input: 185 60% 25%;
-    --ring: 185 100% 50%;
-    --glow: 0 0 18px rgba(0, 240, 255, 0.45);
-    --card-glow: 0 0 12px rgba(0, 240, 255, 0.15);
+    --border: 284 52% 28%;
+    --input: 284 40% 22%;
+    --ring: 330 100% 50%;
   }
 
 }
@@ -155,9 +163,40 @@
   body {
     @apply bg-background text-foreground font-inter;
   }
-  [data-theme="gamer"] .shadow-sm,
-  [data-theme="gamer"] .shadow-md {
-    box-shadow: var(--card-glow);
+  /* ── Gamer/Retro: Neon Glow Engine ── */
+  [data-theme="gamer"] .bg-primary,
+  [data-theme="retro"] .bg-primary,
+  [data-theme="gamer"] [data-active="true"],
+  [data-theme="retro"] [data-active="true"],
+  [data-theme="gamer"] .active-tab-indicator,
+  [data-theme="retro"] .active-tab-indicator {
+    background: linear-gradient(135deg, #ff007f 0%, #aa00ff 100%) !important;
+    border: 1px solid #ff99cc !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    box-shadow: 0 0 15px rgba(255, 0, 127, 0.5) !important;
+  }
+
+  [data-theme="gamer"] .border-border,
+  [data-theme="retro"] .border-border,
+  [data-theme="gamer"] .select-date-card-active,
+  [data-theme="retro"] .select-date-card-active {
+    border-color: #00f0ff !important;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.3), inset 0 0 5px rgba(0, 240, 255, 0.1) !important;
+  }
+
+  [data-theme="gamer"] .text-primary,
+  [data-theme="retro"] .text-primary {
+    color: #ff007f !important;
+    text-shadow: 0 0 8px rgba(255, 0, 127, 0.4);
+  }
+
+  [data-theme="gamer"] .text-accent,
+  [data-theme="retro"] .text-accent,
+  [data-theme="gamer"] .time-highlight,
+  [data-theme="retro"] .time-highlight {
+    color: #00f0ff !important;
+    text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
   }
 
   /* ── Gold: Premium Metallic Gradient Engine ── */
