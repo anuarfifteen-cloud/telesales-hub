@@ -644,7 +644,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
 
               <button
                 onClick={handleSaveAndRestart}
-                className="w-full px-4 py-3 rounded-lg font-black text-sm tracking-widest bg-[#1a1a1a] border-2 border-[#1a1a1a] text-white hover:bg-black hover:text-white transition-all duration-300 shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+                className="w-full px-4 py-3 rounded-lg font-black text-sm tracking-widest bg-[#00b4d8] text-[#1a1a1a] hover:bg-[#00a0c4] transition-all duration-300"
               >
                 {saving ? "SAVING..." : "PLAY AGAIN"}
               </button>
