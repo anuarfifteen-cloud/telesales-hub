@@ -138,30 +138,6 @@
     --card-glow: 0 0 12px rgba(0, 240, 255, 0.15);
   }
 
-  /* ───────────────────────── RETRO ─────────────────────────
-     Deep synthwave purple background, dark translucent magenta / purple
-     cards, hot pink primary, bright white text with terminal-green accents. */
-  [data-theme="retro"] {
-    --background: 270 60% 7%;
-    --foreground: 0 0% 96%;
-    --card: 290 50% 13%;
-    --card-foreground: 0 0% 96%;
-    --popover: 290 50% 13%;
-    --popover-foreground: 0 0% 96%;
-    --primary: 320 100% 58%;
-    --primary-foreground: 270 60% 7%;
-    --secondary: 290 45% 18%;
-    --secondary-foreground: 320 80% 80%;
-    --muted: 290 45% 18%;
-    --muted-foreground: 320 55% 72%;
-    --accent: 120 90% 40%;
-    --accent-foreground: 120 100% 72%;
-    --destructive: 0 80% 55%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 320 100% 55%;
-    --input: 320 70% 35%;
-    --ring: 320 100% 58%;
-  }
 }
 
 @layer base {

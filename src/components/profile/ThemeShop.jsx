@@ -2,6 +2,13 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Lock, Check, Sparkles, Loader2, Palette } from "lucide-react";
+import { applyActiveTheme } from "@/lib/theme";
+
+const THEME_BADGES = {
+  gold: "Dark",
+  pink: "Light",
+  gamer: "Dark",
+};
 
 const THEMES = [
   {
@@ -32,13 +39,6 @@ const THEMES = [
     description: "Pitch black & neon glow.",
     preview: "linear-gradient(135deg, #050505 0%, #00f3ff 50%, #ff00ea 100%)",
   },
-  {
-    id: "retro",
-    name: "Retro",
-    price: 30,
-    description: "Synthwave purple & green.",
-    preview: "linear-gradient(135deg, #1a0b2e 0%, #ff00c8 50%, #00ff66 100%)",
-  },
 ];
 
 export default function ThemeShop({ user, onUserUpdate }) {
@@ -47,7 +47,7 @@ export default function ThemeShop({ user, onUserUpdate }) {
   const active = user?.activeTheme || "default";
   const tokens = user?.earlyAccessTokens ?? 0;
 
-  const applyAttr = (id) => document.documentElement.setAttribute("data-theme", id);
+  const applyAttr = (id) => applyActiveTheme(id);
 
   const handlePurchase = async (theme) => {
     if (busy) return;
@@ -129,6 +129,11 @@ export default function ThemeShop({ user, onUserUpdate }) {
                   )}
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{theme.description}</p>
+                {THEME_BADGES[theme.id] && (
+                  <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-muted-foreground mt-1">
+                    🔒 {THEME_BADGES[theme.id]} Mode
+                  </span>
+                )}
                 <button
                   onClick={() => (owned ? handleEquip(theme) : handlePurchase(theme))}
                   disabled={isBusy || isActive || (!owned && theme.price > 0 && !canAfford)}

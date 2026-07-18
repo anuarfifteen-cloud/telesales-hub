@@ -1,6 +1,19 @@
 /**
- * Simple dark mode persistence using localStorage + DOM class toggling.
+ * Theme + dark mode persistence using localStorage + DOM class toggling.
+ *
+ * Cosmetic themes can force a color-scheme mode (dark or light) that overrides
+ * the user's manual dark-mode toggle:
+ *   - gold  → dark
+ *   - gamer → dark
+ *   - pink  → light
+ * The default theme respects the user's stored preference.
  */
+
+export const THEME_MODE_LOCK = {
+  gold: "dark",
+  gamer: "dark",
+  pink: "light",
+};
 
 export function getStoredTheme() {
   try {
@@ -19,4 +32,15 @@ export function applyTheme(isDark) {
   try {
     localStorage.setItem("theme", isDark ? "dark" : "light");
   } catch {}
+}
+
+export function applyActiveTheme(themeId, darkPref) {
+  const locked = THEME_MODE_LOCK[themeId];
+  const isDark = locked
+    ? locked === "dark"
+    : darkPref !== undefined
+    ? darkPref
+    : getStoredTheme();
+  applyTheme(isDark);
+  document.documentElement.setAttribute("data-theme", themeId || "default");
 }

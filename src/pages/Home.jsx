@@ -11,7 +11,7 @@ import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
 import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins, Megaphone } from "lucide-react";
 import TokensTab from "./TokensTab";
-import { getStoredTheme, applyTheme } from "@/lib/theme";
+import { getStoredTheme, applyTheme, applyActiveTheme, THEME_MODE_LOCK } from "@/lib/theme";
 import AdminPinModal from "@/components/admin/AdminPinModal";
 import AdminBookingTotals from "@/components/admin/AdminBookingTotals";
 import {
@@ -279,8 +279,8 @@ useEffect(() => {
   }, []);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", user?.activeTheme || "default");
-  }, [user?.activeTheme]);
+    applyActiveTheme(user?.activeTheme || "default", isDarkMode);
+  }, [user?.activeTheme, isDarkMode]);
 
   const handleToggleDarkMode = (val) => {
     setIsDarkMode(val);
@@ -1054,6 +1054,9 @@ useEffect(() => {
           const pmCount = myBookings.filter((b) => b.shift === "PM").length;
           const totalCount = totalBookingCount;
           const darkModeUnlocked = totalCount >= 5;
+          const activeTheme = user?.activeTheme || "default";
+          const themeLock = THEME_MODE_LOCK[activeTheme];
+          const displayedDark = themeLock ? themeLock === "dark" : isDarkMode;
           const initials = user?.full_name ?
           user.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) :
           (user?.email?.[0] || "?").toUpperCase();
@@ -1166,19 +1169,20 @@ useEffect(() => {
                       <Moon className={`w-4 h-4 ${darkModeUnlocked ? "text-muted-foreground" : "text-muted-foreground/50"}`} />
                       <div>
                         <span className={`text-sm font-medium ${darkModeUnlocked ? "text-foreground" : "text-muted-foreground"}`}>Dark Mode</span>
-                        {!darkModeUnlocked &&
-                          <p className="text-[10px] text-muted-foreground leading-none mt-0.5">🔒 Unlocks at 5 Bookings</p>
-                        }
+                        {themeLock
+                          ? <p className="text-[10px] text-muted-foreground leading-none mt-0.5">🔒 Locked by {activeTheme} theme</p>
+                          : !darkModeUnlocked && <p className="text-[10px] text-muted-foreground leading-none mt-0.5">🔒 Unlocks at 5 Bookings</p>}
                       </div>
                     </div>
                     {darkModeUnlocked ? (
                       <button
-                        onClick={() => handleToggleDarkMode(!isDarkMode)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isDarkMode ? "bg-primary" : "bg-muted"}`}>
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isDarkMode ? "translate-x-6" : "translate-x-1"}`} />
+                        onClick={() => !themeLock && handleToggleDarkMode(!isDarkMode)}
+                        disabled={!!themeLock}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${displayedDark ? "bg-primary" : "bg-muted"} ${themeLock ? "opacity-60 cursor-not-allowed" : ""}`}>
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${displayedDark ? "translate-x-6" : "translate-x-1"}`} />
                       </button>
                     ) : (
-                      <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-slate-100 cursor-not-allowed opacity-50">
+                      <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-muted cursor-not-allowed opacity-50">
                         <span className="inline-block h-4 w-4 transform rounded-full bg-white shadow translate-x-1" />
                       </div>
                     )}
