@@ -8,6 +8,7 @@ import SuperTapGame from "@/components/supertap/SuperTapGame";
 import BlindVoucherShop from "@/components/tokens/BlindVoucherShop";
 import FlappyTokenGame from "@/components/games/FlappyTokenGame";
 import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
+import ThemeShop from "@/components/profile/ThemeShop";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin }) {
   const [innerTab, setInnerTab] = useState("milestones");
@@ -127,6 +128,16 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           >
             🐦 Flappy Token
           </button>
+          <button
+            onClick={() => setInnerTab("themes")}
+            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              innerTab === "themes"
+                ? "bg-fuchsia-600 text-white shadow"
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            🎨 Themes
+          </button>
         </div>
       </div>
 
@@ -170,6 +181,11 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
       {/* Flappy Token */}
       {innerTab === "flappy" && (
         <FlappyTokenGame user={user} onUserUpdate={onUserUpdate} />
+      )}
+
+      {/* Theme Shop */}
+      {innerTab === "themes" && (
+        <ThemeShop user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {/* VIP Pass */}

@@ -11,6 +11,7 @@ import AdminFlappyToken from "./AdminFlappyToken";
 import AdminGameHistory from "./AdminGameHistory";
 import AdminTokenAuditLog from "./AdminTokenAuditLog";
 import TokenShopSettings from "./TokenShopSettings";
+import ThemeShopSettings from "./ThemeShopSettings";
 import QuizMaintenanceToggle from "./QuizMaintenanceToggle";
 import AdminGiftVoucherGen from "./AdminGiftVoucherGen";
 
@@ -316,6 +317,9 @@ export default function AdminDashboard({ onBack }) {
 
         {/* Token Shop Settings */}
         <TokenShopSettings />
+
+        {/* Theme Shop Settings */}
+        <ThemeShopSettings />
 
         {/* Roster upload card */}
         <div className="bg-white rounded-2xl border border-border p-6 space-y-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>

@@ -63,6 +63,25 @@
     "diamond_store_end_time": {
       "type": "string",
       "description": "ISO datetime when the Diamond Store closes for purchasing"
+    },
+    "theme_shop_price": {
+      "type": "number",
+      "description": "Base cost in tokens to unlock a premium theme",
+      "default": 30
+    },
+    "theme_discount_percent": {
+      "type": "number",
+      "description": "Discount percentage applied to the theme shop price (0-100)",
+      "default": 0
+    },
+    "theme_offer_active": {
+      "type": "boolean",
+      "description": "Whether the limited-time discount offer is active for users",
+      "default": false
+    },
+    "theme_offer_end_time": {
+      "type": "string",
+      "description": "ISO datetime when the limited-time theme offer expires"
     }
   },
   "required": []
