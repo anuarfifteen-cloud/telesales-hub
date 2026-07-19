@@ -104,8 +104,10 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const loadLeaders = async () => {
     try {
       const rows = await base44.entities.QuizScore.list("-correct_count", 3);
+      console.log("[DailyDuoGame] Leaderboard fetched:", rows?.length || 0, "scores");
       setLeaders(rows || []);
-    } catch {
+    } catch (e) {
+      console.error("[DailyDuoGame] loadLeaders failed:", e);
       setLeaders([]);
     }
   };
@@ -176,7 +178,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
       duplicateDetected = true;
     }
 
-    // Update or create season score
+    // Update or create season score (upsert)
     if (!duplicateDetected) {
       try {
         const existing = await base44.entities.QuizScore.filter({ user_id: user.id });
@@ -193,11 +195,13 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
         } else {
           await base44.entities.QuizScore.create(payload);
         }
-        await loadLeaders();
       } catch (e) {
-        console.error("QuizScore update failed:", e);
+        console.error("QuizScore upsert failed:", e);
       }
     }
+
+    // Always refresh leaderboard — outside try/catch so it runs even if upsert failed
+    await loadLeaders();
 
     const localRecord = { answered: true, correct: isCorrect, questionId: question.id };
     saveTodayRecord(localRecord);
