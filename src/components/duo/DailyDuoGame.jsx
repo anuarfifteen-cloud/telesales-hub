@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -8,12 +8,6 @@ const BRUNEI_TZ = "Asia/Brunei";
 
 function getBruneiToday() {
   return new Date().toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
-}
-
-function getYesterdayBrunei() {
-  const now = new Date();
-  now.setDate(now.getDate() - 1);
-  return now.toLocaleDateString("en-CA", { timeZone: BRUNEI_TZ });
 }
 
 function getTodayKey() {
@@ -33,66 +27,65 @@ function saveLastSeenId(id) {
   localStorage.setItem("solo_quiz_last_id", id);
 }
 
-function StreakPills({ filledDots, activeDotIndex, activeDotCorrect, answeredToday }) {
+// ── Top 3 Season Leaderboard ───────────────────────────────────────────────────
+function LeaderboardCard({ leaders, currentUserId }) {
+  if (!leaders || leaders.length === 0) {
+    return (
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-4 text-center">
+        <div className="flex items-center gap-2 justify-center mb-1">
+          <Trophy className="w-4 h-4 text-amber-500" />
+          <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Season Leaderboard</p>
+        </div>
+        <p className="text-xs text-muted-foreground">No scores yet — be the first to top the chart!</p>
+      </div>
+    );
+  }
+  const medals = ["🥇", "🥈", "🥉"];
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">5-Day Streak</span>
-        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">{filledDots}/5</span>
+    <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col gap-2">
+      <div className="flex items-center gap-2 mb-1">
+        <Trophy className="w-4 h-4 text-amber-500" />
+        <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Season Leaderboard — Top 3</p>
       </div>
-      <div className="flex gap-1.5 justify-center">
-        {[0, 1, 2, 3, 4].map((i) => {
-          const isFilled = i < filledDots;
-          const isActive = i === activeDotIndex && answeredToday;
-          const isPending = i === activeDotIndex && !answeredToday;
-
-          let cls = "bg-muted border-border text-muted-foreground";
-          if (isFilled) cls = "bg-emerald-400 border-emerald-500 text-white";
-          else if (isActive && activeDotCorrect === true) cls = "bg-emerald-400 border-emerald-500 text-white";
-          else if (isActive && activeDotCorrect === false) cls = "bg-red-400 border-red-500 text-white";
-          else if (isPending) cls = "bg-amber-100 dark:bg-amber-950/40 border-amber-400 text-amber-600 animate-pulse";
-
-          return (
-            <div
-              key={i}
-              className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all ${cls}`}
-            >
-              {isFilled ? <CheckCircle className="w-4 h-4" /> :
-               isActive && activeDotCorrect === true ? <CheckCircle className="w-4 h-4" /> :
-               isActive && activeDotCorrect === false ? <XCircle className="w-4 h-4" /> :
-               i + 1}
+      {leaders.map((s, i) => {
+        const isYou = s.user_id === currentUserId;
+        const correct = s.correct_count ?? 0;
+        const total = s.total_answered ?? 0;
+        return (
+          <div
+            key={s.id}
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border ${
+              isYou
+                ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800"
+                : "bg-muted/30 border-border"
+            }`}
+          >
+            <span className="text-lg w-6 text-center flex-shrink-0">{medals[i]}</span>
+            <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+              <p className="font-bold text-foreground text-sm truncate">
+                {s.user_name}
+                {isYou && <span className="text-[10px] text-indigo-500 ml-1">(You)</span>}
+              </p>
+              <span className="text-xs font-black text-foreground tabular-nums flex-shrink-0">
+                {correct}/{total} correct
+              </span>
             </div>
-          );
-        })}
-      </div>
-      <p className="text-[10px] text-muted-foreground text-center">
-        ⚠️ A wrong answer or missed day resets your streak to zero
-      </p>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function AlreadyAnsweredCard({ record, streakRecord }) {
-  const count = streakRecord?.streak_count ?? 0;
-  const streakJustCompleted = record.correct && count === 0;
+function AlreadyAnsweredCard({ record }) {
   return (
-    <div className={`rounded-2xl border p-4 flex flex-col gap-3 ${record.correct ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800" : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"}`}>
+    <div className={`rounded-2xl border p-4 flex flex-col gap-2 ${record.correct ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800" : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"}`}>
       <div className="flex items-center gap-2">
         {record.correct ? <CheckCircle className="w-6 h-6 text-emerald-500" /> : <XCircle className="w-6 h-6 text-red-500" />}
         <p className={`font-black text-sm ${record.correct ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}>
           {record.correct ? "✅ Correct! Well done." : "❌ Incorrect today."}
         </p>
       </div>
-      {streakJustCompleted ? (
-        <p className="text-xs text-emerald-700 dark:text-emerald-300 font-bold">
-          🎉 Streak complete! You earned 2 tokens. Start a new streak tomorrow!
-        </p>
-      ) : (
-        <p className="text-xs text-muted-foreground">
-          Current streak: <strong className="text-foreground">{count}</strong> day{count !== 1 ? "s" : ""}
-          {count >= 4 ? " — one more for reward! 🔥" : ""}
-        </p>
-      )}
       <p className="text-xs text-muted-foreground">Come back tomorrow for your next question.</p>
     </div>
   );
@@ -104,9 +97,18 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const [selected, setSelected] = useState(null);
   const [pendingResult, setPendingResult] = useState(null);
   const [finishing, setFinishing] = useState(false);
-  const [streakRecord, setStreakRecord] = useState(null);
+  const [leaders, setLeaders] = useState([]);
   const [todayRecord, setTodayRecord] = useState(() => getTodayRecord());
   const [quizEnabled, setQuizEnabled] = useState(true);
+
+  const loadLeaders = async () => {
+    try {
+      const rows = await base44.entities.QuizScore.list("-correct_count", 3);
+      setLeaders(rows || []);
+    } catch {
+      setLeaders([]);
+    }
+  };
 
   useEffect(() => {
     if (!user?.id) return;
@@ -119,9 +121,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
         return;
       }
 
-      const records = await base44.entities.QuizStreak.filter({ user_id: user.id });
-      const dbStreak = records[0] || null;
-      setStreakRecord(dbStreak);
+      await loadLeaders();
 
       if (getTodayRecord()) {
         setLoading(false);
@@ -156,23 +156,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
     setFinishing(true);
 
     const today = getBruneiToday();
-    const yesterday = getYesterdayBrunei();
     const isCorrect = pendingResult.correct;
-
-    const current = streakRecord;
-    let newCount = 0;
-    let newLastCorrectDate = null;
-    let newRewardPaid = current?.reward_paid_for_cycle ?? false;
-
-    if (isCorrect) {
-      const wasConsecutive = current?.last_correct_date === yesterday;
-      newCount = wasConsecutive ? (current.streak_count || 0) + 1 : 1;
-      newLastCorrectDate = today;
-    } else {
-      newCount = 0;
-      newLastCorrectDate = null;
-      newRewardPaid = false;
-    }
 
     const opts = [question.option_a, question.option_b, question.option_c];
     const selectedOptionLetter = ["A", "B", "C"][opts.indexOf(pendingResult.selectedAnswer)] ?? "";
@@ -192,45 +176,27 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
       duplicateDetected = true;
     }
 
-    const shouldReward = newCount >= 5 && !newRewardPaid;
-    if (shouldReward) newRewardPaid = true;
-
-    const streakPayload = {
-      streak_count: newCount,
-      last_correct_date: newLastCorrectDate,
-      reward_paid_for_cycle: newRewardPaid,
-    };
-
-    let updatedRecord;
-    if (current?.id) {
-      updatedRecord = await base44.entities.QuizStreak.update(current.id, streakPayload);
-    } else {
-      updatedRecord = await base44.entities.QuizStreak.create({ user_id: user.id, ...streakPayload });
-    }
-
-    setStreakRecord(updatedRecord);
-
-    setTimeout(async () => {
-      const fresh = await base44.entities.QuizStreak.filter({ user_id: user.id });
-      if (fresh?.[0]) setStreakRecord(fresh[0]);
-    }, 500);
-
-    if (shouldReward) {
-      const freshUser = await base44.auth.me();
-      const currentTokens = freshUser?.earlyAccessTokens ?? 0;
-      await base44.auth.updateMe({ earlyAccessTokens: currentTokens + 2 });
-      await base44.entities.TokenTransaction.create({
-        user_id: user.id,
-        user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
-        amount: 2,
-        source: "Daily Quiz — 5-Day Streak",
-        timestamp: new Date().toISOString(),
-      });
-      toast.success("+2 Tokens! 🎉 Streak Complete!");
-
-      const resetPayload = { streak_count: 0, last_correct_date: null, reward_paid_for_cycle: false };
-      const resetRecord = await base44.entities.QuizStreak.update(updatedRecord.id, resetPayload);
-      setStreakRecord(resetRecord);
+    // Update or create season score
+    if (!duplicateDetected) {
+      try {
+        const existing = await base44.entities.QuizScore.filter({ user_id: user.id });
+        const scoreRecord = existing[0];
+        const payload = {
+          user_id: user.id,
+          user_name: user.full_name || user.email?.split("@")[0] || "Player",
+          total_answered: (scoreRecord?.total_answered ?? 0) + 1,
+          correct_count: (scoreRecord?.correct_count ?? 0) + (isCorrect ? 1 : 0),
+          last_answered_date: today,
+        };
+        if (scoreRecord?.id) {
+          await base44.entities.QuizScore.update(scoreRecord.id, payload);
+        } else {
+          await base44.entities.QuizScore.create(payload);
+        }
+        await loadLeaders();
+      } catch (e) {
+        console.error("QuizScore update failed:", e);
+      }
     }
 
     const localRecord = { answered: true, correct: isCorrect, questionId: question.id };
@@ -240,13 +206,12 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
 
     await onUserUpdate();
     if (duplicateDetected) {
-      toast.info("Streak updated. Your answer was already logged for today.");
+      toast.info("Score updated. Your answer was already logged for today.");
     }
     setFinishing(false);
   };
 
   const options = question ? [question.option_a, question.option_b, question.option_c] : [];
-  const streakCount = streakRecord?.streak_count ?? 0;
 
   return (
     <div className="flex flex-col gap-3">
@@ -258,7 +223,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
         </div>
       )}
 
-      {/* Maintenance Mode — ONLY this, nothing else */}
+      {/* Maintenance Mode */}
       {!loading && !quizEnabled && (
         <div className="bg-card rounded-2xl border border-border shadow-sm p-8 flex flex-col items-center gap-3 text-center">
           <span className="text-4xl">🔧</span>
@@ -277,37 +242,17 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
               <h3 className="font-black text-base text-foreground">Daily Quiz</h3>
               <span className="ml-auto text-[10px] font-bold text-pink-500 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">Solo Daily</span>
             </div>
-            <div className="text-xs text-muted-foreground space-y-1 mt-1">
-              <p className="font-medium text-foreground">Answer 1 question per day, build a 5-day streak!</p>
-              <div className="bg-muted/20 p-2 rounded-md border border-border/50">
-                <p>🔥 <span className="font-medium text-foreground">5-day streak</span> = <span className="font-bold text-amber-500">+2 Tokens</span></p>
-              </div>
-            </div>
-          </div>
-          {/* Streak Pills */}
-          <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
-            <StreakPills
-  filledDots={streakCount}
-  activeDotIndex={todayRecord ? streakCount - 1 : streakCount}
-  activeDotCorrect={todayRecord?.correct ?? null}
-  answeredToday={!!todayRecord}
-/>
+            <p className="text-xs text-muted-foreground font-medium mt-1">
+              Answer 1 question per day and climb the season leaderboard!
+            </p>
           </div>
 
-          {/* Warning Banner */}
-          <div className="bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500/30 rounded-2xl p-3.5 flex gap-2.5 items-start">
-            <span className="text-base text-amber-500 flex-shrink-0 mt-0.5">⚠️</span>
-            <div className="text-xs space-y-0.5">
-              <p className="font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider text-[10px]">Important Rule</p>
-              <p className="text-muted-foreground font-medium leading-relaxed">
-                A wrong answer or missed day <span className="text-foreground font-bold underline decoration-amber-500">resets your streak to zero</span>.
-              </p>
-            </div>
-          </div>
+          {/* Top 3 Leaderboard */}
+          <LeaderboardCard leaders={leaders} currentUserId={user?.id} />
 
           {/* Already answered today */}
           {todayRecord && (
-            <AlreadyAnsweredCard record={todayRecord} streakRecord={streakRecord} />
+            <AlreadyAnsweredCard record={todayRecord} />
           )}
 
           {/* No questions available */}
@@ -330,12 +275,12 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
               <div className="flex flex-col gap-2">
                 {options.map((opt, i) => {
                   const isSelected = selected === opt;
-                  const isCorrect = opt === question.correct_option;
+                  const isCorrectOpt = opt === question.correct_option;
                   const revealed = !!pendingResult;
 
                   let cls = "bg-card border-border text-foreground hover:bg-muted";
                   if (revealed) {
-                    if (isCorrect) cls = "bg-emerald-100 dark:bg-emerald-950/50 border-emerald-400 text-emerald-800 dark:text-emerald-300 font-bold";
+                    if (isCorrectOpt) cls = "bg-emerald-100 dark:bg-emerald-950/50 border-emerald-400 text-emerald-800 dark:text-emerald-300 font-bold";
                     else if (isSelected) cls = "bg-red-100 dark:bg-red-950/50 border-red-400 text-red-700 dark:text-red-300 font-bold";
                     else cls = "bg-muted border-border text-muted-foreground opacity-60";
                   } else if (isSelected) {
@@ -353,8 +298,8 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
                         <span className="font-black mr-2 text-xs opacity-70">{["A", "B", "C"][i]}.</span>
                         {opt}
                       </span>
-                      {revealed && isCorrect && <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />}
-                      {revealed && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-500 shrink-0" />}
+                      {revealed && isCorrectOpt && <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />}
+                      {revealed && isSelected && !isCorrectOpt && <XCircle className="w-4 h-4 text-red-500 shrink-0" />}
                     </button>
                   );
                 })}
