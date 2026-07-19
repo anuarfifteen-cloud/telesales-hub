@@ -19,6 +19,11 @@
       "type": "number",
       "description": "Total number of answers submitted in the current quiz season",
       "default": 0
+    },
+    "last_answered_date": {
+      "type": "string",
+      "format": "date",
+      "description": "YYYY-MM-DD (Brunei timezone) of the user's most recent quiz answer this season"
     }
   },
   "required": [
@@ -26,21 +31,9 @@
     "user_name"
   ],
   "rls": {
-    "read": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
-    "create": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
-    "update": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
+    "read": {},
+    "create": {},
+    "update": {},
     "delete": {
       "user_condition": {
         "role": "admin"
