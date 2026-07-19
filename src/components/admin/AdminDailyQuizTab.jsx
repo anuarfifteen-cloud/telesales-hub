@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, BookOpen, ChevronDown, ChevronUp, CheckCircle2, CheckCircle, XCircle, BarChart2, UserCircle, Pencil, Trash2 } from "lucide-react";
+import { Loader2, BookOpen, ChevronDown, ChevronUp, CheckCircle2, CheckCircle, XCircle, BarChart2, UserCircle, Pencil, Trash2, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import AdminQuizManager from "./AdminQuizManager";
 
@@ -96,18 +96,15 @@ function QuizActivityLog() {
   const [date, setDate] = useState(getBruneiToday());
   const [answers, setAnswers] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
-  const [streakRecords, setStreakRecords] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       base44.entities.User.list(),
-      base44.entities.QuizStreak.list(),
       base44.entities.QuizQuestion.list(),
-    ]).then(([users, streaks, qs]) => {
+    ]).then(([users, qs]) => {
       setAllUsers(users || []);
-      setStreakRecords(streaks || []);
       setQuestions(qs || []);
     });
   }, []);
@@ -123,11 +120,6 @@ function QuizActivityLog() {
 
   const correct = answers.filter(a => a.is_correct).length;
   const wrong = answers.length - correct;
-
-  const getStreak = (userId) => {
-    const record = streakRecords.find(r => r.user_id === userId);
-    return record?.streak_count ?? 0;
-  };
 
   const getFullOptionText = (answer) => {
     const q = questions.find(q => q.id === answer.question_id);
@@ -196,9 +188,6 @@ function QuizActivityLog() {
                         🔤 {a.selected_option || "—"}{fullOptionText ? ` — ${fullOptionText}` : ""}
                       </p>
                     </div>
-                    <span className="shrink-0 text-amber-600 dark:text-amber-400 font-bold text-xs">
-                      🔥 {getStreak(a.user_id)}
-                    </span>
                   </div>
                 </div>
               );
@@ -213,11 +202,11 @@ function QuizActivityLog() {
 // ── User Quiz History ─────────────────────────────────────────────────────────
 function UserQuizHistory() {
   const [allUsers, setAllUsers] = useState([]);
-  const [streakRecords, setStreakRecords] = useState([]);
   const [allQuestions, setAllQuestions] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [answers, setAnswers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [score, setScore] = useState(null);
 
   // Edit state
   const [editingId, setEditingId] = useState(null);
@@ -233,21 +222,12 @@ function UserQuizHistory() {
   const [addOption, setAddOption] = useState("A");
   const [addSaving, setAddSaving] = useState(false);
 
-  // Streak amendment
-  const [streakOpen, setStreakOpen] = useState(false);
-  const [streakCount, setStreakCount] = useState(0);
-  const [streakLastDate, setStreakLastDate] = useState("");
-  const [streakRewardPaid, setStreakRewardPaid] = useState(false);
-  const [streakSaving, setStreakSaving] = useState(false);
-
   useEffect(() => {
     Promise.all([
       base44.entities.User.list(),
-      base44.entities.QuizStreak.list(),
       base44.entities.QuizQuestion.filter({ is_active: true }),
-    ]).then(([users, streaks, qs]) => {
+    ]).then(([users, qs]) => {
       setAllUsers(users || []);
-      setStreakRecords(streaks || []);
       setAllQuestions(qs || []);
     });
   }, []);
@@ -255,39 +235,29 @@ function UserQuizHistory() {
   const refreshAnswers = () => {
     if (!selectedUserId) return;
     setLoading(true);
-    base44.entities.QuizAnswer.filter({ user_id: selectedUserId })
-      .then(rows => {
-        rows.sort((a, b) => new Date(b.answered_date) - new Date(a.answered_date));
-        setAnswers(rows);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  };
-
-  const refreshStreaks = () => {
-    base44.entities.QuizStreak.list().then(streaks => setStreakRecords(streaks || []));
+    Promise.all([
+      base44.entities.QuizAnswer.filter({ user_id: selectedUserId }),
+      base44.entities.QuizScore.filter({ user_id: selectedUserId }),
+    ]).then(([rows, scoreRows]) => {
+      rows.sort((a, b) => new Date(b.answered_date) - new Date(a.answered_date));
+      setAnswers(rows);
+      setScore(scoreRows[0] || null);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   };
 
   useEffect(() => {
-    if (!selectedUserId) { setAnswers([]); return; }
+    if (!selectedUserId) { setAnswers([]); setScore(null); return; }
     refreshAnswers();
   }, [selectedUserId]);
 
-  // Pre-fill streak amendment when user changes
-  useEffect(() => {
-    const rec = streakRecords.find(r => r.user_id === selectedUserId);
-    setStreakCount(rec?.streak_count ?? 0);
-    setStreakLastDate(rec?.last_correct_date ?? "");
-    setStreakRewardPaid(rec?.reward_paid_for_cycle ?? false);
-    setStreakOpen(false);
-  }, [selectedUserId, streakRecords]);
-
-  const streakRecord = streakRecords.find(r => r.user_id === selectedUserId);
-  const currentStreak = streakRecord?.streak_count ?? 0;
-  const lastCorrectDate = streakRecord?.last_correct_date ?? null;
   const totalCorrect = answers.filter(a => a.is_correct).length;
   const totalWrong = answers.length - totalCorrect;
   const accuracy = answers.length > 0 ? ((totalCorrect / answers.length) * 100).toFixed(1) : null;
+
+  const scoreCorrect = score?.correct_count ?? 0;
+  const scoreTotal = score?.total_answered ?? 0;
+  const scoreAccuracy = scoreTotal > 0 ? ((scoreCorrect / scoreTotal) * 100).toFixed(0) : null;
 
   const selectedUser = allUsers.find(u => u.id === selectedUserId);
   const selectedUserName = selectedUser?.full_name || selectedUser?.email || "";
@@ -344,24 +314,6 @@ function UserQuizHistory() {
     toast.success("Answer added.");
   };
 
-  const handleSaveStreak = async () => {
-    setStreakSaving(true);
-    const payload = {
-      streak_count: Number(streakCount),
-      last_correct_date: streakLastDate || null,
-      reward_paid_for_cycle: streakRewardPaid,
-    };
-    if (streakRecord?.id) {
-      await base44.entities.QuizStreak.update(streakRecord.id, payload);
-    } else {
-      await base44.entities.QuizStreak.create({ user_id: selectedUserId, ...payload });
-    }
-    setStreakSaving(false);
-    setStreakOpen(false);
-    refreshStreaks();
-    toast.success("Streak updated.");
-  };
-
   const inputCls = "border border-border rounded-lg px-2 py-1.5 text-xs bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
   return (
@@ -411,50 +363,23 @@ function UserQuizHistory() {
                 </span>
               </div>
             </div>
-            <div className="flex flex-wrap gap-3">
-              {accuracy !== null && <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">🎯 Accuracy: {accuracy}%</span>}
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-400">🔥 Current streak: {currentStreak} day{currentStreak !== 1 ? "s" : ""}</span>
-              {lastCorrectDate && <span className="text-xs text-muted-foreground">📅 Last correct: {lastCorrectDate}</span>}
-            </div>
+            {accuracy !== null && (
+              <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">🎯 Accuracy: {accuracy}%</span>
+            )}
           </div>
 
-          {/* Streak Amendment */}
-          <div className="border border-border rounded-xl overflow-hidden">
-            <button
-              onClick={() => setStreakOpen(o => !o)}
-              className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-foreground bg-muted/40 hover:bg-muted/70 transition-colors"
-            >
-              <span>🔧 Amend Streak</span>
-              {streakOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-            {streakOpen && (
-              <div className="px-4 py-3 flex flex-col gap-3 border-t border-border bg-background">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Streak Count</label>
-                    <input type="number" min="0" max="5" value={streakCount} onChange={e => setStreakCount(e.target.value)} className={inputCls} style={{ width: 70 }} />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Last Correct Date</label>
-                    <input type="date" value={streakLastDate} onChange={e => setStreakLastDate(e.target.value)} className={inputCls} />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Reward Paid</label>
-                    <label className="flex items-center gap-1.5 cursor-pointer mt-1">
-                      <input type="checkbox" checked={streakRewardPaid} onChange={e => setStreakRewardPaid(e.target.checked)} className="rounded" />
-                      <span className="text-xs text-foreground">Reward already paid this cycle</span>
-                    </label>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={handleSaveStreak} disabled={streakSaving} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
-                    {streakSaving ? "Saving…" : "Save Streak"}
-                  </button>
-                  <button onClick={() => setStreakOpen(false)} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-muted text-foreground hover:bg-muted/80">
-                    Cancel
-                  </button>
-                </div>
-              </div>
+          {/* Quiz Score — read-only season standing */}
+          <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl px-4 py-3 flex flex-col gap-1.5">
+            <p className="text-xs font-black text-emerald-700 dark:text-emerald-300">📊 Quiz Score (Season Standing)</p>
+            <div className="flex flex-wrap gap-3">
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">✅ {scoreCorrect} correct</span>
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">📝 {scoreTotal} answered</span>
+              {scoreAccuracy !== null && (
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">🎯 {scoreAccuracy}% accuracy</span>
+              )}
+            </div>
+            {!score && (
+              <p className="text-[10px] text-muted-foreground">No season score record yet. Scores populate as users play.</p>
             )}
           </div>
 
@@ -598,6 +523,171 @@ function UserQuizHistory() {
   );
 }
 
+// ── Season Panel ──────────────────────────────────────────────────────────────
+function SeasonPanel() {
+  const [scores, setScores] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [awarding, setAwarding] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [scoreRows, users] = await Promise.all([
+        base44.entities.QuizScore.list("-correct_count", 50),
+        base44.entities.User.list(),
+      ]);
+      setScores(scoreRows || []);
+      setAllUsers(users || []);
+    } catch {
+      setScores([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  const medals = ["🥇", "🥈", "🥉"];
+  const prizes = [5, 3, 1]; // tokens for 1st, 2nd, 3rd
+
+  const top3 = scores.slice(0, 3);
+
+  const handleAwardWinners = async () => {
+    if (top3.length === 0) return toast.error("No scores to award.");
+    setAwarding(true);
+    try {
+      for (let i = 0; i < top3.length; i++) {
+        const winner = top3[i];
+        const tokenPrize = prizes[i];
+        // Get user entity to find their current tokens
+        const userRows = await base44.entities.User.filter({ id: winner.user_id });
+        const targetUser = userRows[0];
+        if (!targetUser) continue;
+        const currentTokens = targetUser.earlyAccessTokens ?? 0;
+        // Award tokens
+        await base44.entities.User.update(targetUser.id, {
+          earlyAccessTokens: currentTokens + tokenPrize,
+        });
+        // Log transaction
+        await base44.entities.TokenTransaction.create({
+          user_id: winner.user_id,
+          user_name: winner.user_name,
+          amount: tokenPrize,
+          source: `Daily Quiz Season Winner — #${i + 1} Place`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      toast.success("✅ Tokens awarded to top 3 winners!");
+    } catch (e) {
+      toast.error("Award failed: " + (e?.message || "Unknown error"));
+    }
+    setAwarding(false);
+  };
+
+  const handleResetScores = async () => {
+    setResetting(true);
+    try {
+      for (const s of scores) {
+        await base44.entities.QuizScore.delete(s.id);
+      }
+      setScores([]);
+      setConfirmReset(false);
+      toast.success("🔄 Season reset! All scores cleared.");
+    } catch (e) {
+      toast.error("Reset failed: " + (e?.message || "Unknown error"));
+    }
+    setResetting(false);
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-4 text-white">
+        <p className="text-[10px] font-bold uppercase tracking-widest opacity-75">Admin Control</p>
+        <p className="font-black text-lg">🏆 Season Management</p>
+        <p className="text-xs opacity-80">Award winners and reset the quiz scoreboard</p>
+      </div>
+
+      {/* Current Standings */}
+      <div className="bg-card rounded-2xl border border-border p-4 flex flex-col gap-3">
+        <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Current Standings</p>
+        {loading ? (
+          <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+        ) : scores.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">No scores yet this season.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {scores.map((s, i) => (
+              <div key={s.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm ${i < 3 ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800" : "bg-muted/30 border-border"}`}>
+                <span className="text-lg w-8 text-center flex-shrink-0">
+                  {i < 3 ? medals[i] : <span className="text-xs font-black text-muted-foreground">#{i + 1}</span>}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-foreground truncate">{s.user_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {s.correct_count} correct / {s.total_answered} answered
+                    {s.total_answered > 0 ? ` — ${((s.correct_count / s.total_answered) * 100).toFixed(0)}% accuracy` : ""}
+                  </p>
+                </div>
+                {i < 3 && (
+                  <span className="flex-shrink-0 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded-full">
+                    +{prizes[i]} 🪙
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Award Winners Button */}
+      <button
+        onClick={handleAwardWinners}
+        disabled={awarding || loading || scores.length === 0}
+        className="w-full py-3 rounded-xl font-black text-sm bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+      >
+        {awarding ? <Loader2 className="w-4 h-4 animate-spin" /> : "🏆 Award Tokens to Top 3"}
+      </button>
+      <p className="text-[10px] text-muted-foreground text-center -mt-2">
+        Awards 5 tokens to 1st, 3 tokens to 2nd, 1 token to 3rd. Run this BEFORE resetting.
+      </p>
+
+      {/* Reset Season */}
+      {!confirmReset ? (
+        <button
+          onClick={() => setConfirmReset(true)}
+          disabled={resetting || loading || scores.length === 0}
+          className="w-full py-3 rounded-xl font-black text-sm bg-red-100 dark:bg-red-950/30 hover:bg-red-200 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 transition-colors disabled:opacity-50"
+        >
+          🔄 Reset Season Scores
+        </button>
+      ) : (
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-300 dark:border-red-700 rounded-xl p-4 flex flex-col gap-3">
+          <p className="text-sm font-black text-red-700 dark:text-red-300 text-center">⚠️ This will delete ALL quiz scores permanently. Are you sure?</p>
+          <p className="text-xs text-red-600 dark:text-red-400 text-center">Make sure you have awarded tokens to winners first!</p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleResetScores}
+              disabled={resetting}
+              className="flex-1 py-2.5 rounded-xl font-black text-sm bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {resetting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Yes, Reset Now"}
+            </button>
+            <button
+              onClick={() => setConfirmReset(false)}
+              className="flex-1 py-2.5 rounded-xl font-black text-sm bg-muted text-foreground hover:bg-muted/80 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function AdminDailyQuizTab() {
   const [activeTab, setActiveTab] = useState("manage");
@@ -637,12 +727,19 @@ export default function AdminDailyQuizTab() {
         >
           <UserCircle className="w-3.5 h-3.5" /> History
         </button>
+        <button
+          onClick={() => setActiveTab("season")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === "season" ? "bg-indigo-600 text-white shadow" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+        >
+          <Trophy className="w-3.5 h-3.5" /> Season
+        </button>
       </div>
 
       {activeTab === "manage" && <AdminQuizManager />}
       {activeTab === "overview" && <QuestionsOverview />}
       {activeTab === "activity" && <QuizActivityLog />}
       {activeTab === "history" && <UserQuizHistory />}
+      {activeTab === "season" && <SeasonPanel />}
     </div>
   );
 }

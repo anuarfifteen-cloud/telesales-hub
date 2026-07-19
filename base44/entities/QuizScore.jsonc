@@ -1,0 +1,50 @@
+{
+  "name": "QuizScore",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the user"
+    },
+    "correct_count": {
+      "type": "number",
+      "description": "Number of correct answers in the current quiz season",
+      "default": 0
+    },
+    "total_answered": {
+      "type": "number",
+      "description": "Total number of answers submitted in the current quiz season",
+      "default": 0
+    }
+  },
+  "required": [
+    "user_id",
+    "user_name"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
