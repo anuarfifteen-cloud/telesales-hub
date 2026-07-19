@@ -208,17 +208,16 @@ export default function ThemeShop({ user, onUserUpdate }) {
                   {isFree ? (
                     <span className="text-[10px] font-bold text-muted-foreground">Free</span>
                   ) : (
-                    <span className="inline-flex items-baseline gap-1.5">
-                      {showOriginalStr && (
-                        <span className="inline-flex items-baseline gap-0.5 text-[10px] font-bold text-muted-foreground line-through">
-                          <CoinIcon className="w-3 h-3 inline-block -translate-y-px" />
-                          {basePrice}
-                        </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <CoinIcon className="w-3 h-3" />
+                      {showOriginalStr ? (
+                        <>
+                          <s className="text-[10px] text-muted-foreground">{basePrice}</s>
+                          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">{displayPrice}</span>
+                        </>
+                      ) : (
+                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">{displayPrice}</span>
                       )}
-                      <span className="inline-flex items-baseline gap-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                        <CoinIcon className="w-3 h-3 inline-block -translate-y-px" />
-                        {displayPrice}
-                      </span>
                     </span>
                   )}
                 </div>
