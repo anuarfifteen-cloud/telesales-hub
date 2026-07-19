@@ -163,7 +163,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
     const opts = [question.option_a, question.option_b, question.option_c];
     const selectedOptionLetter = ["A", "B", "C"][opts.indexOf(pendingResult.selectedAnswer)] ?? "";
 
-    let duplicateDetected = false;
+    let isNewAnswer = true;
     try {
       await base44.entities.QuizAnswer.create({
         user_id: user.id,
@@ -174,33 +174,39 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
         is_correct: isCorrect,
         selected_option: selectedOptionLetter,
       });
+      console.log("[DailyDuoGame] QuizAnswer created OK");
     } catch (e) {
-      duplicateDetected = true;
+      isNewAnswer = false;
+      console.log("[DailyDuoGame] QuizAnswer create failed (likely duplicate):", e?.message || e);
     }
 
-    // Update or create season score (upsert)
-    if (!duplicateDetected) {
-      try {
-        const existing = await base44.entities.QuizScore.filter({ user_id: user.id });
-        const scoreRecord = existing[0];
-        const payload = {
-          user_id: user.id,
-          user_name: user.full_name || user.email?.split("@")[0] || "Player",
-          total_answered: (scoreRecord?.total_answered ?? 0) + 1,
-          correct_count: (scoreRecord?.correct_count ?? 0) + (isCorrect ? 1 : 0),
-          last_answered_date: today,
-        };
-        if (scoreRecord?.id) {
-          await base44.entities.QuizScore.update(scoreRecord.id, payload);
-        } else {
-          await base44.entities.QuizScore.create(payload);
-        }
-      } catch (e) {
-        console.error("QuizScore upsert failed:", e);
+    // ALWAYS upsert season score — even if QuizAnswer was a duplicate,
+    // so a previous failed attempt still gets its score recorded.
+    try {
+      const existing = await base44.entities.QuizScore.filter({ user_id: user.id });
+      const scoreRecord = existing[0];
+      const baseCorrect = scoreRecord?.correct_count ?? 0;
+      const baseTotal = scoreRecord?.total_answered ?? 0;
+      const payload = {
+        user_id: user.id,
+        user_name: user.full_name || user.email?.split("@")[0] || "Player",
+        total_answered: isNewAnswer ? baseTotal + 1 : baseTotal,
+        correct_count: isNewAnswer ? baseCorrect + (isCorrect ? 1 : 0) : baseCorrect,
+        last_answered_date: today,
+      };
+      console.log("[DailyDuoGame] QuizScore upsert payload:", payload, "existing?", !!scoreRecord);
+      if (scoreRecord?.id) {
+        await base44.entities.QuizScore.update(scoreRecord.id, payload);
+        console.log("[DailyDuoGame] QuizScore updated OK");
+      } else {
+        await base44.entities.QuizScore.create(payload);
+        console.log("[DailyDuoGame] QuizScore created OK");
       }
+    } catch (e) {
+      console.error("[DailyDuoGame] QuizScore upsert FAILED:", e?.message || e, e);
     }
 
-    // Always refresh leaderboard — outside try/catch so it runs even if upsert failed
+    // Always refresh the leaderboard
     await loadLeaders();
 
     const localRecord = { answered: true, correct: isCorrect, questionId: question.id };
@@ -209,8 +215,8 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
     saveLastSeenId(question.id);
 
     await onUserUpdate();
-    if (duplicateDetected) {
-      toast.info("Score updated. Your answer was already logged for today.");
+    if (!isNewAnswer) {
+      toast.info("Your answer was already logged for today.");
     }
     setFinishing(false);
   };
