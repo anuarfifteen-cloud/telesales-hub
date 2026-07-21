@@ -35,7 +35,7 @@ export default function VoucherRedeem({ user, onUserUpdate }) {
     }
 
     const freshUser = await base44.auth.me();
-    const reward = voucher.reward_tokens ?? 1;
+    const reward = Number(voucher.reward_tokens) || 1;
 
     if (reward === 999) {
       const currentDiamonds = freshUser?.diamonds ?? 0;

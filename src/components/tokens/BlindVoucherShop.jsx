@@ -277,7 +277,7 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
     if (voucher.status === "redeemed") { setRedeemError("Code already used."); setRedeemLoading(false); return; }
     if (voucher.user_id !== user.id) { setRedeemError("This code is not yours."); setRedeemLoading(false); return; }
 
-    const reward = voucher.reward_tokens ?? 1;
+    const reward = Number(voucher.reward_tokens) || 1;
     const freshUser = await base44.auth.me();
 
     if (reward === 999) {
