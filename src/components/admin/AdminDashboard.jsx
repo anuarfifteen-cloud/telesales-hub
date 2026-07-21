@@ -196,12 +196,12 @@ export default function AdminDashboard({ onBack }) {
       </header>
 
       {/* Tab switcher */}
-      <div className="max-w-2xl mx-auto px-4 pt-4 flex gap-2">
+      <div className="max-w-2xl mx-auto px-4 pt-4 grid grid-cols-3 gap-2">
         {[{ id: "general", label: "⚙️ General" }, { id: "quiz", label: "🧠 Daily Quiz" }, { id: "spin", label: "🎡 Spin Logs" }, { id: "supertap", label: "⚡ Super Tap" }, { id: "flappy", label: "🐦 Flappy" }, { id: "gamehistory", label: "🏅 Game History" }, { id: "tokens", label: "🪙 Token Log" }, { id: "coinflip", label: "🪙 Coin Flip" }].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border ${activeTab === tab.id ? "bg-primary text-primary-foreground border-primary shadow" : "bg-card text-muted-foreground border-border hover:bg-muted"}`}
+            className={`w-full py-2 rounded-xl text-[11px] font-bold transition-all border text-center ${activeTab === tab.id ? "bg-primary text-primary-foreground border-primary shadow" : "bg-card text-muted-foreground border-border hover:bg-muted"}`}
           >
             {tab.label}
           </button>
