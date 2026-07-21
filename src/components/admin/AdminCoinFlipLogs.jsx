@@ -6,7 +6,7 @@ export default function AdminCoinFlipLogs() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState("");
-  const [nameFilter, setNameFilter] = useState("");
+  const [selectedUser, setSelectedUser] = useState("");
 
   useEffect(() => {
     base44.entities.CoinFlipGame.list("-created_date", 500)
@@ -15,14 +15,14 @@ export default function AdminCoinFlipLogs() {
       .finally(() => setLoading(false));
   }, []);
 
+  const uniqueUsers = [...new Set(records.map((r) => r.user_email).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b)
+  );
+
   const filtered = records.filter((r) => {
-    const matchDate = !dateFilter
-      ? true
-      : (r.created_date || "").startsWith(dateFilter);
-    const matchName = !nameFilter
-      ? true
-      : (r.user_email || "").toLowerCase().includes(nameFilter.toLowerCase());
-    return matchDate && matchName;
+    const matchDate = !dateFilter ? true : (r.created_date || "").startsWith(dateFilter);
+    const matchUser = !selectedUser ? true : (r.user_email || "") === selectedUser;
+    return matchDate && matchUser;
   });
 
   const totalFlips = filtered.length;
@@ -33,7 +33,7 @@ export default function AdminCoinFlipLogs() {
 
   const clearFilters = () => {
     setDateFilter("");
-    setNameFilter("");
+    setSelectedUser("");
   };
 
   return (
@@ -74,14 +74,17 @@ export default function AdminCoinFlipLogs() {
           />
         </div>
         <div className="flex-1">
-          <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">Player Name</p>
-          <input
-            type="text"
-            placeholder="Search by email…"
-            value={nameFilter}
-            onChange={(e) => setNameFilter(e.target.value)}
+          <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">Player</p>
+          <select
+            value={selectedUser}
+            onChange={(e) => setSelectedUser(e.target.value)}
             className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground"
-          />
+          >
+            <option value="">All users</option>
+            {uniqueUsers.map((u) => (
+              <option key={u} value={u}>{u}</option>
+            ))}
+          </select>
         </div>
         <button
           onClick={clearFilters}
