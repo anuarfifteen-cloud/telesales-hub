@@ -71,6 +71,13 @@ export default function CoinFlipArena({ user, onUserUpdate, isAdmin }) {
     });
 
     await base44.auth.updateMe({ earlyAccessTokens: tokens + delta });
+    await base44.entities.TokenTransaction.create({
+      user_id: user.id,
+      user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
+      amount: delta,
+      source: `Coin Flip — ${won ? "Win" : "Loss"} (chose ${choice}, landed ${outcome}, wagered ${wager})`,
+      timestamp: new Date().toISOString(),
+    });
     await onUserUpdate();
     queryClient.invalidateQueries({ queryKey: ["coinflip-history", user?.id] });
 
