@@ -208,11 +208,6 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
   const [loadingVouchers, setLoadingVouchers] = useState(true);
   const [showVoucherFeed, setShowVoucherFeed] = useState(true);
 
-  // Redeem state
-  const [redeemCode, setRedeemCode] = useState("");
-  const [redeemLoading, setRedeemLoading] = useState(false);
-  const [redeemError, setRedeemError] = useState(null);
-
   const tokens = user?.earlyAccessTokens ?? 0;
   const canAfford = tokens >= 2;
 
@@ -263,59 +258,6 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
     playChime();
     setPurchaseOverlay({ phase: "shake", reward });
     setTimeout(() => setPurchaseOverlay({ phase: "reveal", reward }), 2000);
-  };
-
-  const handleRedeem = async () => {
-    if (!redeemCode.trim() || redeemLoading) return;
-    setRedeemLoading(true);
-    setRedeemError(null);
-
-    const results = await base44.entities.Voucher.filter({ code: redeemCode.trim().toUpperCase() });
-    const voucher = results[0];
-
-    if (!voucher) { setRedeemError("Invalid code."); setRedeemLoading(false); return; }
-    if (voucher.status === "redeemed") { setRedeemError("Code already used."); setRedeemLoading(false); return; }
-    if (voucher.user_id !== user.id) { setRedeemError("This code is not yours."); setRedeemLoading(false); return; }
-
-    const reward = Number(voucher.reward_tokens) || 1;
-    const freshUser = await base44.auth.me();
-
-    if (reward === 999) {
-      const currentDiamonds = freshUser?.diamonds ?? 0;
-      await Promise.all([
-        base44.auth.updateMe({ diamonds: currentDiamonds + 1 }),
-        base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
-        base44.entities.TokenTransaction.create({
-          user_id: user.id,
-          user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
-          amount: 0,
-          source: `Blind Voucher Redemption — DIAMOND (${voucher.code})`,
-          timestamp: new Date().toISOString(),
-        }),
-      ]);
-    } else {
-      const currentTokens = freshUser?.earlyAccessTokens ?? 0;
-      await Promise.all([
-        base44.auth.updateMe({ earlyAccessTokens: currentTokens + reward }),
-        base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
-        base44.entities.TokenTransaction.create({
-          user_id: user.id,
-          user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
-          amount: reward,
-          source: `Blind Voucher Redemption (${voucher.code})`,
-          timestamp: new Date().toISOString(),
-        }),
-      ]);
-    }
-
-    setRedeemCode("");
-    await onUserUpdate();
-    await loadActiveVouchers();
-    setRedeemLoading(false);
-
-    playRedeemChime();
-    setRedeemOverlay({ phase: "shake", reward });
-    setTimeout(() => setRedeemOverlay({ phase: "reveal", reward }), 2000);
   };
 
   const handleCopy = (code) => {
