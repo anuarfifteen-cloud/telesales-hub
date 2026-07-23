@@ -119,30 +119,67 @@ export default function TokenVoucher({ user, onUserUpdate }) {
           return toast.error("This code is not yours.");
         }
 
-        const reward = voucher.reward_tokens ?? 1;
+        const reward = Number(voucher.reward_tokens);
+
+        // Safety guard — reject invalid reward values
+        if (isNaN(reward)) {
+          setVoucherStatus({ text: "Invalid voucher reward. Contact admin.", color: "text-red-600 dark:text-red-400" });
+          setLoading(false);
+          return toast.error("Invalid voucher reward. Please contact admin.");
+        }
+
         const freshUser = await base44.auth.me();
         const freshTokens = freshUser?.earlyAccessTokens ?? 0;
 
-        await Promise.all([
-          base44.auth.updateMe({ earlyAccessTokens: freshTokens + reward }),
-          base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
-          base44.entities.TokenTransaction.create({
-            user_id: user.id,
-            user_name: user.full_name || user.email,
-            amount: reward,
-            source: `Blind Voucher Redemption (${formattedCode})`,
-            timestamp: new Date().toISOString(),
-          }),
-        ]);
-
-        setVoucherStatus({
-          text: `Success! +${reward} ${reward === 1 ? 'Token' : 'Tokens'} Added 🪙`,
-          color: "text-emerald-600 dark:text-emerald-400"
-        });
-        setClaimCode("");
-        await onUserUpdate();
-        toast.success(`Success! Added +${reward} tokens to your balance. 🪙`);
-        return;
+        if (reward === 999) {
+          // Diamond path
+          const currentDiamonds = freshUser?.diamonds ?? 0;
+          await Promise.all([
+            base44.auth.updateMe({ diamonds: currentDiamonds + 1 }),
+            base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+            base44.entities.TokenTransaction.create({
+              user_id: user.id,
+              user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
+              amount: 0,
+              source: `Blind Voucher Redemption — DIAMOND (${voucher.code})`,
+              timestamp: new Date().toISOString(),
+            }),
+          ]);
+          setVoucherStatus({
+            text: "💎 JACKPOT! You won a VIP Diamond!",
+            color: "text-cyan-600 dark:text-cyan-400"
+          });
+          setClaimCode("");
+          await onUserUpdate();
+          toast.success("💎 JACKPOT! You won a VIP Diamond!");
+          return;
+        } else if (reward >= 1 && reward <= 5) {
+          // Token path — only allow valid 1–5 range
+          await Promise.all([
+            base44.auth.updateMe({ earlyAccessTokens: freshTokens + reward }),
+            base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+            base44.entities.TokenTransaction.create({
+              user_id: user.id,
+              user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
+              amount: reward,
+              source: `Blind Voucher Redemption (${voucher.code})`,
+              timestamp: new Date().toISOString(),
+            }),
+          ]);
+          setVoucherStatus({
+            text: `Success! +${reward} ${reward === 1 ? 'Token' : 'Tokens'} Added 🪙`,
+            color: "text-emerald-600 dark:text-emerald-400"
+          });
+          setClaimCode("");
+          await onUserUpdate();
+          toast.success(`Success! Added +${reward} tokens to your balance. 🪙`);
+          return;
+        } else {
+          // Catch-all safety — reject anything outside valid ranges
+          setVoucherStatus({ text: "Voucher reward is invalid. Contact admin.", color: "text-red-600 dark:text-red-400" });
+          setLoading(false);
+          return toast.error("Voucher reward is invalid. Please contact admin.");
+        }
       }
 
       // VCH- codes: original logic
