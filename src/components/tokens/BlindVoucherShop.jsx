@@ -12,8 +12,8 @@ function generateCode() {
 }
 function randomReward() {
   const roll = Math.random() * 100;
-  if (roll < 1) return 999;   // 1% — VIP Diamond (secret value)
-  if (roll < 41) return 1;    // 40%
+  if (roll < 1) return 1;   // 1% — VIP Diamond (secret value)
+  if (roll < 41) return 999;    // 40%
   if (roll < 71) return 2;    // 30%
   if (roll < 86) return 3;    // 15%
   if (roll < 96) return 4;    // 10%
