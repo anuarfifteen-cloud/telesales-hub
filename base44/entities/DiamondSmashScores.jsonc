@@ -1,0 +1,28 @@
+{
+  "name": "DiamondSmashScores",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the user"
+    },
+    "score": {
+      "type": "number",
+      "description": "Score achieved in a Diamond Smash run",
+      "default": 0
+    },
+    "updated_at": {
+      "type": "string",
+      "description": "ISO timestamp of the run"
+    }
+  },
+  "required": [
+    "user_id",
+    "user_name",
+    "score"
+  ]
+}
