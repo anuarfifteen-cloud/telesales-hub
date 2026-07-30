@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Trophy, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 const ROWS = 8;
 const COLS = 8;
@@ -10,17 +11,13 @@ const POINTS = [10, 10, 10, 10, 20];
 const MAX_MOVES = 20;
 const GAME_TIME = 60;
 
-// Fixed cell geometry so absolute transforms are pixel-accurate
+// Fixed cell geometry (grid cells for Framer Motion layout FLIP)
 const CELL = 40;
 const GAP = 4;
-const STEP = CELL + GAP; // 44
-const STAGGER = 18; // ms per row — lower rows settle first
 const BOARD_W = COLS * CELL + (COLS - 1) * GAP; // 348
 const BOARD_H = ROWS * CELL + (ROWS - 1) * GAP; // 348
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
-const raf2 = () =>
-  new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
 
 let _id = 0;
 const makePiece = (type) => ({ id: ++_id, type });
@@ -75,29 +72,38 @@ function findPieceMatches(board) {
   });
 }
 
-// Null matched, drop existing pieces, refill empties with NEW pieces.
-function applyGravity(board, matched) {
+// Smash step — remove matched pieces (leaves gaps)
+function clearMatches(board, matched) {
   const next = board.map((row) => row.slice());
-  const clearedTypes = [];
   matched.forEach(({ r, c }) => {
-    if (next[r][c]) clearedTypes.push(next[r][c].type);
     next[r][c] = null;
   });
-  const newIds = [];
+  return next;
+}
+
+// Gravity step — drop surviving pieces to the bottom, leaving nulls at top
+function applyGravity(board) {
+  const next = board.map((row) => row.slice());
   for (let c = 0; c < COLS; c++) {
     const stack = [];
     for (let r = ROWS - 1; r >= 0; r--) if (next[r][c] !== null) stack.push(next[r][c]);
     for (let r = ROWS - 1; r >= 0; r--) {
       const idx = ROWS - 1 - r;
-      if (idx < stack.length) next[r][c] = stack[idx];
-      else {
-        const p = makePiece(randType());
-        next[r][c] = p;
-        newIds.push(p.id);
-      }
+      next[r][c] = idx < stack.length ? stack[idx] : null;
     }
   }
-  return { board: next, clearedTypes, newIds };
+  return next;
+}
+
+// Refill step — spawn new pieces into remaining gaps (drop in from the top)
+function refill(board) {
+  const next = board.map((row) => row.slice());
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (next[r][c] === null) next[r][c] = makePiece(randType());
+    }
+  }
+  return next;
 }
 
 // ── Leaderboard ─────────────────────────────────────────────────────────────
@@ -185,7 +191,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const [loadingScores, setLoadingScores] = useState(true);
   const [clearing, setClearing] = useState(false);
   // Animation state
-  const [enteringIds, setEnteringIds] = useState(() => new Set());
   const [fadingIds, setFadingIds] = useState(() => new Set());
 
   const scoreRef = useRef(0);
@@ -266,7 +271,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setSelected(null);
     setBusy(false);
     setSaving(false);
-    setEnteringIds(new Set());
     setFadingIds(new Set());
     setPhase("playing");
 
@@ -299,7 +303,9 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setBoard(swapped);
     await sleep(140);
 
-    // 2. Resolve the full cascade chain step-by-step (animates falls)
+    // 2. Resolve the full cascade chain step-by-step.
+    //    Each setBoard is its own render cycle so Framer Motion's layout
+    //    animation tracks each gravity step as a distinct position change.
     let chain = 0;
     let gained = 0;
     let working = swapped;
@@ -309,27 +315,36 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       if (matches.length === 0) break;
       chain++;
 
-      // Fade matched pieces out in place
-      const fadeSet = new Set(matches.map((m) => working[m.r][m.c]?.id).filter(Boolean));
+      // Capture scoring + smash targets BEFORE mutation
+      const clearedTypes = matches
+        .map((m) => working[m.r][m.c]?.type)
+        .filter((t) => t !== undefined);
+      const clearedBase = clearedTypes.reduce((s, t) => s + POINTS[t], 0);
+      const fadeSet = new Set(
+        matches.map((m) => working[m.r][m.c]?.id).filter(Boolean)
+      );
+
+      // Smash — fade the matched pieces in place
       setFadingIds(fadeSet);
-      await sleep(180);
+      await sleep(320); // smash animation
 
-      // Apply gravity + refill: existing pieces fall (transform transition),
-      // new pieces spawn above the grid (offset) ready to drop in.
-      const { board: after, clearedTypes, newIds } = applyGravity(working, matches);
-      working = after;
-      setBoard(after);
+      // Clear — remove matched pieces (gaps appear)
+      working = clearMatches(working, matches);
+      setBoard(working);
+      await sleep(80);
+
+      // Gravity — surviving pieces fall to the bottom (layout FLIP animation)
+      working = applyGravity(working);
+      setBoard(working);
+      await sleep(120);
+
+      // Refill — spawn new pieces from the top to fill remaining gaps
+      working = refill(working);
+      setBoard(working);
       setFadingIds(new Set());
-      setEnteringIds(new Set(newIds));
 
-      // Let entering pieces paint at their above-grid offset, then release them
-      // so the CSS transition carries them down into place.
-      await raf2();
-      setEnteringIds(new Set());
-      await sleep(280);
-
-      const base = clearedTypes.reduce((s, t) => s + POINTS[t], 0);
-      gained += base * chain;
+      gained += clearedBase * chain;
+      await sleep(280); // let the spring settle before the next cascade
     }
 
     // Apply scoring + decrement moves
@@ -400,41 +415,49 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         </div>
       </div>
 
-      {/* Board — overflow hidden so entering pieces visibly drop in from the top edge */}
+      {/* Board — CSS grid + Framer Motion layout FLIP for gravity cascade */}
       <div
         className="relative overflow-hidden rounded-2xl border border-fuchsia-500/30 shadow-[0_0_30px_rgba(217,70,239,0.2)] bg-gradient-to-b from-[#2a1245] to-[#1a0b2e] p-2"
         style={{ width: BOARD_W + 16 }}
       >
-        <div className="relative" style={{ width: BOARD_W, height: BOARD_H }}>
+        <div
+          className="relative grid"
+          style={{
+            width: BOARD_W,
+            height: BOARD_H,
+            gridTemplateColumns: `repeat(${COLS}, ${CELL}px)`,
+            gridTemplateRows: `repeat(${ROWS}, ${CELL}px)`,
+            gap: GAP,
+          }}
+        >
           {pieces.map(({ piece, r, c }) => {
-            const isEntering = enteringIds.has(piece.id);
             const isFading = fadingIds.has(piece.id);
             const isSel = selected && selected.r === r && selected.c === c;
-            const x = c * STEP;
-            const y = isEntering ? -STEP : r * STEP;
             return (
-              <button
+              <motion.div
                 key={piece.id}
-                onClick={() => handleCellClick(r, c)}
-                disabled={phase !== "playing" || busy}
-                className={`absolute left-0 top-0 flex items-center justify-center rounded-lg select-none ${
-                  isSel
-                    ? "bg-fuchsia-500/40 ring-2 ring-fuchsia-400 z-20"
-                    : "bg-white/10 hover:bg-white/20"
-                } ${isEntering ? "z-10" : "z-20"} ${phase === "playing" && !busy ? "cursor-pointer" : "cursor-default"}`}
-                style={{
-                  width: CELL,
-                  height: CELL,
-                  transform: `translate(${x}px, ${y}px)`,
-                  opacity: isFading ? 0 : isEntering ? 0 : 1,
-                  transition: "transform 0.25s ease, opacity 0.2s ease",
-                  transitionDelay: `${(ROWS - 1 - r) * STAGGER}ms`,
-                }}
+                layout
+                style={{ gridColumn: c + 1, gridRow: r + 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20, delay: r * 0.05 }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: isFading ? 0.4 : 1, opacity: isFading ? 0 : 1 }}
+                className={`flex items-center justify-center ${isSel ? "z-30" : "z-20"}`}
               >
-                <span className="text-2xl leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-                  {EMOJIS[piece.type]}
-                </span>
-              </button>
+                <button
+                  onClick={() => handleCellClick(r, c)}
+                  disabled={phase !== "playing" || busy}
+                  className={`flex items-center justify-center rounded-lg select-none ${
+                    isSel
+                      ? "bg-fuchsia-500/40 ring-2 ring-fuchsia-400"
+                      : "bg-white/10 hover:bg-white/20"
+                  } ${phase === "playing" && !busy ? "cursor-pointer" : "cursor-default"}`}
+                  style={{ width: CELL, height: CELL }}
+                >
+                  <span className="text-2xl leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+                    {EMOJIS[piece.type]}
+                  </span>
+                </button>
+              </motion.div>
             );
           })}
         </div>
