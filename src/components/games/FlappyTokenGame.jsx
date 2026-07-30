@@ -198,7 +198,7 @@ function drawIdleScreen(ctx, pipes, tokenImg) {
 // ── Live Leaderboard ──────────────────────────────────────────────────────────
 function LiveLeaderboard({ currentUserId }) {
   const [primaryTab, setPrimaryTab] = useState("live");
-  const [subTab, setSubTab] = useState("daily");
+  const [subTab, setSubTab] = useState("season");
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [champUserIds, setChampUserIds] = useState(new Set());

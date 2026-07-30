@@ -74,7 +74,7 @@ function getLocalDateStr() {
 
 function Leaderboard() {
   const [primaryTab, setPrimaryTab] = useState("live");
-  const [subTab, setSubTab] = useState("daily");
+  const [subTab, setSubTab] = useState("season");
 
   const { data: scores = [] } = useQuery({
     queryKey: ["tapScores"],
