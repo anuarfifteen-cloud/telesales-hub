@@ -604,16 +604,10 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         {/* Start screen — shown only before the player starts. Removed entirely
             during gameplay so the grid is fully visible and unobstructed. */}
         {phase === "idle" && (
-  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e] z-40">
+  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e]/75 backdrop-blur-sm z-40">
             <h1 className="font-black text-3xl text-center tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-fuchsia-300 to-amber-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]">
               💎 DIAMOND<br />SMASH
             </h1>
-            <p className="text-xs text-white/70 text-center max-w-[260px] leading-relaxed px-4">
-              Tap a candy, then tap next to it to swap. Match 3 or more to smash them!
-            </p>
-            <p className="text-xs text-white/70 text-center max-w-[260px] leading-relaxed px-4">
-              💥 Bonus: If pieces fall and match again automatically, you get a chain bonus — x2, x3, x4 and more!
-            </p>
             <p className="text-[11px] text-fuchsia-300/80 text-center">
               20 moves • 90 seconds<br />
               💎 = 5 pts · 🍬, 🍭, 🍫, 🍩 = 2 pts each
@@ -652,6 +646,12 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Static how-to-play hint */}
+      <div className="w-full text-center text-xs text-fuchsia-300/70 px-2 space-y-1" style={{ maxWidth: 364 }}>
+        <p>Tap a candy, then tap next to it to swap. Match 3 or more to smash them!</p>
+        <p>💥 Bonus: If pieces fall and match again automatically, you get a chain bonus — x2, x3, x4 and more!</p>
       </div>
 
       {/* Leaderboard */}
