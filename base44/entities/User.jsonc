@@ -29,6 +29,11 @@
       "default": false,
       "description": "Whether this user is the defending Flappy Token champion, placed on a one-season prize cooldown"
     },
+    "is_defending_champ_diamond": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this user is the defending Diamond Smash champion, placed on a one-season prize cooldown"
+    },
     "diamonds": {
       "type": "number",
       "default": 0,

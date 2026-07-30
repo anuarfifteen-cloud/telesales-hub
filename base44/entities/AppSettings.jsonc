@@ -51,6 +51,13 @@
       },
       "description": "User IDs of the current Flappy Token defending champions (publicly readable for leaderboard crown display)"
     },
+    "defending_champ_diamond_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "User IDs of the current Diamond Smash defending champions (publicly readable for leaderboard crown display)"
+    },
     "diamond_store_enabled": {
       "type": "boolean",
       "description": "Master toggle to enable/disable Diamond purchasing",

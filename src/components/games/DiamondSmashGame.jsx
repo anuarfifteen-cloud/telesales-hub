@@ -117,6 +117,22 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
   const [hofLoading, setHofLoading] = useState(true);
   const medals = ["🥇", "🥈", "🥉"];
 
+  // Publicly-readable defending champion IDs (renders the 👑 cooldown row)
+  const [champIds, setChampIds] = useState(() => new Set());
+  const loadChamps = useCallback(async () => {
+    try {
+      const rows = await base44.entities.AppSettings.list();
+      setChampIds(new Set(rows[0]?.defending_champ_diamond_ids || []));
+    } catch {
+      setChampIds(new Set());
+    }
+  }, []);
+  useEffect(() => {loadChamps();}, [loadChamps]);
+  useEffect(() => {
+    const unsub = base44.entities.AppSettings.subscribe(() => loadChamps());
+    return unsub;
+  }, [loadChamps]);
+
   const loadHof = useCallback(async () => {
     try {
       const rows = await base44.entities.DiamondSmashHallOfFame.list("-awarded_at", 50);
@@ -204,7 +220,7 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
           <div
             key={s.id}
             className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-fuchsia-500/5 ${
-            i < 3 ? "bg-fuchsia-500/[0.03]" : ""} ${
+            champIds.has(s.user_id) ? "opacity-60" : i < 3 ? "bg-fuchsia-500/[0.03]" : ""} ${
             s.user_id === currentUserId ? "ring-1 ring-fuchsia-500/30" : ""}`}>
             
                   <div className="w-8 flex items-center justify-center flex-shrink-0">
@@ -216,18 +232,21 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
                       </span>
               }
                   </div>
-                  <span className="flex-1 min-w-0 text-sm font-bold text-white leading-tight" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
-                    {s.user_name}
+                  <span className="flex-1 min-w-0 text-sm font-bold text-white leading-tight flex items-center gap-1.5" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                    <span>{s.user_name}</span>
+                    {champIds.has(s.user_id) && <span className="text-base flex-shrink-0">👑</span>}
                   </span>
                   <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
                     <span className="text-sm font-black text-amber-400 tracking-widest tabular-nums bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/30 shadow-[0_0_10px_rgba(255,215,0,0.2)]">
                       {s.score} PTS
                     </span>
-                    {i < 3 &&
-              <span className={`text-[10px] font-black ${i === 0 ? "text-[#ffd700]" : i === 1 ? "text-[#c0c0c0]" : "text-[#cd7f32]"}`}>
+                    {champIds.has(s.user_id) ? (
+                      <span className="text-[10px] font-bold text-fuchsia-300/80">Prize Cooldown Active</span>
+                    ) : i < 3 && (
+                      <span className={`text-[10px] font-black ${i === 0 ? "text-[#ffd700]" : i === 1 ? "text-[#c0c0c0]" : "text-[#cd7f32]"}`}>
                         {i === 0 ? "+5 tokens" : i === 1 ? "+2 tokens" : "+1 token"}
                       </span>
-              }
+                    )}
                   </div>
                 </div>
           )}
