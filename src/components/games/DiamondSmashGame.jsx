@@ -117,7 +117,7 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
         <div className="flex items-center justify-center gap-3 mb-2">
           <Trophy className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]" />
           <p className="text-sm font-black uppercase tracking-widest text-fuchsia-400 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]">
-            All-Time Top Smashes
+            Season Leaderboard
           </p>
         </div>
         <p className="text-[11px] text-fuchsia-300/70 text-center leading-relaxed">
