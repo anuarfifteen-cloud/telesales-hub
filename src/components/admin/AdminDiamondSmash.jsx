@@ -77,6 +77,19 @@ export default function AdminDiamondSmash() {
   const handleReset = async () => {
     setResetting(true);
     try {
+      // Save the #1 winner to the Hall of Fame before wiping the season
+      const top1 = scores[0];
+      if (top1 && top1.user_id) {
+        await base44.entities.DiamondSmashHallOfFame.create({
+          user_id: top1.user_id,
+          user_name: top1.user_name,
+          score: top1.score,
+          rank: 1,
+          season_label: `Season — ${new Date().toLocaleString("default", { month: "long", year: "numeric" })}`,
+          awarded_at: new Date().toISOString(),
+        });
+      }
+
       await base44.entities.DiamondSmashScores.deleteMany({});
       queryClient.invalidateQueries({ queryKey: ["diamondSmashScoresAdmin"] });
       toast.success("🔄 Diamond Smash season reset! All scores cleared.");

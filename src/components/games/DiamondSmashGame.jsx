@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Trophy, RotateCcw, Trash2 } from "lucide-react";
+import { Loader2, Trophy, RotateCcw, Trash2, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useDiamondSmashAudio } from "@/hooks/useDiamondSmashAudio";
@@ -108,72 +108,172 @@ function refill(board) {
 }
 
 // ── Leaderboard ─────────────────────────────────────────────────────────────
+const DS_TAB_ACTIVE = "bg-fuchsia-500/15 border-fuchsia-500 text-fuchsia-300 shadow-[0_0_10px_rgba(217,70,239,0.5)]";
+const DS_TAB_INACTIVE = "border-white/10 text-white/40 hover:text-white/70 hover:border-white/25";
+
 function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserId }) {
+  const [primaryTab, setPrimaryTab] = useState("live"); // live | hall_of_fame
+  const [hof, setHof] = useState([]);
+  const [hofLoading, setHofLoading] = useState(true);
   const medals = ["🥇", "🥈", "🥉"];
+
+  const loadHof = useCallback(async () => {
+    try {
+      const rows = await base44.entities.DiamondSmashHallOfFame.list("-awarded_at", 50);
+      setHof(rows.filter((r) => r.rank === 1));
+    } catch {
+      setHof([]);
+    }
+    setHofLoading(false);
+  }, []);
+
+  useEffect(() => { loadHof(); }, [loadHof]);
+  useEffect(() => {
+    const unsub = base44.entities.DiamondSmashHallOfFame.subscribe(() => loadHof());
+    return unsub;
+  }, [loadHof]);
+
   return (
-    <div className="w-full retro-light-panel bg-[#1a0b2e]/90 backdrop-blur-xl rounded-2xl border border-fuchsia-500/30 shadow-[0_0_25px_rgba(217,70,239,0.15)] overflow-hidden">
-      <div className="bg-gradient-to-b from-[#0a0418] to-transparent border-b border-fuchsia-500/20 px-5 py-5 relative">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-fuchsia-500 to-transparent opacity-60" />
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <Trophy className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]" />
-          <p className="text-sm font-black uppercase tracking-widest text-fuchsia-400 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]">
-            Season Leaderboard
-          </p>
-        </div>
-        <p className="text-[11px] text-fuchsia-300/70 text-center leading-relaxed">
-          Top 10 diamond smashers of all time.
-        </p>
+    <div className="w-full space-y-3">
+      {/* Pill tab switcher */}
+      <div className="w-full flex gap-2 p-1.5 bg-muted rounded-xl border border-border backdrop-blur dark:bg-[#0a0530]/80 dark:border-white/10">
+        <button
+          onClick={() => setPrimaryTab("live")}
+          className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ${
+            primaryTab === "live" ? DS_TAB_ACTIVE : DS_TAB_INACTIVE
+          }`}
+        >
+          🏆 LIVE SCORES
+        </button>
+        <button
+          onClick={() => setPrimaryTab("hall_of_fame")}
+          className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ${
+            primaryTab === "hall_of_fame" ? DS_TAB_ACTIVE : DS_TAB_INACTIVE
+          }`}
+        >
+          🎖 HALL OF FAME
+        </button>
       </div>
 
-      {loading ? (
-        <div className="py-12 flex justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-fuchsia-400" />
-        </div>
-      ) : scores.length === 0 ? (
-        <div className="py-12 text-center text-fuchsia-300/50 text-sm tracking-widest font-bold uppercase">
-          No scores yet. Be the first!
-        </div>
-      ) : (
-        <div className="divide-y divide-fuchsia-500/10 bg-transparent">
-          {scores.map((s, i) => (
-            <div
-              key={s.id}
-              className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-fuchsia-500/5 ${
-                i < 3 ? "bg-fuchsia-500/[0.03]" : ""
-              } ${s.user_id === currentUserId ? "ring-1 ring-fuchsia-500/30" : ""}`}
-            >
-              <div className="w-8 flex items-center justify-center flex-shrink-0">
-                {i < 3 ? (
-                  <span className="text-2xl drop-shadow-md">{medals[i]}</span>
-                ) : (
-                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[#0a0418] text-[11px] font-black text-fuchsia-400/50 border border-fuchsia-500/20 shadow-inner">
-                    #{i + 1}
-                  </span>
-                )}
+      <div className="w-full retro-light-panel bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-fuchsia-500/30 shadow-[0_0_25px_rgba(217,70,239,0.15)] overflow-hidden transition-all duration-300">
+        {/* Header */}
+        <div className="bg-gradient-to-b from-slate-900 to-transparent border-b border-fuchsia-500/20 px-5 py-5 relative">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-fuchsia-500 to-transparent opacity-60" />
+          <div className="flex items-center justify-center gap-3 mb-2">
+            {primaryTab === "hall_of_fame" ? (
+              <Crown className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]" />
+            ) : (
+              <Trophy className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse" />
+            )}
+            <p className="text-sm font-black uppercase tracking-widest text-fuchsia-400 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]">
+              {primaryTab === "live" ? "Live Diamond Smash Leaderboard" : "Hall of Fame — Champions"}
+            </p>
+          </div>
+          {primaryTab === "live" ? (
+            <>
+              <p className="text-[11px] text-fuchsia-300/70 text-center leading-relaxed">
+                The current season's top 10 smashers. Be in the Top 3 when the season ends to win:
+              </p>
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2.5">
+                <span className="text-[11px] font-black bg-[#ffd700]/10 px-3 py-1 rounded-md border border-[#ffd700]/40 text-[#ffd700]">🥇 1ST: 5 TOKENS</span>
+                <span className="text-[11px] font-black bg-[#c0c0c0]/10 px-3 py-1 rounded-md border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2ND: 2 TOKENS</span>
+                <span className="text-[11px] font-black bg-[#cd7f32]/10 px-3 py-1 rounded-md border border-[#cd7f32]/40 text-[#cd7f32]">🥉 3RD: 1 TOKEN</span>
               </div>
-              <span className="flex-1 min-w-0 text-sm font-bold text-white leading-tight" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
-                {s.user_name}
-              </span>
-              <span className="text-sm font-black text-amber-400 tracking-widest tabular-nums flex-shrink-0 bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/30 shadow-[0_0_10px_rgba(255,215,0,0.2)]">
-                {s.score} PTS
-              </span>
-            </div>
-          ))}
+            </>
+          ) : (
+            <p className="text-[11px] text-fuchsia-300/70 text-center leading-relaxed">
+              Legendary players who claimed the crown at season's end. 👑
+            </p>
+          )}
         </div>
-      )}
 
-      {isAdmin && (
-        <div className="px-5 py-3 border-t border-fuchsia-500/20">
-          <button
-            onClick={onClear}
-            disabled={clearing || scores.length === 0}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold tracking-widest uppercase bg-red-500/10 border border-red-500/40 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-40"
-          >
-            {clearing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-            Clear Leaderboard
-          </button>
-        </div>
-      )}
+        {/* Live Scores */}
+        {primaryTab === "live" ? (
+          loading ? (
+            <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-fuchsia-400" /></div>
+          ) : scores.length === 0 ? (
+            <div className="py-12 text-center text-fuchsia-300/50 text-sm tracking-widest font-bold uppercase">
+              No scores yet. Be the first!
+            </div>
+          ) : (
+            <div className="divide-y divide-fuchsia-500/10 bg-transparent">
+              {scores.map((s, i) => (
+                <div
+                  key={s.id}
+                  className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-fuchsia-500/5 ${
+                    i < 3 ? "bg-fuchsia-500/[0.03]" : ""
+                  } ${s.user_id === currentUserId ? "ring-1 ring-fuchsia-500/30" : ""}`}
+                >
+                  <div className="w-8 flex items-center justify-center flex-shrink-0">
+                    {i < 3 ? (
+                      <span className="text-2xl drop-shadow-md">{medals[i]}</span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[#0a0418] text-[11px] font-black text-fuchsia-400/50 border border-fuchsia-500/20 shadow-inner">
+                        #{i + 1}
+                      </span>
+                    )}
+                  </div>
+                  <span className="flex-1 min-w-0 text-sm font-bold text-white leading-tight" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                    {s.user_name}
+                  </span>
+                  <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                    <span className="text-sm font-black text-amber-400 tracking-widest tabular-nums bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/30 shadow-[0_0_10px_rgba(255,215,0,0.2)]">
+                      {s.score} PTS
+                    </span>
+                    {i < 3 && (
+                      <span className={`text-[10px] font-black ${i === 0 ? "text-[#ffd700]" : i === 1 ? "text-[#c0c0c0]" : "text-[#cd7f32]"}`}>
+                        {i === 0 ? "+5 tokens" : i === 1 ? "+2 tokens" : "+1 token"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        ) : (
+          /* Hall of Fame */
+          hofLoading ? (
+            <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-fuchsia-400" /></div>
+          ) : hof.length === 0 ? (
+            <div className="py-12 text-center text-fuchsia-300/50 text-sm tracking-widest font-bold uppercase">
+              No past champions yet.
+            </div>
+          ) : (
+            <div className="divide-y divide-fuchsia-500/10 bg-transparent">
+              {hof.map((c) => (
+                <div key={c.id} className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-fuchsia-500/5">
+                  <div className="w-8 flex items-center justify-center flex-shrink-0">
+                    <Crown className="w-5 h-5 text-[#ffd700] drop-shadow-[0_0_6px_rgba(255,215,0,0.8)]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-bold text-white truncate block" style={{ wordBreak: "break-word" }}>
+                      {c.user_name}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-widest text-fuchsia-300/60">{c.season_label}</span>
+                  </div>
+                  <span className="text-sm font-black text-fuchsia-300 tracking-widest tabular-nums flex-shrink-0 bg-fuchsia-500/10 px-3 py-1.5 rounded-lg border border-fuchsia-500/30 shadow-[0_0_10px_rgba(217,70,239,0.2)]">
+                    {c.score} PTS
+                  </span>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+
+        {/* Admin clear — live tab only */}
+        {isAdmin && primaryTab === "live" && (
+          <div className="px-5 py-3 border-t border-fuchsia-500/20">
+            <button
+              onClick={onClear}
+              disabled={clearing || scores.length === 0}
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold tracking-widest uppercase bg-red-500/10 border border-red-500/40 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-40"
+            >
+              {clearing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              Clear Leaderboard
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

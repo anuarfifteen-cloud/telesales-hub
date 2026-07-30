@@ -1,0 +1,57 @@
+{
+  "name": "DiamondSmashHallOfFame",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the champion user"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the champion"
+    },
+    "score": {
+      "type": "number",
+      "description": "Winning score at season end",
+      "default": 0
+    },
+    "rank": {
+      "type": "number",
+      "description": "Finishing rank recorded (1 = champion)",
+      "default": 1
+    },
+    "season_label": {
+      "type": "string",
+      "description": "Human-readable season label, e.g. 'Season \u2014 July 2026'"
+    },
+    "awarded_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the champion was recorded"
+    }
+  },
+  "required": [
+    "user_name",
+    "score",
+    "rank",
+    "season_label",
+    "awarded_at"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
