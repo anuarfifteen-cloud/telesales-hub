@@ -495,7 +495,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
               Swap adjacent candies to match 3+. Chain cascades for huge multipliers!
             </p>
             <p className="text-[11px] text-fuchsia-300/80 text-center">
-              20 moves • 60 seconds<br />
+              20 moves • 90 seconds<br />
               💎 = 5 pts · others = 2 pts
             </p>
             <button
