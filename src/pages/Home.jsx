@@ -594,7 +594,7 @@ useEffect(() => {
   return (
     <div className="min-h-screen bg-background font-inter pb-32">
       {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-10" style={{ boxShadow: "0 1px 12px 0 rgba(0,0,0,0.08)" }}>
+      <header className="bg-card border-b border-border sticky top-0 z-30" style={{ boxShadow: "0 1px 12px 0 rgba(0,0,0,0.08)" }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           {/* Left: logo + app title */}
           <div className="flex items-center gap-2">
