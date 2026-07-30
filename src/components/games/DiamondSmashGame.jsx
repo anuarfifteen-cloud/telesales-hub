@@ -161,9 +161,9 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-fuchsia-500 to-transparent opacity-60" />
           <div className="flex items-center justify-center gap-6 mb-2 rounded ml-10">
             {primaryTab === "hall_of_fame" ?
-            <Crown className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]" /> :
+            <Crown className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]" /> : null
 
-            <Trophy className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse hidden" />
+
             }
             <p className="font-black uppercase tracking-widest text-fuchsia-400 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)] text-center text-3xl">
               {primaryTab === "live" ? "Live Diamond Smash Leaderboard" : "Hall of Fame — Champions"}
@@ -702,7 +702,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         }
 
         {/* Start screen — shown only before the player starts. Removed entirely
-                 during gameplay so the grid is fully visible and unobstructed. */}
+                  during gameplay so the grid is fully visible and unobstructed. */}
         {phase === "idle" &&
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e]/75 backdrop-blur-sm z-40">
             <h1 className="font-black text-3xl text-center tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-fuchsia-300 to-amber-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]">
