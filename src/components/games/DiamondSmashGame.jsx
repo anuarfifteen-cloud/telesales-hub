@@ -165,7 +165,7 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
 
             <Trophy className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse my-4" />
             }
-            <p className="text-sm font-black uppercase tracking-widest text-fuchsia-400 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]">
+            <p className="text-sm font-black uppercase tracking-widest text-fuchsia-400 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)] text-center mx-2">
               {primaryTab === "live" ? "Live Diamond Smash Leaderboard" : "Hall of Fame — Champions"}
             </p>
           </div>
@@ -702,7 +702,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         }
 
         {/* Start screen — shown only before the player starts. Removed entirely
-              during gameplay so the grid is fully visible and unobstructed. */}
+               during gameplay so the grid is fully visible and unobstructed. */}
         {phase === "idle" &&
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e]/75 backdrop-blur-sm z-40">
             <h1 className="font-black text-3xl text-center tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-fuchsia-300 to-amber-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]">
