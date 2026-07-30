@@ -669,46 +669,42 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         style={{ width: BOARD_W + 16, height: BOARD_H + 16 }}>
         
         <div
-          className="relative grid"
-          style={{
-            width: BOARD_W,
-            height: BOARD_H,
-            gridTemplateColumns: `repeat(${COLS}, ${CELL}px)`,
-            gridTemplateRows: `repeat(${ROWS}, ${CELL}px)`,
-            gap: GAP
-          }}>
-          
-          {pieces.map(({ piece, r, c }) => {
-            const isFading = fadingIds.has(piece.id);
-            const isSel = selected && selected.r === r && selected.c === c;
-            return (
-              <motion.div
-                key={piece.id}
-                layout
-                style={{ gridColumn: c + 1, gridRow: r + 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20, delay: r * 0.05 }}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: isFading ? 0.4 : 1, opacity: isFading ? 0 : 1 }}
-                className={`flex items-center justify-center ${isSel ? "z-30" : "z-20"}`}>
-                
-                <button
-                  onClick={() => handleCellClick(r, c)}
-                  disabled={phase !== "playing" || busy}
-                  className={`flex items-center justify-center rounded-lg select-none ${
-                  isSel ?
-                  "bg-fuchsia-500/40 ring-2 ring-fuchsia-400" :
-                  "bg-white/10 hover:bg-white/20"} ${
-                  phase === "playing" && !busy ? "cursor-pointer" : "cursor-default"}`}
-                  style={{ width: CELL, height: CELL }}>
-                  
-                  <span className="text-2xl leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-                    {EMOJIS[piece.type]}
-                  </span>
-                </button>
-              </motion.div>);
+  className="relative"
+  style={{ width: BOARD_W, height: BOARD_H }}>
 
-          })}
-        </div>
+  {pieces.map(({ piece, r, c }) => {
+    const isFading = fadingIds.has(piece.id);
+    const isSel = selected && selected.r === r && selected.c === c;
+    return (
+      <motion.div
+        key={piece.id}
+        layout
+        style={{
+          position: "absolute",
+          left: c * (CELL + GAP),
+          top: r * (CELL + GAP),
+          width: CELL,
+          height: CELL,
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 20, delay: r * 0.05 }}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: isFading ? 0.4 : 1, opacity: isFading ? 0 : 1 }}
+        className={`flex items-center justify-center ${isSel ? "z-30" : "z-20"}`}>
+        
+        <button
+          onClick={() => handleCellClick(r, c)}
+          disabled={phase !== "playing" || busy}
+          className={`flex items-center justify-center rounded-lg select-none w-full h-full ${
+            isSel ? "bg-fuchsia-500/40 ring-2 ring-fuchsia-400" : "bg-white/10 hover:bg-white/20"
+          } ${phase === "playing" && !busy ? "cursor-pointer" : "cursor-default"}`}>
+          <span className="text-2xl leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+            {EMOJIS[piece.type]}
+          </span>
+        </button>
+      </motion.div>
+    );
+  })}
+</div>
 
         {/* Cascade combo badge — above all pieces & overlays (z-50) */}
         {combo &&
