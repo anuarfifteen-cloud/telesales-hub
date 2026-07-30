@@ -163,9 +163,9 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
             {primaryTab === "hall_of_fame" ?
             <Crown className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]" /> :
 
-            <Trophy className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse" />
+            <Trophy className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse my-4" />
             }
-            <p className="text-sm font-black uppercase tracking-widest text-fuchsia-400 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)] text-center">
+            <p className="text-sm font-black uppercase tracking-widest text-fuchsia-400 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]">
               {primaryTab === "live" ? "Live Diamond Smash Leaderboard" : "Hall of Fame — Champions"}
             </p>
           </div>
