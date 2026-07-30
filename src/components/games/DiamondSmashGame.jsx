@@ -208,6 +208,19 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     comboTimer.current = setTimeout(() => setCombo(null), 800);
   };
 
+  // Floating score popup (shown after each scoring move)
+  const [floating, setFloating] = useState({ points: 0, reaction: "", visible: false, key: 0 });
+  const floatTimer = useRef(null);
+
+  const showFloating = (points, chainTop) => {
+    if (points <= 0) return;
+    const reaction =
+      chainTop >= 4 ? "⚡ INSANE!" : chainTop === 3 ? "💥 Great!" : chainTop === 2 ? "🔥 Nice!" : "";
+    setFloating({ points, reaction, visible: true, key: Date.now() });
+    if (floatTimer.current) clearTimeout(floatTimer.current);
+    floatTimer.current = setTimeout(() => setFloating((f) => ({ ...f, visible: false })), 1000);
+  };
+
   const scoreRef = useRef(0);
   const movesRef = useRef(MAX_MOVES);
   const timeLeftRef = useRef(GAME_TIME);
@@ -245,6 +258,10 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       if (comboTimer.current) {
         clearTimeout(comboTimer.current);
         comboTimer.current = null;
+      }
+      if (floatTimer.current) {
+        clearTimeout(floatTimer.current);
+        floatTimer.current = null;
       }
       stopMusic();
     };
@@ -318,6 +335,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setFadingIds(new Set());
     setCombo(null);
     if (comboTimer.current) { clearTimeout(comboTimer.current); comboTimer.current = null; }
+    setFloating({ points: 0, reaction: "", visible: false, key: 0 });
+    if (floatTimer.current) { clearTimeout(floatTimer.current); floatTimer.current = null; }
     setPhase("playing");
     startMusic();
 
@@ -404,6 +423,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     scoreRef.current = newScore;
     setScore(newScore);
 
+    if (gained > 0) showFloating(gained, chain);
+
     const newMoves = movesRef.current - 1;
     movesRef.current = newMoves;
     setMoves(newMoves);
@@ -486,9 +507,27 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
 
       {/* Stat bar */}
       <div className="w-full grid grid-cols-3 gap-2" style={{ maxWidth: 364 }}>
-        <div className="bg-white dark:bg-card rounded-xl border border-border shadow-sm p-2 text-center">
+        <div className="relative bg-white dark:bg-card rounded-xl border border-border shadow-sm p-2 text-center">
           <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Score</p>
           <p className="text-2xl font-black text-fuchsia-600 dark:text-fuchsia-400 tabular-nums">{score}</p>
+          {floating.visible && (
+            <motion.div
+              key={floating.key}
+              initial={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 0, y: -40 }}
+              transition={{ duration: 0.9 }}
+              className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 z-50 pointer-events-none whitespace-nowrap text-center"
+            >
+              <span className="block font-black text-xl text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]">
+                +{floating.points}
+              </span>
+              {floating.reaction && (
+                <span className="block font-black text-base text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
+                  {floating.reaction}
+                </span>
+              )}
+            </motion.div>
+          )}
         </div>
         <div className="bg-white dark:bg-card rounded-xl border border-border shadow-sm p-2 text-center">
           <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Moves</p>
