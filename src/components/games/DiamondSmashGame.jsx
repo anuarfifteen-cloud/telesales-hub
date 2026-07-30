@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Loader2, Trophy, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { useDiamondSmashAudio } from "@/hooks/useDiamondSmashAudio";
 
 const ROWS = 8;
 const COLS = 8;
@@ -193,6 +194,20 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   // Animation state
   const [fadingIds, setFadingIds] = useState(() => new Set());
 
+  // Audio (procedural Web Audio API) + cascade combo badge
+  const {
+    sfxOn, musicOn, toggleSfx, toggleMusic,
+    playMatch, playCascade, playDiamond, playGameOver, startMusic, stopMusic,
+  } = useDiamondSmashAudio();
+  const [combo, setCombo] = useState(null); // { mult, key }
+  const comboTimer = useRef(null);
+
+  const showCombo = (mult) => {
+    setCombo({ mult, key: Date.now() + mult });
+    if (comboTimer.current) clearTimeout(comboTimer.current);
+    comboTimer.current = setTimeout(() => setCombo(null), 800);
+  };
+
   const scoreRef = useRef(0);
   const movesRef = useRef(MAX_MOVES);
   const timeLeftRef = useRef(GAME_TIME);
@@ -227,8 +242,13 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      if (comboTimer.current) {
+        clearTimeout(comboTimer.current);
+        comboTimer.current = null;
+      }
+      stopMusic();
     };
-  }, []);
+  }, [stopMusic]);
 
   const saveScore = useCallback(
     async (finalScore) => {
@@ -275,6 +295,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     endedRef.current = true;
     stopTimer();
     setBusy(false);
+    playGameOver();
+    stopMusic();
     setPhase("over");
     saveScore(finalScore);
   };
@@ -294,7 +316,10 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setBusy(false);
     setSaving(false);
     setFadingIds(new Set());
+    setCombo(null);
+    if (comboTimer.current) { clearTimeout(comboTimer.current); comboTimer.current = null; }
     setPhase("playing");
+    startMusic();
 
     timerRef.current = setInterval(() => {
       timeLeftRef.current -= 1;
@@ -345,6 +370,11 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       const fadeSet = new Set(
         matches.map((m) => working[m.r][m.c]?.id).filter(Boolean)
       );
+
+      // Sound + combo badge (no game-logic change)
+      playMatch();
+      if (clearedTypes.includes(4)) playDiamond();
+      if (chain >= 2) { playCascade(chain); showCombo(chain); }
 
       // Smash — fade the matched pieces in place
       setFadingIds(fadeSet);
@@ -419,6 +449,41 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
 
   return (
     <div className="flex flex-col items-center gap-5 pb-6">
+      <style>{`
+        @keyframes dsComboPop {
+          0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+          25% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+          70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+          100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+        }
+      `}</style>
+
+      {/* Audio toggles */}
+      <div className="w-full flex items-center justify-center gap-2" style={{ maxWidth: 364 }}>
+        <button
+          onClick={toggleSfx}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+            sfxOn
+              ? "bg-fuchsia-500/15 border-fuchsia-500/40 text-fuchsia-600 dark:text-fuchsia-300"
+              : "bg-muted border-border text-muted-foreground line-through opacity-60"
+          }`}
+          aria-pressed={sfxOn}
+        >
+          {sfxOn ? "🔊" : "🔇"} SFX
+        </button>
+        <button
+          onClick={toggleMusic}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+            musicOn
+              ? "bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-300"
+              : "bg-muted border-border text-muted-foreground line-through opacity-60"
+          }`}
+          aria-pressed={musicOn}
+        >
+          🎵 Music
+        </button>
+      </div>
+
       {/* Stat bar */}
       <div className="w-full grid grid-cols-3 gap-2" style={{ maxWidth: 364 }}>
         <div className="bg-white dark:bg-card rounded-xl border border-border shadow-sm p-2 text-center">
@@ -483,6 +548,19 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
             );
           })}
         </div>
+
+        {/* Cascade combo badge — above all pieces & overlays (z-50) */}
+        {combo && (
+          <div
+            key={combo.key}
+            className="absolute top-1/2 left-1/2 z-50 pointer-events-none select-none"
+            style={{ animation: "dsComboPop 0.8s ease-out forwards" }}
+          >
+            <span className="font-black text-4xl tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 via-pink-400 to-amber-300 drop-shadow-[0_0_12px_rgba(217,70,239,0.9)] whitespace-nowrap">
+              {combo.mult >= 4 ? "💥" : combo.mult === 3 ? "🔥" : "✨"} x{combo.mult} COMBO!
+            </span>
+          </div>
+        )}
 
         {/* Start screen — shown only before the player starts. Removed entirely
             during gameplay so the grid is fully visible and unobstructed. */}
