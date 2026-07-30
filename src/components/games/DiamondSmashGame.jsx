@@ -10,38 +10,49 @@ const POINTS = [10, 10, 10, 10, 20];
 const MAX_MOVES = 20;
 const GAME_TIME = 60;
 
-// ── Board engine (pure helpers) ─────────────────────────────────────────────
-function rand() {
-  return Math.floor(Math.random() * EMOJIS.length);
-}
+// Fixed cell geometry so absolute transforms are pixel-accurate
+const CELL = 40;
+const GAP = 4;
+const STEP = CELL + GAP; // 44
+const STAGGER = 18; // ms per row — lower rows settle first
+const BOARD_W = COLS * CELL + (COLS - 1) * GAP; // 348
+const BOARD_H = ROWS * CELL + (ROWS - 1) * GAP; // 348
 
-function newBoard() {
+const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+const raf2 = () =>
+  new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+
+let _id = 0;
+const makePiece = (type) => ({ id: ++_id, type });
+const randType = () => Math.floor(Math.random() * EMOJIS.length);
+
+// ── Board engine (piece-object based) ───────────────────────────────────────
+function newPieceBoard() {
   let board;
   let guard = 0;
   do {
     board = [];
     for (let r = 0; r < ROWS; r++) {
       const row = [];
-      for (let c = 0; c < COLS; c++) row.push(rand());
+      for (let c = 0; c < COLS; c++) row.push(makePiece(randType()));
       board.push(row);
     }
     guard++;
-  } while (findMatches(board).length > 0 && guard < 200);
+  } while (findPieceMatches(board).length > 0 && guard < 200);
   return board;
 }
 
-// Returns array of { r, c } matched cells
-function findMatches(board) {
+function findPieceMatches(board) {
   const matched = new Set();
+  const key = (r, c) => `${r},${c}`;
   for (let r = 0; r < ROWS; r++) {
     let run = 1;
     for (let c = 1; c <= COLS; c++) {
-      if (c < COLS && board[r][c] === board[r][c - 1] && board[r][c] !== null) {
-        run++;
-      } else {
-        if (run >= 3) {
-          for (let k = 0; k < run; k++) matched.add(`${r},${c - 1 - k}`);
-        }
+      const same =
+        c < COLS && board[r][c] && board[r][c - 1] && board[r][c].type === board[r][c - 1].type;
+      if (same) run++;
+      else {
+        if (run >= 3) for (let k = 0; k < run; k++) matched.add(key(r, c - 1 - k));
         run = 1;
       }
     }
@@ -49,12 +60,11 @@ function findMatches(board) {
   for (let c = 0; c < COLS; c++) {
     let run = 1;
     for (let r = 1; r <= ROWS; r++) {
-      if (r < ROWS && board[r][c] === board[r - 1][c] && board[r][c] !== null) {
-        run++;
-      } else {
-        if (run >= 3) {
-          for (let k = 0; k < run; k++) matched.add(`${r - 1 - k},${c}`);
-        }
+      const same =
+        r < ROWS && board[r][c] && board[r - 1][c] && board[r][c].type === board[r - 1][c].type;
+      if (same) run++;
+      else {
+        if (run >= 3) for (let k = 0; k < run; k++) matched.add(key(r - 1 - k, c));
         run = 1;
       }
     }
@@ -65,51 +75,29 @@ function findMatches(board) {
   });
 }
 
-// Null out matched, drop pieces, refill from top. Returns { board, clearedTypes }.
+// Null matched, drop existing pieces, refill empties with NEW pieces.
 function applyGravity(board, matched) {
   const next = board.map((row) => row.slice());
   const clearedTypes = [];
   matched.forEach(({ r, c }) => {
-    clearedTypes.push(board[r][c]);
+    if (next[r][c]) clearedTypes.push(next[r][c].type);
     next[r][c] = null;
   });
+  const newIds = [];
   for (let c = 0; c < COLS; c++) {
     const stack = [];
-    for (let r = ROWS - 1; r >= 0; r--) {
-      if (next[r][c] !== null) stack.push(next[r][c]);
-    }
+    for (let r = ROWS - 1; r >= 0; r--) if (next[r][c] !== null) stack.push(next[r][c]);
     for (let r = ROWS - 1; r >= 0; r--) {
       const idx = ROWS - 1 - r;
-      next[r][c] = idx < stack.length ? stack[idx] : rand();
+      if (idx < stack.length) next[r][c] = stack[idx];
+      else {
+        const p = makePiece(randType());
+        next[r][c] = p;
+        newIds.push(p.id);
+      }
     }
   }
-  return { board: next, clearedTypes };
-}
-
-// Attempt a swap of two adjacent cells. Resolves full cascade chain.
-// Returns { board, scoreGained, valid }.
-function processMove(board, a, b) {
-  if (Math.abs(a.r - b.r) + Math.abs(a.c - b.c) !== 1) {
-    return { board, scoreGained: 0, valid: false };
-  }
-  const swapped = board.map((row) => row.slice());
-  [swapped[a.r][a.c], swapped[b.r][b.c]] = [swapped[b.r][b.c], swapped[a.r][a.c]];
-
-  let matches = findMatches(swapped);
-  if (matches.length === 0) return { board, scoreGained: 0, valid: false };
-
-  let total = 0;
-  let chain = 0;
-  let working = swapped;
-  while (matches.length > 0) {
-    chain++;
-    const { board: after, clearedTypes } = applyGravity(working, matches);
-    const base = clearedTypes.reduce((sum, t) => sum + POINTS[t], 0);
-    total += base * chain;
-    working = after;
-    matches = findMatches(working);
-  }
-  return { board: working, scoreGained: total, valid: true };
+  return { board: next, clearedTypes, newIds };
 }
 
 // ── Leaderboard ─────────────────────────────────────────────────────────────
@@ -185,7 +173,7 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
 
 // ── Main game ──────────────────────────────────────────────────────────────
 export default function DiamondSmashGame({ user, onUserUpdate }) {
-  const [board, setBoard] = useState(() => newBoard());
+  const [board, setBoard] = useState(() => newPieceBoard());
   const [phase, setPhase] = useState("idle"); // idle | playing | over
   const [score, setScore] = useState(0);
   const [moves, setMoves] = useState(MAX_MOVES);
@@ -196,11 +184,15 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const [scores, setScores] = useState([]);
   const [loadingScores, setLoadingScores] = useState(true);
   const [clearing, setClearing] = useState(false);
+  // Animation state
+  const [enteringIds, setEnteringIds] = useState(() => new Set());
+  const [fadingIds, setFadingIds] = useState(() => new Set());
 
   const scoreRef = useRef(0);
   const movesRef = useRef(MAX_MOVES);
   const timeLeftRef = useRef(GAME_TIME);
   const timerRef = useRef(null);
+  const endedRef = useRef(false);
 
   const loadScores = useCallback(async () => {
     const rows = await base44.entities.DiamondSmashScores.list("-score", 10);
@@ -214,7 +206,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     return unsub;
   }, [loadScores]);
 
-  // Cleanup any running timer on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) {
@@ -224,23 +215,26 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     };
   }, []);
 
-  const saveScore = useCallback(async (finalScore) => {
-    if (!user?.id) return;
-    setSaving(true);
-    try {
-      await base44.entities.DiamondSmashScores.create({
-        user_id: user.id,
-        user_name: user.full_name || user.email?.split("@")[0] || "Player",
-        score: finalScore,
-        updated_at: new Date().toISOString(),
-      });
-      await loadScores();
-    } catch (e) {
-      console.error("Failed to save Diamond Smash score", e);
-    } finally {
-      setSaving(false);
-    }
-  }, [user?.id, user?.full_name, user?.email, loadScores]);
+  const saveScore = useCallback(
+    async (finalScore) => {
+      if (!user?.id) return;
+      setSaving(true);
+      try {
+        await base44.entities.DiamondSmashScores.create({
+          user_id: user.id,
+          user_name: user.full_name || user.email?.split("@")[0] || "Player",
+          score: finalScore,
+          updated_at: new Date().toISOString(),
+        });
+        await loadScores();
+      } catch (e) {
+        console.error("Failed to save Diamond Smash score", e);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [user?.id, user?.full_name, user?.email, loadScores]
+  );
 
   const stopTimer = () => {
     if (timerRef.current) {
@@ -249,61 +243,97 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     }
   };
 
+  const finishGame = (finalScore) => {
+    if (endedRef.current) return;
+    endedRef.current = true;
+    stopTimer();
+    setBusy(false);
+    setPhase("over");
+    saveScore(finalScore);
+  };
+
   const startGame = () => {
     // Full reset to prevent cross-game contamination
     stopTimer();
+    endedRef.current = false;
     scoreRef.current = 0;
     movesRef.current = MAX_MOVES;
     timeLeftRef.current = GAME_TIME;
-    setBoard(newBoard());
+    setBoard(newPieceBoard());
     setScore(0);
     setMoves(MAX_MOVES);
     setTimeLeft(GAME_TIME);
     setSelected(null);
     setBusy(false);
     setSaving(false);
+    setEnteringIds(new Set());
+    setFadingIds(new Set());
     setPhase("playing");
 
     timerRef.current = setInterval(() => {
       timeLeftRef.current -= 1;
       setTimeLeft(timeLeftRef.current);
-      if (timeLeftRef.current <= 0) {
-        stopTimer();
-        setPhase("over");
-        saveScore(scoreRef.current);
-      }
+      if (timeLeftRef.current <= 0) finishGame(scoreRef.current);
     }, 1000);
   };
 
-  const handleCellClick = (r, c) => {
-    if (phase !== "playing" || busy) return;
-
-    if (!selected) {
-      setSelected({ r, c });
+  // Animate one full move resolution (swap → cascades → score)
+  const animateMove = async (a, b) => {
+    if (Math.abs(a.r - b.r) + Math.abs(a.c - b.c) !== 1) {
+      setSelected({ r: b.r, c: b.c });
       return;
     }
-    if (selected.r === r && selected.c === c) {
+
+    // Test the swap for any matches; if none, revert silently
+    const swapped = board.map((row) => row.slice());
+    [swapped[a.r][a.c], swapped[b.r][b.c]] = [swapped[b.r][b.c], swapped[a.r][a.c]];
+    if (findPieceMatches(swapped).length === 0) {
       setSelected(null);
       return;
     }
-    if (Math.abs(selected.r - r) + Math.abs(selected.c - c) !== 1) {
-      setSelected({ r, c });
-      return;
-    }
 
-    // Adjacent swap — attempt the move
     setBusy(true);
-    const { board: resolved, scoreGained, valid } = processMove(board, selected, { r, c });
-    if (!valid) {
-      setSelected(null);
-      setBusy(false);
-      return;
-    }
-
-    setBoard(resolved);
     setSelected(null);
 
-    const newScore = scoreRef.current + scoreGained;
+    // 1. Commit the swap — pieces slide into swapped cells
+    setBoard(swapped);
+    await sleep(140);
+
+    // 2. Resolve the full cascade chain step-by-step (animates falls)
+    let chain = 0;
+    let gained = 0;
+    let working = swapped;
+
+    while (true) {
+      const matches = findPieceMatches(working);
+      if (matches.length === 0) break;
+      chain++;
+
+      // Fade matched pieces out in place
+      const fadeSet = new Set(matches.map((m) => working[m.r][m.c]?.id).filter(Boolean));
+      setFadingIds(fadeSet);
+      await sleep(180);
+
+      // Apply gravity + refill: existing pieces fall (transform transition),
+      // new pieces spawn above the grid (offset) ready to drop in.
+      const { board: after, clearedTypes, newIds } = applyGravity(working, matches);
+      working = after;
+      setBoard(after);
+      setFadingIds(new Set());
+      setEnteringIds(new Set(newIds));
+
+      // Let entering pieces paint at their above-grid offset, then release them
+      // so the CSS transition carries them down into place.
+      await raf2();
+      setEnteringIds(new Set());
+      await sleep(280);
+
+      const base = clearedTypes.reduce((s, t) => s + POINTS[t], 0);
+      gained += base * chain;
+    }
+
+    // Apply scoring + decrement moves
+    const newScore = scoreRef.current + gained;
     scoreRef.current = newScore;
     setScore(newScore);
 
@@ -312,11 +342,20 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setMoves(newMoves);
     setBusy(false);
 
-    if (newMoves <= 0) {
-      stopTimer();
-      setPhase("over");
-      saveScore(newScore);
+    if (newMoves <= 0) finishGame(newScore);
+  };
+
+  const handleCellClick = (r, c) => {
+    if (phase !== "playing" || busy) return;
+    if (!selected) {
+      setSelected({ r, c });
+      return;
     }
+    if (selected.r === r && selected.c === c) {
+      setSelected(null);
+      return;
+    }
+    animateMove(selected, { r, c });
   };
 
   const handleClear = async () => {
@@ -332,12 +371,19 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     }
   };
 
-  const cellSize = "w-9 h-9 sm:w-10 sm:h-10 text-xl sm:text-2xl";
+  // Flatten board into renderable piece list
+  const pieces = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const p = board[r][c];
+      if (p) pieces.push({ piece: p, r, c });
+    }
+  }
 
   return (
     <div className="flex flex-col items-center gap-5 pb-6">
       {/* Stat bar */}
-      <div className="w-full grid grid-cols-3 gap-2" style={{ maxWidth: 360 }}>
+      <div className="w-full grid grid-cols-3 gap-2" style={{ maxWidth: 364 }}>
         <div className="bg-white dark:bg-card rounded-xl border border-border shadow-sm p-2 text-center">
           <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Score</p>
           <p className="text-2xl font-black text-fuchsia-600 dark:text-fuchsia-400 tabular-nums">{score}</p>
@@ -354,33 +400,48 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         </div>
       </div>
 
-      {/* Board */}
-      <div className="relative w-full rounded-2xl border border-fuchsia-500/30 shadow-[0_0_30px_rgba(217,70,239,0.2)] bg-gradient-to-b from-[#2a1245] to-[#1a0b2e] p-2" style={{ maxWidth: 380 }}>
-        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}>
-          {board.map((row, r) =>
-            row.map((val, c) => {
-              const isSel = selected && selected.r === r && selected.c === c;
-              return (
-                <button
-                  key={`${r}-${c}`}
-                  onClick={() => handleCellClick(r, c)}
-                  disabled={phase !== "playing"}
-                  className={`${cellSize} flex items-center justify-center rounded-lg transition-all duration-150 select-none ${
-                    isSel
-                      ? "bg-fuchsia-500/40 ring-2 ring-fuchsia-400 scale-105"
-                      : "bg-white/10 hover:bg-white/20"
-                  } ${phase === "playing" ? "cursor-pointer" : "cursor-default"}`}
-                >
-                  <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{EMOJIS[val]}</span>
-                </button>
-              );
-            })
-          )}
+      {/* Board — overflow hidden so entering pieces visibly drop in from the top edge */}
+      <div
+        className="relative overflow-hidden rounded-2xl border border-fuchsia-500/30 shadow-[0_0_30px_rgba(217,70,239,0.2)] bg-gradient-to-b from-[#2a1245] to-[#1a0b2e] p-2"
+        style={{ width: BOARD_W + 16 }}
+      >
+        <div className="relative" style={{ width: BOARD_W, height: BOARD_H }}>
+          {pieces.map(({ piece, r, c }) => {
+            const isEntering = enteringIds.has(piece.id);
+            const isFading = fadingIds.has(piece.id);
+            const isSel = selected && selected.r === r && selected.c === c;
+            const x = c * STEP;
+            const y = isEntering ? -STEP : r * STEP;
+            return (
+              <button
+                key={piece.id}
+                onClick={() => handleCellClick(r, c)}
+                disabled={phase !== "playing" || busy}
+                className={`absolute left-0 top-0 flex items-center justify-center rounded-lg select-none ${
+                  isSel
+                    ? "bg-fuchsia-500/40 ring-2 ring-fuchsia-400 z-20"
+                    : "bg-white/10 hover:bg-white/20"
+                } ${isEntering ? "z-10" : "z-20"} ${phase === "playing" && !busy ? "cursor-pointer" : "cursor-default"}`}
+                style={{
+                  width: CELL,
+                  height: CELL,
+                  transform: `translate(${x}px, ${y}px)`,
+                  opacity: isFading ? 0 : isEntering ? 0 : 1,
+                  transition: "transform 0.25s ease, opacity 0.2s ease",
+                  transitionDelay: `${(ROWS - 1 - r) * STAGGER}ms`,
+                }}
+              >
+                <span className="text-2xl leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+                  {EMOJIS[piece.type]}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Idle overlay */}
         {phase === "idle" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl bg-[#1a0b2e]/80 backdrop-blur-sm">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e]/80 backdrop-blur-sm">
             <h1 className="font-black text-3xl text-center tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-fuchsia-300 to-amber-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]">
               💎 DIAMOND<br />SMASH
             </h1>
@@ -402,7 +463,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
 
         {/* Game over overlay */}
         {phase === "over" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-[#1a0b2e]/90 backdrop-blur-md border border-fuchsia-500/40 z-10">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#1a0b2e]/90 backdrop-blur-md border border-fuchsia-500/40 z-30">
             <p className="font-black text-2xl tracking-[0.3em] uppercase text-fuchsia-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)] text-center mt-4">
               Smash<br />Complete
             </p>
@@ -428,7 +489,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       </div>
 
       {/* Leaderboard */}
-      <div className="w-full" style={{ maxWidth: 360 }}>
+      <div className="w-full" style={{ maxWidth: 364 }}>
         <Leaderboard
           scores={scores}
           loading={loadingScores}
