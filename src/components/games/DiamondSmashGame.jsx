@@ -159,7 +159,7 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
         {/* Header */}
         <div className="bg-gradient-to-b from-slate-900 to-transparent border-b border-fuchsia-500/20 px-5 py-5 relative">
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-fuchsia-500 to-transparent opacity-60" />
-          <div className="flex items-center justify-center gap-3 mb-2">
+          <div className="flex items-center justify-center gap-1 mb-2">
             {primaryTab === "hall_of_fame" ? (
               <Crown className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]" />
             ) : (
