@@ -613,7 +613,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
             </p>
             <p className="text-[11px] text-fuchsia-300/80 text-center">
               20 moves • 90 seconds<br />
-              💎 = 5 pts · others = 2 pts
+              💎 = 5 pts · 🍬, 🍭, 🍫, 🍩 = 2 pts each
             </p>
             <button
               onClick={startGame}
