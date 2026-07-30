@@ -666,7 +666,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       {/* Board — CSS grid + Framer Motion layout FLIP for gravity cascade */}
       <div
         className="relative overflow-hidden rounded-2xl border border-fuchsia-500/30 shadow-[0_0_30px_rgba(217,70,239,0.2)] bg-gradient-to-b from-[#2a1245] to-[#1a0b2e] p-2"
-        style={{ width: BOARD_W + 16 }}>
+        style={{ width: BOARD_W + 16, height: BOARD_H + 16 }}>
         
         <div
           className="relative grid"
