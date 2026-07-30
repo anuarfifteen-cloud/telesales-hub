@@ -200,8 +200,18 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const endedRef = useRef(false);
 
   const loadScores = useCallback(async () => {
-    const rows = await base44.entities.DiamondSmashScores.list("-score", 10);
-    setScores(rows);
+    const rows = await base44.entities.DiamondSmashScores.list("-score", 50);
+    // Keep one entry per player (their best score), then show top 10
+    const byUser = new Map();
+    for (const row of rows) {
+      const prev = byUser.get(row.user_id);
+      if (!prev || (row.score ?? 0) > (prev.score ?? 0)) byUser.set(row.user_id, row);
+    }
+    setScores(
+      Array.from(byUser.values())
+        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+        .slice(0, 10)
+    );
     setLoadingScores(false);
   }, []);
 
@@ -225,12 +235,24 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       if (!user?.id) return;
       setSaving(true);
       try {
-        await base44.entities.DiamondSmashScores.create({
-          user_id: user.id,
-          user_name: user.full_name || user.email?.split("@")[0] || "Player",
-          score: finalScore,
-          updated_at: new Date().toISOString(),
-        });
+        // One entry per player — upsert their personal best only
+        const existing = await base44.entities.DiamondSmashScores.filter({ user_id: user.id });
+        const entry = existing[0];
+        if (entry) {
+          if (finalScore > (entry.score ?? 0)) {
+            await base44.entities.DiamondSmashScores.update(entry.id, {
+              score: finalScore,
+              updated_at: new Date().toISOString(),
+            });
+          }
+        } else {
+          await base44.entities.DiamondSmashScores.create({
+            user_id: user.id,
+            user_name: user.full_name || user.email?.split("@")[0] || "Player",
+            score: finalScore,
+            updated_at: new Date().toISOString(),
+          });
+        }
         await loadScores();
       } catch (e) {
         console.error("Failed to save Diamond Smash score", e);
@@ -462,9 +484,10 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           })}
         </div>
 
-        {/* Idle overlay */}
+        {/* Start screen — shown only before the player starts. Removed entirely
+            during gameplay so the grid is fully visible and unobstructed. */}
         {phase === "idle" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e]/80 backdrop-blur-sm">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e]">
             <h1 className="font-black text-3xl text-center tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-fuchsia-300 to-amber-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]">
               💎 DIAMOND<br />SMASH
             </h1>
