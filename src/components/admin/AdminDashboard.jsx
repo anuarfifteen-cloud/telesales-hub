@@ -15,6 +15,7 @@ import ThemeShopSettings from "./ThemeShopSettings";
 import QuizMaintenanceToggle from "./QuizMaintenanceToggle";
 import AdminGiftVoucherGen from "./AdminGiftVoucherGen";
 import AdminCoinFlipLogs from "./AdminCoinFlipLogs";
+import AdminDiamondSmash from "./AdminDiamondSmash";
 
 const LIVE_FEED_KEY = "liveFeedEnabled";
 
@@ -197,7 +198,7 @@ export default function AdminDashboard({ onBack }) {
 
       {/* Tab switcher */}
       <div className="max-w-2xl mx-auto px-4 pt-4 grid grid-cols-3 gap-2">
-        {[{ id: "general", label: "⚙️ General" }, { id: "quiz", label: "🧠 Daily Quiz" }, { id: "spin", label: "🎡 Spin Logs" }, { id: "supertap", label: "⚡ Super Tap" }, { id: "flappy", label: "🐦 Flappy" }, { id: "gamehistory", label: "🏅 Game History" }, { id: "tokens", label: "🪙 Token Log" }, { id: "coinflip", label: "🪙 Coin Flip" }].map(tab => (
+        {[{ id: "general", label: "⚙️ General" }, { id: "quiz", label: "🧠 Daily Quiz" }, { id: "spin", label: "🎡 Spin Logs" }, { id: "supertap", label: "⚡ Super Tap" }, { id: "flappy", label: "🐦 Flappy" }, { id: "gamehistory", label: "🏅 Game History" }, { id: "tokens", label: "🪙 Token Log" }, { id: "coinflip", label: "🪙 Coin Flip" }, { id: "diamond", label: "💎 Diamond" }].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -247,6 +248,12 @@ export default function AdminDashboard({ onBack }) {
       {activeTab === "coinflip" && (
         <main className="max-w-2xl mx-auto px-4 pt-4 pb-10">
           <AdminCoinFlipLogs />
+        </main>
+      )}
+
+      {activeTab === "diamond" && (
+        <main className="max-w-2xl mx-auto px-4 pt-4 pb-10">
+          <AdminDiamondSmash />
         </main>
       )}
 
