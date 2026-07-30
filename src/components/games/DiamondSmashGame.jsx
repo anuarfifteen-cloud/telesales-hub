@@ -7,9 +7,9 @@ import { motion } from "framer-motion";
 const ROWS = 8;
 const COLS = 8;
 const EMOJIS = ["🍬", "🍭", "🍫", "🍩", "💎"];
-const POINTS = [10, 10, 10, 10, 20];
+const POINTS = [2, 2, 2, 2, 5];
 const MAX_MOVES = 20;
-const GAME_TIME = 60;
+const GAME_TIME = 90;
 
 // Fixed cell geometry (grid cells for Framer Motion layout FLIP)
 const CELL = 40;
@@ -496,7 +496,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
             </p>
             <p className="text-[11px] text-fuchsia-300/80 text-center">
               20 moves • 60 seconds<br />
-              💎 = 20 pts · others = 10 pts
+              💎 = 5 pts · others = 2 pts
             </p>
             <button
               onClick={startGame}
