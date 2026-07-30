@@ -47,9 +47,9 @@ function findPieceMatches(board) {
     let run = 1;
     for (let c = 1; c <= COLS; c++) {
       const same =
-        c < COLS && board[r][c] && board[r][c - 1] && board[r][c].type === board[r][c - 1].type;
-      if (same) run++;
-      else {
+      c < COLS && board[r][c] && board[r][c - 1] && board[r][c].type === board[r][c - 1].type;
+      if (same) run++;else
+      {
         if (run >= 3) for (let k = 0; k < run; k++) matched.add(key(r, c - 1 - k));
         run = 1;
       }
@@ -59,9 +59,9 @@ function findPieceMatches(board) {
     let run = 1;
     for (let r = 1; r <= ROWS; r++) {
       const same =
-        r < ROWS && board[r][c] && board[r - 1][c] && board[r][c].type === board[r - 1][c].type;
-      if (same) run++;
-      else {
+      r < ROWS && board[r][c] && board[r - 1][c] && board[r][c].type === board[r - 1][c].type;
+      if (same) run++;else
+      {
         if (run >= 3) for (let k = 0; k < run; k++) matched.add(key(r - 1 - k, c));
         run = 1;
       }
@@ -127,7 +127,7 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
     setHofLoading(false);
   }, []);
 
-  useEffect(() => { loadHof(); }, [loadHof]);
+  useEffect(() => {loadHof();}, [loadHof]);
   useEffect(() => {
     const unsub = base44.entities.DiamondSmashHallOfFame.subscribe(() => loadHof());
     return unsub;
@@ -140,17 +140,17 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
         <button
           onClick={() => setPrimaryTab("live")}
           className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ${
-            primaryTab === "live" ? DS_TAB_ACTIVE : DS_TAB_INACTIVE
-          }`}
-        >
+          primaryTab === "live" ? DS_TAB_ACTIVE : DS_TAB_INACTIVE}`
+          }>
+          
           🏆 LIVE SCORES
         </button>
         <button
           onClick={() => setPrimaryTab("hall_of_fame")}
           className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ${
-            primaryTab === "hall_of_fame" ? DS_TAB_ACTIVE : DS_TAB_INACTIVE
-          }`}
-        >
+          primaryTab === "hall_of_fame" ? DS_TAB_ACTIVE : DS_TAB_INACTIVE}`
+          }>
+          
           🎖 HALL OF FAME
         </button>
       </div>
@@ -160,17 +160,17 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
         <div className="bg-gradient-to-b from-slate-900 to-transparent border-b border-fuchsia-500/20 px-5 py-5 relative">
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-fuchsia-500 to-transparent opacity-60" />
           <div className="flex items-center justify-center gap-6 mb-2">
-            {primaryTab === "hall_of_fame" ? (
-              <Crown className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]" />
-            ) : (
-              <Trophy className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse" />
-            )}
-            <p className="text-sm font-black uppercase tracking-widest text-fuchsia-400 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]">
+            {primaryTab === "hall_of_fame" ?
+            <Crown className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]" /> :
+
+            <Trophy className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse" />
+            }
+            <p className="text-sm font-black uppercase tracking-widest text-fuchsia-400 drop-shadow-[0_0_5px_rgba(217,70,239,0.8)] text-center">
               {primaryTab === "live" ? "Live Diamond Smash Leaderboard" : "Hall of Fame — Champions"}
             </p>
           </div>
-          {primaryTab === "live" ? (
-            <>
+          {primaryTab === "live" ?
+          <>
               <p className="text-[11px] text-fuchsia-300/70 text-center leading-relaxed">
                 The current season's top 10 smashers. Be in the Top 3 when the season ends to win:
               </p>
@@ -179,39 +179,39 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
                 <span className="text-[11px] font-black bg-[#c0c0c0]/10 px-3 py-1 rounded-md border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2ND: 2 TOKENS</span>
                 <span className="text-[11px] font-black bg-[#cd7f32]/10 px-3 py-1 rounded-md border border-[#cd7f32]/40 text-[#cd7f32]">🥉 3RD: 1 TOKEN</span>
               </div>
-            </>
-          ) : (
-            <p className="text-[11px] text-fuchsia-300/70 text-center leading-relaxed">
+            </> :
+
+          <p className="text-[11px] text-fuchsia-300/70 text-center leading-relaxed">
               Legendary players who claimed the crown at season's end. 👑
             </p>
-          )}
+          }
         </div>
 
         {/* Live Scores */}
-        {primaryTab === "live" ? (
-          loading ? (
-            <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-fuchsia-400" /></div>
-          ) : scores.length === 0 ? (
-            <div className="py-12 text-center text-fuchsia-300/50 text-sm tracking-widest font-bold uppercase">
+        {primaryTab === "live" ?
+        loading ?
+        <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-fuchsia-400" /></div> :
+        scores.length === 0 ?
+        <div className="py-12 text-center text-fuchsia-300/50 text-sm tracking-widest font-bold uppercase">
               No scores yet. Be the first!
-            </div>
-          ) : (
-            <div className="divide-y divide-fuchsia-500/10 bg-transparent">
-              {scores.map((s, i) => (
-                <div
-                  key={s.id}
-                  className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-fuchsia-500/5 ${
-                    i < 3 ? "bg-fuchsia-500/[0.03]" : ""
-                  } ${s.user_id === currentUserId ? "ring-1 ring-fuchsia-500/30" : ""}`}
-                >
+            </div> :
+
+        <div className="divide-y divide-fuchsia-500/10 bg-transparent">
+              {scores.map((s, i) =>
+          <div
+            key={s.id}
+            className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-fuchsia-500/5 ${
+            i < 3 ? "bg-fuchsia-500/[0.03]" : ""} ${
+            s.user_id === currentUserId ? "ring-1 ring-fuchsia-500/30" : ""}`}>
+            
                   <div className="w-8 flex items-center justify-center flex-shrink-0">
-                    {i < 3 ? (
-                      <span className="text-2xl drop-shadow-md">{medals[i]}</span>
-                    ) : (
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[#0a0418] text-[11px] font-black text-fuchsia-400/50 border border-fuchsia-500/20 shadow-inner">
+                    {i < 3 ?
+              <span className="text-2xl drop-shadow-md">{medals[i]}</span> :
+
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[#0a0418] text-[11px] font-black text-fuchsia-400/50 border border-fuchsia-500/20 shadow-inner">
                         #{i + 1}
                       </span>
-                    )}
+              }
                   </div>
                   <span className="flex-1 min-w-0 text-sm font-bold text-white leading-tight" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
                     {s.user_name}
@@ -220,28 +220,28 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
                     <span className="text-sm font-black text-amber-400 tracking-widest tabular-nums bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/30 shadow-[0_0_10px_rgba(255,215,0,0.2)]">
                       {s.score} PTS
                     </span>
-                    {i < 3 && (
-                      <span className={`text-[10px] font-black ${i === 0 ? "text-[#ffd700]" : i === 1 ? "text-[#c0c0c0]" : "text-[#cd7f32]"}`}>
+                    {i < 3 &&
+              <span className={`text-[10px] font-black ${i === 0 ? "text-[#ffd700]" : i === 1 ? "text-[#c0c0c0]" : "text-[#cd7f32]"}`}>
                         {i === 0 ? "+5 tokens" : i === 1 ? "+2 tokens" : "+1 token"}
                       </span>
-                    )}
+              }
                   </div>
                 </div>
-              ))}
-            </div>
-          )
-        ) : (
-          /* Hall of Fame */
-          hofLoading ? (
-            <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-fuchsia-400" /></div>
-          ) : hof.length === 0 ? (
-            <div className="py-12 text-center text-fuchsia-300/50 text-sm tracking-widest font-bold uppercase">
+          )}
+            </div> : (
+
+
+        /* Hall of Fame */
+        hofLoading ?
+        <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-fuchsia-400" /></div> :
+        hof.length === 0 ?
+        <div className="py-12 text-center text-fuchsia-300/50 text-sm tracking-widest font-bold uppercase">
               No past champions yet.
-            </div>
-          ) : (
-            <div className="divide-y divide-fuchsia-500/10 bg-transparent">
-              {hof.map((c) => (
-                <div key={c.id} className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-fuchsia-500/5">
+            </div> :
+
+        <div className="divide-y divide-fuchsia-500/10 bg-transparent">
+              {hof.map((c) =>
+          <div key={c.id} className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-fuchsia-500/5">
                   <div className="w-8 flex items-center justify-center flex-shrink-0">
                     <Crown className="w-5 h-5 text-[#ffd700] drop-shadow-[0_0_6px_rgba(255,215,0,0.8)]" />
                   </div>
@@ -255,27 +255,27 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
                     {c.score} PTS
                   </span>
                 </div>
-              ))}
-            </div>
-          )
-        )}
+          )}
+            </div>)
+
+        }
 
         {/* Admin clear — live tab only */}
-        {isAdmin && primaryTab === "live" && (
-          <div className="px-5 py-3 border-t border-fuchsia-500/20">
+        {isAdmin && primaryTab === "live" &&
+        <div className="px-5 py-3 border-t border-fuchsia-500/20">
             <button
-              onClick={onClear}
-              disabled={clearing || scores.length === 0}
-              className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold tracking-widest uppercase bg-red-500/10 border border-red-500/40 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-40"
-            >
+            onClick={onClear}
+            disabled={clearing || scores.length === 0}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold tracking-widest uppercase bg-red-500/10 border border-red-500/40 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-40">
+            
               {clearing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
               Clear Leaderboard
             </button>
           </div>
-        )}
+        }
       </div>
-    </div>
-  );
+    </div>);
+
 }
 
 // ── Main game ──────────────────────────────────────────────────────────────
@@ -297,7 +297,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   // Audio (procedural Web Audio API) + cascade combo badge
   const {
     sfxOn, musicOn, toggleSfx, toggleMusic,
-    playMatch, playCascade, playDiamond, playGameOver, startMusic, stopMusic,
+    playMatch, playCascade, playDiamond, playGameOver, startMusic, stopMusic
   } = useDiamondSmashAudio();
   const [combo, setCombo] = useState(null); // { mult, key }
   const comboTimer = useRef(null);
@@ -315,7 +315,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const showFloating = (points, chainTop) => {
     if (points <= 0) return;
     const reaction =
-      chainTop >= 4 ? "⚡ INSANE!" : chainTop === 3 ? "💥 Great!" : chainTop === 2 ? "🔥 Nice!" : "";
+    chainTop >= 4 ? "⚡ INSANE!" : chainTop === 3 ? "💥 Great!" : chainTop === 2 ? "🔥 Nice!" : "";
     setFloating({ points, reaction, visible: true, key: Date.now() });
     if (floatTimer.current) clearTimeout(floatTimer.current);
     floatTimer.current = setTimeout(() => setFloating((f) => ({ ...f, visible: false })), 1000);
@@ -336,9 +336,9 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       if (!prev || (row.score ?? 0) > (prev.score ?? 0)) byUser.set(row.user_id, row);
     }
     setScores(
-      Array.from(byUser.values())
-        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-        .slice(0, 10)
+      Array.from(byUser.values()).
+      sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).
+      slice(0, 10)
     );
     setLoadingScores(false);
   }, []);
@@ -379,7 +379,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           if (finalScore > (entry.score ?? 0)) {
             await base44.entities.DiamondSmashScores.update(entry.id, {
               score: finalScore,
-              updated_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
             });
           }
         } else {
@@ -387,7 +387,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
             user_id: user.id,
             user_name: user.full_name || user.email?.split("@")[0] || "Player",
             score: finalScore,
-            updated_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           });
         }
         await loadScores();
@@ -434,9 +434,9 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setSaving(false);
     setFadingIds(new Set());
     setCombo(null);
-    if (comboTimer.current) { clearTimeout(comboTimer.current); comboTimer.current = null; }
+    if (comboTimer.current) {clearTimeout(comboTimer.current);comboTimer.current = null;}
     setFloating({ points: 0, reaction: "", visible: false, key: 0 });
-    if (floatTimer.current) { clearTimeout(floatTimer.current); floatTimer.current = null; }
+    if (floatTimer.current) {clearTimeout(floatTimer.current);floatTimer.current = null;}
     setPhase("playing");
     startMusic();
 
@@ -482,9 +482,9 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       chain++;
 
       // Capture scoring + smash targets BEFORE mutation
-      const clearedTypes = matches
-        .map((m) => working[m.r][m.c]?.type)
-        .filter((t) => t !== undefined);
+      const clearedTypes = matches.
+      map((m) => working[m.r][m.c]?.type).
+      filter((t) => t !== undefined);
       const clearedBase = clearedTypes.reduce((s, t) => s + POINTS[t], 0);
       const fadeSet = new Set(
         matches.map((m) => working[m.r][m.c]?.id).filter(Boolean)
@@ -493,7 +493,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       // Sound + combo badge (no game-logic change)
       playMatch();
       if (clearedTypes.includes(4)) playDiamond();
-      if (chain >= 2) { playCascade(chain); showCombo(chain); }
+      if (chain >= 2) {playCascade(chain);showCombo(chain);}
 
       // Smash — fade the matched pieces in place
       setFadingIds(fadeSet);
@@ -584,23 +584,23 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         <button
           onClick={toggleSfx}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-            sfxOn
-              ? "bg-fuchsia-500/15 border-fuchsia-500/40 text-fuchsia-600 dark:text-fuchsia-300"
-              : "bg-muted border-border text-muted-foreground line-through opacity-60"
-          }`}
-          aria-pressed={sfxOn}
-        >
+          sfxOn ?
+          "bg-fuchsia-500/15 border-fuchsia-500/40 text-fuchsia-600 dark:text-fuchsia-300" :
+          "bg-muted border-border text-muted-foreground line-through opacity-60"}`
+          }
+          aria-pressed={sfxOn}>
+          
           {sfxOn ? "🔊" : "🔇"} SFX
         </button>
         <button
           onClick={toggleMusic}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-            musicOn
-              ? "bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-300"
-              : "bg-muted border-border text-muted-foreground line-through opacity-60"
-          }`}
-          aria-pressed={musicOn}
-        >
+          musicOn ?
+          "bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-300" :
+          "bg-muted border-border text-muted-foreground line-through opacity-60"}`
+          }
+          aria-pressed={musicOn}>
+          
           🎵 Music
         </button>
       </div>
@@ -610,24 +610,24 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         <div className="relative bg-white dark:bg-card rounded-xl border border-border shadow-sm p-2 text-center">
           <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Score</p>
           <p className="text-2xl font-black text-fuchsia-600 dark:text-fuchsia-400 tabular-nums">{score}</p>
-          {floating.visible && (
-            <motion.div
-              key={floating.key}
-              initial={{ opacity: 1, y: 0 }}
-              animate={{ opacity: 0, y: -40 }}
-              transition={{ duration: 0.9 }}
-              className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 z-50 pointer-events-none whitespace-nowrap text-center"
-            >
+          {floating.visible &&
+          <motion.div
+            key={floating.key}
+            initial={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 0, y: -40 }}
+            transition={{ duration: 0.9 }}
+            className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 z-50 pointer-events-none whitespace-nowrap text-center">
+            
               <span className="block font-black text-xl text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]">
                 +{floating.points}
               </span>
-              {floating.reaction && (
-                <span className="block font-black text-base text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
+              {floating.reaction &&
+            <span className="block font-black text-base text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">
                   {floating.reaction}
                 </span>
-              )}
+            }
             </motion.div>
-          )}
+          }
         </div>
         <div className="bg-white dark:bg-card rounded-xl border border-border shadow-sm p-2 text-center">
           <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Moves</p>
@@ -644,8 +644,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       {/* Board — CSS grid + Framer Motion layout FLIP for gravity cascade */}
       <div
         className="relative overflow-hidden rounded-2xl border border-fuchsia-500/30 shadow-[0_0_30px_rgba(217,70,239,0.2)] bg-gradient-to-b from-[#2a1245] to-[#1a0b2e] p-2"
-        style={{ width: BOARD_W + 16 }}
-      >
+        style={{ width: BOARD_W + 16 }}>
+        
         <div
           className="relative grid"
           style={{
@@ -653,9 +653,9 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
             height: BOARD_H,
             gridTemplateColumns: `repeat(${COLS}, ${CELL}px)`,
             gridTemplateRows: `repeat(${ROWS}, ${CELL}px)`,
-            gap: GAP,
-          }}
-        >
+            gap: GAP
+          }}>
+          
           {pieces.map(({ piece, r, c }) => {
             const isFading = fadingIds.has(piece.id);
             const isSel = selected && selected.r === r && selected.c === c;
@@ -667,44 +667,44 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
                 transition={{ type: "spring", stiffness: 300, damping: 20, delay: r * 0.05 }}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: isFading ? 0.4 : 1, opacity: isFading ? 0 : 1 }}
-                className={`flex items-center justify-center ${isSel ? "z-30" : "z-20"}`}
-              >
+                className={`flex items-center justify-center ${isSel ? "z-30" : "z-20"}`}>
+                
                 <button
                   onClick={() => handleCellClick(r, c)}
                   disabled={phase !== "playing" || busy}
                   className={`flex items-center justify-center rounded-lg select-none ${
-                    isSel
-                      ? "bg-fuchsia-500/40 ring-2 ring-fuchsia-400"
-                      : "bg-white/10 hover:bg-white/20"
-                  } ${phase === "playing" && !busy ? "cursor-pointer" : "cursor-default"}`}
-                  style={{ width: CELL, height: CELL }}
-                >
+                  isSel ?
+                  "bg-fuchsia-500/40 ring-2 ring-fuchsia-400" :
+                  "bg-white/10 hover:bg-white/20"} ${
+                  phase === "playing" && !busy ? "cursor-pointer" : "cursor-default"}`}
+                  style={{ width: CELL, height: CELL }}>
+                  
                   <span className="text-2xl leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
                     {EMOJIS[piece.type]}
                   </span>
                 </button>
-              </motion.div>
-            );
+              </motion.div>);
+
           })}
         </div>
 
         {/* Cascade combo badge — above all pieces & overlays (z-50) */}
-        {combo && (
-          <div
-            key={combo.key}
-            className="absolute top-1/2 left-1/2 z-50 pointer-events-none select-none"
-            style={{ animation: "dsComboPop 0.8s ease-out forwards" }}
-          >
+        {combo &&
+        <div
+          key={combo.key}
+          className="absolute top-1/2 left-1/2 z-50 pointer-events-none select-none"
+          style={{ animation: "dsComboPop 0.8s ease-out forwards" }}>
+          
             <span className="font-black text-4xl tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 via-pink-400 to-amber-300 drop-shadow-[0_0_12px_rgba(217,70,239,0.9)] whitespace-nowrap">
               {combo.mult >= 4 ? "💥" : combo.mult === 3 ? "🔥" : "✨"} x{combo.mult} COMBO!
             </span>
           </div>
-        )}
+        }
 
         {/* Start screen — shown only before the player starts. Removed entirely
-            during gameplay so the grid is fully visible and unobstructed. */}
-        {phase === "idle" && (
-  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e]/75 backdrop-blur-sm z-40">
+             during gameplay so the grid is fully visible and unobstructed. */}
+        {phase === "idle" &&
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e]/75 backdrop-blur-sm z-40">
             <h1 className="font-black text-3xl text-center tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-fuchsia-300 to-amber-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]">
               💎 DIAMOND<br />SMASH
             </h1>
@@ -713,39 +713,39 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
               💎 = 5 pts · 🍬, 🍭, 🍫, 🍩 = 2 pts each
             </p>
             <button
-              onClick={startGame}
-              className="px-8 py-3 rounded-xl font-black text-sm tracking-widest uppercase bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white shadow-[0_0_20px_rgba(217,70,239,0.6)] hover:scale-105 transition-transform"
-            >
+            onClick={startGame}
+            className="px-8 py-3 rounded-xl font-black text-sm tracking-widest uppercase bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white shadow-[0_0_20px_rgba(217,70,239,0.6)] hover:scale-105 transition-transform">
+            
               ▶ Start Smash
             </button>
           </div>
-        )}
+        }
 
         {/* Game over overlay */}
-        {phase === "over" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#1a0b2e]/90 backdrop-blur-md border border-fuchsia-500/40 z-30">
+        {phase === "over" &&
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#1a0b2e]/90 backdrop-blur-md border border-fuchsia-500/40 z-30">
             <p className="font-black text-2xl tracking-[0.3em] uppercase text-fuchsia-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)] text-center mt-4">
               Smash<br />Complete
             </p>
             <div className="rounded-xl px-10 py-5 flex flex-col items-center gap-1 bg-[#0a0418]/90 border border-fuchsia-500/50 shadow-[0_0_30px_rgba(217,70,239,0.25)]">
               <p className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400/80">Final Score</p>
               <p className="font-black text-5xl tabular-nums text-amber-400 drop-shadow-[0_0_20px_rgba(255,215,0,0.8)]">{score}</p>
-              {saving ? (
-                <p className="text-[10px] text-fuchsia-400 mt-1 animate-pulse">Saving score...</p>
-              ) : (
-                <p className="text-[10px] text-fuchsia-400/60 mt-1">Score saved ✓</p>
-              )}
+              {saving ?
+            <p className="text-[10px] text-fuchsia-400 mt-1 animate-pulse">Saving score...</p> :
+
+            <p className="text-[10px] text-fuchsia-400/60 mt-1">Score saved ✓</p>
+            }
             </div>
             <button
-              onClick={startGame}
-              disabled={saving}
-              className="mt-3 mb-4 w-full max-w-[220px] px-4 py-3 rounded-lg font-black text-sm tracking-widest uppercase bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white shadow-[0_0_15px_rgba(217,70,239,0.5)] hover:scale-105 transition-transform flex items-center justify-center gap-2"
-            >
+            onClick={startGame}
+            disabled={saving}
+            className="mt-3 mb-4 w-full max-w-[220px] px-4 py-3 rounded-lg font-black text-sm tracking-widest uppercase bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white shadow-[0_0_15px_rgba(217,70,239,0.5)] hover:scale-105 transition-transform flex items-center justify-center gap-2">
+            
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
               {saving ? "SAVING..." : "Play Again"}
             </button>
           </div>
-        )}
+        }
       </div>
 
       {/* Static how-to-play hint */}
@@ -762,9 +762,9 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           isAdmin={user?.role === "admin"}
           onClear={handleClear}
           clearing={clearing}
-          currentUserId={user?.id}
-        />
+          currentUserId={user?.id} />
+        
       </div>
-    </div>
-  );
+    </div>);
+
 }
