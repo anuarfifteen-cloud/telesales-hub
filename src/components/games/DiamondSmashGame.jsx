@@ -487,7 +487,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         {/* Start screen — shown only before the player starts. Removed entirely
             during gameplay so the grid is fully visible and unobstructed. */}
         {phase === "idle" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e]">
+  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e] z-40">
             <h1 className="font-black text-3xl text-center tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-fuchsia-300 to-amber-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]">
               💎 DIAMOND<br />SMASH
             </h1>
