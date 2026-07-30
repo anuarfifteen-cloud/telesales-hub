@@ -609,7 +609,10 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
               💎 DIAMOND<br />SMASH
             </h1>
             <p className="text-xs text-white/70 text-center max-w-[260px] leading-relaxed px-4">
-              Swap adjacent candies to match 3+. Chain cascades for huge multipliers!
+              Tap a candy, then tap next to it to swap. Match 3 or more to smash them!
+            </p>
+            <p className="text-xs text-white/70 text-center max-w-[260px] leading-relaxed px-4">
+              💥 Bonus: If pieces fall and match again automatically, you get a chain bonus — x2, x3, x4 and more!
             </p>
             <p className="text-[11px] text-fuchsia-300/80 text-center">
               20 moves • 90 seconds<br />
