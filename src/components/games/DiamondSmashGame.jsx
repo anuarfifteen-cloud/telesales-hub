@@ -182,7 +182,7 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
 
             }
             <p className="font-black uppercase tracking-widest text-fuchsia-600 dark:bg-gradient-to-r dark:from-fuchsia-400 dark:to-amber-300 dark:bg-clip-text dark:text-transparent dark:drop-shadow-[0_0_5px_rgba(217,70,239,0.8)] text-base text-center">
-              {primaryTab === "live" ? "🏆 LIVE GRID SCORES" : "Hall of Fame — Champions"}
+              {primaryTab === "live" ? "🏆 LIVE GRID SCORES" : "Hall of Fame — Season Champions"}
             </p>
           </div>
           {primaryTab === "live" ?
