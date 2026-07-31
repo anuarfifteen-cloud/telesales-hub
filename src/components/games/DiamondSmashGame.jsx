@@ -240,13 +240,13 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
                     <span className="text-sm font-black text-amber-600 dark:text-amber-400 tracking-widest tabular-nums bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/30 dark:shadow-[0_0_10px_rgba(255,215,0,0.2)]">
                       {s.score} PTS
                     </span>
-                    {champIds.has(s.user_id) ?
-              <span className="text-[10px] font-bold text-fuchsia-600 dark:text-fuchsia-300/80">Prize Cooldown Active</span> :
-              i < 3 &&
-              <span className={`text-[10px] font-black hidden ${i === 0 ? "text-amber-600 dark:text-[#ffd700]" : i === 1 ? "text-slate-500 dark:text-[#c0c0c0]" : "text-amber-800 dark:text-[#cd7f32]"}`}>
-                        {i === 0 ? "+5 tokens" : i === 1 ? "+2 tokens" : "+1 token"}
-                      </span>
-              }
+                    
+
+
+
+
+
+              
                   </div>
                 </div>
           )}
@@ -720,7 +720,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         }
 
         {/* Start screen — shown only before the player starts. Removed entirely
-                      during gameplay so the grid is fully visible and unobstructed. */}
+                       during gameplay so the grid is fully visible and unobstructed. */}
         {phase === "idle" &&
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e]/75 backdrop-blur-sm z-40">
             <h1 className="font-black text-3xl text-center tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-fuchsia-300 to-amber-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]">
