@@ -14,7 +14,7 @@ const THEMES = {
     headerBorder: "border-[#ff00c8]/20",
     badgeBorder: "border-[#ff00c8]/30",
     badgeBg: "bg-[#ff00c8]/10",
-    unit: "PTS",
+    unit: "PTS"
   },
   supertap: {
     border: "border-[#00f3ff]/30",
@@ -27,8 +27,8 @@ const THEMES = {
     headerBorder: "border-[#ff00ea]/20",
     badgeBorder: "border-[#ff00ea]/30",
     badgeBg: "bg-[#ff00ea]/10",
-    unit: "TAPS",
-  },
+    unit: "TAPS"
+  }
 };
 
 const TAB_ACTIVE = "bg-primary/10 border-primary text-primary dark:bg-[#ff00ea]/10 dark:border-[#ff00ea] dark:text-[#ff00ea] dark:shadow-[0_0_10px_rgba(255,0,234,0.5)]";
@@ -40,21 +40,21 @@ export function PrimaryTabs({ primaryTab, setPrimaryTab }) {
       <button
         onClick={() => setPrimaryTab("live")}
         className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ${
-          primaryTab === "live" ? TAB_ACTIVE : TAB_INACTIVE
-        }`}
-      >
+        primaryTab === "live" ? TAB_ACTIVE : TAB_INACTIVE}`
+        }>
+        
         LIVE SCORES
       </button>
       <button
         onClick={() => setPrimaryTab("hall_of_fame")}
         className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ${
-          primaryTab === "hall_of_fame" ? TAB_ACTIVE : TAB_INACTIVE
-        }`}
-      >
+        primaryTab === "hall_of_fame" ? TAB_ACTIVE : TAB_INACTIVE}`
+        }>
+        
         🏆 HALL OF FAME
       </button>
-    </div>
-  );
+    </div>);
+
 }
 
 export function SubTabs({ subTab, setSubTab }) {
@@ -63,21 +63,21 @@ export function SubTabs({ subTab, setSubTab }) {
       <button
         onClick={() => setSubTab("daily")}
         className={`flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest border transition-all ${
-          subTab === "daily" ? TAB_ACTIVE : TAB_INACTIVE
-        }`}
-      >
+        subTab === "daily" ? TAB_ACTIVE : TAB_INACTIVE}`
+        }>
+        
         DAILY LEADERBOARD
       </button>
       <button
         onClick={() => setSubTab("season")}
         className={`flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest border transition-all ${
-          subTab === "season" ? TAB_ACTIVE : TAB_INACTIVE
-        }`}
-      >
+        subTab === "season" ? TAB_ACTIVE : TAB_INACTIVE}`
+        }>
+        
         SEASON LEADERBOARD
       </button>
-    </div>
-  );
+    </div>);
+
 }
 
 export function isTodayRecord(rec) {
@@ -89,8 +89,8 @@ export function isTodayRecord(rec) {
     return d.toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" }) === today;
   };
   return (
-    check(rec.updated_at) || check(rec.created_at) || check(rec.updated_date) || check(rec.created_date)
-  );
+    check(rec.updated_at) || check(rec.created_at) || check(rec.updated_date) || check(rec.created_date));
+
 }
 
 export default function HallOfFame({ gameName }) {
@@ -109,7 +109,7 @@ export default function HallOfFame({ gameName }) {
     setLoading(false);
   }, [gameName]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {load();}, [load]);
   useEffect(() => {
     const unsub = base44.entities.GameChampions.subscribe(() => load());
     return unsub;
@@ -119,9 +119,9 @@ export default function HallOfFame({ gameName }) {
     <div className={`w-full retro-light-panel bg-[#0a0530]/90 backdrop-blur-xl rounded-2xl border ${t.border} ${t.glow} overflow-hidden transition-all duration-300`}>
       <div className={`bg-gradient-to-b ${t.bgFrom} to-transparent border-b ${t.headerBorder} px-5 py-5 relative`}>
         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#ffd700] to-transparent opacity-60" />
-        <div className="flex items-center justify-center gap-3 mb-2">
+        <div className="flex items-center justify-center gap-3 mb-2 ml-6">
           <Crown className="w-5 h-5 text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]" />
-          <p className="text-sm font-black uppercase tracking-widest" style={{ color: t.accent }}>
+          <p className="text-sm font-black uppercase tracking-widest text-center" style={{ color: t.accent }}>
             Hall of Fame — Season Champions
           </p>
         </div>
@@ -130,18 +130,18 @@ export default function HallOfFame({ gameName }) {
         </p>
       </div>
 
-      {loading ? (
-        <div className="py-12 flex justify-center">
+      {loading ?
+      <div className="py-12 flex justify-center">
           <Loader2 className="w-6 h-6 animate-spin" style={{ color: t.accent }} />
-        </div>
-      ) : champions.length === 0 ? (
-        <div className="py-12 text-center text-sm tracking-widest font-bold uppercase" style={{ color: t.accent, opacity: 0.5 }}>
+        </div> :
+      champions.length === 0 ?
+      <div className="py-12 text-center text-sm tracking-widest font-bold uppercase" style={{ color: t.accent, opacity: 0.5 }}>
           No champions crowned yet. Be the first legend!
-        </div>
-      ) : (
-        <div className={`divide-y ${t.divider} bg-transparent`}>
-          {champions.map((c, i) => (
-            <div key={c.id} className={`flex items-center gap-4 px-5 py-4 transition-colors ${t.hover}`}>
+        </div> :
+
+      <div className={`divide-y ${t.divider} bg-transparent`}>
+          {champions.map((c, i) =>
+        <div key={c.id} className={`flex items-center gap-4 px-5 py-4 transition-colors ${t.hover}`}>
               <div className="w-8 flex items-center justify-center flex-shrink-0">
                 <Crown className="w-5 h-5 text-[#ffd700] drop-shadow-[0_0_6px_rgba(255,215,0,0.8)]" />
               </div>
@@ -153,15 +153,15 @@ export default function HallOfFame({ gameName }) {
                 </span>
               </div>
               <span
-                className={`text-sm font-black tracking-widest tabular-nums flex-shrink-0 px-3 py-1.5 rounded-lg border ${t.badgeBorder} ${t.badgeBg}`}
-                style={{ color: t.accent2 }}
-              >
+            className={`text-sm font-black tracking-widest tabular-nums flex-shrink-0 px-3 py-1.5 rounded-lg border ${t.badgeBorder} ${t.badgeBg}`}
+            style={{ color: t.accent2 }}>
+            
                 {c.score} {t.unit}
               </span>
             </div>
-          ))}
+        )}
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
