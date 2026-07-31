@@ -243,19 +243,19 @@ function LiveLeaderboard({ currentUserId }) {
   return (
     <div className="w-full space-y-3">
       <PrimaryTabs primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} />
-      <div className="w-full retro-light-panel bg-[#0a0530]/90 backdrop-blur-xl rounded-2xl border border-[#c864ff]/30 shadow-[0_0_25px_rgba(200,100,255,0.15)] overflow-hidden transition-all duration-300">
+      <div className="w-full bg-card rounded-2xl border border-border shadow-sm dark:bg-[#0a0530]/90 dark:backdrop-blur-xl dark:border-[#c864ff]/30 dark:shadow-[0_0_25px_rgba(200,100,255,0.15)] overflow-hidden transition-all duration-300">
         <SubTabs subTab={subTab} setSubTab={setSubTab} />
-        <div className="bg-gradient-to-b from-[#06001a] to-transparent border-b border-[#ff00c8]/20 px-5 py-5 relative">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#c864ff] to-transparent opacity-60"></div>
+        <div className="bg-muted border-b border-border dark:bg-gradient-to-b dark:from-[#06001a] dark:to-transparent dark:border-[#ff00c8]/20 px-5 py-5 relative">
+          <div className="hidden dark:block absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#c864ff] to-transparent opacity-60"></div>
           <div className="flex items-center justify-center gap-3 mb-2">
             <Trophy className="w-5 h-5 text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse" />
-            <p className="text-sm font-black uppercase tracking-widest text-[#c864ff] drop-shadow-[0_0_5px_rgba(200,100,255,0.8)]">
+            <p className="text-sm font-black uppercase tracking-widest text-primary dark:text-[#c864ff] dark:drop-shadow-[0_0_5px_rgba(200,100,255,0.8)]">
               {subTab === "season" ? "Live Grid Scores" : "Daily Grid Challenge"}
             </p>
           </div>
           {subTab === "season" ? (
             <>
-              <p className="text-[11px] text-[#c864ff]/70 text-center leading-relaxed">
+              <p className="text-[11px] text-muted-foreground dark:text-[#c864ff]/70 text-center leading-relaxed">
                 ⏳ Leaderboard resets once a month on every 31st of the month 11pm.
               </p>
               <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 mt-3">
@@ -263,42 +263,42 @@ function LiveLeaderboard({ currentUserId }) {
                 <span className="text-[11px] font-black bg-[#c0c0c0]/10 px-3 py-1 rounded-md border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2ND: 2 TOKENS</span>
                 <span className="text-[11px] font-black bg-[#cd7f32]/10 px-3 py-1 rounded-md border border-[#cd7f32]/40 text-[#cd7f32]">🥉 3RD: 1 TOKEN</span>
               </div>
-              <p className="text-[10px] mt-4 leading-relaxed text-[#ff00c8] flex items-center justify-center gap-1.5 font-bold">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff00c8] animate-ping" />
+              <p className="text-[10px] mt-4 leading-relaxed text-pink-600 dark:text-[#ff00c8] flex items-center justify-center gap-1.5 font-bold">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-pink-500 dark:bg-[#ff00c8] animate-ping" />
                 Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players!
               </p>
             </>
           ) : (
-            <p className="text-[11px] text-[#c864ff]/70 text-center leading-relaxed mt-1">
+            <p className="text-[11px] text-muted-foreground dark:text-[#c864ff]/70 text-center leading-relaxed mt-1">
               Today's runs only. Push your score up the daily grid — entries reset every evening!
             </p>
           )}
         </div>
 
         {loading ? (
-          <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-[#c864ff]" /></div>
+          <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary dark:text-[#c864ff]" /></div>
         ) : displayScores.length === 0 ? (
-          <div className="py-12 text-center text-[#c864ff]/50 text-sm tracking-widest font-bold uppercase">{subTab === "season" ? "Awaiting first runner. Enter the grid!" : "No scores posted today. Be the first!"}</div>
+          <div className="py-12 text-center text-muted-foreground dark:text-[#c864ff]/50 text-sm tracking-widest font-bold uppercase">{subTab === "season" ? "Awaiting first runner. Enter the grid!" : "No scores posted today. Be the first!"}</div>
         ) : (
-          <div className="divide-y divide-[#c864ff]/10 bg-transparent">
+          <div className="divide-y divide-border dark:divide-[#c864ff]/10 bg-transparent">
             {displayScores.map((s, i) => {
               const isChamp = champUserIds.has(s.user_id);
               const isTop3 = i < 3 && !isChamp;
               return (
-                <div key={s.id} className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-[#c864ff]/5 ${isTop3 ? "bg-[#c864ff]/[0.03]" : ""}`}>
+                <div key={s.id} className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted dark:hover:bg-[#c864ff]/5 ${isTop3 ? "bg-muted/50 dark:bg-[#c864ff]/[0.03]" : ""}`}>
                   <div className="w-8 flex items-center justify-center flex-shrink-0">
                     {i < 3
                       ? <span className="text-2xl drop-shadow-md">{medals[i]}</span>
-                      : <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[#06001a] text-[11px] font-black text-[#c864ff]/50 border border-[#c864ff]/20 shadow-inner">#{i + 1}</span>
+                      : <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted text-[11px] font-black text-muted-foreground dark:bg-[#06001a] dark:text-[#c864ff]/50 border border-border dark:border-[#c864ff]/20 shadow-inner">#{i + 1}</span>
                     }
                   </div>
                   <div className="flex-1 min-w-0 flex items-center gap-2">
-                    <span className="text-sm font-bold text-white leading-tight" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                    <span className="text-sm font-bold text-foreground dark:text-white leading-tight" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
                       {s.user_name}
                     </span>
                     {isChamp && <span className="text-base flex-shrink-0 drop-shadow-[0_0_5px_#ffd700]" title="Defending Champ — Prize Cooldown">👑</span>}
                   </div>
-                  <span className="text-sm font-black text-[#ff00c8] tracking-widest tabular-nums flex-shrink-0 bg-[#ff00c8]/10 px-3 py-1.5 rounded-lg border border-[#ff00c8]/30 shadow-[0_0_10px_rgba(255,0,200,0.2)]">
+                  <span className="text-sm font-black text-pink-600 dark:text-[#ff00c8] tracking-widest tabular-nums flex-shrink-0 bg-pink-500/10 dark:bg-[#ff00c8]/10 px-3 py-1.5 rounded-lg border border-pink-500/30 dark:border-[#ff00c8]/30 dark:shadow-[0_0_10px_rgba(255,0,200,0.2)]">
                     {subTab === "season" ? s.score : (s.daily_score ?? 0)} PTS
                   </span>
                 </div>
