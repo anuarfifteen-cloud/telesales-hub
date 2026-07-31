@@ -692,8 +692,9 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
                 className={`flex items-center justify-center ${isSel ? "z-30" : "z-20"}`}>
         
         <button
-                  onClick={() => handleCellClick(r, c)}
+                  onPointerDown={() => handleCellClick(r, c)}
                   disabled={phase !== "playing" || busy}
+                  style={{ touchAction: "none" }}
                   className={`flex items-center justify-center rounded-lg select-none w-full h-full ${
                   isSel ? "bg-fuchsia-500/40 ring-2 ring-fuchsia-400" : "bg-white/10 hover:bg-white/20"} ${
                   phase === "playing" && !busy ? "cursor-pointer" : "cursor-default"}`}>
