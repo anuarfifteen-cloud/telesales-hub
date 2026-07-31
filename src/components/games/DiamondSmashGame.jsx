@@ -109,7 +109,7 @@ function refill(board) {
 
 // ── Leaderboard ─────────────────────────────────────────────────────────────
 const DS_TAB_ACTIVE = "bg-fuchsia-500/15 border-fuchsia-500 text-fuchsia-300 shadow-[0_0_10px_rgba(217,70,239,0.5)]";
-const DS_TAB_INACTIVE = "border-white/10 text-white/40 hover:text-white/70 hover:border-white/25";
+const DS_TAB_INACTIVE = "border-slate-300 dark:border-white/10 text-slate-500 dark:text-white/40 hover:text-slate-800 dark:hover:text-white/70 hover:border-slate-400 dark:hover:border-white/25";
 
 function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserId }) {
   const [primaryTab, setPrimaryTab] = useState("live"); // live | hall_of_fame
@@ -767,7 +767,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       </div>
 
       {/* Static how-to-play hint */}
-      <div className="w-full text-center text-xs text-fuchsia-300/70 px-2 space-y-1" style={{ maxWidth: 364 }}>
+      <div className="w-full text-center text-xs text-slate-600 dark:text-fuchsia-300/70 px-2 space-y-1" style={{ maxWidth: 364 }}>
         <p>Tap a candy, then tap next to it to swap. Match 3 or more to smash them!</p>
         <p>💥 Bonus: If pieces fall and match again automatically, you get a chain bonus — x2, x3, x4 and more!</p>
       </div>
