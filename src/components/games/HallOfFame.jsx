@@ -119,9 +119,9 @@ export default function HallOfFame({ gameName }) {
     <div className={`w-full retro-light-panel bg-[#0a0530]/90 backdrop-blur-xl rounded-2xl border ${t.border} ${t.glow} overflow-hidden transition-all duration-300`}>
       <div className={`bg-gradient-to-b ${t.bgFrom} to-transparent border-b ${t.headerBorder} px-5 py-5 relative`}>
         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#ffd700] to-transparent opacity-60" />
-        <div className="flex items-center justify-center gap-3 mb-2 ml-6">
+        <div className="flex items-center justify-center gap-3 mb-2 ml-2">
           <Crown className="w-5 h-5 text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]" />
-          <p className="text-sm font-black uppercase tracking-widest text-center" style={{ color: t.accent }}>
+          <p className="text-sm font-black uppercase tracking-widest" style={{ color: t.accent }}>
             Hall of Fame — Season Champions
           </p>
         </div>
