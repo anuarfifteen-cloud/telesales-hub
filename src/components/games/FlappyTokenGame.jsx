@@ -145,7 +145,9 @@ function drawPipe(ctx, x, topH, botY) {
     ctx.save();
     ctx.translate(x + PIPE_W / 2, y + h / 2);
     ctx.rotate(Math.PI / 2);
-    ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = "rgba(57, 255, 20, 0.9)";
+    ctx.fillStyle = "rgba(57, 255, 20, 0.95)";
     ctx.font = "bold 12px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -465,11 +467,17 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       if (s.lastPipeTime === 0) s.lastPipeTime = timestamp;
       if (timestamp - s.lastPipeTime >= diff.pipeIntervalMs) {
         const gapY = 70 + Math.random() * (H - diff.pipeGap - 130);
-        s.pipes.push({ x: W + PIPE_W, gapY, scored: false });
+        s.pipes.push({ x: W + PIPE_W, gapY, baseGapY: gapY, scored: false });
         s.lastPipeTime = timestamp;
       }
 
-      s.pipes.forEach(p => { p.x -= diff.pipeSpeed * dt; });
+      s.pipes.forEach(p => {
+        p.x -= diff.pipeSpeed * dt;
+        // Past 50 points, pipes drift up and down to ramp up difficulty
+        if (s.score >= 50) {
+          p.gapY = p.baseGapY + Math.sin(timestamp * 0.003 + p.baseGapY * 0.05) * 45;
+        }
+      });
       s.pipes = s.pipes.filter(p => p.x > -PIPE_W - 10);
 
       s.pipes.forEach(p => {
