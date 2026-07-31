@@ -195,9 +195,9 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
                 <span className="text-[11px] font-black bg-[#c0c0c0]/10 px-3 py-1 rounded-md border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2ND: 2 TOKENS</span>
                 <span className="text-[11px] font-black bg-[#cd7f32]/10 px-3 py-1 rounded-md border border-[#cd7f32]/40 text-[#cd7f32]">🥉 3RD: 1 TOKEN</span>
               </div>
-              <p className="text-[10px] italic text-fuchsia-300/60 text-center mt-3 leading-relaxed">
-                ⏳ Leaderboard resets once a month on every 21th of the month 11pm.
-              </p>
+              <p className="italic text-fuchsia-300/60 text-center mt-3 leading-relaxed text-[9px]">⏳ Leaderboard resets once a month on every 21th of the month 11pm.
+
+            </p>
             </> :
 
           <p className="text-[11px] text-fuchsia-300/70 text-center leading-relaxed">
@@ -240,13 +240,13 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
                     <span className="text-sm font-black text-amber-400 tracking-widest tabular-nums bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/30 shadow-[0_0_10px_rgba(255,215,0,0.2)]">
                       {s.score} PTS
                     </span>
-                    {champIds.has(s.user_id) ? (
-                      <span className="text-[10px] font-bold text-fuchsia-300/80">Prize Cooldown Active</span>
-                    ) : i < 3 && (
-                      <span className={`text-[10px] font-black ${i === 0 ? "text-[#ffd700]" : i === 1 ? "text-[#c0c0c0]" : "text-[#cd7f32]"}`}>
+                    {champIds.has(s.user_id) ?
+              <span className="text-[10px] font-bold text-fuchsia-300/80">Prize Cooldown Active</span> :
+              i < 3 &&
+              <span className={`text-[10px] font-black ${i === 0 ? "text-[#ffd700]" : i === 1 ? "text-[#c0c0c0]" : "text-[#cd7f32]"}`}>
                         {i === 0 ? "+5 tokens" : i === 1 ? "+2 tokens" : "+1 token"}
                       </span>
-                    )}
+              }
                   </div>
                 </div>
           )}
@@ -669,41 +669,41 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         style={{ width: BOARD_W + 16, height: BOARD_H + 16 }}>
         
         <div
-  className="relative"
-  style={{ width: BOARD_W, height: BOARD_H }}>
+          className="relative"
+          style={{ width: BOARD_W, height: BOARD_H }}>
 
   {pieces.map(({ piece, r, c }) => {
-    const isFading = fadingIds.has(piece.id);
-    const isSel = selected && selected.r === r && selected.c === c;
-    return (
-      <motion.div
-        key={piece.id}
-        layout
-        style={{
-          position: "absolute",
-          left: c * (CELL + GAP),
-          top: r * (CELL + GAP),
-          width: CELL,
-          height: CELL,
-        }}
-        transition={{ type: "spring", stiffness: 300, damping: 20, delay: r * 0.05 }}
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: isFading ? 0.4 : 1, opacity: isFading ? 0 : 1 }}
-        className={`flex items-center justify-center ${isSel ? "z-30" : "z-20"}`}>
+            const isFading = fadingIds.has(piece.id);
+            const isSel = selected && selected.r === r && selected.c === c;
+            return (
+              <motion.div
+                key={piece.id}
+                layout
+                style={{
+                  position: "absolute",
+                  left: c * (CELL + GAP),
+                  top: r * (CELL + GAP),
+                  width: CELL,
+                  height: CELL
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 20, delay: r * 0.05 }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: isFading ? 0.4 : 1, opacity: isFading ? 0 : 1 }}
+                className={`flex items-center justify-center ${isSel ? "z-30" : "z-20"}`}>
         
         <button
-          onClick={() => handleCellClick(r, c)}
-          disabled={phase !== "playing" || busy}
-          className={`flex items-center justify-center rounded-lg select-none w-full h-full ${
-            isSel ? "bg-fuchsia-500/40 ring-2 ring-fuchsia-400" : "bg-white/10 hover:bg-white/20"
-          } ${phase === "playing" && !busy ? "cursor-pointer" : "cursor-default"}`}>
+                  onClick={() => handleCellClick(r, c)}
+                  disabled={phase !== "playing" || busy}
+                  className={`flex items-center justify-center rounded-lg select-none w-full h-full ${
+                  isSel ? "bg-fuchsia-500/40 ring-2 ring-fuchsia-400" : "bg-white/10 hover:bg-white/20"} ${
+                  phase === "playing" && !busy ? "cursor-pointer" : "cursor-default"}`}>
           <span className="text-2xl leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
             {EMOJIS[piece.type]}
           </span>
         </button>
-      </motion.div>
-    );
-  })}
+      </motion.div>);
+
+          })}
 </div>
 
         {/* Cascade combo badge — above all pieces & overlays (z-50) */}
@@ -720,7 +720,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         }
 
         {/* Start screen — shown only before the player starts. Removed entirely
-                    during gameplay so the grid is fully visible and unobstructed. */}
+                     during gameplay so the grid is fully visible and unobstructed. */}
         {phase === "idle" &&
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e]/75 backdrop-blur-sm z-40">
             <h1 className="font-black text-3xl text-center tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-fuchsia-300 to-amber-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]">
