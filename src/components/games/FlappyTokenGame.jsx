@@ -256,7 +256,7 @@ function LiveLeaderboard({ currentUserId }) {
           {subTab === "season" ? (
             <>
               <p className="text-[11px] text-[#c864ff]/70 text-center leading-relaxed">
-                The grid resets twice a month (16th & day after Final Day). Claim the Top 3 to extract tokens:
+                ⏳ Leaderboard resets once a month on every 1st of the month 11pm.
               </p>
               <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 mt-3">
                 <span className="text-[11px] font-black bg-[#ffd700]/10 px-3 py-1 rounded-md border border-[#ffd700]/40 text-[#ffd700]">🥇 1ST: 5 TOKENS</span>
