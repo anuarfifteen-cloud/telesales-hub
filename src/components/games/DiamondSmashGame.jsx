@@ -195,7 +195,7 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
                 <span className="text-[11px] font-black bg-[#c0c0c0]/10 px-3 py-1 rounded-md border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2ND: 2 TOKENS</span>
                 <span className="text-[11px] font-black bg-[#cd7f32]/10 px-3 py-1 rounded-md border border-[#cd7f32]/40 text-[#cd7f32]">🥉 3RD: 1 TOKEN</span>
               </div>
-              <p className="italic text-muted-foreground dark:text-fuchsia-300/60 text-center mt-3 leading-relaxed text-[9px]">⏳ Leaderboard resets once a month on every 21th of the month 11pm.
+              <p className="italic text-muted-foreground dark:text-fuchsia-300/60 text-center mt-3 leading-relaxed text-[9px]">⏳ Leaderboard resets once a month on every 21st of the month 11pm.
 
             </p>
             </> :
