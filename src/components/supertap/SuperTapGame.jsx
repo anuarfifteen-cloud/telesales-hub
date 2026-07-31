@@ -7,7 +7,7 @@ import HallOfFame, { PrimaryTabs, SubTabs } from "@/components/games/HallOfFame"
 
 // ── Sound Engine (Web Audio API) ──────────────────────────────────────────────
 function createAudioCtx() {
-  try { return new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; }
+  try {return new (window.AudioContext || window.webkitAudioContext)();} catch {return null;}
 }
 
 function playTapSound(ctx) {
@@ -64,8 +64,8 @@ function RankBadge({ rank }) {
   return (
     <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-muted text-[11px] font-black text-muted-foreground dark:bg-[#06001a] dark:text-[#00f3ff]/60 border border-border dark:border-[#00f3ff]/20">
       {rank}
-    </span>
-  );
+    </span>);
+
 }
 
 function getLocalDateStr() {
@@ -92,10 +92,10 @@ function Leaderboard() {
 
   const today = getLocalDateStr();
   const seasonScores = scores.slice(0, 10);
-  const dailyScores = scores
-    .filter((s) => s.daily_date === today && (s.daily_high_score ?? 0) > 0)
-    .sort((a, b) => (b.daily_high_score ?? 0) - (a.daily_high_score ?? 0))
-    .slice(0, 10);
+  const dailyScores = scores.
+  filter((s) => s.daily_date === today && (s.daily_high_score ?? 0) > 0).
+  sort((a, b) => (b.daily_high_score ?? 0) - (a.daily_high_score ?? 0)).
+  slice(0, 10);
 
   const displayScores = subTab === "season" ? seasonScores : dailyScores;
 
@@ -104,8 +104,8 @@ function Leaderboard() {
       <div className="w-full space-y-3">
         <PrimaryTabs primaryTab={primaryTab} setPrimaryTab={setPrimaryTab} />
         <HallOfFame gameName="supertap" />
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -122,11 +122,11 @@ function Leaderboard() {
               {subTab === "season" ? "Live Cyber Leaderboard" : "Flash Challenge (Daily)"}
             </p>
           </div>
-          {subTab === "season" ? (
-            <>
-              <p className="text-[11px] text-muted-foreground dark:text-[#00f3ff]/70 text-center leading-relaxed">
-                The leaderboard resets twice a month (on the 16th and after the final day of the month). Be in the Top 3 when the season ends to win:
-              </p>
+          {subTab === "season" ?
+          <>
+              <p className="text-[11px] text-muted-foreground dark:text-[#00f3ff]/70 text-center leading-relaxed">The leaderboard resets twice a month (on the 16th and after the final day of the month). Be in the Top 3 when the season ends to win:
+
+            </p>
               <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2.5">
                 <span className="text-[11px] font-bold bg-[#ffd700]/10 px-2 py-0.5 rounded border border-[#ffd700]/40 text-[#ffd700]">🥇 1st: 5 Tokens</span>
                 <span className="text-[11px] font-bold bg-[#c0c0c0]/10 px-2 py-0.5 rounded border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2nd: 2 Tokens</span>
@@ -136,26 +136,26 @@ function Leaderboard() {
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-pink-500 dark:bg-[#ff00ea] animate-ping mr-0.5" />
                 Note: The Defending Champ (👑) enters a one-season prize cooldown for the next round. Token prizes will go to the top 3 eligible players!
               </p>
-            </>
-          ) : (
-            <p className="text-[11px] text-muted-foreground dark:text-[#00f3ff]/70 text-center leading-relaxed">
+            </> :
+
+          <p className="text-[11px] text-muted-foreground dark:text-[#00f3ff]/70 text-center leading-relaxed">
               Today's runs only. Push your score up the daily grid — entries reset every evening!
             </p>
-          )}
+          }
         </div>
 
-        {displayScores.length === 0 ? (
-          <div className="py-10 text-center text-muted-foreground dark:text-[#00f3ff]/50 text-sm tracking-wide font-bold uppercase">
+        {displayScores.length === 0 ?
+        <div className="py-10 text-center text-muted-foreground dark:text-[#00f3ff]/50 text-sm tracking-wide font-bold uppercase">
             {subTab === "season" ? "Awaiting first contestant. Enter the grid!" : "No flash scores yet today. Be the first!"}
-          </div>
-        ) : (
-          <div className="divide-y divide-border dark:divide-[#00f3ff]/10 bg-transparent">
+          </div> :
+
+        <div className="divide-y divide-border dark:divide-[#00f3ff]/10 bg-transparent">
             {displayScores.map((s, i) => {
-              const isChamp = champUserIds.has(s.user_id);
-              const score = subTab === "season" ? s.high_score : s.daily_high_score;
-              const tps = (score / 10).toFixed(1);
-              return (
-                <div key={s.id} className={`flex items-center gap-4 px-5 py-3 transition-colors hover:bg-muted dark:hover:bg-[#00f3ff]/5 ${i < 3 && !isChamp ? "bg-cyan-500/[0.04] dark:bg-[#00f3ff]/[0.03]" : ""}`}>
+            const isChamp = champUserIds.has(s.user_id);
+            const score = subTab === "season" ? s.high_score : s.daily_high_score;
+            const tps = (score / 10).toFixed(1);
+            return (
+              <div key={s.id} className={`flex items-center gap-4 px-5 py-3 transition-colors hover:bg-muted dark:hover:bg-[#00f3ff]/5 ${i < 3 && !isChamp ? "bg-cyan-500/[0.04] dark:bg-[#00f3ff]/[0.03]" : ""}`}>
                   <div className="w-8 flex items-center justify-center flex-shrink-0">
                     <RankBadge rank={i + 1} />
                   </div>
@@ -169,14 +169,14 @@ function Leaderboard() {
                     <span className="text-sm font-black tracking-wider tabular-nums">{score} TAPS</span>
                     <span className="text-[9px] font-bold tabular-nums text-cyan-600 dark:text-[#00f3ff]">{tps} TPS</span>
                   </span>
-                </div>
-              );
-            })}
+                </div>);
+
+          })}
           </div>
-        )}
+        }
       </div>
-    </div>
-  );
+    </div>);
+
 }
 
 export default function SuperTapGame({ user }) {
@@ -186,10 +186,10 @@ export default function SuperTapGame({ user }) {
   const [isOver, setIsOver] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newRecord, setNewRecord] = useState(false);
-  const [tapped, setTapped] = useState(false); 
+  const [tapped, setTapped] = useState(false);
   const [ripples, setRipples] = useState([]);
-  const [popups, setPopups] = useState([]); 
-  
+  const [popups, setPopups] = useState([]);
+
   const intervalRef = useRef(null);
   const audioCtxRef = useRef(null);
   const rippleIdRef = useRef(0);
@@ -310,7 +310,7 @@ export default function SuperTapGame({ user }) {
     setTimeout(() => setTapped(false), 60);
     if (navigator.vibrate) navigator.vibrate(12);
     playTapSound(audioCtxRef.current);
-    
+
     setCurrentScore((s) => s + 1);
   };
 
@@ -374,27 +374,27 @@ export default function SuperTapGame({ user }) {
           <span
             key={currentScore}
             className="text-4xl font-black tracking-tighter tabular-nums text-pink-600 dark:text-[#ff00ea] dark:drop-shadow-[0_0_15px_rgba(255,0,234,0.6)]"
-            style={{ transform: currentScore > 0 ? "scale(1.05)" : "none", transition: "transform 0.05s ease-out" }}
-          >
+            style={{ transform: currentScore > 0 ? "scale(1.05)" : "none", transition: "transform 0.05s ease-out" }}>
+            
             {currentScore}
           </span>
         </div>
       </div>
 
       {/* Evaluation Feedback Banner */}
-      {isOver && (
-        <div className="w-full">
+      {isOver &&
+      <div className="w-full">
           <div className={`rounded-xl px-4 py-3.5 text-center backdrop-blur-md transition-all animate-in fade-in zoom-in-95 duration-200 border ${newRecord ? "bg-pink-500/10 border-pink-500/40 dark:bg-[#ff00ea]/10 dark:border-[#ff00ea]/50 dark:shadow-[0_0_20px_rgba(255,0,234,0.2)]" : "bg-card border-border dark:bg-[#0a0530] dark:border-[#00f3ff]/30"}`}>
-            {saving ? (
-              <p className="text-xs font-bold text-cyan-700/80 dark:text-[#00f3ff]/80 tracking-wider uppercase animate-pulse">Syncing core network scores...</p>
-            ) : newRecord ? (
-              <p className="text-sm font-extrabold text-pink-600 dark:text-[#ff00ea] dark:drop-shadow-[0_0_8px_#ff00ea] uppercase tracking-widest">⚡ RECORD BREAK! Ultimate Tier: {currentScore} Taps!</p>
-            ) : (
-              <p className="text-xs font-semibold text-muted-foreground dark:text-[#00f3ff]/80">Run completed: <span className="text-cyan-700 dark:text-[#00f3ff] font-bold">{currentScore} taps</span> recorded. Push limits next round!</p>
-            )}
+            {saving ?
+          <p className="text-xs font-bold text-cyan-700/80 dark:text-[#00f3ff]/80 tracking-wider uppercase animate-pulse">Syncing core network scores...</p> :
+          newRecord ?
+          <p className="text-sm font-extrabold text-pink-600 dark:text-[#ff00ea] dark:drop-shadow-[0_0_8px_#ff00ea] uppercase tracking-widest">⚡ RECORD BREAK! Ultimate Tier: {currentScore} Taps!</p> :
+
+          <p className="text-xs font-semibold text-muted-foreground dark:text-[#00f3ff]/80">Run completed: <span className="text-cyan-700 dark:text-[#00f3ff] font-bold">{currentScore} taps</span> recorded. Push limits next round!</p>
+          }
           </div>
         </div>
-      )}
+      }
 
       {/* Core Tap Button Frame Layout */}
       <div className="w-full flex items-center justify-center my-2 relative">
@@ -411,65 +411,65 @@ export default function SuperTapGame({ user }) {
             /* ⚡ Dropped from 0.50 to 0.30 for double the compression depth */
             transform: tapped ? `scale(${shrinkScale * 0.30})` : `scale(${shrinkScale})`,
             boxShadow: tapped ?
-              "0 0 50px 15px rgba(255,0,234,0.6), inset 0 4px 12px rgba(255,255,255,0.4)" :
-              "0 15px 40px rgba(0,0,0,0.6), 0 0 25px rgba(255,0,234,0.3), inset 0 -8px 0 rgba(0,0,0,0.3), inset 0 6px 12px rgba(255,255,255,0.15)",
+            "0 0 50px 15px rgba(255,0,234,0.6), inset 0 4px 12px rgba(255,255,255,0.4)" :
+            "0 15px 40px rgba(0,0,0,0.6), 0 0 25px rgba(255,0,234,0.3), inset 0 -8px 0 rgba(0,0,0,0.3), inset 0 6px 12px rgba(255,255,255,0.15)",
             /* ⚡ Cut from 0.05s to 0.02s for lightning-fast snap speed */
             transition: "transform 0.02s ease, box-shadow 0.02s ease"
-          }}
-        >
+          }}>
+          
           {/* Wave Ripple Components */}
-          {ripples.map((r) => (
-            <span
-              key={r.id}
-              className="absolute rounded-full bg-white/40 animate-ping pointer-events-none"
-              style={{
-                width: 90, height: 90,
-                left: r.x - 45, top: r.y - 45,
-                animationDuration: "0.45s",
-                animationIterationCount: 1
-              }}
-            />
-          ))}
+          {ripples.map((r) =>
+          <span
+            key={r.id}
+            className="absolute rounded-full bg-white/40 animate-ping pointer-events-none"
+            style={{
+              width: 90, height: 90,
+              left: r.x - 45, top: r.y - 45,
+              animationDuration: "0.45s",
+              animationIterationCount: 1
+            }} />
+
+          )}
 
           {/* Hit Float Markers */}
-          {popups.map((p) => (
-            <span
-              key={p.id}
-              className="absolute text-xl font-black text-[#00f3ff] pointer-events-none select-none animate-float z-30 drop-shadow-[0_0_8px_#00f3ff]"
-              style={{ left: p.x - 12, top: p.y - 20 }}
-            >
+          {popups.map((p) =>
+          <span
+            key={p.id}
+            className="absolute text-xl font-black text-[#00f3ff] pointer-events-none select-none animate-float z-30 drop-shadow-[0_0_8px_#00f3ff]"
+            style={{ left: p.x - 12, top: p.y - 20 }}>
+            
               +1
             </span>
-          ))}
+          )}
 
           {/* Visual Grid Concentric Rim Overlay */}
           <span className="absolute inset-2.5 rounded-full border border-[#00f3ff]/20 pointer-events-none mix-blend-overlay" />
           <span className="absolute inset-4 rounded-full border border-white/5 pointer-events-none" />
           
           <span className="relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-extrabold flex flex-col items-center justify-center gap-0.5 tracking-wider text-sm">
-            {isOver ? (
-              <span className="text-white/60 text-xs">Terminated</span>
-            ) : isPlaying ? (
-              <span className="text-xl font-black tracking-widest text-white drop-shadow-[0_0_8px_#ffffff] animate-pulse">TAP!</span>
-            ) : (
-              <span className="text-xl font-black tracking-widest text-white/90">TAP</span>
-            )}
+            {isOver ?
+            <span className="text-white/60 text-xs">Terminated</span> :
+            isPlaying ?
+            <span className="text-xl font-black tracking-widest text-white drop-shadow-[0_0_8px_#ffffff] animate-pulse">TAP!</span> :
+
+            <span className="text-xl font-black tracking-widest text-white/90">TAP</span>
+            }
           </span>
         </button>
       </div>
 
       {/* Initialization Reset Button Panel */}
-      {isOver && !saving && (
-        <button
-          onClick={handleReset}
-          className="flex items-center justify-center gap-2 bg-transparent border-2 border-cyan-600 text-cyan-600 hover:bg-cyan-600 hover:text-white dark:border-[#00f3ff] dark:text-[#00f3ff] dark:hover:bg-[#00f3ff] dark:hover:text-[#06001a] px-7 py-3 rounded-full font-black text-xs uppercase tracking-widest transition-all dark:shadow-[0_0_15px_rgba(0,243,255,0.2)] dark:hover:shadow-[0_0_25px_rgba(0,243,255,0.6)] active:scale-95"
-        >
+      {isOver && !saving &&
+      <button
+        onClick={handleReset}
+        className="flex items-center justify-center gap-2 bg-transparent border-2 border-cyan-600 text-cyan-600 hover:bg-cyan-600 hover:text-white dark:border-[#00f3ff] dark:text-[#00f3ff] dark:hover:bg-[#00f3ff] dark:hover:text-[#06001a] px-7 py-3 rounded-full font-black text-xs uppercase tracking-widest transition-all dark:shadow-[0_0_15px_rgba(0,243,255,0.2)] dark:hover:shadow-[0_0_25px_rgba(0,243,255,0.6)] active:scale-95">
+        
           <RotateCcw className="w-3.5 h-3.5" /> Re-Engage Module
         </button>
-      )}
+      }
 
       {/* Leaderboard Terminal Panel */}
       <Leaderboard />
-    </div>
-  );
+    </div>);
+
 }
