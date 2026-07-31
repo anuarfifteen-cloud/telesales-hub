@@ -474,7 +474,7 @@ export default function FlappyTokenGame({ user, onUserUpdate }) {
       s.pipes.forEach(p => {
         p.x -= diff.pipeSpeed * dt;
         // Past 50 points, pipes drift up and down to ramp up difficulty
-        if (s.score >= 50) {
+        if (s.score >= 10) {
           p.gapY = p.baseGapY + Math.sin(timestamp * 0.0015 + p.baseGapY * 0.05) * 45;
         }
       });
