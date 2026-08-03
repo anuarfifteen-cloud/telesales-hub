@@ -310,6 +310,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const [scores, setScores] = useState([]);
   const [loadingScores, setLoadingScores] = useState(true);
   const [clearing, setClearing] = useState(false);
@@ -393,7 +394,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     async (finalScore) => {
       if (!user?.id) return;
       setSaving(true);
-      try {
+      setSaveFailed(false);
+      const persist = async () => {
         // One entry per player — upsert their personal best only
         const existing = await base44.entities.DiamondSmashScores.filter({ user_id: user.id });
         const entry = existing[0];
@@ -412,12 +414,26 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
             updated_at: new Date().toISOString()
           });
         }
-        await loadScores();
-      } catch (e) {
-        console.error("Failed to save Diamond Smash score", e);
-      } finally {
-        setSaving(false);
+      };
+      // Retry transient mobile network failures (up to 3 attempts)
+      let lastErr;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await persist();
+          lastErr = null;
+          break;
+        } catch (e) {
+          lastErr = e;
+          console.error(`Diamond Smash save attempt ${attempt} failed`, e);
+          await sleep(attempt * 500);
+        }
       }
+      if (lastErr) {
+        setSaveFailed(true);
+      } else {
+        await loadScores();
+      }
+      setSaving(false);
     },
     [user?.id, user?.full_name, user?.email, loadScores]
   );
@@ -751,7 +767,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
               <p className="font-black text-5xl tabular-nums text-amber-400 drop-shadow-[0_0_20px_rgba(255,215,0,0.8)]">{score}</p>
               {saving ?
             <p className="text-[10px] text-fuchsia-400 mt-1 animate-pulse">Saving score...</p> :
-
+            saveFailed ?
+            <button onClick={() => saveScore(score)} className="text-[10px] text-red-400 mt-1 font-bold underline animate-pulse">⚠ Save failed — tap to retry</button> :
             <p className="text-[10px] text-fuchsia-400/60 mt-1">Score saved ✓</p>
             }
             </div>
