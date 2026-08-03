@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Crown, UserX, Plus } from "lucide-react";
+import { Loader2, Crown, UserX, Plus, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -49,6 +49,36 @@ export default function AdminDiamondSmash() {
     queryKey: ["appSettingsAdminDiamond"],
     queryFn: () => base44.entities.AppSettings.list(),
   });
+
+  const appSettings = appSettingsRows[0] || {};
+  const hideLeaderboard = !!appSettings.hide_diamond_smash_leaderboard;
+  const [togglingLB, setTogglingLB] = useState(false);
+
+  const toggleLeaderboardVisibility = async () => {
+    setTogglingLB(true);
+    try {
+      const next = !hideLeaderboard;
+      if (appSettingsRows[0]) {
+        await base44.entities.AppSettings.update(appSettingsRows[0].id, {
+          hide_diamond_smash_leaderboard: next,
+        });
+      } else {
+        await base44.entities.AppSettings.create({
+          hide_diamond_smash_leaderboard: next,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["appSettingsAdminDiamond"] });
+      toast.success(
+        next
+          ? "🔒 Diamond Smash leaderboard hidden (Mystery Mode)"
+          : "👁️ Diamond Smash leaderboard is now visible"
+      );
+    } catch (err) {
+      toast.error("Error: " + err.message);
+    } finally {
+      setTogglingLB(false);
+    }
+  };
 
   const champUserIds = new Set(allUsers.filter((u) => u.is_defending_champ_diamond).map((u) => u.id));
   const champs = allUsers.filter((u) => u.is_defending_champ_diamond);
@@ -172,6 +202,47 @@ export default function AdminDiamondSmash() {
         <p className="text-[10px] font-bold uppercase tracking-widest opacity-75">Admin Panel</p>
         <p className="font-black text-lg">💎 Diamond Smash</p>
         <p className="text-xs opacity-80">Manage the seasonal Diamond Smash leaderboard</p>
+      </div>
+
+      {/* Leaderboard Visibility Toggle */}
+      <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-sm text-foreground">👁️ Show Diamond Smash Leaderboard to Players</h3>
+              <span
+                className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${
+                  hideLeaderboard
+                    ? "bg-red-500/10 border-red-500/40 text-red-600 dark:text-red-400"
+                    : "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                }`}
+              >
+                {hideLeaderboard ? "🔴 Hidden (Mystery Mode)" : "🟢 Leaderboard Visible"}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              When hidden, the game stays fully playable — players can keep smashing and still see their own personal best, but all other competitors' ranks and scores stay secret until the season deadline.
+            </p>
+          </div>
+          <button
+            onClick={toggleLeaderboardVisibility}
+            disabled={togglingLB}
+            className={`flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg border transition-colors ${
+              hideLeaderboard
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700"
+                : "bg-red-600 hover:bg-red-700 text-white border-red-700"
+            } disabled:opacity-50`}
+          >
+            {togglingLB ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : hideLeaderboard ? (
+              <Eye className="w-3.5 h-3.5" />
+            ) : (
+              <EyeOff className="w-3.5 h-3.5" />
+            )}
+            {hideLeaderboard ? "Show" : "Hide"}
+          </button>
+        </div>
       </div>
 
       {/* End Season Button */}

@@ -58,6 +58,11 @@
       },
       "description": "User IDs of the current Diamond Smash defending champions (publicly readable for leaderboard crown display)"
     },
+    "hide_diamond_smash_leaderboard": {
+      "type": "boolean",
+      "description": "When true, the live Diamond Smash leaderboard is hidden from players (Mystery Mode) \u2014 the game stays fully playable and players still see their own personal best",
+      "default": false
+    },
     "diamond_store_enabled": {
       "type": "boolean",
       "description": "Master toggle to enable/disable Diamond purchasing",

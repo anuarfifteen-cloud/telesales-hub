@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Trophy, RotateCcw, Trash2, Crown } from "lucide-react";
+import { Loader2, Trophy, RotateCcw, Trash2, Crown, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useDiamondSmashAudio } from "@/hooks/useDiamondSmashAudio";
+import DiamondSmashMysteryMode from "@/components/games/DiamondSmashMysteryMode";
 
 const ROWS = 8;
 const COLS = 8;
@@ -314,6 +315,10 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const [scores, setScores] = useState([]);
   const [loadingScores, setLoadingScores] = useState(true);
   const [clearing, setClearing] = useState(false);
+  // Mystery Mode: when the admin hides the leaderboard, players still see their own personal best
+  const [hideLeaderboard, setHideLeaderboard] = useState(false);
+  const [personalBest, setPersonalBest] = useState(null);
+  const [loadingPB, setLoadingPB] = useState(true);
   // Animation state
   const [fadingIds, setFadingIds] = useState(() => new Set());
 
@@ -371,6 +376,40 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     const unsub = base44.entities.DiamondSmashScores.subscribe(() => loadScores());
     return unsub;
   }, [loadScores]);
+
+  // Admin visibility setting (Mystery Mode toggle)
+  const loadVisibility = useCallback(async () => {
+    try {
+      const rows = await base44.entities.AppSettings.list();
+      setHideLeaderboard(!!rows[0]?.hide_diamond_smash_leaderboard);
+    } catch {
+      setHideLeaderboard(false);
+    }
+  }, []);
+  useEffect(() => {
+    loadVisibility();
+    const unsub = base44.entities.AppSettings.subscribe(() => loadVisibility());
+    return unsub;
+  }, [loadVisibility]);
+
+  // Player's own personal best (always shown, even in Mystery Mode)
+  const loadPersonalBest = useCallback(async () => {
+    if (!user?.id) { setLoadingPB(false); return; }
+    try {
+      const rows = await base44.entities.DiamondSmashScores.filter({ user_id: user.id });
+      setPersonalBest(rows[0] || null);
+    } catch {
+      setPersonalBest(null);
+    }
+    setLoadingPB(false);
+  }, [user?.id]);
+  useEffect(() => {
+    loadPersonalBest();
+  }, [loadPersonalBest]);
+  // Refresh personal best after the game saves a new high score
+  useEffect(() => {
+    if (phase === "over" && !saving && !saveFailed) loadPersonalBest();
+  }, [phase, saving, saveFailed, loadPersonalBest]);
 
   useEffect(() => {
     return () => {
@@ -790,16 +829,22 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         <p>💥 Bonus: If pieces fall and match again automatically, you get a chain bonus — x2, x3, x4 and more!</p>
       </div>
 
-      {/* Leaderboard */}
+      {/* Leaderboard — or Mystery Mode card when the admin has hidden it */}
       <div className="w-full" style={{ maxWidth: 364 }}>
-        <Leaderboard
-          scores={scores}
-          loading={loadingScores}
-          isAdmin={user?.role === "admin"}
-          onClear={handleClear}
-          clearing={clearing}
-          currentUserId={user?.id} />
-        
+        {hideLeaderboard && user?.role !== "admin" ? (
+          <DiamondSmashMysteryMode
+            personalBest={personalBest}
+            loadingPB={loadingPB}
+            currentUserId={user?.id} />
+        ) : (
+          <Leaderboard
+            scores={scores}
+            loading={loadingScores}
+            isAdmin={user?.role === "admin"}
+            onClear={handleClear}
+            clearing={clearing}
+            currentUserId={user?.id} />
+        )}
       </div>
     </div>);
 
