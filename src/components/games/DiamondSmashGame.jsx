@@ -74,6 +74,106 @@ function findPieceMatches(board) {
   });
 }
 
+// Detect connected match clusters and classify each cluster's shape.
+// Shapes drive special rewards:
+//   "five"  — 5 in a line            → 5× pts, +1 move, screen shake
+//   "tl"    — T- or L-shape (a ≥3 horizontal run intersecting a ≥3 vertical run)
+//                                     → 5× pts, +1 move, screen shake
+//   "h4"    — 4 in a row (horizontal) → 2× pts, spawn Horizontal Line Gem
+//   "v4"    — 4 in a column (vertical)→ 2× pts, spawn Vertical Line Gem
+//   "normal"— plain 3-match           → 1× pts
+function findMatchClusters(board) {
+  const hRuns = [];
+  const vRuns = [];
+
+  // Horizontal runs of length ≥ 3
+  for (let r = 0; r < ROWS; r++) {
+    let start = 0;
+    for (let c = 1; c <= COLS; c++) {
+      const prev = board[r][c - 1];
+      const cur = c < COLS ? board[r][c] : null;
+      const same = prev && cur && prev.type === cur.type;
+      if (!same) {
+        const len = c - start;
+        if (len >= 3 && prev) {
+          const cells = [];
+          for (let k = start; k < c; k++) cells.push({ r, c: k });
+          hRuns.push({ type: board[r][start].type, cells, orient: "h" });
+        }
+        start = c;
+      }
+    }
+  }
+
+  // Vertical runs of length ≥ 3
+  for (let c = 0; c < COLS; c++) {
+    let start = 0;
+    for (let r = 1; r <= ROWS; r++) {
+      const prev = board[r - 1][c];
+      const cur = r < ROWS ? board[r][c] : null;
+      const same = prev && cur && prev.type === cur.type;
+      if (!same) {
+        const len = r - start;
+        if (len >= 3 && prev) {
+          const cells = [];
+          for (let k = start; k < r; k++) cells.push({ r: k, c });
+          vRuns.push({ type: board[start][c].type, cells, orient: "v" });
+        }
+        start = r;
+      }
+    }
+  }
+
+  const allRuns = [...hRuns, ...vRuns];
+  if (allRuns.length === 0) return [];
+
+  // Union-find: merge runs that share a cell (same-type intersections → T/L/+/shapes)
+  const parent = allRuns.map((_, i) => i);
+  const find = (x) => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+  const union = (a, b) => { parent[find(a)] = find(b); };
+  const cellMap = new Map();
+  allRuns.forEach((run, idx) => {
+    for (const cell of run.cells) {
+      const key = `${cell.r},${cell.c}`;
+      if (!cellMap.has(key)) cellMap.set(key, []);
+      cellMap.get(key).push(idx);
+    }
+  });
+  for (const indices of cellMap.values()) {
+    for (let i = 1; i < indices.length; i++) union(indices[0], indices[i]);
+  }
+
+  const groups = new Map();
+  allRuns.forEach((run, idx) => {
+    const root = find(idx);
+    if (!groups.has(root)) groups.set(root, []);
+    groups.get(root).push(run);
+  });
+
+  const clusters = [];
+  for (const runs of groups.values()) {
+    const type = runs[0].type;
+    const cellSet = new Set();
+    let maxH = 0, maxV = 0, hasH = false, hasV = false;
+    for (const run of runs) {
+      if (run.orient === "h") { hasH = true; maxH = Math.max(maxH, run.cells.length); }
+      else { hasV = true; maxV = Math.max(maxV, run.cells.length); }
+      for (const cell of run.cells) cellSet.add(`${cell.r},${cell.c}`);
+    }
+    const cells = Array.from(cellSet).map((s) => {
+      const [r, c] = s.split(",").map(Number);
+      return { r, c };
+    });
+    let shape = "normal";
+    if (maxH >= 5 || maxV >= 5) shape = "five";
+    else if (hasH && hasV) shape = "tl";
+    else if (maxH === 4) shape = "h4";
+    else if (maxV === 4) shape = "v4";
+    clusters.push({ cells, type, shape });
+  }
+  return clusters;
+}
+
 // Smash step — remove matched pieces (leaves gaps)
 function clearMatches(board, matched) {
   const next = board.map((row) => row.slice());
@@ -336,6 +436,24 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     comboTimer.current = setTimeout(() => setCombo(null), 800);
   };
 
+  // Special-match popup (Line Gems & Power Matches) + screen shake (5/T/L)
+  const [specialPopup, setSpecialPopup] = useState(null); // { kind: "h4"|"v4"|"power", key }
+  const specialTimer = useRef(null);
+  const [shake, setShake] = useState(false);
+  const shakeTimer = useRef(null);
+
+  const showSpecial = (kind) => {
+    setSpecialPopup({ kind, key: Date.now() + Math.random() + kind });
+    if (specialTimer.current) clearTimeout(specialTimer.current);
+    specialTimer.current = setTimeout(() => setSpecialPopup(null), 900);
+  };
+
+  const triggerShake = () => {
+    setShake(true);
+    if (shakeTimer.current) clearTimeout(shakeTimer.current);
+    shakeTimer.current = setTimeout(() => setShake(false), 500);
+  };
+
   // Floating score popup (shown after each scoring move)
   const [floating, setFloating] = useState({ points: 0, reaction: "", visible: false, key: 0 });
   const floatTimer = useRef(null);
@@ -424,6 +542,14 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       if (floatTimer.current) {
         clearTimeout(floatTimer.current);
         floatTimer.current = null;
+      }
+      if (specialTimer.current) {
+        clearTimeout(specialTimer.current);
+        specialTimer.current = null;
+      }
+      if (shakeTimer.current) {
+        clearTimeout(shakeTimer.current);
+        shakeTimer.current = null;
       }
       stopMusic();
     };
@@ -514,6 +640,10 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     if (comboTimer.current) {clearTimeout(comboTimer.current);comboTimer.current = null;}
     setFloating({ points: 0, reaction: "", visible: false, key: 0 });
     if (floatTimer.current) {clearTimeout(floatTimer.current);floatTimer.current = null;}
+    setSpecialPopup(null);
+    setShake(false);
+    if (specialTimer.current) {clearTimeout(specialTimer.current);specialTimer.current = null;}
+    if (shakeTimer.current) {clearTimeout(shakeTimer.current);shakeTimer.current = null;}
     setPhase("playing");
     startMusic();
 
@@ -554,15 +684,36 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     let working = swapped;
 
     while (true) {
-      const matches = findPieceMatches(working);
-      if (matches.length === 0) break;
+      const clusters = findMatchClusters(working);
+      if (clusters.length === 0) break;
       chain++;
+      const matches = clusters.flatMap((cl) => cl.cells);
 
-      // Capture scoring + smash targets BEFORE mutation
+      // Per-cluster shape scoring with special multipliers
+      let stepScore = 0;
+      let topSpecial = null; // "power" > "h4" | "v4"
+      let extraMoves = 0;
+      for (const cl of clusters) {
+        const base = cl.cells.length * (POINTS[cl.type] ?? 0);
+        let mult = 1;
+        if (cl.shape === "five" || cl.shape === "tl") {
+          mult = 5;            // Base Points × 5
+          extraMoves += 1;     // +1 Extra Move per 5/T/L match
+          topSpecial = "power";
+        } else if (cl.shape === "h4") {
+          mult = 2;            // Base Points × 2
+          if (!topSpecial) topSpecial = "h4";
+        } else if (cl.shape === "v4") {
+          mult = 2;            // Base Points × 2
+          if (!topSpecial) topSpecial = "v4";
+        }
+        stepScore += base * mult;
+      }
+
+      // Capture smash targets BEFORE mutation
       const clearedTypes = matches.
       map((m) => working[m.r][m.c]?.type).
       filter((t) => t !== undefined);
-      const clearedBase = clearedTypes.reduce((s, t) => s + POINTS[t], 0);
       const fadeSet = new Set(
         matches.map((m) => working[m.r][m.c]?.id).filter(Boolean)
       );
@@ -571,6 +722,16 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       playMatch();
       if (clearedTypes.includes(4)) playDiamond();
       if (chain >= 2) {playCascade(chain);showCombo(chain);}
+
+      // Special-match popups, screen shake & bonus moves
+      if (topSpecial) {
+        showSpecial(topSpecial);
+        if (topSpecial === "power") triggerShake();
+      }
+      if (extraMoves > 0) {
+        movesRef.current += extraMoves;
+        setMoves(movesRef.current);
+      }
 
       // Smash — fade the matched pieces in place
       setFadingIds(fadeSet);
@@ -591,7 +752,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       setBoard(working);
       setFadingIds(new Set());
 
-      gained += clearedBase * chain;
+      gained += stepScore * chain;
       await sleep(280); // let the spring settle before the next cascade
     }
 
@@ -653,6 +814,19 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           25% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
           70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
           100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+        }
+        @keyframes dsSpecialPop {
+          0% { transform: translateX(-50%) scale(0.3); opacity: 0; }
+          20% { transform: translateX(-50%) scale(1.1); opacity: 1; }
+          75% { transform: translateX(-50%) scale(1); opacity: 1; }
+          100% { transform: translateX(-50%) scale(0.85); opacity: 0; }
+        }
+        @keyframes dsShake {
+          0%, 100% { transform: translate(0, 0); }
+          20% { transform: translate(-4px, 2px); }
+          40% { transform: translate(4px, -2px); }
+          60% { transform: translate(-3px, -2px); }
+          80% { transform: translate(3px, 2px); }
         }
       `}</style>
 
@@ -720,7 +894,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
 
       {/* Board — CSS grid + Framer Motion layout FLIP for gravity cascade */}
       <div
-        className="relative isolate overflow-hidden rounded-2xl border border-fuchsia-500/30 shadow-[0_0_30px_rgba(217,70,239,0.2)] bg-gradient-to-b from-[#2a1245] to-[#1a0b2e] p-2"
+        className={`relative isolate overflow-hidden rounded-2xl border border-fuchsia-500/30 shadow-[0_0_30px_rgba(217,70,239,0.2)] bg-gradient-to-b from-[#2a1245] to-[#1a0b2e] p-2 ${shake ? "animate-[dsShake_0.5s_ease-in-out]" : ""}`}
         style={{ width: BOARD_W + 16, height: BOARD_H + 16 }}>
         
         <div
@@ -771,6 +945,24 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           
             <span className="font-black text-4xl tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 via-pink-400 to-amber-300 drop-shadow-[0_0_12px_rgba(217,70,239,0.9)] whitespace-nowrap">
               {combo.mult >= 4 ? "💥" : combo.mult === 3 ? "🔥" : "✨"} x{combo.mult} COMBO!
+            </span>
+          </div>
+        }
+
+        {/* Special-match popup — Line Gems (↔/↕) & Power Matches (💥) */}
+        {specialPopup &&
+        <div
+          key={specialPopup.key}
+          className="absolute left-1/2 z-50 pointer-events-none select-none"
+          style={{ top: "26%", animation: "dsSpecialPop 0.9s ease-out forwards" }}>
+            <span className={`font-black text-3xl tracking-widest whitespace-nowrap drop-shadow-[0_0_12px_rgba(217,70,239,0.9)] ${
+              specialPopup.kind === "power"
+                ? "text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-fuchsia-400 to-red-400"
+                : "text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-fuchsia-300"
+            }`}>
+              {specialPopup.kind === "h4" && "↔️ LINE GEM! ×2"}
+              {specialPopup.kind === "v4" && "↕️ LINE GEM! ×2"}
+              {specialPopup.kind === "power" && "💥 POWER MATCH! ×5 +1🎟️"}
             </span>
           </div>
         }
