@@ -464,6 +464,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const timeLeftRef = useRef(GAME_TIME);
   const timerRef = useRef(null);
   const endedRef = useRef(false);
+  const busyRef = useRef(false);    // true while a move's cascade is resolving
+  const timeUpRef = useRef(false);  // set when timer hits 0 during a cascade; defers end-of-game until the cascade completes
 
   const loadScores = useCallback(async () => {
     const rows = await base44.entities.DiamondSmashScores.list("-score", 50);
@@ -603,6 +605,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     endedRef.current = true;
     stopTimer();
     setBusy(false);
+    busyRef.current = false;
     playGameOver();
     stopMusic();
     setPhase("over");
@@ -613,6 +616,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     // Full reset to prevent cross-game contamination
     stopTimer();
     endedRef.current = false;
+    timeUpRef.current = false;
+    busyRef.current = false;
     scoreRef.current = 0;
     movesRef.current = MAX_MOVES;
     timeLeftRef.current = GAME_TIME;
@@ -636,7 +641,15 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     timerRef.current = setInterval(() => {
       timeLeftRef.current -= 1;
       setTimeLeft(timeLeftRef.current);
-      if (timeLeftRef.current <= 0) finishGame(scoreRef.current);
+      if (timeLeftRef.current <= 0) {
+        stopTimer();
+        // If a cascade is mid-flight, defer end-of-game so its full score is saved
+        if (busyRef.current) {
+          timeUpRef.current = true;
+        } else {
+          finishGame(scoreRef.current);
+        }
+      }
     }, 1000);
   };
 
@@ -656,6 +669,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     }
 
     setBusy(true);
+    busyRef.current = true;
     setSelected(null);
 
     // 1. Commit the swap — pieces slide into swapped cells
@@ -670,6 +684,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     let working = swapped;
 
     while (true) {
+      if (endedRef.current) break; // stop awarding if the game already ended
       const clusters = findMatchClusters(working);
       if (clusters.length === 0) break;
       chain++;
@@ -736,13 +751,10 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       setFadingIds(new Set());
 
       gained += stepScore * chain;
+      scoreRef.current += stepScore * chain; // keep saved-as-of-now score live per cascade step
+      setScore(scoreRef.current);
       await sleep(280); // let the spring settle before the next cascade
     }
-
-    // Apply scoring + decrement moves
-    const newScore = scoreRef.current + gained;
-    scoreRef.current = newScore;
-    setScore(newScore);
 
     if (gained > 0) showFloating(gained, chain);
 
@@ -750,8 +762,11 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     movesRef.current = newMoves;
     setMoves(newMoves);
     setBusy(false);
+    busyRef.current = false;
 
-    if (newMoves <= 0) finishGame(newScore);
+    // End the game now if the cascade ran out the clock or the move count hit zero
+    if (newMoves <= 0) finishGame(scoreRef.current);
+    else if (timeUpRef.current) finishGame(scoreRef.current);
   };
 
   const handleCellClick = (r, c) => {
