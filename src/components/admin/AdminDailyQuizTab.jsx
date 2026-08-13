@@ -3,6 +3,16 @@ import { base44 } from "@/api/base44Client";
 import { Loader2, BookOpen, ChevronDown, ChevronUp, CheckCircle2, CheckCircle, XCircle, BarChart2, UserCircle, Pencil, Trash2, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import AdminQuizManager from "./AdminQuizManager";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const BRUNEI_TZ = "Asia/Brunei";
 
@@ -524,23 +534,19 @@ function UserQuizHistory() {
 }
 
 // ── Season Panel ──────────────────────────────────────────────────────────────
+const QUIZ_PAYOUTS = [10, 5, 3]; // 🥇 10 · 🥈 5 · 🥉 3 tokens
+
 function SeasonPanel() {
   const [scores, setScores] = useState([]);
-  const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [awarding, setAwarding] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [scoreRows, users] = await Promise.all([
-        base44.entities.QuizScore.list("-correct_count", 50),
-        base44.entities.User.list(),
-      ]);
+      const scoreRows = await base44.entities.QuizScore.list("-correct_count", 50);
       setScores(scoreRows || []);
-      setAllUsers(users || []);
     } catch {
       setScores([]);
     }
@@ -550,55 +556,45 @@ function SeasonPanel() {
   useEffect(() => { loadData(); }, []);
 
   const medals = ["🥇", "🥈", "🥉"];
-  const prizes = [5, 3, 1]; // tokens for 1st, 2nd, 3rd
-
   const top3 = scores.slice(0, 3);
 
-  const handleAwardWinners = async () => {
-    if (top3.length === 0) return toast.error("No scores to award.");
-    setAwarding(true);
+  const handleEndSeason = async () => {
+    setProcessing(true);
     try {
+      const freshUsers = await base44.entities.User.list();
+      const userMap = {};
+      freshUsers.forEach((u) => { userMap[u.id] = u; });
+
+      // Pay top 3 by most correct answers (10 / 5 / 3 tokens) — everyone eligible
       for (let i = 0; i < top3.length; i++) {
-        const winner = top3[i];
-        const tokenPrize = prizes[i];
-        // Get user entity to find their current tokens
-        const userRows = await base44.entities.User.filter({ id: winner.user_id });
-        const targetUser = userRows[0];
-        if (!targetUser) continue;
-        const currentTokens = targetUser.earlyAccessTokens ?? 0;
-        // Award tokens
-        await base44.entities.User.update(targetUser.id, {
-          earlyAccessTokens: currentTokens + tokenPrize,
+        const entry = top3[i];
+        if (!entry.user_id) continue;
+        const u = userMap[entry.user_id];
+        if (!u) continue;
+        const reward = QUIZ_PAYOUTS[i];
+        await base44.entities.User.update(u.id, {
+          earlyAccessTokens: (u.earlyAccessTokens ?? 0) + reward,
         });
-        // Log transaction
         await base44.entities.TokenTransaction.create({
-          user_id: winner.user_id,
-          user_name: winner.user_name,
-          amount: tokenPrize,
-          source: `Daily Quiz Season Winner — #${i + 1} Place`,
+          user_id: u.id,
+          user_name: entry.user_name,
+          amount: reward,
+          source: `Daily Quiz Season Reward — #${i + 1} Place (${entry.correct_count ?? 0} correct)`,
           timestamp: new Date().toISOString(),
         });
       }
-      toast.success("✅ Tokens awarded to top 3 winners!");
-    } catch (e) {
-      toast.error("Award failed: " + (e?.message || "Unknown error"));
-    }
-    setAwarding(false);
-  };
 
-  const handleResetScores = async () => {
-    setResetting(true);
-    try {
-      for (const s of scores) {
-        await base44.entities.QuizScore.delete(s.id);
-      }
-      setScores([]);
-      setConfirmReset(false);
-      toast.success("🔄 Season reset! All scores cleared.");
+      // Wipe the season (audit answers in QuizAnswer are preserved)
+      await base44.entities.QuizScore.deleteMany({});
+
+      await loadData();
+      toast.success("✅ Daily Quiz season ended! Top 3 paid (10/5/3) & scores wiped.");
     } catch (e) {
-      toast.error("Reset failed: " + (e?.message || "Unknown error"));
+      toast.error("Error: " + (e?.message || "Unknown error"));
+    } finally {
+      setProcessing(false);
+      setShowConfirm(false);
     }
-    setResetting(false);
   };
 
   return (
@@ -607,12 +603,23 @@ function SeasonPanel() {
       <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-4 text-white">
         <p className="text-[10px] font-bold uppercase tracking-widest opacity-75">Admin Control</p>
         <p className="font-black text-lg">🏆 Season Management</p>
-        <p className="text-xs opacity-80">Award winners and reset the quiz scoreboard</p>
+        <p className="text-xs opacity-80">End the season to pay the top 3 and reset the board</p>
+      </div>
+
+      {/* Season cadence note */}
+      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3">
+        <p className="text-xs font-bold text-amber-700 dark:text-amber-300">⏳ Season resets on the final day of every month at 11:00 PM.</p>
+        <p className="text-[11px] text-amber-600 dark:text-amber-400/80 mt-0.5">
+          Run “End Season” at that time to pay winners and start fresh. No defending-champ cooldown — everyone is eligible every season.
+        </p>
       </div>
 
       {/* Current Standings */}
       <div className="bg-card rounded-2xl border border-border p-4 flex flex-col gap-3">
-        <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Current Standings</p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Current Standings — Most Correct</p>
+          <p className="text-[11px] font-bold text-muted-foreground">{scores.length} players</p>
+        </div>
         {loading ? (
           <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
         ) : scores.length === 0 ? (
@@ -627,13 +634,13 @@ function SeasonPanel() {
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-foreground truncate">{s.user_name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {s.correct_count} correct / {s.total_answered} answered
+                    {s.correct_count ?? 0} correct / {s.total_answered ?? 0} answered
                     {s.total_answered > 0 ? ` — ${((s.correct_count / s.total_answered) * 100).toFixed(0)}% accuracy` : ""}
                   </p>
                 </div>
                 {i < 3 && (
                   <span className="flex-shrink-0 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded-full">
-                    +{prizes[i]} 🪙
+                    +{QUIZ_PAYOUTS[i]} 🪙
                   </span>
                 )}
               </div>
@@ -642,48 +649,35 @@ function SeasonPanel() {
         )}
       </div>
 
-      {/* Award Winners Button */}
+      {/* End Season & Payout */}
       <button
-        onClick={handleAwardWinners}
-        disabled={awarding || loading || scores.length === 0}
-        className="w-full py-3 rounded-xl font-black text-sm bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        onClick={() => setShowConfirm(true)}
+        disabled={processing || loading || scores.length === 0}
+        className="w-full py-3 rounded-xl font-black text-sm bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
       >
-        {awarding ? <Loader2 className="w-4 h-4 animate-spin" /> : "🏆 Award Tokens to Top 3"}
+        {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : "🚨 End Season (Payout 10/5/3 & Wipe)"}
       </button>
-      <p className="text-[10px] text-muted-foreground text-center -mt-2">
-        Awards 5 tokens to 1st, 3 tokens to 2nd, 1 token to 3rd. Run this BEFORE resetting.
-      </p>
 
-      {/* Reset Season */}
-      {!confirmReset ? (
-        <button
-          onClick={() => setConfirmReset(true)}
-          disabled={resetting || loading || scores.length === 0}
-          className="w-full py-3 rounded-xl font-black text-sm bg-red-100 dark:bg-red-950/30 hover:bg-red-200 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 transition-colors disabled:opacity-50"
-        >
-          🔄 Reset Season Scores
-        </button>
-      ) : (
-        <div className="bg-red-50 dark:bg-red-950/20 border border-red-300 dark:border-red-700 rounded-xl p-4 flex flex-col gap-3">
-          <p className="text-sm font-black text-red-700 dark:text-red-300 text-center">⚠️ This will delete ALL quiz scores permanently. Are you sure?</p>
-          <p className="text-xs text-red-600 dark:text-red-400 text-center">Make sure you have awarded tokens to winners first!</p>
-          <div className="flex gap-2">
-            <button
-              onClick={handleResetScores}
-              disabled={resetting}
-              className="flex-1 py-2.5 rounded-xl font-black text-sm bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {resetting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Yes, Reset Now"}
-            </button>
-            <button
-              onClick={() => setConfirmReset(false)}
-              className="flex-1 py-2.5 rounded-xl font-black text-sm bg-muted text-foreground hover:bg-muted/80 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>🚨 End Daily Quiz Season & Payout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Awards tokens to the top 3 by most correct answers:
+              <br /><br />
+              {top3[0] && (<><strong>🥇 {top3[0].user_name}</strong> → +10 tokens<br /></>)}
+              {top3[1] && (<><strong>🥈 {top3[1].user_name}</strong> → +5 tokens<br /></>)}
+              {top3[2] && (<><strong>🥉 {top3[2].user_name}</strong> → +3 tokens<br /></>)}
+              <br />
+              All season scores will be permanently wiped. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white" onClick={handleEndSeason}>Yes, End Season</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

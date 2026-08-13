@@ -27,52 +27,51 @@ function saveLastSeenId(id) {
   localStorage.setItem("solo_quiz_last_id", id);
 }
 
-// ── Top 3 Season Leaderboard ───────────────────────────────────────────────────
+// ── Season Leaderboard (Top 10) ────────────────────────────────────────────────
 function LeaderboardCard({ leaders, currentUserId }) {
-  if (!leaders || leaders.length === 0) {
-    return (
-      <div className="bg-card rounded-2xl border border-border shadow-sm p-4 text-center">
-        <div className="flex items-center gap-2 justify-center mb-1">
-          <Trophy className="w-4 h-4 text-amber-500" />
-          <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Season Leaderboard</p>
-        </div>
-        <p className="text-xs text-muted-foreground">No scores yet — be the first to top the chart!</p>
-      </div>
-    );
-  }
   const medals = ["🥇", "🥈", "🥉"];
   return (
-    <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col gap-2">
-      <div className="flex items-center gap-2 mb-1">
-        <Trophy className="w-4 h-4 text-amber-500" />
-        <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Season Leaderboard — Top 3</p>
+    <div className="w-full bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+      <div className="bg-muted border-b border-border px-5 py-5">
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <Trophy className="w-5 h-5 text-amber-500 drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] animate-pulse" />
+          <p className="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Live Quiz Season</p>
+        </div>
+        <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+          ⏳ Season resets on the final day of every month at 11:00 PM — top 3 win tokens!
+        </p>
+        <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 mt-3">
+          <span className="text-[11px] font-black bg-[#ffd700]/10 px-3 py-1 rounded-md border border-[#ffd700]/40 text-[#ffd700]">🥇 1ST: 10 🪙</span>
+          <span className="text-[11px] font-black bg-[#c0c0c0]/10 px-3 py-1 rounded-md border border-[#c0c0c0]/40 text-[#c0c0c0]">🥈 2ND: 5 🪙</span>
+          <span className="text-[11px] font-black bg-[#cd7f32]/10 px-3 py-1 rounded-md border border-[#cd7f32]/40 text-[#cd7f32]">🥉 3RD: 3 🪙</span>
+        </div>
       </div>
-      {leaders.map((s, i) => {
-        const isYou = s.user_id === currentUserId;
-        const correct = s.correct_count ?? 0;
-        const total = s.total_answered ?? 0;
-        return (
-          <div
-            key={s.id}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border ${
-              isYou
-                ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800"
-                : "bg-muted/30 border-border"
-            }`}
-          >
-            <span className="text-lg w-6 text-center flex-shrink-0">{medals[i]}</span>
-            <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-              <p className="font-bold text-foreground text-sm truncate">
-                {s.user_name}
-                {isYou && <span className="text-[10px] text-indigo-500 ml-1">(You)</span>}
-              </p>
-              <span className="text-xs font-black text-foreground tabular-nums flex-shrink-0">
-                {correct}/{total} correct
-              </span>
-            </div>
-          </div>
-        );
-      })}
+      {!leaders || leaders.length === 0 ? (
+        <div className="py-12 text-center text-muted-foreground text-sm tracking-widest font-bold uppercase">No scores yet — be the first to top the chart!</div>
+      ) : (
+        <div className="divide-y divide-border">
+          {leaders.map((s, i) => {
+            const isYou = s.user_id === currentUserId;
+            const correct = s.correct_count ?? 0;
+            const total = s.total_answered ?? 0;
+            return (
+              <div key={s.id} className={`flex items-center gap-4 px-5 py-4 transition-colors ${isYou ? "ring-1 ring-indigo-500/30 bg-indigo-50/40 dark:bg-indigo-950/10" : i < 3 ? "bg-muted/40" : ""}`}>
+                <div className="w-8 flex items-center justify-center flex-shrink-0">
+                  {i < 3 ? <span className="text-2xl drop-shadow-md">{medals[i]}</span> : <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-muted text-[11px] font-black text-muted-foreground border border-border">#{i + 1}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-foreground truncate" style={{ wordBreak: "break-word" }}>
+                    {s.user_name}
+                    {isYou && <span className="text-[10px] text-indigo-500 ml-1">(You)</span>}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">{correct} correct · {total} answered</p>
+                </div>
+                <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 tracking-widest tabular-nums flex-shrink-0 bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/30">{correct} correct</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -103,7 +102,7 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
 
   const loadLeaders = async () => {
     try {
-      const rows = await base44.entities.QuizScore.list("-correct_count", 3);
+      const rows = await base44.entities.QuizScore.list("-correct_count", 10);
       console.log("[DailyDuoGame] Leaderboard fetched:", rows?.length || 0, "scores");
       setLeaders(rows || []);
     } catch (e) {
