@@ -436,17 +436,9 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     comboTimer.current = setTimeout(() => setCombo(null), 800);
   };
 
-  // Special-match popup (Line Gems & Power Matches) + screen shake (5/T/L)
-  const [specialPopup, setSpecialPopup] = useState(null); // { kind: "h4"|"v4"|"power", key }
-  const specialTimer = useRef(null);
+  // Screen shake on 5-line / T- / L-shape power matches
   const [shake, setShake] = useState(false);
   const shakeTimer = useRef(null);
-
-  const showSpecial = (kind) => {
-    setSpecialPopup({ kind, key: Date.now() + Math.random() + kind });
-    if (specialTimer.current) clearTimeout(specialTimer.current);
-    specialTimer.current = setTimeout(() => setSpecialPopup(null), 900);
-  };
 
   const triggerShake = () => {
     setShake(true);
@@ -543,10 +535,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         clearTimeout(floatTimer.current);
         floatTimer.current = null;
       }
-      if (specialTimer.current) {
-        clearTimeout(specialTimer.current);
-        specialTimer.current = null;
-      }
       if (shakeTimer.current) {
         clearTimeout(shakeTimer.current);
         shakeTimer.current = null;
@@ -640,9 +628,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     if (comboTimer.current) {clearTimeout(comboTimer.current);comboTimer.current = null;}
     setFloating({ points: 0, reaction: "", visible: false, key: 0 });
     if (floatTimer.current) {clearTimeout(floatTimer.current);floatTimer.current = null;}
-    setSpecialPopup(null);
     setShake(false);
-    if (specialTimer.current) {clearTimeout(specialTimer.current);specialTimer.current = null;}
     if (shakeTimer.current) {clearTimeout(shakeTimer.current);shakeTimer.current = null;}
     setPhase("playing");
     startMusic();
@@ -723,11 +709,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       if (clearedTypes.includes(4)) playDiamond();
       if (chain >= 2) {playCascade(chain);showCombo(chain);}
 
-      // Special-match popups, screen shake & bonus moves
-      if (topSpecial) {
-        showSpecial(topSpecial);
-        if (topSpecial === "power") triggerShake();
-      }
+      // Special-match screen shake & bonus moves
+      if (topSpecial === "power") triggerShake();
       if (extraMoves > 0) {
         movesRef.current += extraMoves;
         setMoves(movesRef.current);
@@ -949,23 +932,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           </div>
         }
 
-        {/* Special-match popup — Line Gems (↔/↕) & Power Matches (💥) */}
-        {specialPopup &&
-        <div
-          key={specialPopup.key}
-          className="absolute left-1/2 z-50 pointer-events-none select-none"
-          style={{ top: "26%", animation: "dsSpecialPop 0.9s ease-out forwards" }}>
-            <span className={`font-black text-3xl tracking-widest whitespace-nowrap drop-shadow-[0_0_12px_rgba(217,70,239,0.9)] ${
-              specialPopup.kind === "power"
-                ? "text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-fuchsia-400 to-red-400"
-                : "text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-fuchsia-300"
-            }`}>
-              {specialPopup.kind === "h4" && "↔️ LINE GEM! ×2"}
-              {specialPopup.kind === "v4" && "↕️ LINE GEM! ×2"}
-              {specialPopup.kind === "power" && "💥 POWER MATCH! ×5 +1🎟️"}
-            </span>
-          </div>
-        }
 
         {/* Start screen — shown only before the player starts. Removed entirely
                        during gameplay so the grid is fully visible and unobstructed. */}
