@@ -450,10 +450,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const [floating, setFloating] = useState({ points: 0, reaction: "", visible: false, key: 0 });
   const floatTimer = useRef(null);
 
-  const showFloating = (points, chainTop) => {
+  const showFloating = (points, reaction = "") => {
     if (points <= 0) return;
-    const reaction =
-    chainTop >= 4 ? "⚡ INSANE!" : chainTop === 3 ? "💥 Great!" : chainTop === 2 ? "🔥 Nice!" : "";
     setFloating({ points, reaction, visible: true, key: Date.now() });
     if (floatTimer.current) clearTimeout(floatTimer.current);
     floatTimer.current = setTimeout(() => setFloating((f) => ({ ...f, visible: false })), 1000);
@@ -681,6 +679,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     //    animation tracks each gravity step as a distinct position change.
     let chain = 0;
     let gained = 0;
+    let lastSpecial = null;
     let working = swapped;
 
     while (true) {
@@ -688,55 +687,75 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       const clusters = findMatchClusters(working);
       if (clusters.length === 0) break;
       chain++;
-      const matches = clusters.flatMap((cl) => cl.cells);
 
-      // Per-cluster shape scoring with special multipliers
-      let stepScore = 0;
-      let topSpecial = null; // "power" > "h4" | "v4"
-      let extraMoves = 0;
+      // ── Instant special-effect evaluation ────────────────────────────────
+      // No shape multipliers — every cleared tile is worth its base points only.
+      // Special shapes trigger INSTANT perpendicular / column / row / color
+      // clears exactly when the move is made.
+      const clearKeys = new Set();
+      let specialLabel = null;
+      let isPower = false; // 5/T/L color-bomb → shake + +1 move
+
       for (const cl of clusters) {
-        const base = cl.cells.length * (POINTS[cl.type] ?? 0);
-        let mult = 1;
+        for (const cell of cl.cells) clearKeys.add(`${cell.r},${cell.c}`);
+
         if (cl.shape === "five" || cl.shape === "tl") {
-          mult = 5;            // Base Points × 5
-          extraMoves += 1;     // +1 Extra Move per 5/T/L match
-          topSpecial = "power";
+          // 💣 COLOR WIPE — clear EVERY tile of the matched color on the board
+          isPower = true;
+          for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+              if (working[r][c]?.type === cl.type) clearKeys.add(`${r},${c}`);
+            }
+          }
+          specialLabel = "💣 COLOR WIPE!";
         } else if (cl.shape === "h4") {
-          mult = 2;            // Base Points × 2
-          if (!topSpecial) topSpecial = "h4";
+          // ↕️ COLUMN SMASH — clear the entire vertical column at the pivot
+          const pivot = cl.cells[Math.floor(cl.cells.length / 2)];
+          for (let r = 0; r < ROWS; r++) clearKeys.add(`${r},${pivot.c}`);
+          if (!specialLabel) specialLabel = "↕️ COLUMN SMASH!";
         } else if (cl.shape === "v4") {
-          mult = 2;            // Base Points × 2
-          if (!topSpecial) topSpecial = "v4";
+          // ↔️ ROW SMASH — clear the entire horizontal row at the pivot
+          const pivot = cl.cells[Math.floor(cl.cells.length / 2)];
+          for (let c = 0; c < COLS; c++) clearKeys.add(`${pivot.r},${c}`);
+          if (!specialLabel) specialLabel = "↔️ ROW SMASH!";
         }
-        stepScore += base * mult;
       }
 
-      // Capture smash targets BEFORE mutation
-      const clearedTypes = matches.
-      map((m) => working[m.r][m.c]?.type).
-      filter((t) => t !== undefined);
-      const fadeSet = new Set(
-        matches.map((m) => working[m.r][m.c]?.id).filter(Boolean)
-      );
+      const allClear = Array.from(clearKeys).map((s) => {
+        const [r, c] = s.split(",").map(Number);
+        return { r, c };
+      });
+
+      // Every cleared tile scores base points only (no multipliers)
+      let stepScore = 0;
+      const clearedTypes = [];
+      const fadeSet = new Set();
+      for (const m of allClear) {
+        const piece = working[m.r][m.c];
+        if (!piece) continue;
+        stepScore += POINTS[piece.type] ?? 0;
+        clearedTypes.push(piece.type);
+        fadeSet.add(piece.id);
+      }
 
       // Sound + combo badge (no game-logic change)
       playMatch();
       if (clearedTypes.includes(4)) playDiamond();
       if (chain >= 2) {playCascade(chain);showCombo(chain);}
 
-      // Special-match screen shake & bonus moves
-      if (topSpecial === "power") triggerShake();
-      if (extraMoves > 0) {
-        movesRef.current += extraMoves;
+      // Color-bomb screen shake & +1 bonus move
+      if (isPower) {
+        triggerShake();
+        movesRef.current += 1;
         setMoves(movesRef.current);
       }
 
-      // Smash — fade the matched pieces in place
+      // Smash — fade every cleared tile in place
       setFadingIds(fadeSet);
       await sleep(320); // smash animation
 
-      // Clear — remove matched pieces (gaps appear)
-      working = clearMatches(working, matches);
+      // Clear — remove all cleared tiles (gaps appear)
+      working = clearMatches(working, allClear);
       setBoard(working);
       await sleep(80);
 
@@ -753,10 +772,14 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       gained += stepScore * chain;
       scoreRef.current += stepScore * chain; // keep saved-as-of-now score live per cascade step
       setScore(scoreRef.current);
+      if (specialLabel) lastSpecial = specialLabel;
       await sleep(280); // let the spring settle before the next cascade
     }
 
-    if (gained > 0) showFloating(gained, chain);
+    if (gained > 0) {
+      if (lastSpecial) showFloating(gained, lastSpecial);
+      else if (chain >= 2) showFloating(gained, chain >= 4 ? "💥 INSANE!" : chain === 3 ? "🔥 Great!" : "✨ Nice!");
+    }
 
     const newMoves = movesRef.current - 1;
     movesRef.current = newMoves;
