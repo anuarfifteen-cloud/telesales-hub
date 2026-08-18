@@ -425,7 +425,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   // Audio (procedural Web Audio API) + cascade combo badge
   const {
     sfxOn, musicOn, toggleSfx, toggleMusic,
-    playMatch, playCascade, playDiamond, playGameOver, startMusic, stopMusic
+    sounds, playGameOver, startMusic, stopMusic
   } = useDiamondSmashAudio();
   const [combo, setCombo] = useState(null); // { mult, key }
   const comboTimer = useRef(null);
@@ -436,15 +436,20 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     comboTimer.current = setTimeout(() => setCombo(null), 800);
   };
 
-  // Screen shake on 5-line / T- / L-shape power matches
-  const [shake, setShake] = useState(false);
-  const shakeTimer = useRef(null);
+  // Screen shake on special matches — retriggered via the .match-shake CSS keyframe
+  const [shakeTrigger, setShakeTrigger] = useState(0);
+  const boardRef = useRef(null);
 
-  const triggerShake = () => {
-    setShake(true);
-    if (shakeTimer.current) clearTimeout(shakeTimer.current);
-    shakeTimer.current = setTimeout(() => setShake(false), 500);
-  };
+  useEffect(() => {
+    if (shakeTrigger === 0) return;
+    const el = boardRef.current;
+    if (!el) return;
+    el.classList.remove("match-shake");
+    void el.offsetWidth; // force reflow so the keyframe restarts on every trigger
+    el.classList.add("match-shake");
+    const timer = setTimeout(() => el.classList.remove("match-shake"), 500);
+    return () => clearTimeout(timer);
+  }, [shakeTrigger]);
 
   // Floating score popup (shown after each scoring move)
   const [floating, setFloating] = useState({ points: 0, reaction: "", visible: false, key: 0 });
@@ -534,10 +539,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       if (floatTimer.current) {
         clearTimeout(floatTimer.current);
         floatTimer.current = null;
-      }
-      if (shakeTimer.current) {
-        clearTimeout(shakeTimer.current);
-        shakeTimer.current = null;
       }
       stopMusic();
     };
@@ -631,8 +632,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     if (comboTimer.current) {clearTimeout(comboTimer.current);comboTimer.current = null;}
     setFloating({ points: 0, reaction: "", visible: false, key: 0 });
     if (floatTimer.current) {clearTimeout(floatTimer.current);floatTimer.current = null;}
-    setShake(false);
-    if (shakeTimer.current) {clearTimeout(shakeTimer.current);shakeTimer.current = null;}
     setPhase("playing");
     startMusic();
 
@@ -728,31 +727,31 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
 
       // Every cleared tile scores base points only (no multipliers)
       let stepScore = 0;
-      const clearedTypes = [];
       const fadeSet = new Set();
       for (const m of allClear) {
         const piece = working[m.r][m.c];
         if (!piece) continue;
         stepScore += POINTS[piece.type] ?? 0;
-        clearedTypes.push(piece.type);
         fadeSet.add(piece.id);
       }
 
       const hasSpecial = !!specialLabel;
 
-      // Sound, screen shake & hardware haptics — split by special vs standard
       if (hasSpecial) {
-        playDiamond(); // explosion sound
-        triggerShake();
+        // 4-match (row/col clear) AND 5+-match (color wipe) — indistinguishable:
+        // identical layered explosion sound + the same screen shake.
+        sounds.explosion();
+        setShakeTrigger((t) => t + 1);
         if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
       } else {
-        playMatch();
+        // 3-match — rising arpeggio (more notes for higher cascades), no shake
+        sounds.match(chain);
         if (navigator.vibrate) navigator.vibrate(10);
       }
 
-      if (chain >= 2) {playCascade(chain);showCombo(chain);}
+      if (chain >= 2) showCombo(chain);
 
-      // Color-bomb bonus move
+      // Color-bomb (5+) bonus move
       if (isPower) {
         movesRef.current += 1;
         setMoves(movesRef.current);
@@ -850,13 +849,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           75% { transform: translateX(-50%) scale(1); opacity: 1; }
           100% { transform: translateX(-50%) scale(0.85); opacity: 0; }
         }
-        @keyframes dsShake {
-          0%, 100% { transform: translate(0, 0); }
-          20% { transform: translate(-4px, 2px); }
-          40% { transform: translate(4px, -2px); }
-          60% { transform: translate(-3px, -2px); }
-          80% { transform: translate(3px, 2px); }
-        }
       `}</style>
 
       {/* Audio toggles */}
@@ -923,7 +915,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
 
       {/* Board — CSS grid + Framer Motion layout FLIP for gravity cascade */}
       <div
-        className={`relative isolate overflow-hidden rounded-2xl border border-fuchsia-500/30 shadow-[0_0_30px_rgba(217,70,239,0.2)] bg-gradient-to-b from-[#2a1245] to-[#1a0b2e] p-2 ${shake ? "animate-[dsShake_0.5s_ease-in-out]" : ""}`}
+        ref={boardRef}
+        className="relative isolate overflow-hidden rounded-2xl border border-fuchsia-500/30 shadow-[0_0_30px_rgba(217,70,239,0.2)] bg-gradient-to-b from-[#2a1245] to-[#1a0b2e] p-2"
         style={{ width: BOARD_W + 16, height: BOARD_H + 16 }}>
         
         <div

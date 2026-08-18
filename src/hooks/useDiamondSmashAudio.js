@@ -31,62 +31,59 @@ export function useDiamondSmashAudio() {
 
   const sfxEnabled = useCallback(() => localStorage.getItem(SFX_KEY) !== "false", []);
 
-  const playMatch = useCallback(() => {
+  // Rising arpeggio for standard 3-matches — more notes for higher cascades.
+  const ARP = [523, 659, 784, 1047, 1319, 1568, 2093];
+  const match = useCallback((cascade = 1) => {
     if (!sfxEnabled()) return;
     const ctx = ensureCtx();
     if (!ctx || !masterRef.current) return;
-    const t = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(523, t);
-    osc.frequency.exponentialRampToValueAtTime(784, t + 0.12);
-    gain.gain.setValueAtTime(0.001, t);
-    gain.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-    osc.connect(gain).connect(masterRef.current);
-    osc.start(t);
-    osc.stop(t + 0.26);
-  }, [ensureCtx, sfxEnabled]);
-
-  const playCascade = useCallback((multiplier) => {
-    if (!sfxEnabled()) return;
-    const ctx = ensureCtx();
-    if (!ctx || !masterRef.current) return;
-    const base = 659 + Math.max(0, multiplier - 2) * 80;
-    [base, base * 1.5].forEach((freq, i) => {
-      const t = ctx.currentTime + i * 0.07;
+    const noteCount = Math.min(ARP.length, 2 + Math.max(1, cascade));
+    const t0 = ctx.currentTime;
+    for (let i = 0; i < noteCount; i++) {
+      const t = t0 + i * 0.06;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.setValueAtTime(ARP[i], t);
       gain.gain.setValueAtTime(0.001, t);
       gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
       osc.connect(gain).connect(masterRef.current);
       osc.start(t);
-      osc.stop(t + 0.24);
-    });
+      osc.stop(t + 0.2);
+    }
   }, [ensureCtx, sfxEnabled]);
 
-  const playDiamond = useCallback(() => {
+  // One layered boom for every special (4-match row/col clear & 5+-match color wipe).
+  // 80 Hz sine (0.25s, gain 0.30) + 160 Hz sawtooth (0.18s) + 400 Hz square (0.12s)
+  // + a second 80 Hz sine at an 0.08s delay.
+  const explosion = useCallback(() => {
     if (!sfxEnabled()) return;
     const ctx = ensureCtx();
     if (!ctx || !masterRef.current) return;
-    [1047, 1319, 1568].forEach((freq, i) => {
-      const t = ctx.currentTime + i * 0.05;
+    const t0 = ctx.currentTime;
+    const layers = [
+      { type: "sine",    freq: 80,  dur: 0.25, gain: 0.30, delay: 0 },
+      { type: "sawtooth", freq: 160, dur: 0.18, gain: 0.20, delay: 0 },
+      { type: "square",  freq: 400, dur: 0.12, gain: 0.12, delay: 0 },
+      { type: "sine",    freq: 80,  dur: 0.25, gain: 0.30, delay: 0.08 },
+    ];
+    layers.forEach((L) => {
+      const t = t0 + L.delay;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, t);
+      osc.type = L.type;
+      osc.frequency.setValueAtTime(L.freq, t);
       gain.gain.setValueAtTime(0.001, t);
-      gain.gain.exponentialRampToValueAtTime(0.22, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      gain.gain.exponentialRampToValueAtTime(L.gain, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + L.dur);
       osc.connect(gain).connect(masterRef.current);
       osc.start(t);
-      osc.stop(t + 0.32);
+      osc.stop(t + L.dur + 0.02);
     });
   }, [ensureCtx, sfxEnabled]);
+
+  const sounds = { match, explosion };
 
   const playGameOver = useCallback(() => {
     if (!sfxEnabled()) return;
@@ -171,9 +168,7 @@ export function useDiamondSmashAudio() {
     musicOn,
     toggleSfx,
     toggleMusic,
-    playMatch,
-    playCascade,
-    playDiamond,
+    sounds,
     playGameOver,
     startMusic,
     stopMusic,
