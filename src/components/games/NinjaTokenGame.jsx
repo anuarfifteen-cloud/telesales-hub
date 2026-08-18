@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Trophy } from "lucide-react";
+import { Loader2, Trophy, Trash2 } from "lucide-react";
+
+// Emoji-capable font stack — makes canvas paint full-color opaque emoji
+// (serif fallback renders ghosted outline glyphs on many browsers)
+const EMOJI_FONT =
+  "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
+
+// Score = number of Golden Tokens collected (each worth +1)
 
 // ── Ninja Token — Golden Temple Dawn canvas NinJump climber ────────────────────
 const WALL_PAD = 28;
@@ -81,6 +88,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
   const [isNewBest, setIsNewBest] = useState(false);
   const [finalRun, setFinalRun] = useState(0);
   const [muted, setMuted] = useState(() => localStorage.getItem("ninja_muted") === "1");
+  const [resetting, setResetting] = useState(false);
 
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
@@ -395,8 +403,9 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
       entities: [],
       elapsed: 0,
       spawnTimer: 0,
-      climb: 0,
-      killPoints: 0,
+      climb: 0,        // distance — drives speed tier only, not score
+      killPoints: 0,   // retained for internal pacing only
+      tokensCollected: 0, // ← score = this count
       particles: [],
     };
   };
@@ -456,7 +465,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
     const a = ensureAudio();
     if (a && a.ctx.state === "suspended") a.ctx.resume();
     worldRef.current = makeWorld();
-    scoreIntRef.current = 0;
+    scoreIntRef.current = 0; // tokens collected this run
     setIsNewBest(false);
     setFinalRun(0);
     phaseRef.current = "PLAYING";
@@ -474,14 +483,16 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
 
       w.elapsed += dt;
 
-      const currentInt = Math.floor(w.climb) + w.killPoints;
-      const tier = Math.floor(currentInt / 500);
+      // Speed tier scales with distance climbed (pacing only)
+      const tier = Math.floor(w.climb / 500);
       const speed = BASE_SPEED + tier * SPEED_STEP;
       const spawnInterval = Math.max(0.45, 1.1 - tier * 0.12);
       w._speed = speed;
 
       w.climb += speed * dt * 0.06;
-      const intScore = Math.floor(w.climb) + w.killPoints;
+
+      // Score = Golden Tokens collected only
+      const intScore = w.tokensCollected;
       if (intScore !== scoreIntRef.current) scoreIntRef.current = intScore;
 
       if (w.ninja.dashing) {
@@ -555,7 +566,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
           if (e.type === "token" && !e.taken && Math.abs(e.y - restY) < TOKEN_TOL) {
             e.taken = true;
             e._cull = true;
-            w.killPoints += 200;
+            w.tokensCollected += 1; // ← score increments by 1 per token
             w.particles.push({ x: e.x, y: e.y, t: 0, life: 0.5, gold: true, big: true });
             playToken();
             if (navigator.vibrate) navigator.vibrate([20, 15, 40]);
@@ -566,7 +577,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
         // lane → death. Bombs in the middle pass safely.
         for (const e of w.entities) {
           if (e.type === "oni" && e.wall === w.ninja.wall && Math.abs(e.y - restY) < REST_DEATH_TOL) {
-            gameOver(Math.floor(w.climb) + w.killPoints);
+            gameOver(w.tokensCollected);
             return;
           }
           if (
@@ -575,7 +586,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             Math.abs(e.y - restY) < BOMB_Y_TOL &&
             Math.abs(e.x - nx) < BOMB_X_TOL
           ) {
-            gameOver(Math.floor(w.climb) + w.killPoints);
+            gameOver(w.tokensCollected);
             return;
           }
         }
@@ -661,8 +672,8 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
           ctx.shadowColor = "rgba(0,0,0,0.35)";
           ctx.shadowBlur = 4;
           ctx.shadowOffsetY = 1;
-          ctx.font = `${ENEMY_FONT}px serif`;
-          ctx.fillText(e.type === "oni" ? "👹" : "💣", e.x, e.y);
+          ctx.font = `${ENEMY_FONT}px ${EMOJI_FONT}`;
+            ctx.fillText(e.type === "oni" ? "👹" : "💣", e.x, e.y);
           ctx.restore();
         }
       }
@@ -672,7 +683,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
       ctx.shadowColor = "rgba(0,0,0,0.4)";
       ctx.shadowBlur = 5;
       ctx.shadowOffsetY = 2;
-      ctx.font = `${NINJA_FONT}px serif`;
+      ctx.font = `${NINJA_FONT}px ${EMOJI_FONT}`;
       ctx.fillText("🥷", w.ninja.x, w.ninja.y);
       ctx.restore();
 
@@ -783,7 +794,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#FDE093]/80 backdrop-blur-sm px-6">
               <p className="text-xs tracking-[0.15em] text-[#3a2a1a] text-center leading-relaxed font-mono">
                 Dash between walls.<br />
-                Slash 👹 +10 · Slice 💣 +100 · Snag <img src={TOKEN_IMG_URL} alt="token" className="inline w-4 h-4 align-middle" /> +200.<br />
+                Snag <img src={TOKEN_IMG_URL} alt="token" className="inline w-4 h-4 align-middle" /> for +1 score. Slash 👹 and 💣 just to survive.<br />
                 Don't rest on an oni — and don't ignore a bomb on your wall!
               </p>
               <button
@@ -854,7 +865,36 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
           <p className="py-4 text-center text-[11px] tracking-widest uppercase text-[#7a3b00]/70">
             No scores yet — be the first!
           </p>
-        ) : (
+        ) : null}
+
+        {/* Reset leaderboard — admin only */}
+        {user?.role === "admin" && top5.length > 0 && (
+          <div className="px-3 py-2 border-t border-[#B8860B]/30">
+            <button
+              onClick={async () => {
+                if (resetting) return;
+                if (!window.confirm("Wipe ALL saved Ninja Token high scores for every player?")) return;
+                setResetting(true);
+                try {
+                  await base44.entities.NinjaTokenScore.deleteMany({});
+                  setLeaders([]);
+                  setBest(0);
+                } catch (e) {
+                  console.error("[NinjaToken] reset failed:", e?.message || e);
+                } finally {
+                  setResetting(false);
+                }
+              }}
+              disabled={resetting}
+              className="w-full flex items-center justify-center gap-2 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase bg-red-500/10 border border-red-500/40 text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+            >
+              {resetting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              Reset Leaderboard
+            </button>
+          </div>
+        )}
+
+        {top5.length > 0 && (
           <div className="divide-y divide-[#B8860B]/30">
             {top5.map((l, i) => (
               <div key={l.id} className="flex items-center gap-3 px-4 py-2">
