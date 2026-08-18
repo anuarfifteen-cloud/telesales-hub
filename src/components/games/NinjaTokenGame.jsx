@@ -16,8 +16,76 @@ const BOMB_Y_TOL = 30;
 const BASE_SPEED = 220;
 const SPEED_STEP = 90;
 
+// Golden Temple Dawn palette
+const RAIL = "#5a3a1a";
+const RUNG = "#7a4f24";
+const TEMPLE = "rgba(139, 90, 43, 0.30)";
+const PILL_BG = "#EDE3CE";
+const PILL_BORDER = "#3a2a1a";
+const PILL_TEXT = "#3a2a1a";
+const TOKEN_TOL = 34;
+
 function easeOut(t) {
   return 1 - Math.pow(1 - t, 3);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// Pagoda silhouette: stacked rect bases + triangle roofs
+function drawTemple(ctx, cx, baseY, w, h) {
+  ctx.fillStyle = TEMPLE;
+  ctx.fillRect(cx - w / 2, baseY - h * 0.32, w, h * 0.32);
+  ctx.beginPath();
+  ctx.moveTo(cx - w * 0.6, baseY - h * 0.32);
+  ctx.lineTo(cx + w * 0.6, baseY - h * 0.32);
+  ctx.lineTo(cx, baseY - h * 0.54);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillRect(cx - w * 0.34, baseY - h * 0.6, w * 0.68, h * 0.18);
+  ctx.beginPath();
+  ctx.moveTo(cx - w * 0.46, baseY - h * 0.6);
+  ctx.lineTo(cx + w * 0.46, baseY - h * 0.6);
+  ctx.lineTo(cx, baseY - h * 0.78);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillRect(cx - w * 0.06, baseY - h * 0.84, w * 0.12, h * 0.2);
+  ctx.beginPath();
+  ctx.moveTo(cx - w * 0.18, baseY - h * 0.84);
+  ctx.lineTo(cx + w * 0.18, baseY - h * 0.84);
+  ctx.lineTo(cx, baseY - h);
+  ctx.closePath();
+  ctx.fill();
+}
+
+let _actx = null;
+function playPing() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!_actx) _actx = new AC();
+    const ctx = _actx;
+    if (ctx.state === "suspended") ctx.resume();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "triangle";
+    const t0 = ctx.currentTime;
+    o.frequency.setValueAtTime(880, t0);
+    o.frequency.exponentialRampToValueAtTime(1760, t0 + 0.12);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.24);
+    o.connect(g).connect(ctx.destination);
+    o.start(t0);
+    o.stop(t0 + 0.26);
+  } catch {}
 }
 
 export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
@@ -35,38 +103,11 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
   const rafRef = useRef(null);
   const lastRef = useRef(0);
   const sizeRef = useRef({ w: 320, h: 460, dpr: 1 });
-  const tokensRef = useRef({
-    bg: "hsl(0 0% 97%)",
-    gridFg: "0 0% 0%",
-    wall: "hsl(221 83% 53%)",
-    score: "hsl(221 83% 53%)",
-  });
-
   const phaseRef = useRef("IDLE");
   useEffect(() => { phaseRef.current = phase; }, [phase]);
 
   const worldRef = useRef(null);
   const scoreIntRef = useRef(0);
-
-  // ── Theme tokens (read from CSS variables so canvas adapts to light/dark + theme) ─
-  const readTokens = useCallback(() => {
-    const root = document.documentElement;
-    const cs = window.getComputedStyle(root);
-    const get = (n) => cs.getPropertyValue(n).trim();
-    tokensRef.current = {
-      bg: `hsl(${get("--background")})`,
-      gridFg: get("--foreground"),
-      wall: `hsl(${get("--primary")})`,
-      score: `hsl(${get("--primary")})`,
-    };
-  }, []);
-
-  useEffect(() => {
-    readTokens();
-    const obs = new MutationObserver(readTokens);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme"] });
-    return () => obs.disconnect();
-  }, [readTokens]);
 
   // ── Leaderboards ───────────────────────────────────────────────────────────
   const refreshLeaders = useCallback(async () => {
@@ -278,17 +319,8 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
       w.spawnTimer += dt;
       if (w.spawnTimer >= spawnInterval) {
         w.spawnTimer = 0;
-        const bomb = Math.random() < 0.45;
-        if (bomb) {
-          // Bombs can fall across the full width: wall-lane ones threaten a resting ninja,
-          // middle ones are safe to ignore or reward +100 if dashed through.
-          w.entities.push({
-            type: "bomb",
-            x: WALL_PAD + Math.random() * (W - 2 * WALL_PAD),
-            y: -40,
-            sliced: false,
-          });
-        } else {
+        const roll = Math.random();
+        if (roll < 0.5) {
           const wall = Math.random() < 0.5 ? "left" : "right";
           w.entities.push({
             type: "oni",
@@ -297,14 +329,31 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             y: -40,
             dead: false,
           });
+        } else if (roll < 0.82) {
+          // Bombs fall across the full width: wall-lane ones threaten a resting ninja,
+          // middle ones are safe to ignore or reward +100 if dashed through.
+          w.entities.push({
+            type: "bomb",
+            x: WALL_PAD + Math.random() * (W - 2 * WALL_PAD),
+            y: -40,
+            sliced: false,
+          });
+        } else {
+          // Golden Token — falls through the open middle air; dash through for +200.
+          w.entities.push({
+            type: "token",
+            x: W * 0.28 + Math.random() * (W * 0.44),
+            y: -40,
+            taken: false,
+          });
         }
       }
 
       // ── Collisions ──────────────────────────────────────────────────────────
       const nx = w.ninja.x;
       if (w.ninja.dashing) {
-        // Attacking across the full width: slash oni at ninja height (+10) and slice
-        // bombs at ninja height (+100). Nothing is lethal while dashing.
+        // Attacking across the full width: slash oni (+10), slice bombs (+100), and
+        // collect Golden Tokens (+200). Nothing is lethal while dashing.
         for (const e of w.entities) {
           if (e.type === "oni" && !e.dead && Math.abs(e.y - restY) < KILL_TOL) {
             e.dead = true;
@@ -318,6 +367,14 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             w.killPoints += 100;
             w.particles.push({ x: e.x, y: e.y, t: 0, life: 0.45, gold: true });
             if (navigator.vibrate) navigator.vibrate(18);
+          }
+          if (e.type === "token" && !e.taken && Math.abs(e.y - restY) < TOKEN_TOL) {
+            e.taken = true;
+            e._cull = true;
+            w.killPoints += 200;
+            w.particles.push({ x: e.x, y: e.y, t: 0, life: 0.5, gold: true, big: true });
+            playPing();
+            if (navigator.vibrate) navigator.vibrate([20, 15, 40]);
           }
         }
       } else {
@@ -354,48 +411,39 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
     const ctx = canvas.getContext("2d");
     const { w: W, h: H } = sizeRef.current;
     const w = worldRef.current;
-    const tk = tokensRef.current;
 
-    // Background (theme-aware)
-    ctx.fillStyle = tk.bg;
+    // Sky gradient — Golden Temple Dawn
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, "#FDE093");
+    sky.addColorStop(1, "#D48E36");
+    ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, H);
 
-    // Subtle scrolling grid
-    ctx.strokeStyle = `hsl(${tk.gridFg} / 0.08)`;
-    ctx.lineWidth = 1;
-    const grid = 34;
-    const offset = w ? (w.elapsed * (w._speed || BASE_SPEED)) % grid : 0;
-    ctx.beginPath();
-    for (let x = 0; x <= W; x += grid) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, H);
-    }
-    for (let y = -grid + (offset % grid); y <= H; y += grid) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(W, y);
-    }
-    ctx.stroke();
+    // Parallax pagoda silhouettes (near-static, slow drift)
+    const drift = w ? w.elapsed * 6 : 0;
+    drawTemple(ctx, W * 0.2 - ((drift * 0.04) % 120), H * 0.82, 58, 96);
+    drawTemple(ctx, W * 0.55, H * 0.82 - 6, 80, 128);
+    drawTemple(ctx, W * 0.92, H * 0.82, 48, 86);
 
-    // Neon walls (primary token glow)
+    // Wooden-ladder walls (rails + scrolling rungs)
     ctx.save();
-    ctx.shadowColor = tk.wall;
-    ctx.shadowBlur = 14;
-    ctx.strokeStyle = tk.wall;
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(2, 0);
-    ctx.lineTo(2, H);
-    ctx.moveTo(W - 2, 0);
-    ctx.lineTo(W - 2, H);
-    ctx.stroke();
+    ctx.fillStyle = RAIL;
+    ctx.fillRect(2, 0, 6, H);
+    ctx.fillRect(W - 8, 0, 6, H);
+    const step = 36;
+    const off = w ? (w.elapsed * (w._speed || BASE_SPEED)) % step : 0;
+    ctx.fillStyle = RUNG;
+    for (let y = -step + (off % step); y < H; y += step) {
+      ctx.fillRect(2, y, 26, 4);
+      ctx.fillRect(W - 28, y, 26, 4);
+    }
     ctx.restore();
 
     if (w) {
-      // Dash slash trail
+      // Dash slash trail (sepia)
       if (w.ninja.dashing) {
         ctx.save();
-        ctx.strokeStyle = tk.wall;
-        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = "rgba(90, 58, 26, 0.5)";
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(w.ninja.srcX, w.ninja.y);
@@ -408,36 +456,66 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       for (const e of w.entities) {
-        ctx.font = `${ENEMY_FONT}px serif`;
-        ctx.fillText(e.type === "oni" ? "👹" : "💣", e.x, e.y);
+        if (e.type === "token") {
+          // Shiny gold coin
+          const r = 14;
+          const g = ctx.createRadialGradient(e.x - 4, e.y - 4, 2, e.x, e.y, r);
+          g.addColorStop(0, "#FFF6C8");
+          g.addColorStop(0.5, "#FFD24A");
+          g.addColorStop(1, "#B8860B");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = "#8a6d1a";
+          ctx.stroke();
+          ctx.fillStyle = "rgba(255,255,255,0.85)";
+          ctx.beginPath();
+          ctx.arc(e.x - 4, e.y - 4, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.font = "bold 15px serif";
+          ctx.fillStyle = "#8a6d1a";
+          ctx.fillText("✦", e.x, e.y + 1);
+        } else {
+          ctx.font = `${ENEMY_FONT}px serif`;
+          ctx.fillText(e.type === "oni" ? "👹" : "💣", e.x, e.y);
+        }
       }
 
       // Ninja
       ctx.font = `${NINJA_FONT}px serif`;
       ctx.fillText("🥷", w.ninja.x, w.ninja.y);
 
-      // Kill particles
+      // Kill particles (gold pop for coins/bombs)
       for (const p of w.particles) {
         const a = 1 - p.t / p.life;
         ctx.save();
         ctx.globalAlpha = a;
-        ctx.fillStyle = p.gold ? "#facc15" : tk.wall;
+        ctx.fillStyle = p.gold ? "#FFD24A" : "#5a3a1a";
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 6 + p.t * 60, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, (p.big ? 10 : 6) + p.t * 70, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
 
-      // Live on-canvas score (PLAYING only) — big glowing neon, theme-tinted
+      // Top pill score (PLAYING only)
       if (phaseRef.current === "PLAYING") {
+        const txt = String(scoreIntRef.current);
         ctx.save();
+        ctx.font = "bold 26px ui-monospace, SFMono-Regular, Menlo, monospace";
         ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        ctx.font = "bold 34px ui-monospace, SFMono-Regular, Menlo, monospace";
-        ctx.shadowColor = tk.score;
-        ctx.shadowBlur = 16;
-        ctx.fillStyle = tk.score;
-        ctx.fillText(String(scoreIntRef.current), W / 2, 16);
+        ctx.textBaseline = "middle";
+        const tw = ctx.measureText(txt).width;
+        const pw = tw + 44, ph = 40, px = W / 2 - pw / 2, py = 16;
+        ctx.fillStyle = PILL_BG;
+        ctx.strokeStyle = PILL_BORDER;
+        ctx.lineWidth = 2;
+        roundRect(ctx, px, py, pw, ph, ph / 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = PILL_TEXT;
+        ctx.fillText(txt, W / 2, py + ph / 2 + 1);
         ctx.restore();
       }
     }
@@ -495,17 +573,17 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
         )}
       </div>
 
-      {/* Arena shell — fully theme-aware */}
-      <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-sm font-mono">
+      {/* Arena shell — Golden Temple Dawn */}
+      <div className="rounded-3xl border border-[#B8860B] bg-[#FDE093] overflow-hidden shadow-md font-mono">
         {/* Header */}
-        <div className="px-4 pt-3 pb-2.5 text-center border-b border-border">
+        <div className="px-4 pt-3 pb-2.5 text-center border-b border-[#B8860B]/50">
           <div className="flex items-center justify-center gap-2">
             <span className="text-xl">🥷</span>
             <div className="leading-none">
-              <h1 className="text-lg font-black tracking-[0.2em] text-foreground">
+              <h1 className="text-lg font-black tracking-[0.2em] text-[#3a2a1a]">
                 NINJA TOKEN
               </h1>
-              <p className="mt-0.5 text-[9px] tracking-[0.4em] text-muted-foreground">BETA ARCADE</p>
+              <p className="mt-0.5 text-[9px] tracking-[0.4em] text-[#7a3b00]">BETA ARCADE</p>
             </div>
             <span className="text-xl scale-x-[-1]">🥷</span>
           </div>
@@ -513,7 +591,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             {[0.9, 0.72, 0.55, 0.4, 0.55, 0.72].map((o, i) => (
               <span
                 key={i}
-                className="w-1.5 h-1.5 rounded-full bg-primary"
+                className="w-1.5 h-1.5 rounded-full bg-[#B8860B]"
                 style={{ opacity: o }}
               />
             ))}
@@ -534,66 +612,66 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
 
           {/* Start overlay */}
           {phase === "IDLE" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-card/85 backdrop-blur-sm px-6">
-              <p className="text-xs tracking-[0.15em] text-muted-foreground text-center leading-relaxed font-mono">
-                Tap to dash between walls.<br />
-                Slash 👹 for +10 · Slice 💣 mid-air for +100.<br />
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#FDE093]/80 backdrop-blur-sm px-6">
+              <p className="text-xs tracking-[0.15em] text-[#3a2a1a] text-center leading-relaxed font-mono">
+                Dash between walls.<br />
+                Slash 👹 +10 · Slice 💣 +100 · Snag 🪙 +200.<br />
                 Don't let an oni hit you while resting — and don't ignore a bomb on your wall!
               </p>
               <button
                 onClick={startGame}
-                className="px-8 py-3 rounded-xl font-black text-sm tracking-[0.2em] bg-primary text-primary-foreground shadow-md hover:scale-105 transition-transform"
+                className="px-8 py-3 rounded-xl font-black text-sm tracking-[0.2em] bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md hover:scale-105 transition-transform"
               >
                 ▶ TAP TO START
               </button>
               {best != null && best > 0 && (
-                <p className="text-[10px] tracking-[0.3em] text-muted-foreground font-mono">BEST: {best}</p>
+                <p className="text-[10px] tracking-[0.3em] text-[#7a3b00] font-mono">BEST: {best}</p>
               )}
             </div>
           )}
 
           {/* Game Over modal */}
           {phase === "GAME_OVER" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 px-5 bg-card/80 backdrop-blur-md">
-              <h2 className="text-2xl font-black tracking-[0.3em] text-destructive font-mono">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 px-5 bg-[#FDE093]/85 backdrop-blur-md">
+              <h2 className="text-2xl font-black tracking-[0.3em] text-[#7a3b00] font-mono">
                 GAME OVER
               </h2>
 
               {isNewBest && (
-                <span className="px-4 py-1 rounded-full font-black text-[11px] tracking-[0.2em] bg-primary text-primary-foreground shadow-md">
+                <span className="px-4 py-1 rounded-full font-black text-[11px] tracking-[0.2em] bg-gradient-to-r from-amber-300 to-yellow-500 text-[#5a3a1a] shadow-md">
                   ⭐ NEW HIGH SCORE ⭐
                 </span>
               )}
 
               {/* Score box */}
-              <div className="w-full max-w-[260px] rounded-2xl border border-border bg-background/90 px-5 py-3 text-center shadow-md">
-                <p className="text-[9px] tracking-[0.3em] text-muted-foreground font-mono">FINAL SCORE</p>
-                <p className="text-3xl font-black text-foreground tabular-nums font-mono">{finalRun}</p>
-                <p className="mt-1 text-[9px] tracking-[0.3em] text-muted-foreground font-mono">BEST: {shownBest}</p>
+              <div className="w-full max-w-[260px] rounded-2xl border border-[#B8860B] bg-[#FFF7E0]/95 px-5 py-3 text-center shadow-md">
+                <p className="text-[9px] tracking-[0.3em] text-[#7a3b00] font-mono">FINAL SCORE</p>
+                <p className="text-3xl font-black text-[#3a2a1a] tabular-nums font-mono">{finalRun}</p>
+                <p className="mt-1 text-[9px] tracking-[0.3em] text-[#7a3b00] font-mono">BEST: {shownBest}</p>
               </div>
 
               {/* Hall of Fame (Top 5) */}
-              <div className="w-full max-w-[280px] rounded-2xl border border-border bg-background/90 overflow-hidden">
-                <div className="px-4 py-2 text-center border-b border-border">
-                  <p className="text-xs font-black tracking-[0.2em] text-foreground font-mono">🏆 HALL OF FAME 🏆</p>
+              <div className="w-full max-w-[280px] rounded-2xl border border-[#B8860B] bg-[#FFF7E0]/95 overflow-hidden">
+                <div className="px-4 py-2 text-center border-b border-[#B8860B]/60">
+                  <p className="text-xs font-black tracking-[0.2em] text-[#7a3b00] font-mono">🏆 HALL OF FAME 🏆</p>
                 </div>
                 {leadersLoading ? (
                   <div className="py-3 flex justify-center">
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    <Loader2 className="w-4 h-4 animate-spin text-[#7a3b00]" />
                   </div>
                 ) : leaders.length === 0 ? (
-                  <p className="py-3 text-center text-[10px] tracking-widest text-muted-foreground uppercase font-mono">
+                  <p className="py-3 text-center text-[10px] tracking-widest text-[#7a3b00]/70 uppercase font-mono">
                     No scores yet
                   </p>
                 ) : (
-                  <div className="divide-y divide-border">
+                  <div className="divide-y divide-[#B8860B]/40">
                     {leaders.map((l, i) => (
                       <div key={l.id} className="flex items-center gap-2 px-3 py-1.5">
                         <span className="w-5 text-center text-sm">{i < 3 ? medals[i] : `${i + 1}`}</span>
-                        <span className="flex-1 min-w-0 text-xs font-bold text-foreground truncate font-mono" style={{ wordBreak: "break-word" }}>
+                        <span className="flex-1 min-w-0 text-xs font-bold text-[#3a2a1a] truncate font-mono" style={{ wordBreak: "break-word" }}>
                           {l.user_name}
                         </span>
-                        <span className="text-xs font-black text-primary tabular-nums font-mono">{l.score}</span>
+                        <span className="text-xs font-black text-[#B8860B] tabular-nums font-mono">{l.score}</span>
                       </div>
                     ))}
                   </div>
@@ -604,7 +682,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
               <button
                 onClick={startGame}
                 disabled={saving}
-                className="mt-1 w-full max-w-[260px] px-5 py-2.5 rounded-xl font-black text-sm tracking-[0.15em] bg-primary text-primary-foreground shadow-md hover:scale-105 transition-transform flex items-center justify-center gap-2 font-mono"
+                className="mt-1 w-full max-w-[260px] px-5 py-2.5 rounded-xl font-black text-sm tracking-[0.15em] bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md hover:scale-105 transition-transform flex items-center justify-center gap-2 font-mono"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "▶ PLAY AGAIN"}
               </button>
@@ -613,10 +691,11 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
         </div>
 
         {/* Footer legend */}
-        <div className="px-4 py-2.5 border-t border-border flex items-center justify-center gap-2 text-[10px] tracking-[0.12em] text-muted-foreground font-mono">
+        <div className="px-4 py-2.5 border-t border-[#B8860B]/50 flex items-center justify-center gap-2 text-[10px] tracking-[0.12em] text-[#7a3b00] font-mono">
           <span className="text-base leading-none">🥷</span>
           <span className="text-base leading-none">👹</span>
           <span className="text-base leading-none">💣</span>
+          <span className="text-base leading-none text-[#B8860B]">🪙</span>
           <span className="ml-1">SPACE • CLICK • TAP — DASH TO ATTACK</span>
         </div>
       </div>
