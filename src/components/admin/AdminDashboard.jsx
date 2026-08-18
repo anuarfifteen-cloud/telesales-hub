@@ -16,7 +16,6 @@ import QuizMaintenanceToggle from "./QuizMaintenanceToggle";
 import AdminGiftVoucherGen from "./AdminGiftVoucherGen";
 import AdminCoinFlipLogs from "./AdminCoinFlipLogs";
 import AdminDiamondSmash from "./AdminDiamondSmash";
-import AdminGameManagement from "./AdminGameManagement";
 
 const LIVE_FEED_KEY = "liveFeedEnabled";
 
@@ -265,9 +264,6 @@ export default function AdminDashboard({ onBack }) {
           <h2 className="text-xl font-bold">Telesales Hub</h2>
           <p className="text-sm opacity-80 mt-0.5">Manage team data and settings below.</p>
         </div>
-
-        {/* Game Management — enable/disable individual games */}
-        <AdminGameManagement />
 
         {/* Daily Quiz Maintenance Toggle */}
         <QuizMaintenanceToggle />
