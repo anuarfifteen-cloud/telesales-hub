@@ -3,7 +3,7 @@ import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
 import CoinFlipArena from "@/components/coinflip/CoinFlipArena";
 import PerfectTen from "@/components/coinflip/PerfectTen";
 import VipActivityFeed from "@/components/coinflip/VipActivityFeed";
-import DailyDuoGame from "@/components/duo/DailyDuoGame";
+import NinjaTokenGame from "@/components/games/NinjaTokenGame";
 import SuperTapGame from "@/components/supertap/SuperTapGame";
 import BlindVoucherShop from "@/components/tokens/BlindVoucherShop";
 import FlappyTokenGame from "@/components/games/FlappyTokenGame";
@@ -63,14 +63,14 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
             👑 VIP Pass
           </button>
           <button
-            onClick={() => setInnerTab("duo")}
+            onClick={() => setInnerTab("ninja")}
             className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "duo"
+              innerTab === "ninja"
                 ? "bg-pink-600 text-white shadow"
                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             }`}
           >
-            🧠 Daily Quiz
+            🥷 Ninja Token
           </button>
         </div>
         {/* Row 2 */}
@@ -163,9 +163,9 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         <CoinFlipArena user={user} onUserUpdate={onUserUpdate} isAdmin={isAdmin} />
       )}
 
-      {/* Daily Duo */}
-      {innerTab === "duo" && (
-        <DailyDuoGame user={user} onUserUpdate={onUserUpdate} />
+      {/* Ninja Token Game */}
+      {innerTab === "ninja" && (
+        <NinjaTokenGame user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {/* Super Tap */}
