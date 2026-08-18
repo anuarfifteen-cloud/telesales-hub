@@ -131,19 +131,20 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
 
     const won = result === choice;
     if (won) {
-      const isFirstFlip = currentStreak === 0;
-      const newPot = isFirstFlip ? currentPot : currentPot * 2;
+      const newPot = currentPot * 2;
       setCurrentPot(newPot);
       setCurrentStreak((s) => s + 1);
       setChoice(null);
       playWin();
       playTension();
+      toast.success(`✨ You won! Pot doubled to ${newPot}!`);
       setPhase("TENSION");
     } else {
       setCurrentPot(0);
       setCurrentStreak(0);
       setChoice(null);
       playLoss();
+      toast.error("💀 Wiped out — the house takes it all.");
       setPhase("LOST");
     }
     setBusy(false);
@@ -241,6 +242,11 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
         .cf-anim-fire2 { animation: cfFirePulse .8s ease-in-out infinite, cfNeonPulse 1.6s ease-in-out infinite; }
         .cf-anim-fire3 { animation: cfFirePulse .6s ease-in-out infinite, cfNeonPulse 1.1s ease-in-out infinite; }
         .cf-anim-float { animation: cfFloat 3.2s ease-in-out infinite; }
+        @keyframes cfWinFlash {
+          0% { opacity: 0; transform: translateY(8px) scale(.92); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .cf-anim-win { animation: cfWinFlash .45s ease-out; }
         .cf-sad { animation: cfSadShake .5s ease-in-out 2; }
       `}</style>
 
@@ -275,9 +281,9 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
 
         {/* 3D coin */}
         <div className="flex flex-col items-center pt-6 pb-4">
-          <div className="cf-coin-scene">
+          <div className={`cf-coin-scene ${showFlipping ? "" : "cf-anim-float"}`}>
             <div
-              className={`cf-coin ${showFlipping ? "" : "cf-anim-float"}`}
+              className="cf-coin"
               style={{ transform: `rotateY(${coinRot}deg)` }}
             >
               {/* heads (front) */}
@@ -388,6 +394,9 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
           {/* TENSION — cash out or double down */}
           {showTension && (
             <div className="flex flex-col gap-4">
+              <p className="cf-anim-win text-center text-sm font-black uppercase tracking-widest text-emerald-300 drop-shadow-[0_0_8px_rgba(16,185,129,.8)]">
+                ✨ You Won — Pot Doubled!
+              </p>
               <div
                 className={`relative mx-auto flex flex-col items-center rounded-2xl border border-amber-400/30 px-6 py-5 ${
                   fireLevel === 3 ? "cf-anim-fire3" :
