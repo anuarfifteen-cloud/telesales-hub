@@ -99,12 +99,24 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
   const [leaders, setLeaders] = useState([]);
   const [todayRecord, setTodayRecord] = useState(() => getTodayRecord());
   const [quizEnabled, setQuizEnabled] = useState(true);
+  const [streak, setStreak] = useState(0);
 
   const loadLeaders = async () => {
     try {
-      const rows = await base44.entities.QuizScore.list("-correct_count", 10);
-      console.log("[DailyDuoGame] Leaderboard fetched:", rows?.length || 0, "scores");
-      setLeaders(rows || []);
+      const rows = await base44.entities.QuizScore.list("-correct_count", 50);
+      // deterministic tie-break: more correct first, then fewer attempts
+      const sorted = (rows || [])
+        .slice()
+        .sort((a, b) => {
+          const ca = a.correct_count ?? 0;
+          const cb = b.correct_count ?? 0;
+          if (cb !== ca) return cb - ca;
+          const ta = a.total_answered ?? Infinity;
+          const tb = b.total_answered ?? Infinity;
+          return ta - tb;
+        })
+        .slice(0, 10);
+      setLeaders(sorted);
     } catch (e) {
       console.error("[DailyDuoGame] loadLeaders failed:", e);
       setLeaders([]);
@@ -123,6 +135,14 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
       }
 
       await loadLeaders();
+
+      // load current user's streak count
+      try {
+        const sRows = await base44.entities.QuizStreak.filter({ user_id: user.id });
+        setStreak(sRows[0]?.streak_count ?? 0);
+      } catch (e) {
+        console.error("[DailyDuoGame] streak load failed:", e);
+      }
 
       if (getTodayRecord()) {
         setLoading(false);
@@ -205,6 +225,51 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
       console.error("[DailyDuoGame] QuizScore upsert FAILED:", e?.message || e, e);
     }
 
+    // ── streak tracking ───────────────────────────────────────────────
+    let shouldRewardStreak = false;
+    try {
+      const sRows = await base44.entities.QuizStreak.filter({ user_id: user.id });
+      const rec = sRows[0];
+      const prevStreak = rec?.streak_count ?? 0;
+      const paid = !!rec?.reward_paid_for_cycle;
+      let newStreak = 0;
+      let streakPayload;
+      if (isCorrect) {
+        newStreak = prevStreak + 1;
+        const hitsMilestone = newStreak % 5 === 0;
+        shouldRewardStreak = hitsMilestone && !paid;
+        streakPayload = {
+          streak_count: newStreak,
+          last_correct_date: today,
+          reward_paid_for_cycle: hitsMilestone,
+        };
+      } else {
+        streakPayload = { streak_count: 0, reward_paid_for_cycle: false };
+      }
+      if (rec?.id) {
+        await base44.entities.QuizStreak.update(rec.id, streakPayload);
+      } else {
+        await base44.entities.QuizStreak.create({ user_id: user.id, ...streakPayload });
+      }
+      setStreak(newStreak);
+
+      if (shouldRewardStreak) {
+        const bonus = 2;
+        const newTokens = (user.earlyAccessTokens ?? 0) + bonus;
+        await base44.auth.updateMe({ earlyAccessTokens: newTokens });
+        await base44.entities.TokenTransaction.create({
+          user_id: user.id,
+          user_name: user.full_name || user.email?.split("@")[0] || "Player",
+          amount: bonus,
+          source: "Daily Quiz — 5-Day Streak Bonus",
+          timestamp: new Date().toISOString(),
+        });
+        toast.success("🔥 5-day streak! +2 token bonus!");
+      }
+    } catch (e) {
+      console.error("[DailyDuoGame] streak upsert failed:", e?.message || e);
+    }
+
     // Always refresh the leaderboard
     await loadLeaders();
 
@@ -249,6 +314,9 @@ export default function DailyDuoGame({ user, onUserUpdate }) {
             <div className="flex items-center gap-2 mb-1">
               <span className="text-lg">🧠</span>
               <h3 className="font-black text-base text-foreground">Daily Quiz</h3>
+              {streak > 0 && (
+                <span className="text-[10px] font-bold text-orange-500 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 px-2 py-0.5 rounded-full">🔥 {streak}-day streak</span>
+              )}
               <span className="ml-auto text-[10px] font-bold text-pink-500 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full">Solo Daily</span>
             </div>
             <p className="text-xs text-muted-foreground font-medium mt-1">
