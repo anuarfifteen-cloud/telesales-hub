@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { getHubSettings, setNinjaAvailability } from "@/lib/hubSettings";
 import { Loader2, Trophy, Trash2 } from "lucide-react";
 
 // Emoji-capable font stack — makes canvas paint full-color opaque emoji
@@ -90,8 +89,6 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
   const [finalRun, setFinalRun] = useState(0);
   const [muted, setMuted] = useState(() => localStorage.getItem("ninja_muted") === "1");
   const [resetting, setResetting] = useState(false);
-  const [accessOn, setAccessOn] = useState(true);
-  const [togglingAccess, setTogglingAccess] = useState(false);
 
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
@@ -336,27 +333,6 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
     const unsub = base44.entities.NinjaTokenScore.subscribe(() => refreshLeaders());
     return unsub;
   }, [user?.id, refreshLeaders]);
-
-  // Live HubSettings access flag — drives the in-header on/off toggle
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const s = await getHubSettings();
-        if (alive) setAccessOn(!!s?.isNinjaTokenActive);
-      } catch {}
-    })();
-    const unsub = base44.entities.HubSettings.subscribe(async () => {
-      try {
-        const s = await getHubSettings();
-        setAccessOn(!!s?.isNinjaTokenActive);
-      } catch {}
-    });
-    return () => {
-      alive = false;
-      unsub();
-    };
-  }, []);
 
   // ── Canvas sizing (DPR-aware, responsive) ────────────────────────────────────
   const resize = useCallback(() => {
@@ -798,28 +774,6 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
                 style={{ opacity: o }}
               />
             ))}
-          </div>
-          <div className="mt-2 flex items-center justify-center gap-2 text-[10px] tracking-widest text-[#7a3b00] font-mono">
-            <span>GAME ACCESS: {accessOn ? "ON" : "OFF"}</span>
-            <button
-              onClick={async () => {
-                if (togglingAccess) return;
-                if (!window.confirm("Disable Ninja Token for everyone? The game will be hidden for all users.")) return;
-                setTogglingAccess(true);
-                try {
-                  await setNinjaAvailability(false);
-                  setAccessOn(false);
-                } catch (e) {
-                  console.error("[NinjaToken] disable failed:", e?.message || e);
-                } finally {
-                  setTogglingAccess(false);
-                }
-              }}
-              disabled={togglingAccess}
-              className="px-2 py-0.5 rounded-full bg-[#B8860B] text-white text-[9px] font-bold border border-[#3a2a1a] disabled:opacity-50"
-            >
-              {togglingAccess ? "…" : "Disable"}
-            </button>
           </div>
         </div>
 

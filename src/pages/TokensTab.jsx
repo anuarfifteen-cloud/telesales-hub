@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { setNinjaAvailability } from "@/lib/hubSettings";
 import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
 import CoinFlipArena from "@/components/coinflip/CoinFlipArena";
 import PerfectTen from "@/components/coinflip/PerfectTen";
@@ -11,16 +10,6 @@ import BlindVoucherShop from "@/components/tokens/BlindVoucherShop";
 import FlappyTokenGame from "@/components/games/FlappyTokenGame";
 import DiamondSmashGame from "@/components/games/DiamondSmashGame";
 import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin }) {
   const [innerTab, setInnerTab] = useState("milestones");
@@ -30,8 +19,6 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
   // Ninja Token availability — controlled by admin via HubSettings singleton
   const [ninjaActive, setNinjaActive] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(true);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [flipping, setFlipping] = useState(false);
 
   const loadNinjaSetting = useCallback(async () => {
     try {
@@ -99,18 +86,14 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           </button>
           <div className="relative">
             <button
-              onClick={() => {
-                if (settingsLoading || flipping) return;
-                if (ninjaActive) setInnerTab("ninja");
-                else setConfirmOpen(true);
-              }}
-              disabled={settingsLoading || flipping}
+              onClick={() => ninjaActive && setInnerTab("ninja")}
+              disabled={!ninjaActive || settingsLoading}
               className={`w-full flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
                 ninjaActive
                   ? innerTab === "ninja"
                     ? "bg-pink-600 text-white shadow"
                     : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                  : "opacity-60 text-slate-500 bg-slate-200 dark:bg-slate-700"
+                  : "opacity-50 cursor-not-allowed text-slate-400 bg-slate-200 dark:bg-slate-700"
               }`}
             >
               🥷 {ninjaActive ? "Ninja Token" : "COMING SOON"}
@@ -251,37 +234,6 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           {isAdmin && <VipActivityFeed user={user} isAdmin={isAdmin} />}
         </>
       )}
-
-      {/* Confirm enabling Ninja Token globally — open to any user */}
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Enable Ninja Token for everyone?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This turns the game on for all users. Anyone can turn it back off later from the game screen.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={flipping}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={flipping}
-              onClick={async () => {
-                setFlipping(true);
-                try {
-                  await setNinjaAvailability(true);
-                } catch (e) {
-                  console.error("[TokensTab] enable failed:", e?.message || e);
-                } finally {
-                  setFlipping(false);
-                  setConfirmOpen(false);
-                }
-              }}
-            >
-              {flipping ? "Enabling…" : "Enable"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
