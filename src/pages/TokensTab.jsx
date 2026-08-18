@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { base44 } from "@/api/base44Client";
 import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
 import CoinFlipArena from "@/components/coinflip/CoinFlipArena";
 import PerfectTen from "@/components/coinflip/PerfectTen";
@@ -14,6 +15,27 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
   const [innerTab, setInnerTab] = useState("milestones");
   // tabs: milestones | vip | duo | perfect10 | coinflip
   const tokens = user?.earlyAccessTokens ?? 0;
+
+  // Ninja Token availability — controlled by admin via HubSettings singleton
+  const [ninjaActive, setNinjaActive] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+
+  const loadNinjaSetting = useCallback(async () => {
+    try {
+      const rows = await base44.entities.HubSettings.list();
+      setNinjaActive(!!rows[0]?.isNinjaTokenActive);
+    } catch (e) {
+      console.error("[TokensTab] HubSettings load failed:", e?.message || e);
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadNinjaSetting();
+    const unsub = base44.entities.HubSettings.subscribe(() => loadNinjaSetting());
+    return unsub;
+  }, [loadNinjaSetting]);
 
   return (
     <div className="flex flex-col gap-4 pb-4">
@@ -62,16 +84,26 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           >
             👑 VIP Pass
           </button>
-          <button
-            onClick={() => setInnerTab("ninja")}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "ninja"
-                ? "bg-pink-600 text-white shadow"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            🥷 Ninja Token
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => (ninjaActive ? setInnerTab("ninja") : undefined)}
+              disabled={!ninjaActive || settingsLoading}
+              className={`w-full flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                ninjaActive
+                  ? innerTab === "ninja"
+                    ? "bg-pink-600 text-white shadow"
+                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                  : "opacity-50 cursor-not-allowed text-slate-400 bg-slate-200 dark:bg-slate-700"
+              }`}
+            >
+              🥷 Ninja Token
+            </button>
+            {!settingsLoading && !ninjaActive && (
+              <span className="absolute top-0 right-0 translate-x-2 -translate-y-2 bg-purple-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full border border-purple-400">
+                COMING SOON
+              </span>
+            )}
+          </div>
         </div>
         {/* Row 2 */}
         <div className="grid grid-cols-3 gap-1">
@@ -163,8 +195,8 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         <CoinFlipArena user={user} onUserUpdate={onUserUpdate} isAdmin={isAdmin} />
       )}
 
-      {/* Ninja Token Game */}
-      {innerTab === "ninja" && (
+      {/* Ninja Token Game — only render when enabled via HubSettings */}
+      {innerTab === "ninja" && ninjaActive && (
         <NinjaTokenGame user={user} onUserUpdate={onUserUpdate} />
       )}
 
