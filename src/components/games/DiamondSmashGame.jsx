@@ -841,7 +841,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-5 pb-6">
+    <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-100 flex flex-col items-center gap-5 pb-6 p-4 sm:p-6 rounded-3xl">
       <style>{`
         @keyframes dsComboPop {
           0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
@@ -885,9 +885,9 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
 
       {/* Stat bar */}
       <div className="w-full grid grid-cols-3 gap-2" style={{ maxWidth: 364 }}>
-        <div className="relative bg-white dark:bg-card rounded-xl border border-border shadow-sm p-2 text-center">
+        <div className="relative bg-white/80 backdrop-blur-md border border-white shadow-lg shadow-purple-100 rounded-xl p-2 text-center">
           <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Score</p>
-          <p className="text-2xl font-black text-fuchsia-600 dark:text-fuchsia-400 tabular-nums">{score}</p>
+          <p className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500 tabular-nums">{score}</p>
           {floating.visible &&
           <motion.div
             key={floating.key}
@@ -907,13 +907,13 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
             </motion.div>
           }
         </div>
-        <div className="bg-white dark:bg-card rounded-xl border border-border shadow-sm p-2 text-center">
+        <div className="bg-white/80 backdrop-blur-md border border-white shadow-lg shadow-purple-100 rounded-xl p-2 text-center">
           <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Moves</p>
-          <p className="text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums">{moves}</p>
+          <p className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500 tabular-nums">{moves}</p>
         </div>
-        <div className="bg-white dark:bg-card rounded-xl border border-border shadow-sm p-2 text-center">
+        <div className="bg-white/80 backdrop-blur-md border border-white shadow-lg shadow-purple-100 rounded-xl p-2 text-center">
           <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Time</p>
-          <p className={`text-2xl font-black tabular-nums ${timeLeft <= 10 ? "text-red-500 animate-pulse" : "text-cyan-600 dark:text-cyan-400"}`}>
+          <p className={`text-2xl font-black tabular-nums ${timeLeft <= 10 ? "text-red-500 animate-pulse" : "text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500"}`}>
             {timeLeft}
           </p>
         </div>
@@ -922,7 +922,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       {/* Board — CSS grid + Framer Motion layout FLIP for gravity cascade */}
       <div
         ref={boardRef}
-        className="relative isolate overflow-hidden rounded-2xl border border-fuchsia-500/30 shadow-[0_0_30px_rgba(217,70,239,0.2)] bg-gradient-to-b from-[#2a1245] to-[#1a0b2e] p-2"
+        className="relative isolate overflow-hidden rounded-3xl border-2 border-white/80 bg-white/60 backdrop-blur-xl shadow-2xl shadow-purple-300/40 p-2"
         style={{ width: BOARD_W + 16, height: BOARD_H + 16 }}>
         
         <div
@@ -962,8 +962,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
                   onPointerDown={() => handleCellClick(r, c)}
                   disabled={phase !== "playing" || busy}
                   style={{ touchAction: "none" }}
-                  className={`flex items-center justify-center rounded-lg select-none w-full h-full ${
-                  isSel ? "bg-fuchsia-500/40 ring-2 ring-fuchsia-400" : "bg-white/10 hover:bg-white/20"} ${
+                  className={`flex items-center justify-center rounded-xl border select-none w-full h-full shadow-inner ${
+                  isSel ? "bg-fuchsia-500/40 border-fuchsia-400 ring-2 ring-fuchsia-400" : "bg-white/40 border-white/50 hover:bg-white/60"} ${
                   phase === "playing" && !busy ? "cursor-pointer" : "cursor-default"}`}>
           <span className="text-2xl leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
             {EMOJIS[piece.type]}
@@ -991,11 +991,11 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         {/* Start screen — shown only before the player starts. Removed entirely
                        during gameplay so the grid is fully visible and unobstructed. */}
         {phase === "idle" &&
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#1a0b2e]/75 backdrop-blur-sm z-40">
-            <h1 className="font-black text-3xl text-center tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-fuchsia-300 to-amber-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-white/40 backdrop-blur-md rounded-3xl z-40">
+            <h1 className="font-black text-3xl text-center tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-purple-600 to-pink-500 drop-shadow-[0_0_15px_rgba(217,70,239,0.4)]">
               💎 DIAMOND<br />SMASH
             </h1>
-            <p className="text-[11px] text-fuchsia-300/80 text-center">
+            <p className="text-[11px] text-purple-700/80 text-center">
               20 moves • 90 seconds<br />
               💎 = 5 pts · 🍬, 🍭, 🍫, 🍩 = 2 pts each
             </p>
@@ -1010,18 +1010,18 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
 
         {/* Game over overlay */}
         {phase === "over" &&
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#1a0b2e]/90 backdrop-blur-md border border-fuchsia-500/40 z-30">
-            <p className="font-black text-2xl tracking-[0.3em] uppercase text-fuchsia-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)] text-center mt-4">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/50 backdrop-blur-xl border-2 border-white/70 rounded-3xl z-30">
+            <p className="font-black text-2xl tracking-[0.3em] uppercase text-fuchsia-600 drop-shadow-[0_0_15px_rgba(217,70,239,0.4)] text-center mt-4">
               Smash<br />Complete
             </p>
-            <div className="rounded-xl px-10 py-5 flex flex-col items-center gap-1 bg-[#0a0418]/90 border border-fuchsia-500/50 shadow-[0_0_30px_rgba(217,70,239,0.25)]">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400/80">Final Score</p>
-              <p className="font-black text-5xl tabular-nums text-amber-400 drop-shadow-[0_0_20px_rgba(255,215,0,0.8)]">{score}</p>
+            <div className="rounded-xl px-10 py-5 flex flex-col items-center gap-1 bg-white/70 border border-white/80 shadow-lg">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-600">Final Score</p>
+              <p className="font-black text-5xl tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-pink-500 drop-shadow-[0_0_15px_rgba(255,215,0,0.5)]">{score}</p>
               {saving ?
-            <p className="text-[10px] text-fuchsia-400 mt-1 animate-pulse">Saving score...</p> :
+            <p className="text-[10px] text-purple-600 mt-1 animate-pulse">Saving score...</p> :
             saveFailed ?
-            <button onClick={() => saveScore(score)} className="text-[10px] text-red-400 mt-1 font-bold underline animate-pulse">⚠ Save failed — tap to retry</button> :
-            <p className="text-[10px] text-fuchsia-400/60 mt-1">Score saved ✓</p>
+            <button onClick={() => saveScore(score)} className="text-[10px] text-red-500 mt-1 font-bold underline animate-pulse">⚠ Save failed — tap to retry</button> :
+            <p className="text-[10px] text-purple-600 mt-1">Score saved ✓</p>
             }
             </div>
             <button
