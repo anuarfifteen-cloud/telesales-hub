@@ -378,4 +378,4 @@
   60% { transform: translate(-3px, -2px); }
   80% { transform: translate(3px, 2px); }
 }
-.match-shake { animation: match-shake 0.5s ease-in-out; }
+.match-shake { animation: match-shake 0.3s ease-in-out; }

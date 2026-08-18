@@ -419,8 +419,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const [hideLeaderboard, setHideLeaderboard] = useState(false);
   const [personalBest, setPersonalBest] = useState(null);
   const [loadingPB, setLoadingPB] = useState(true);
-  // Animation state
-  const [fadingIds, setFadingIds] = useState(() => new Set());
+  // Animation state — per-piece exit kind: 'match' (3-match squash) | 'explosion' (special burst+spin)
+  const [exitState, setExitState] = useState(() => new Map());
 
   // Audio (procedural Web Audio API) + cascade combo badge
   const {
@@ -447,7 +447,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     el.classList.remove("match-shake");
     void el.offsetWidth; // force reflow so the keyframe restarts on every trigger
     el.classList.add("match-shake");
-    const timer = setTimeout(() => el.classList.remove("match-shake"), 500);
+    const timer = setTimeout(() => el.classList.remove("match-shake"), 300);
     return () => clearTimeout(timer);
   }, [shakeTrigger]);
 
@@ -627,7 +627,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setSelected(null);
     setBusy(false);
     setSaving(false);
-    setFadingIds(new Set());
+    setExitState(new Map());
     setCombo(null);
     if (comboTimer.current) {clearTimeout(comboTimer.current);comboTimer.current = null;}
     setFloating({ points: 0, reaction: "", visible: false, key: 0 });
@@ -725,14 +725,20 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         return { r, c };
       });
 
-      // Every cleared tile scores base points only (no multipliers)
+      // Every cleared tile scores base points only (no multipliers).
+      // Distinguish matchedCells (tiles in a directly-aligned cluster) from
+      // explosionCells (collateral destroyed by 4-match line clears / 5-match
+      // color wipes) so each tile plays its own destruction animation.
+      const clusterCellKeys = new Set();
+      for (const cl of clusters) for (const cell of cl.cells) clusterCellKeys.add(`${cell.r},${cell.c}`);
+
       let stepScore = 0;
-      const fadeSet = new Set();
+      const exitMap = new Map(); // piece.id -> 'match' | 'explosion'
       for (const m of allClear) {
         const piece = working[m.r][m.c];
         if (!piece) continue;
         stepScore += POINTS[piece.type] ?? 0;
-        fadeSet.add(piece.id);
+        exitMap.set(piece.id, clusterCellKeys.has(`${m.r},${m.c}`) ? "match" : "explosion");
       }
 
       const hasSpecial = !!specialLabel;
@@ -757,9 +763,9 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         setMoves(movesRef.current);
       }
 
-      // Smash — fade every cleared tile in place
-      setFadingIds(fadeSet);
-      await sleep(320); // smash animation
+      // Smash — play each cleared tile's destruction animation in place
+      setExitState(exitMap);
+      await sleep(320); // FLASH_DELAY — let destruction animations (0.22s) finish
 
       // Clear — remove all cleared tiles (gaps appear)
       working = clearMatches(working, allClear);
@@ -774,7 +780,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       // Refill — spawn new pieces from the top to fill remaining gaps
       working = refill(working);
       setBoard(working);
-      setFadingIds(new Set());
+      setExitState(new Map());
 
       gained += stepScore * chain;
       scoreRef.current += stepScore * chain; // keep saved-as-of-now score live per cascade step
@@ -924,8 +930,13 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           style={{ width: BOARD_W, height: BOARD_H }}>
 
   {pieces.map(({ piece, r, c }) => {
-            const isFading = fadingIds.has(piece.id);
+            const exitKind = exitState.get(piece.id); // 'match' | 'explosion' | undefined
             const isSel = selected && selected.r === r && selected.c === c;
+            const animate = exitKind === "match"
+              ? { scale: [1, 1.5, 0], opacity: [1, 1, 0] }
+              : exitKind === "explosion"
+              ? { scale: [1, 2, 0], opacity: [1, 0.6, 0], rotate: [0, 90, 270] }
+              : { scale: 1, y: 0, opacity: 1 };
             return (
               <motion.div
                 key={piece.id}
@@ -937,10 +948,15 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
                   width: CELL,
                   height: CELL
                 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0 }}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: isFading ? 0.4 : 1, opacity: isFading ? 0 : 1 }}
-                className={`flex items-center justify-center ${isSel ? "z-30" : "z-20"}`}>
+                transition={{
+                  layout: { duration: 0.18, ease: "easeOut" },
+                  ...(exitKind
+                    ? { duration: 0.22, ease: "easeOut" }
+                    : { type: "spring", stiffness: 550, damping: 11 })
+                }}
+                initial={{ scale: 0.5, y: -30, opacity: 0 }}
+                animate={animate}
+                className={`flex items-center justify-center ${(exitKind || isSel) ? "z-30" : "z-20"}`}>
         
         <button
                   onPointerDown={() => handleCellClick(r, c)}
