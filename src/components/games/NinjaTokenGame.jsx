@@ -2,15 +2,17 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Trophy } from "lucide-react";
 
-// ── Ninja Token — theme-aware canvas NinJump climber ───────────────────────────
-const WALL_PAD = 26;        // distance ninja / oni sit from the wall
-const NINJA_FONT = 32;
-const ENEMY_FONT = 30;
-const DASH_TIME = 0.16;     // seconds for a wall-to-wall dash
-const REST_DEATH_TOL = 24;  // resting overlap with oni → death
-const KILL_TOL = 34;        // dash slash vertical tolerance
-const BOMB_X_TOL = 26;      // bomb resting proximity to ninja wall lane → lethal
-const BOMB_Y_TOL = 30;
+// ── Ninja Token — Golden Temple Dawn canvas NinJump climber ────────────────────
+const WALL_PAD = 28;
+const NINJA_FONT = 44;        // bumped so the ninja emoji reads clearly
+const ENEMY_FONT = 40;        // bumped so oni / bomb read clearly
+const DASH_TIME = 0.16;
+const REST_DEATH_TOL = 26;
+const KILL_TOL = 38;
+const BOMB_X_TOL = 28;
+const BOMB_Y_TOL = 32;
+const TOKEN_TOL = 38;
+const TOKEN_SIZE = 36;        // drawn token image size (px)
 
 // Difficulty: 2× the original base, +step every 500 pts
 const BASE_SPEED = 220;
@@ -23,7 +25,13 @@ const TEMPLE = "rgba(139, 90, 43, 0.30)";
 const PILL_BG = "#EDE3CE";
 const PILL_BORDER = "#3a2a1a";
 const PILL_TEXT = "#3a2a1a";
-const TOKEN_TOL = 34;
+
+// User-provided Golden Token image — +200 on collect
+const TOKEN_IMG_URL =
+  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/44c1b0077_tokens.png";
+
+// Eastern pentatonic ladder — fast arpeggio for the BGM
+const PENT = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 880, 659.25];
 
 function easeOut(t) {
   return 1 - Math.pow(1 - t, 3);
@@ -39,7 +47,6 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-// Pagoda silhouette: stacked rect bases + triangle roofs
 function drawTemple(ctx, cx, baseY, w, h) {
   ctx.fillStyle = TEMPLE;
   ctx.fillRect(cx - w / 2, baseY - h * 0.32, w, h * 0.32);
@@ -65,38 +72,15 @@ function drawTemple(ctx, cx, baseY, w, h) {
   ctx.fill();
 }
 
-let _actx = null;
-function playPing() {
-  try {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    if (!_actx) _actx = new AC();
-    const ctx = _actx;
-    if (ctx.state === "suspended") ctx.resume();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = "triangle";
-    const t0 = ctx.currentTime;
-    o.frequency.setValueAtTime(880, t0);
-    o.frequency.exponentialRampToValueAtTime(1760, t0 + 0.12);
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.24);
-    o.connect(g).connect(ctx.destination);
-    o.start(t0);
-    o.stop(t0 + 0.26);
-  } catch {}
-}
-
 export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
   const [phase, setPhase] = useState("IDLE"); // IDLE | PLAYING | GAME_OVER
-  const [score, setScore] = useState(0);
   const [best, setBest] = useState(null);
   const [leaders, setLeaders] = useState([]);
   const [leadersLoading, setLeadersLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isNewBest, setIsNewBest] = useState(false);
   const [finalRun, setFinalRun] = useState(0);
+  const [muted, setMuted] = useState(() => localStorage.getItem("ninja_muted") === "1");
 
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
@@ -108,6 +92,211 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
 
   const worldRef = useRef(null);
   const scoreIntRef = useRef(0);
+  const tokenImgRef = useRef(null);
+
+  // ── Audio engine ───────────────────────────────────────────────────────────────
+  const audioRef = useRef(null);   // { ctx, master, muted }
+  const bgmRef = useRef(null);      // active BGM scheduler
+
+  const ensureAudio = useCallback(() => {
+    if (audioRef.current) return audioRef.current;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    const ctx = new AC();
+    const master = ctx.createGain();
+    const isMuted = localStorage.getItem("ninja_muted") === "1";
+    master.gain.value = isMuted ? 0 : 1;
+    master.connect(ctx.destination);
+    audioRef.current = { ctx, master, muted: isMuted };
+    return audioRef.current;
+  }, []);
+
+  // SFX: dash / slash — rising saw sweep filtered like a whoosh
+  const playDash = useCallback(() => {
+    const a = ensureAudio();
+    if (!a) return;
+    const ctx = a.ctx;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 1500;
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(240, t);
+    o.frequency.exponentialRampToValueAtTime(760, t + 0.16);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.18, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+    o.connect(g).connect(lp).connect(a.master);
+    o.start(t);
+    o.stop(t + 0.2);
+  }, [ensureAudio]);
+
+  // SFX: slice — short white-noise burst with fast decay (paper-slice / impact)
+  const playSlice = useCallback(() => {
+    const a = ensureAudio();
+    if (!a) return;
+    const ctx = a.ctx;
+    const t = ctx.currentTime;
+    const len = Math.floor(ctx.sampleRate * 0.18);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 2400;
+    bp.Q.value = 0.8;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.35, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    src.connect(bp).connect(g).connect(a.master);
+    src.start(t);
+    src.stop(t + 0.15);
+  }, [ensureAudio]);
+
+  // SFX: golden token — bright double-ping (800Hz + 1200Hz sines)
+  const playToken = useCallback(() => {
+    const a = ensureAudio();
+    if (!a) return;
+    const ctx = a.ctx;
+    let t = ctx.currentTime;
+    for (const f of [800, 1200]) {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.32, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+      o.connect(g).connect(a.master);
+      o.start(t);
+      o.stop(t + 0.2);
+      t += 0.1;
+    }
+  }, [ensureAudio]);
+
+  // SFX: game over — descending low sine "womp"
+  const playGameOver = useCallback(() => {
+    const a = ensureAudio();
+    if (!a) return;
+    const ctx = a.ctx;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(320, t);
+    o.frequency.exponentialRampToValueAtTime(70, t + 0.6);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.4, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+    o.connect(g).connect(a.master);
+    o.start(t);
+    o.stop(t + 0.72);
+  }, [ensureAudio]);
+
+  // BGM: looping Eastern pentatonic arpeggio (alternating sine/triangle)
+  const startMusic = useCallback(() => {
+    const a = ensureAudio();
+    if (!a) return;
+    // clear any existing scheduler
+    if (bgmRef.current) {
+      clearInterval(bgmRef.current.timer);
+      bgmRef.current.running = false;
+    }
+    const ctx = a.ctx;
+    const bgmGain = ctx.createGain();
+    bgmGain.gain.value = 0.16;
+    bgmGain.connect(a.master);
+    const seq = {
+      gain: bgmGain,
+      step: 0,
+      nextTime: ctx.currentTime + 0.06,
+      timer: null,
+      running: true,
+    };
+    const stepDur = 0.15;
+    const scheduleNote = (when, freq, isBass) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = isBass ? "triangle" : (Math.floor(when * 10) % 2 ? "sine" : "triangle");
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, when);
+      g.gain.linearRampToValueAtTime(isBass ? 0.5 : 0.8, when + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, when + (isBass ? 0.3 : 0.16));
+      o.connect(g).connect(bgmGain);
+      o.start(when);
+      o.stop(when + (isBass ? 0.32 : 0.18));
+    };
+    const tick = () => {
+      if (!seq.running) return;
+      const now = ctx.currentTime;
+      while (seq.nextTime < now + 0.12) {
+        const freq = PENT[seq.step % PENT.length];
+        scheduleNote(seq.nextTime, freq, false);
+        if (seq.step % 4 === 0) scheduleNote(seq.nextTime, freq / 4, true); // low drone pulse
+        seq.step++;
+        seq.nextTime += stepDur;
+      }
+    };
+    seq.timer = setInterval(tick, 25);
+    bgmRef.current = seq;
+  }, [ensureAudio]);
+
+  const stopMusic = useCallback(() => {
+    const seq = bgmRef.current;
+    if (!seq) return;
+    seq.running = false;
+    clearInterval(seq.timer);
+    const now = seq.gain.context.currentTime;
+    seq.gain.gain.cancelScheduledValues(now);
+    seq.gain.gain.setValueAtTime(seq.gain.gain.value, now);
+    seq.gain.gain.linearRampToValueAtTime(0, now + 0.2);
+    const g = seq.gain;
+    setTimeout(() => { try { g.disconnect(); } catch {} }, 300);
+    bgmRef.current = null;
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    const a = ensureAudio();
+    const next = !muted;
+    setMuted(next);
+    localStorage.setItem("ninja_muted", next ? "1" : "0");
+    if (a) {
+      a.muted = next;
+      const now = a.ctx.currentTime;
+      a.master.gain.cancelScheduledValues(now);
+      a.master.gain.setValueAtTime(a.master.gain.value, now);
+      a.master.gain.linearRampToValueAtTime(next ? 0 : 1, now + 0.08);
+    }
+  }, [ensureAudio, muted]);
+
+  // Music + game-over tone driven by phase
+  useEffect(() => {
+    if (phase === "PLAYING") startMusic();
+    else stopMusic();
+    if (phase === "GAME_OVER") playGameOver();
+    return () => stopMusic();
+  }, [phase, startMusic, stopMusic, playGameOver]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      stopMusic();
+      const a = audioRef.current;
+      if (a) { try { a.ctx.close(); } catch {} }
+    };
+  }, [stopMusic]);
+
+  // Preload the Golden Token image
+  useEffect(() => {
+    const img = new Image();
+    img.src = TOKEN_IMG_URL;
+    img.onload = () => { tokenImgRef.current = img; };
+    tokenImgRef.current = img;
+  }, []);
 
   // ── Leaderboards ───────────────────────────────────────────────────────────
   const refreshLeaders = useCallback(async () => {
@@ -175,7 +364,8 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
     w.ninja.srcX = w.ninja.wall === "left" ? WALL_PAD : W - WALL_PAD;
     w.ninja.destWall = w.ninja.wall === "left" ? "right" : "left";
     w.ninja.destX = w.ninja.destWall === "left" ? WALL_PAD : W - WALL_PAD;
-  }, []);
+    playDash();
+  }, [playDash]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -262,15 +452,17 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
   );
 
   const startGame = useCallback(() => {
+    // Resume audio context on first user interaction (autoplay-policy safe)
+    const a = ensureAudio();
+    if (a && a.ctx.state === "suspended") a.ctx.resume();
     worldRef.current = makeWorld();
     scoreIntRef.current = 0;
-    setScore(0);
     setIsNewBest(false);
     setFinalRun(0);
     phaseRef.current = "PLAYING";
     setPhase("PLAYING");
     lastRef.current = performance.now();
-  }, []);
+  }, [ensureAudio]);
 
   // ── Main loop (runs always; updates only while PLAYING) ─────────────────────
   const update = useCallback(
@@ -282,22 +474,16 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
 
       w.elapsed += dt;
 
-      // Live score-driven speed: +step every 500 pts
       const currentInt = Math.floor(w.climb) + w.killPoints;
       const tier = Math.floor(currentInt / 500);
       const speed = BASE_SPEED + tier * SPEED_STEP;
       const spawnInterval = Math.max(0.45, 1.1 - tier * 0.12);
       w._speed = speed;
 
-      // Climb accrual
       w.climb += speed * dt * 0.06;
       const intScore = Math.floor(w.climb) + w.killPoints;
-      if (intScore !== scoreIntRef.current) {
-        scoreIntRef.current = intScore;
-        setScore(intScore);
-      }
+      if (intScore !== scoreIntRef.current) scoreIntRef.current = intScore;
 
-      // Dash movement
       if (w.ninja.dashing) {
         w.ninja.dashT += dt;
         const p = Math.min(1, w.ninja.dashT / DASH_TIME);
@@ -309,13 +495,11 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
         }
       }
 
-      // Move entities down (camera pans up)
       for (const e of w.entities) {
         e.y += (e.type === "bomb" ? speed * 1.18 : speed) * dt;
       }
       w.entities = w.entities.filter((e) => e.y < H + 50 && !e._cull);
 
-      // Spawn
       w.spawnTimer += dt;
       if (w.spawnTimer >= spawnInterval) {
         w.spawnTimer = 0;
@@ -330,8 +514,6 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             dead: false,
           });
         } else if (roll < 0.82) {
-          // Bombs fall across the full width: wall-lane ones threaten a resting ninja,
-          // middle ones are safe to ignore or reward +100 if dashed through.
           w.entities.push({
             type: "bomb",
             x: WALL_PAD + Math.random() * (W - 2 * WALL_PAD),
@@ -339,7 +521,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             sliced: false,
           });
         } else {
-          // Golden Token — falls through the open middle air; dash through for +200.
+          // Golden Token — falls through the open middle air; dash through for +200
           w.entities.push({
             type: "token",
             x: W * 0.28 + Math.random() * (W * 0.44),
@@ -352,13 +534,14 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
       // ── Collisions ──────────────────────────────────────────────────────────
       const nx = w.ninja.x;
       if (w.ninja.dashing) {
-        // Attacking across the full width: slash oni (+10), slice bombs (+100), and
+        // Attacking across the full width: slash oni (+10), slice bombs (+100),
         // collect Golden Tokens (+200). Nothing is lethal while dashing.
         for (const e of w.entities) {
           if (e.type === "oni" && !e.dead && Math.abs(e.y - restY) < KILL_TOL) {
             e.dead = true;
             w.killPoints += 10;
             w.particles.push({ x: e.x, y: e.y, t: 0, life: 0.4 });
+            playSlice();
             if (navigator.vibrate) navigator.vibrate(12);
           }
           if (e.type === "bomb" && !e.sliced && Math.abs(e.y - restY) < BOMB_Y_TOL) {
@@ -366,6 +549,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             e._cull = true;
             w.killPoints += 100;
             w.particles.push({ x: e.x, y: e.y, t: 0, life: 0.45, gold: true });
+            playSlice();
             if (navigator.vibrate) navigator.vibrate(18);
           }
           if (e.type === "token" && !e.taken && Math.abs(e.y - restY) < TOKEN_TOL) {
@@ -373,13 +557,13 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             e._cull = true;
             w.killPoints += 200;
             w.particles.push({ x: e.x, y: e.y, t: 0, life: 0.5, gold: true, big: true });
-            playPing();
+            playToken();
             if (navigator.vibrate) navigator.vibrate([20, 15, 40]);
           }
         }
       } else {
-        // Resting: oni on the same wall → death; an un-sliced bomb reaching the
-        // ninja's wall lane → death (ignored bomb). Bombs in the middle pass safely.
+        // Resting: oni on the same wall → death; an un-sliced bomb in the ninja wall
+        // lane → death. Bombs in the middle pass safely.
         for (const e of w.entities) {
           if (e.type === "oni" && e.wall === w.ninja.wall && Math.abs(e.y - restY) < REST_DEATH_TOL) {
             gameOver(Math.floor(w.climb) + w.killPoints);
@@ -396,13 +580,11 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
           }
         }
       }
-      // Remove dead onis
       w.entities = w.entities.filter((e) => !(e.type === "oni" && e.dead));
-      // Particles
       for (const p of w.particles) p.t += dt;
       w.particles = w.particles.filter((p) => p.t < p.life);
     },
-    [gameOver]
+    [gameOver, playSlice, playToken]
   );
 
   const render = useCallback(() => {
@@ -419,7 +601,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, H);
 
-    // Parallax pagoda silhouettes (near-static, slow drift)
+    // Parallax pagoda silhouettes
     const drift = w ? w.elapsed * 6 : 0;
     drawTemple(ctx, W * 0.2 - ((drift * 0.04) % 120), H * 0.82, 58, 96);
     drawTemple(ctx, W * 0.55, H * 0.82 - 6, 80, 128);
@@ -452,40 +634,47 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
         ctx.restore();
       }
 
-      // Entities
+      // Entities — dark drop-shadow so emojis stay crisp on the bright dawn sky
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       for (const e of w.entities) {
         if (e.type === "token") {
-          // Shiny gold coin
-          const r = 14;
-          const g = ctx.createRadialGradient(e.x - 4, e.y - 4, 2, e.x, e.y, r);
-          g.addColorStop(0, "#FFF6C8");
-          g.addColorStop(0.5, "#FFD24A");
-          g.addColorStop(1, "#B8860B");
-          ctx.fillStyle = g;
-          ctx.beginPath();
-          ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.lineWidth = 2;
-          ctx.strokeStyle = "#8a6d1a";
-          ctx.stroke();
-          ctx.fillStyle = "rgba(255,255,255,0.85)";
-          ctx.beginPath();
-          ctx.arc(e.x - 4, e.y - 4, 2.5, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.font = "bold 15px serif";
-          ctx.fillStyle = "#8a6d1a";
-          ctx.fillText("✦", e.x, e.y + 1);
+          // User-provided Golden Token image — +200 on collect
+          const img = tokenImgRef.current;
+          const s = TOKEN_SIZE;
+          if (img) {
+            ctx.save();
+            ctx.shadowColor = "rgba(0,0,0,0.35)";
+            ctx.shadowBlur = 5;
+            ctx.drawImage(img, e.x - s / 2, e.y - s / 2, s, s);
+            ctx.restore();
+          } else {
+            ctx.save();
+            ctx.fillStyle = "#FFD24A";
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, 16, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
         } else {
+          ctx.save();
+          ctx.shadowColor = "rgba(0,0,0,0.35)";
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetY = 1;
           ctx.font = `${ENEMY_FONT}px serif`;
           ctx.fillText(e.type === "oni" ? "👹" : "💣", e.x, e.y);
+          ctx.restore();
         }
       }
 
       // Ninja
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.4)";
+      ctx.shadowBlur = 5;
+      ctx.shadowOffsetY = 2;
       ctx.font = `${NINJA_FONT}px serif`;
       ctx.fillText("🥷", w.ninja.x, w.ninja.y);
+      ctx.restore();
 
       // Kill particles (gold pop for coins/bombs)
       for (const p of w.particles) {
@@ -538,43 +727,22 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
   }, [loop]);
 
   const medals = ["🥇", "🥈", "🥉"];
-  const displayName = user?.full_name || user?.email || "Player";
   const shownBest = best == null ? finalRun : Math.max(best, finalRun);
-  const top3 = leaders.slice(0, 3);
+  const top5 = leaders.slice(0, 5);
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Live Top-3 leaderboard — above the arena */}
-      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-border bg-muted/50 flex items-center justify-center gap-2">
-          <Trophy className="w-4 h-4 text-primary" />
-          <p className="text-xs font-black uppercase tracking-widest text-foreground font-mono">Top Ninjas</p>
-        </div>
-        {leadersLoading ? (
-          <div className="py-4 flex justify-center">
-            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-          </div>
-        ) : top3.length === 0 ? (
-          <p className="py-4 text-center text-[11px] tracking-widest uppercase text-muted-foreground font-mono">
-            No scores yet — be the first!
-          </p>
-        ) : (
-          <div className="divide-y divide-border">
-            {top3.map((l, i) => (
-              <div key={l.id} className="flex items-center gap-3 px-4 py-2">
-                <span className="w-6 text-center text-base">{medals[i]}</span>
-                <span className="flex-1 min-w-0 text-sm font-bold text-foreground truncate font-mono" style={{ wordBreak: "break-word" }}>
-                  {l.user_name}
-                </span>
-                <span className="text-sm font-black text-primary tabular-nums font-mono">{l.score}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Arena shell — Golden Temple Dawn */}
-      <div className="rounded-3xl border border-[#B8860B] bg-[#FDE093] overflow-hidden shadow-md font-mono">
+      <div className="relative rounded-3xl border border-[#B8860B] bg-[#FDE093] overflow-hidden shadow-md font-mono">
+        {/* Mute toggle — top right corner */}
+        <button
+          onClick={toggleMute}
+          aria-label={muted ? "Unmute" : "Mute"}
+          className="absolute top-2 right-2 z-20 w-9 h-9 rounded-full bg-[#FFF7E0] border-2 border-[#B8860B] text-[#3a2a1a] shadow-md hover:scale-105 transition-transform flex items-center justify-center text-lg"
+        >
+          {muted ? "🔇" : "🔊"}
+        </button>
+
         {/* Header */}
         <div className="px-4 pt-3 pb-2.5 text-center border-b border-[#B8860B]/50">
           <div className="flex items-center justify-center gap-2">
@@ -615,8 +783,8 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#FDE093]/80 backdrop-blur-sm px-6">
               <p className="text-xs tracking-[0.15em] text-[#3a2a1a] text-center leading-relaxed font-mono">
                 Dash between walls.<br />
-                Slash 👹 +10 · Slice 💣 +100 · Snag 🪙 +200.<br />
-                Don't let an oni hit you while resting — and don't ignore a bomb on your wall!
+                Slash 👹 +10 · Slice 💣 +100 · Snag <img src={TOKEN_IMG_URL} alt="token" className="inline w-4 h-4 align-middle" /> +200.<br />
+                Don't rest on an oni — and don't ignore a bomb on your wall!
               </p>
               <button
                 onClick={startGame}
@@ -630,9 +798,9 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             </div>
           )}
 
-          {/* Game Over modal */}
+          {/* Game Over modal — no Hall of Fame */}
           {phase === "GAME_OVER" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 px-5 bg-[#FDE093]/85 backdrop-blur-md">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-5 bg-[#FDE093]/90 backdrop-blur-md">
               <h2 className="text-2xl font-black tracking-[0.3em] text-[#7a3b00] font-mono">
                 GAME OVER
               </h2>
@@ -643,42 +811,12 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
                 </span>
               )}
 
-              {/* Score box */}
               <div className="w-full max-w-[260px] rounded-2xl border border-[#B8860B] bg-[#FFF7E0]/95 px-5 py-3 text-center shadow-md">
                 <p className="text-[9px] tracking-[0.3em] text-[#7a3b00] font-mono">FINAL SCORE</p>
                 <p className="text-3xl font-black text-[#3a2a1a] tabular-nums font-mono">{finalRun}</p>
                 <p className="mt-1 text-[9px] tracking-[0.3em] text-[#7a3b00] font-mono">BEST: {shownBest}</p>
               </div>
 
-              {/* Hall of Fame (Top 5) */}
-              <div className="w-full max-w-[280px] rounded-2xl border border-[#B8860B] bg-[#FFF7E0]/95 overflow-hidden">
-                <div className="px-4 py-2 text-center border-b border-[#B8860B]/60">
-                  <p className="text-xs font-black tracking-[0.2em] text-[#7a3b00] font-mono">🏆 HALL OF FAME 🏆</p>
-                </div>
-                {leadersLoading ? (
-                  <div className="py-3 flex justify-center">
-                    <Loader2 className="w-4 h-4 animate-spin text-[#7a3b00]" />
-                  </div>
-                ) : leaders.length === 0 ? (
-                  <p className="py-3 text-center text-[10px] tracking-widest text-[#7a3b00]/70 uppercase font-mono">
-                    No scores yet
-                  </p>
-                ) : (
-                  <div className="divide-y divide-[#B8860B]/40">
-                    {leaders.map((l, i) => (
-                      <div key={l.id} className="flex items-center gap-2 px-3 py-1.5">
-                        <span className="w-5 text-center text-sm">{i < 3 ? medals[i] : `${i + 1}`}</span>
-                        <span className="flex-1 min-w-0 text-xs font-bold text-[#3a2a1a] truncate font-mono" style={{ wordBreak: "break-word" }}>
-                          {l.user_name}
-                        </span>
-                        <span className="text-xs font-black text-[#B8860B] tabular-nums font-mono">{l.score}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Single action — CHANGE NAME removed */}
               <button
                 onClick={startGame}
                 disabled={saving}
@@ -695,9 +833,43 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
           <span className="text-base leading-none">🥷</span>
           <span className="text-base leading-none">👹</span>
           <span className="text-base leading-none">💣</span>
-          <span className="text-base leading-none text-[#B8860B]">🪙</span>
+          <img src={TOKEN_IMG_URL} alt="token" className="w-4 h-4 leading-none" />
           <span className="ml-1">SPACE • CLICK • TAP — DASH TO ATTACK</span>
         </div>
+      </div>
+
+      {/* Top Ninjas leaderboard — at the bottom */}
+      <div className="rounded-2xl border border-[#B8860B] bg-[#FFF7E0]/95 shadow-md overflow-hidden font-mono">
+        <div className="px-4 py-2.5 border-b border-[#B8860B]/50 bg-[#FDE093]/60 flex items-center justify-center gap-2">
+          <Trophy className="w-4 h-4 text-[#B8860B]" />
+          <p className="text-xs font-black uppercase tracking-widest text-[#7a3b00]">
+            TOP NINJAS 🥷
+          </p>
+        </div>
+        {leadersLoading ? (
+          <div className="py-4 flex justify-center">
+            <Loader2 className="w-4 h-4 animate-spin text-[#B8860B]" />
+          </div>
+        ) : top5.length === 0 ? (
+          <p className="py-4 text-center text-[11px] tracking-widest uppercase text-[#7a3b00]/70">
+            No scores yet — be the first!
+          </p>
+        ) : (
+          <div className="divide-y divide-[#B8860B]/30">
+            {top5.map((l, i) => (
+              <div key={l.id} className="flex items-center gap-3 px-4 py-2">
+                <span className="w-6 text-center text-base">{i < 3 ? medals[i] : `${i + 1}`}</span>
+                <span
+                  className="flex-1 min-w-0 text-sm font-bold text-[#3a2a1a] truncate"
+                  style={{ wordBreak: "break-word" }}
+                >
+                  {l.user_name}
+                </span>
+                <span className="text-sm font-black text-[#B8860B] tabular-nums">{l.score}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
