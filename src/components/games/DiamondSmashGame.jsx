@@ -937,7 +937,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
                   width: CELL,
                   height: CELL
                 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20, delay: r * 0.05 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0 }}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: isFading ? 0.4 : 1, opacity: isFading ? 0 : 1 }}
                 className={`flex items-center justify-center ${isSel ? "z-30" : "z-20"}`}>
