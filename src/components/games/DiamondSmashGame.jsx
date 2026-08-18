@@ -738,14 +738,22 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         fadeSet.add(piece.id);
       }
 
-      // Sound + combo badge (no game-logic change)
-      playMatch();
-      if (clearedTypes.includes(4)) playDiamond();
+      const hasSpecial = !!specialLabel;
+
+      // Sound, screen shake & hardware haptics — split by special vs standard
+      if (hasSpecial) {
+        playDiamond(); // explosion sound
+        triggerShake();
+        if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+      } else {
+        playMatch();
+        if (navigator.vibrate) navigator.vibrate(10);
+      }
+
       if (chain >= 2) {playCascade(chain);showCombo(chain);}
 
-      // Color-bomb screen shake & +1 bonus move
+      // Color-bomb bonus move
       if (isPower) {
-        triggerShake();
         movesRef.current += 1;
         setMoves(movesRef.current);
       }
