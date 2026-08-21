@@ -22,7 +22,7 @@ const TOKEN_TOL = 38;
 const TOKEN_SIZE = 36;        // drawn token image size (px)
 
 // Difficulty: 2× the original base, +step every 500 pts
-const BASE_SPEED = 1100;
+const BASE_SPEED = 4400;
 const SPEED_STEP = 450;
 
 // Golden Temple Dawn palette
@@ -36,6 +36,14 @@ const PILL_TEXT = "#3a2a1a";
 // User-provided Golden Token image — +200 on collect
 const TOKEN_IMG_URL =
   "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/44c1b0077_tokens.png";
+
+// Footer legend raster icons — guaranteed full-color on every device
+const NINJA_ICON_URL =
+  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/db2bf6b08_generated_image.png";
+const ONI_ICON_URL =
+  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/6682e09d9_generated_image.png";
+const BOMB_ICON_URL =
+  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/97372eab8_generated_image.png";
 
 // Eastern pentatonic ladder — fast arpeggio for the BGM
 const PENT = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 880, 659.25];
@@ -841,9 +849,9 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
 
         {/* Footer legend */}
         <div className="px-4 py-2.5 border-t border-[#B8860B]/50 flex items-center justify-center gap-2 text-[10px] tracking-[0.12em] text-[#7a3b00] font-mono">
-          <span className="text-base leading-none" style={{ fontFamily: EMOJI_FONT, color: "#1a1a1a" }}>🥷</span>
-          <span className="text-base leading-none" style={{ fontFamily: EMOJI_FONT, color: "#1a1a1a" }}>👹</span>
-          <span className="text-base leading-none" style={{ fontFamily: EMOJI_FONT, color: "#1a1a1a" }}>💣</span>
+          <img src={NINJA_ICON_URL} alt="ninja" className="w-4 h-4 leading-none object-contain" />
+          <img src={ONI_ICON_URL} alt="oni" className="w-4 h-4 leading-none object-contain" />
+          <img src={BOMB_ICON_URL} alt="bomb" className="w-4 h-4 leading-none object-contain" />
           <img src={TOKEN_IMG_URL} alt="token" className="w-4 h-4 leading-none" />
           <span className="ml-1">SPACE • CLICK • TAP — DASH TO ATTACK</span>
         </div>
