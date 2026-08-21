@@ -5,6 +5,7 @@ import CoinFlipArena from "@/components/coinflip/CoinFlipArena";
 import PerfectTen from "@/components/coinflip/PerfectTen";
 import VipActivityFeed from "@/components/coinflip/VipActivityFeed";
 import NinjaTokenGame from "@/components/games/NinjaTokenGame";
+import DailyDuoGame from "@/components/duo/DailyDuoGame";
 import SuperTapGame from "@/components/supertap/SuperTapGame";
 import BlindVoucherShop from "@/components/tokens/BlindVoucherShop";
 import FlappyTokenGame from "@/components/games/FlappyTokenGame";
@@ -29,7 +30,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
     return () => { mounted = false; unsub && unsub(); };
   }, []);
   useEffect(() => {
-    if (!ninjaEnabled && innerTab === "ninja") setInnerTab("milestones");
+    if (!ninjaEnabled && innerTab === "ninja") setInnerTab("dailyquiz");
   }, [ninjaEnabled, innerTab]);
 
   return (
@@ -79,18 +80,16 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           >
             👑 VIP Pass
           </button>
-          {ninjaEnabled && (
           <button
-            onClick={() => setInnerTab("ninja")}
+            onClick={() => setInnerTab(ninjaEnabled ? "ninja" : "dailyquiz")}
             className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "ninja"
+              (ninjaEnabled ? innerTab === "ninja" : innerTab === "dailyquiz")
                 ? "bg-pink-600 text-white shadow"
                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             }`}
           >
-            🥷 Ninja Token
+            {ninjaEnabled ? "🥷 Ninja Token" : "🧠 Daily Quiz"}
           </button>
-          )}
         </div>
         {/* Row 2 */}
         <div className="grid grid-cols-3 gap-1">
@@ -182,9 +181,14 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         <CoinFlipArena user={user} onUserUpdate={onUserUpdate} isAdmin={isAdmin} />
       )}
 
-      {/* Ninja Token */}
+      {/* Ninja Token (only when enabled) */}
       {ninjaEnabled && innerTab === "ninja" && (
         <NinjaTokenGame user={user} onUserUpdate={onUserUpdate} />
+      )}
+
+      {/* Daily Quiz (replaces Ninja Token slot when hidden) */}
+      {!ninjaEnabled && innerTab === "dailyquiz" && (
+        <DailyDuoGame user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {/* Super Tap */}
