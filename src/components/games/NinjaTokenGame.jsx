@@ -11,8 +11,8 @@ const EMOJI_FONT =
 
 // ── Ninja Token — Golden Temple Dawn canvas NinJump climber ────────────────────
 const WALL_PAD = 28;
-const NINJA_FONT = 44;        // bumped so the ninja emoji reads clearly
-const ENEMY_FONT = 40;        // bumped so oni / bomb read clearly
+const NINJA_FONT = 132;        // 3x larger so the ninja icon reads clearly
+const ENEMY_FONT = 120;        // 3x larger so oni / bomb read clearly
 const DASH_TIME = 0.16;
 const REST_DEATH_TOL = 26;
 const KILL_TOL = 38;
