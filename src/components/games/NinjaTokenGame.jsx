@@ -22,8 +22,8 @@ const TOKEN_TOL = 38;
 const TOKEN_SIZE = 36;        // drawn token image size (px)
 
 // Difficulty: 2× the original base, +step every 500 pts
-const BASE_SPEED = 220;
-const SPEED_STEP = 90;
+const BASE_SPEED = 1100;
+const SPEED_STEP = 450;
 
 // Golden Temple Dawn palette
 const RAIL = "#5a3a1a";
@@ -841,9 +841,9 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
 
         {/* Footer legend */}
         <div className="px-4 py-2.5 border-t border-[#B8860B]/50 flex items-center justify-center gap-2 text-[10px] tracking-[0.12em] text-[#7a3b00] font-mono">
-          <span className="text-base leading-none" style={{ fontFamily: EMOJI_FONT }}>🥷</span>
-          <span className="text-base leading-none" style={{ fontFamily: EMOJI_FONT }}>👹</span>
-          <span className="text-base leading-none" style={{ fontFamily: EMOJI_FONT }}>💣</span>
+          <span className="text-base leading-none" style={{ fontFamily: EMOJI_FONT, color: "#1a1a1a" }}>🥷</span>
+          <span className="text-base leading-none" style={{ fontFamily: EMOJI_FONT, color: "#1a1a1a" }}>👹</span>
+          <span className="text-base leading-none" style={{ fontFamily: EMOJI_FONT, color: "#1a1a1a" }}>💣</span>
           <img src={TOKEN_IMG_URL} alt="token" className="w-4 h-4 leading-none" />
           <span className="ml-1">SPACE • CLICK • TAP — DASH TO ATTACK</span>
         </div>
