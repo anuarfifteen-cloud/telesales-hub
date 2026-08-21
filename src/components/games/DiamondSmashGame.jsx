@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Trophy, RotateCcw, Trash2, Crown, Lock } from "lucide-react";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { motion, useAnimationControls } from "framer-motion";
 import { useDiamondSmashAudio } from "@/hooks/useDiamondSmashAudio";
 import DiamondSmashMysteryMode from "@/components/games/DiamondSmashMysteryMode";
 
@@ -436,20 +436,19 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     comboTimer.current = setTimeout(() => setCombo(null), 800);
   };
 
-  // Screen shake on special matches — retriggered via the .match-shake CSS keyframe
+  // Screen shake on special matches — short Framer Motion animation (no forced reflow)
   const [shakeTrigger, setShakeTrigger] = useState(0);
   const boardRef = useRef(null);
+  const boardControls = useAnimationControls();
 
   useEffect(() => {
     if (shakeTrigger === 0) return;
-    const el = boardRef.current;
-    if (!el) return;
-    el.classList.remove("match-shake");
-    void el.offsetWidth; // force reflow so the keyframe restarts on every trigger
-    el.classList.add("match-shake");
-    const timer = setTimeout(() => el.classList.remove("match-shake"), 300);
-    return () => clearTimeout(timer);
-  }, [shakeTrigger]);
+    boardControls.start({
+      x: [0, -4, 4, -3, 0],
+      y: [0, 2, -2, 1, 0],
+      transition: { duration: 0.28, ease: "easeInOut" },
+    });
+  }, [shakeTrigger, boardControls]);
 
   // Floating score popup (shown after each scoring move)
   const [floating, setFloating] = useState({ points: 0, reaction: "", visible: false, key: 0 });
@@ -748,7 +747,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         // identical layered explosion sound + the same screen shake.
         sounds.explosion();
         setShakeTrigger((t) => t + 1);
-        if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+        if (navigator.vibrate) navigator.vibrate(30);
       } else {
         // 3-match — rising arpeggio (more notes for higher cascades), no shake
         sounds.match(chain);
@@ -920,9 +919,10 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       </div>
 
       {/* Board — CSS grid + Framer Motion layout FLIP for gravity cascade */}
-      <div
+      <motion.div
         ref={boardRef}
-        className="relative isolate overflow-hidden rounded-3xl border border-white/60 bg-white/40 backdrop-blur-xl shadow-xl shadow-slate-300/50 dark:bg-slate-800/50 dark:border-slate-700/80 dark:shadow-purple-900/20 p-2"
+        animate={boardControls}
+        className="relative isolate overflow-hidden rounded-3xl border border-white/60 bg-white/80 shadow-xl shadow-slate-300/50 dark:bg-slate-800/95 dark:border-slate-700/80 dark:shadow-purple-900/20 p-2"
         style={{ width: BOARD_W + 16, height: BOARD_H + 16 }}>
         
         <div
@@ -935,7 +935,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
             const animate = exitKind === "match"
               ? { scale: [1, 1.5, 0], opacity: [1, 1, 0] }
               : exitKind === "explosion"
-              ? { scale: [1, 2, 0], opacity: [1, 0.6, 0], rotate: [0, 90, 270] }
+              ? { opacity: [1, 0] }
               : { scale: 1, y: 0, opacity: 1 };
             return (
               <motion.div
@@ -949,7 +949,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
                   height: CELL
                 }}
                 transition={{
-                  layout: { duration: 0.18, ease: "easeOut" },
+                  layout: { duration: 0.14, ease: "easeOut" },
                   ...(exitKind
                     ? { duration: 0.22, ease: "easeOut" }
                     : { type: "spring", stiffness: 550, damping: 11 })
@@ -1031,12 +1031,12 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
             
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
               {saving ? "SAVING..." : "Play Again"}
-            </button>
-          </div>
-        }
-      </div>
+              </button>
+              </div>
+              }
+              </motion.div>
 
-      {/* Static how-to-play hint */}
+              {/* Static how-to-play hint */}
       <div className="w-full text-center text-xs text-slate-600 dark:text-slate-300 px-2 space-y-1" style={{ maxWidth: 364 }}>
         <p>Tap a candy, then tap next to it to swap. Match 3 or more to smash them!</p>
         <p>💥 Bonus: If pieces fall and match again automatically, you get a chain bonus — x2, x3, x4 and more!</p>
