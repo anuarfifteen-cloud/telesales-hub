@@ -32,6 +32,11 @@
       "description": "Difficulty level for the Flappy Token game",
       "default": "medium"
     },
+    "ninja_enabled": {
+      "type": "boolean",
+      "description": "Whether the Ninja Token arcade game is visible to players. When false, the Ninja Token sub-tab button and game panel are completely hidden.",
+      "default": true
+    },
     "voucher_feed_enabled": {
       "type": "boolean",
       "description": "Whether the live voucher activity feed is shown in the Blind Voucher shop",

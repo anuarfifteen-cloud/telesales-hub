@@ -78,6 +78,7 @@ export default function AdminDashboard({ onBack }) {
   const [syncingDirectory, setSyncingDirectory] = useState(false);
   const [settingsId, setSettingsId] = useState(null);
   const [voucherFeedEnabled, setVoucherFeedEnabled] = useState(true);
+  const [ninjaEnabled, setNinjaEnabled] = useState(true);
 
   useEffect(() => {
     base44.entities.AppSettings.list().then(rows => {
@@ -85,6 +86,7 @@ export default function AdminDashboard({ onBack }) {
       if (s) {
         setSettingsId(s.id);
         setVoucherFeedEnabled(s.voucher_feed_enabled !== false);
+        setNinjaEnabled(s.ninja_enabled !== false);
       }
     });
   }, []);
@@ -99,6 +101,18 @@ export default function AdminDashboard({ onBack }) {
       setSettingsId(created.id);
     }
     toast.success(val ? "Voucher Live Feed enabled." : "Voucher Live Feed disabled.");
+  };
+
+  const handleToggleNinja = async (val) => {
+    setNinjaEnabled(val);
+    const payload = { ninja_enabled: val };
+    if (settingsId) {
+      await base44.entities.AppSettings.update(settingsId, payload);
+    } else {
+      const created = await base44.entities.AppSettings.create(payload);
+      setSettingsId(created.id);
+    }
+    toast.success(val ? "Ninja Token enabled." : "Ninja Token hidden from players.");
   };
 
   const handleSyncDirectory = async () => {
@@ -305,6 +319,26 @@ export default function AdminDashboard({ onBack }) {
             style={{ width: "52px" }}
           >
             <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${voucherFeedEnabled ? "translate-x-7" : "translate-x-1"}`} />
+          </button>
+        </div>
+
+        {/* Ninja Token Visibility Toggle */}
+        <div className="bg-white rounded-2xl border border-border p-5 flex items-center justify-between gap-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+          <div>
+            <h3 className="font-bold text-slate-900 text-base">🥷 Ninja Token Game</h3>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Show the Ninja Token arcade game to players. When off, the tab and game are completely hidden.
+            </p>
+            <p className={`text-xs font-semibold mt-1 ${ninjaEnabled ? "text-emerald-600" : "text-slate-400"}`}>
+              {ninjaEnabled ? "Currently VISIBLE" : "Currently HIDDEN"}
+            </p>
+          </div>
+          <button
+            onClick={() => handleToggleNinja(!ninjaEnabled)}
+            className={`relative inline-flex h-7 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${ninjaEnabled ? "bg-emerald-500" : "bg-slate-300"}`}
+            style={{ width: "52px" }}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${ninjaEnabled ? "translate-x-7" : "translate-x-1"}`} />
           </button>
         </div>
 

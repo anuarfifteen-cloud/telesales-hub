@@ -16,6 +16,21 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
   // tabs: milestones | vip | duo | perfect10 | coinflip
   const tokens = user?.earlyAccessTokens ?? 0;
 
+  // Admin can hide the Ninja Token game entirely (tab + panel)
+  const [ninjaEnabled, setNinjaEnabled] = useState(true);
+  useEffect(() => {
+    let mounted = true;
+    const load = () =>
+      base44.entities.AppSettings.list().then((rows) => {
+        if (mounted) setNinjaEnabled(rows[0]?.ninja_enabled !== false);
+      });
+    load();
+    const unsub = base44.entities.AppSettings.subscribe(load);
+    return () => { mounted = false; unsub && unsub(); };
+  }, []);
+  useEffect(() => {
+    if (!ninjaEnabled && innerTab === "ninja") setInnerTab("milestones");
+  }, [ninjaEnabled, innerTab]);
 
   return (
     <div className="flex flex-col gap-4 pb-4">
@@ -64,6 +79,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           >
             👑 VIP Pass
           </button>
+          {ninjaEnabled && (
           <button
             onClick={() => setInnerTab("ninja")}
             className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
@@ -74,6 +90,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           >
             🥷 Ninja Token
           </button>
+          )}
         </div>
         {/* Row 2 */}
         <div className="grid grid-cols-3 gap-1">
@@ -166,7 +183,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
       )}
 
       {/* Ninja Token */}
-      {innerTab === "ninja" && (
+      {ninjaEnabled && innerTab === "ninja" && (
         <NinjaTokenGame user={user} onUserUpdate={onUserUpdate} />
       )}
 
