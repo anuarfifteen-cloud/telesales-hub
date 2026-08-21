@@ -841,9 +841,9 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
 
         {/* Footer legend */}
         <div className="px-4 py-2.5 border-t border-[#B8860B]/50 flex items-center justify-center gap-2 text-[10px] tracking-[0.12em] text-[#7a3b00] font-mono">
-          <span className="text-base leading-none">🥷</span>
-          <span className="text-base leading-none">👹</span>
-          <span className="text-base leading-none">💣</span>
+          <span className="text-base leading-none" style={{ fontFamily: EMOJI_FONT }}>🥷</span>
+          <span className="text-base leading-none" style={{ fontFamily: EMOJI_FONT }}>👹</span>
+          <span className="text-base leading-none" style={{ fontFamily: EMOJI_FONT }}>💣</span>
           <img src={TOKEN_IMG_URL} alt="token" className="w-4 h-4 leading-none" />
           <span className="ml-1">SPACE • CLICK • TAP — DASH TO ATTACK</span>
         </div>
