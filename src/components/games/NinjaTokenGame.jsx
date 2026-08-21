@@ -21,9 +21,9 @@ const BOMB_Y_TOL = 32;
 const TOKEN_TOL = 38;
 const TOKEN_SIZE = 36;        // drawn token image size (px)
 
-// Difficulty: slow playable base, gradually increasing +step every 500 pts
-const BASE_SPEED = 880;
-const SPEED_STEP = 160;
+// Difficulty: relaxed playable base, gentle gradual increase +step every 500 pts
+const BASE_SPEED = 500;
+const SPEED_STEP = 100;
 
 // Golden Temple Dawn palette
 const RAIL = "#5a3a1a";
@@ -530,7 +530,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
       // Speed tier scales with distance climbed (pacing only)
       const tier = Math.floor(w.climb / 500);
       const speed = BASE_SPEED + tier * SPEED_STEP;
-      const spawnInterval = Math.max(0.7, 1.3 - tier * 0.1);
+      const spawnInterval = Math.max(1.0, 1.6 - tier * 0.05);
       w._speed = speed;
 
       w.climb += speed * dt * 0.06;
@@ -551,7 +551,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
       }
 
       for (const e of w.entities) {
-        e.y += (e.type === "bomb" ? speed * 1.18 : speed) * dt;
+        e.y += (e.type === "bomb" ? speed * 1.08 : speed) * dt;
       }
       w.entities = w.entities.filter((e) => e.y < H + 50 && !e._cull);
 
