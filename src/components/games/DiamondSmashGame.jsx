@@ -949,10 +949,10 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
                   height: CELL
                 }}
                 transition={{
-                  layout: { duration: 0.14, ease: "easeOut" },
+                  layout: { duration: 0.12, ease: "easeOut" },
                   ...(exitKind
                     ? { duration: 0.22, ease: "easeOut" }
-                    : { type: "spring", stiffness: 550, damping: 11 })
+                    : { duration: 0.12, ease: "easeOut" })
                 }}
                 initial={{ scale: 0.5, y: -30, opacity: 0 }}
                 animate={animate}

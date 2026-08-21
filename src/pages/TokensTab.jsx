@@ -39,8 +39,8 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
   useEffect(() => {
     if (landedRef.current || !settingsLoaded) return;
     landedRef.current = true;
-    setInnerTab(ninjaEnabled ? "milestones" : "dailyquiz");
-  }, [settingsLoaded, ninjaEnabled]);
+    setInnerTab("milestones");
+  }, [settingsLoaded]);
   // Avoid lingering on the Ninja tab if it gets hidden later
   useEffect(() => {
     if (!ninjaEnabled && innerTab === "ninja") setInnerTab("dailyquiz");
