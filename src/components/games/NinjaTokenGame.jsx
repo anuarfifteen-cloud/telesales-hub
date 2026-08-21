@@ -21,9 +21,9 @@ const BOMB_Y_TOL = 32;
 const TOKEN_TOL = 38;
 const TOKEN_SIZE = 36;        // drawn token image size (px)
 
-// Difficulty: 2× the original base, +step every 500 pts
-const BASE_SPEED = 4400;
-const SPEED_STEP = 450;
+// Difficulty: normal-playable base, gradually increasing +step every 500 pts
+const BASE_SPEED = 1600;
+const SPEED_STEP = 320;
 
 // Golden Temple Dawn palette
 const RAIL = "#5a3a1a";
@@ -60,6 +60,29 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, r);
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
+}
+
+// Remove the icon images' cream background so they composite cleanly on the arena sky.
+// Runs once per image at load; returns an offscreen canvas usable as a drawImage source.
+const ICON_BG = [245, 240, 225]; // #F5F0E1 cream (matches the generated character art)
+function keyBackground(img) {
+  const cv = document.createElement("canvas");
+  cv.width = img.naturalWidth || img.width;
+  cv.height = img.naturalHeight || img.height;
+  const cx = cv.getContext("2d");
+  cx.drawImage(img, 0, 0);
+  try {
+    const data = cx.getImageData(0, 0, cv.width, cv.height);
+    const px = data.data;
+    for (let i = 0; i < px.length; i += 4) {
+      const dr = px[i] - ICON_BG[0], dg = px[i + 1] - ICON_BG[1], db = px[i + 2] - ICON_BG[2];
+      if (dr * dr + dg * dg + db * db < 26 * 26) px[i + 3] = 0; // transparent
+    }
+    cx.putImageData(data, 0, 0);
+  } catch (_) {
+    // CORS taint — fall back to the drawn image (cream box may show)
+  }
+  return cv;
 }
 
 function drawTemple(ctx, cx, baseY, w, h) {
@@ -109,6 +132,9 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
   const worldRef = useRef(null);
   const scoreIntRef = useRef(0);
   const tokenImgRef = useRef(null);
+  const ninjaImgRef = useRef(null);
+  const oniImgRef = useRef(null);
+  const bombImgRef = useRef(null);
 
   // ── Audio engine ───────────────────────────────────────────────────────────────
   const audioRef = useRef(null);   // { ctx, master, muted }
@@ -306,12 +332,22 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
     };
   }, [stopMusic]);
 
-  // Preload the Golden Token image
+  // Preload character/token icons. Character art ships on a cream tile, so we
+  // chroma-key that background out at load for clean canvas compositing.
   useEffect(() => {
-    const img = new Image();
-    img.src = TOKEN_IMG_URL;
-    img.onload = () => { tokenImgRef.current = img; };
-    tokenImgRef.current = img;
+    const loadImg = (url, ref, key) => {
+      const img = new Image();
+      if (key) img.crossOrigin = "anonymous";
+      img.src = url;
+      img.onload = () => {
+        try { ref.current = key ? keyBackground(img) : img; }
+        catch (_) { ref.current = img; }
+      };
+    };
+    loadImg(TOKEN_IMG_URL, tokenImgRef, false);
+    loadImg(NINJA_ICON_URL, ninjaImgRef, true);
+    loadImg(ONI_ICON_URL, oniImgRef, true);
+    loadImg(BOMB_ICON_URL, bombImgRef, true);
   }, []);
 
   // ── Leaderboards ───────────────────────────────────────────────────────────
@@ -676,24 +712,38 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             ctx.restore();
           }
         } else {
+          const img = e.type === "oni" ? oniImgRef.current : bombImgRef.current;
+          const s = ENEMY_FONT;
           ctx.save();
           ctx.shadowColor = "rgba(0,0,0,0.35)";
           ctx.shadowBlur = 4;
           ctx.shadowOffsetY = 1;
-          ctx.font = `${ENEMY_FONT}px ${EMOJI_FONT}`;
+          if (img) {
+            ctx.drawImage(img, e.x - s / 2, e.y - s / 2, s, s);
+          } else {
+            ctx.font = `${s}px ${EMOJI_FONT}`;
             ctx.fillText(e.type === "oni" ? "👹" : "💣", e.x, e.y);
+          }
           ctx.restore();
         }
       }
 
-      // Ninja
-      ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,0.4)";
-      ctx.shadowBlur = 5;
-      ctx.shadowOffsetY = 2;
-      ctx.font = `${NINJA_FONT}px ${EMOJI_FONT}`;
-      ctx.fillText("🥷", w.ninja.x, w.ninja.y);
-      ctx.restore();
+      // Ninja — full-color raster icon (chroma-keyed, 100% visible like the token)
+      {
+        const img = ninjaImgRef.current;
+        const s = NINJA_FONT;
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
+        ctx.shadowBlur = 5;
+        ctx.shadowOffsetY = 2;
+        if (img) {
+          ctx.drawImage(img, w.ninja.x - s / 2, w.ninja.y - s / 2, s, s);
+        } else {
+          ctx.font = `${s}px ${EMOJI_FONT}`;
+          ctx.fillText("🥷", w.ninja.x, w.ninja.y);
+        }
+        ctx.restore();
+      }
 
       // Kill particles (gold pop for coins/bombs)
       for (const p of w.particles) {
