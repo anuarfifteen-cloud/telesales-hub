@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { EMOJIS } from "@/hooks/useMatch3";
 import { CELL, GAP } from "./constants";
 
-// Exit keyframes — per your other project's smooth feel
+// Destruction keyframes live in `exit` so AnimatePresence can play them on unmount.
 // Matched (aligned 3/4/5 run tiles) → burst-squash pop
 const MATCH_EXIT = { scale: [1, 1.5, 0], opacity: [1, 1, 0] };
 // Explosion (4/5+ collateral tiles) → grow to 2×, quarter-turn then full flip, fade
@@ -10,31 +10,34 @@ const EXPLOSION_EXIT = { scale: [1, 2, 0], opacity: [1, 0.6, 0], rotate: [0, 90,
 
 export default function Candy({ piece, r, c, selected, onPointerDown, isMatched, isExplosion, disabled }) {
   const exitKind = isMatched ? "match" : isExplosion ? "explosion" : undefined;
-  const animate = isMatched
-    ? MATCH_EXIT
-    : isExplosion
-    ? EXPLOSION_EXIT
-    : { scale: 1, y: 0, opacity: 1 };
+  const exit = isMatched ? MATCH_EXIT : isExplosion ? EXPLOSION_EXIT : undefined;
 
-  // Surviving-piece gravity slides via the layout prop (0.18s easeOut);
-  // refills bounce in on the spring; exit tiles animate over 0.22s easeOut.
-  const transition = exitKind
-    ? { layout: { duration: 0.18, ease: "easeOut" }, duration: 0.22, ease: "easeOut" }
-    : { layout: { duration: 0.18, ease: "easeOut" }, type: "spring", stiffness: 550, damping: 11 };
+  // Surviving pieces keep `layout` for the 0.18s gravity slide (FLIP on transform).
+  // Exiting pieces DROP layout so the FLIP correction can't override the spin/scale
+  // exit keyframes — both write to `transform`, and layout would win otherwise.
+  const useLayout = !isMatched && !isExplosion;
+
+  // Exit animates only transform (scale/rotate) + opacity — cheap, GPU-friendly,
+  // no box-model repaints. Survivors use the spring; refills enter on the same spring.
+  const transition = useLayout
+    ? { layout: { duration: 0.18, ease: "easeOut" }, type: "spring", stiffness: 550, damping: 11 }
+    : { duration: 0.22, ease: "easeOut" };
 
   return (
     <motion.div
-      layout
+      layout={useLayout}
       style={{
         position: "absolute",
         left: c * (CELL + GAP),
         top: r * (CELL + GAP),
         width: CELL,
         height: CELL,
+        willChange: useLayout ? "transform" : "transform, opacity",
       }}
       transition={transition}
       initial={{ scale: 0.5, y: -30, opacity: 0 }}
-      animate={animate}
+      animate={{ scale: 1, y: 0, opacity: 1 }}
+      exit={exit}
       className={`flex items-center justify-center ${(exitKind || selected) ? "z-30" : "z-20"}`}
     >
       <button

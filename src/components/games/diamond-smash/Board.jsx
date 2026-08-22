@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import Candy from "./Candy";
 import { BOARD_W, BOARD_H } from "./constants";
 
@@ -31,19 +32,21 @@ export default function Board({ pieces, selected, onCellClick, phase, busy, matc
         className={`relative ${shaking ? "match-shake" : ""}`}
         style={{ width: BOARD_W, height: BOARD_H }}
       >
-        {pieces.map(({ piece, r, c }) => (
-          <Candy
-            key={piece.id}
-            piece={piece}
-            r={r}
-            c={c}
-            selected={selected && selected.r === r && selected.c === c}
-            onPointerDown={() => onCellClick(r, c)}
-            isMatched={matchedIds.has(piece.id)}
-            isExplosion={explosionIds.has(piece.id)}
-            disabled={disabled}
-          />
-        ))}
+        <AnimatePresence>
+          {pieces.map(({ piece, r, c }) => (
+            <Candy
+              key={piece.id}
+              piece={piece}
+              r={r}
+              c={c}
+              selected={selected && selected.r === r && selected.c === c}
+              onPointerDown={() => onCellClick(r, c)}
+              isMatched={matchedIds.has(piece.id)}
+              isExplosion={explosionIds.has(piece.id)}
+              disabled={disabled}
+            />
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   );
