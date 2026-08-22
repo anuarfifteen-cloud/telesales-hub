@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Trophy, Trash2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 // Emoji-capable font stack — makes canvas paint full-color opaque emoji
 // (serif fallback renders ghosted outline glyphs on many browsers)
@@ -120,6 +121,15 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
   const [finalRun, setFinalRun] = useState(0);
   const [muted, setMuted] = useState(() => localStorage.getItem("ninja_muted") === "1");
   const [resetting, setResetting] = useState(false);
+  const [tokenSplash, setTokenSplash] = useState(false);
+  const splashTimerRef = useRef(null);
+
+  // Fire the massive +200 token splash — lasts 800ms, retriggers cleanly.
+  const triggerSplash = useCallback(() => {
+    setTokenSplash(true);
+    if (splashTimerRef.current) clearTimeout(splashTimerRef.current);
+    splashTimerRef.current = setTimeout(() => setTokenSplash(false), 800);
+  }, []);
 
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
@@ -327,6 +337,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
   useEffect(() => {
     return () => {
       stopMusic();
+      if (splashTimerRef.current) clearTimeout(splashTimerRef.current);
       const a = audioRef.current;
       if (a) { try { a.ctx.close(); } catch {} }
     };
@@ -452,6 +463,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
       score: 0,        // ← combined score: distance + slices + golden tokens
       tokensCollected: 0, // internal counter (not displayed)
       particles: [],
+      floatingTexts: [], // canvas score popups: { x, y, text, color, vy, life, alpha }
     };
   };
 
@@ -509,6 +521,8 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
     // Resume audio context on first user interaction (autoplay-policy safe)
     const a = ensureAudio();
     if (a && a.ctx.state === "suspended") a.ctx.resume();
+    if (splashTimerRef.current) clearTimeout(splashTimerRef.current);
+    setTokenSplash(false);
     worldRef.current = makeWorld();
     scoreIntRef.current = 0; // tokens collected this run
     setIsNewBest(false);
@@ -601,8 +615,9 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             w.killPoints += 10;
             w.score += 10;
             w.particles.push({ x: e.x, y: e.y, t: 0, life: 0.4 });
+            w.floatingTexts.push({ x: e.x, y: e.y, text: "+10", color: "#ffffff", vy: 70, life: 0.8, alpha: 1 });
             playSlice();
-            if (navigator.vibrate) navigator.vibrate(12);
+            if (navigator.vibrate) navigator.vibrate(15);
           }
           if (e.type === "bomb" && !e.sliced && Math.abs(e.y - restY) < BOMB_Y_TOL) {
             e.sliced = true;
@@ -610,8 +625,9 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             w.killPoints += 100;
             w.score += 100;
             w.particles.push({ x: e.x, y: e.y, t: 0, life: 0.45, gold: true });
+            w.floatingTexts.push({ x: e.x, y: e.y, text: "+100", color: "#ff5b2e", vy: 70, life: 0.9, alpha: 1 });
             playSlice();
-            if (navigator.vibrate) navigator.vibrate(18);
+            if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
           }
           if (e.type === "token" && !e.taken && Math.abs(e.y - restY) < TOKEN_TOL) {
             e.taken = true;
@@ -620,7 +636,8 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             w.score += 200; // ← combined score bumps by 200 per token
             w.particles.push({ x: e.x, y: e.y, t: 0, life: 0.5, gold: true, big: true });
             playToken();
-            if (navigator.vibrate) navigator.vibrate([20, 15, 40]);
+            triggerSplash();
+            if (navigator.vibrate) navigator.vibrate([40, 30, 40, 30, 40]);
           }
         }
       } else {
@@ -645,8 +662,15 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
       w.entities = w.entities.filter((e) => !(e.type === "oni" && e.dead));
       for (const p of w.particles) p.t += dt;
       w.particles = w.particles.filter((p) => p.t < p.life);
+
+      // Floating score texts — float up and fade out
+      for (const ft of w.floatingTexts) {
+        ft.y -= ft.vy * dt;
+        ft.alpha -= dt / ft.life;
+      }
+      w.floatingTexts = w.floatingTexts.filter((ft) => ft.alpha > 0);
     },
-    [gameOver, playSlice, playToken]
+    [gameOver, playSlice, playToken, triggerSplash]
   );
 
   const render = useCallback(() => {
@@ -764,6 +788,20 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
         ctx.restore();
       }
 
+      // Floating score texts (+10 white, +100 orange)
+      for (const ft of w.floatingTexts) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, ft.alpha));
+        ctx.font = "bold 22px ui-monospace, SFMono-Regular, Menlo, monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = ft.color;
+        ctx.shadowColor = "rgba(0,0,0,0.55)";
+        ctx.shadowBlur = 4;
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+      }
+
       // Top pill score (PLAYING only)
       if (phaseRef.current === "PLAYING") {
         const txt = String(scoreIntRef.current);
@@ -853,6 +891,23 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             style={{ touchAction: "none" }}
             className="block w-full h-full"
           />
+
+          {/* Massive +200 token splash (Framer Motion) */}
+          {tokenSplash && (
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: [1, 1.8, 1.2], opacity: [0, 1, 0] }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              <span
+                className="font-black text-7xl text-amber-300"
+                style={{ textShadow: "0 0 18px rgba(255,210,74,0.95), 0 0 32px rgba(255,180,40,0.7)" }}
+              >
+                +200
+              </span>
+            </motion.div>
+          )}
 
           {/* Start overlay */}
           {phase === "IDLE" && (
