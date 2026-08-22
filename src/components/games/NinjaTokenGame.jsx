@@ -449,7 +449,8 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
       spawnTimer: 0,
       climb: 0,        // distance — drives speed tier only, not score
       killPoints: 0,   // retained for internal pacing only
-      tokensCollected: 0, // ← score = this count
+      score: 0,        // ← combined score: distance + slices + golden tokens
+      tokensCollected: 0, // internal counter (not displayed)
       particles: [],
     };
   };
@@ -535,8 +536,11 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
 
       w.climb += speed * dt * 0.06;
 
-      // Score = Golden Tokens collected only
-      const intScore = w.tokensCollected;
+      // Distance score — accrues continuously, scaling with speed tier
+      w.score += speed * dt * 0.1;
+
+      // Score = combined distance + slices + golden tokens
+      const intScore = Math.floor(w.score);
       if (intScore !== scoreIntRef.current) scoreIntRef.current = intScore;
 
       if (w.ninja.dashing) {
@@ -595,6 +599,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
           if (e.type === "oni" && !e.dead && Math.abs(e.y - restY) < KILL_TOL) {
             e.dead = true;
             w.killPoints += 10;
+            w.score += 10;
             w.particles.push({ x: e.x, y: e.y, t: 0, life: 0.4 });
             playSlice();
             if (navigator.vibrate) navigator.vibrate(12);
@@ -603,6 +608,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             e.sliced = true;
             e._cull = true;
             w.killPoints += 100;
+            w.score += 100;
             w.particles.push({ x: e.x, y: e.y, t: 0, life: 0.45, gold: true });
             playSlice();
             if (navigator.vibrate) navigator.vibrate(18);
@@ -610,7 +616,8 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
           if (e.type === "token" && !e.taken && Math.abs(e.y - restY) < TOKEN_TOL) {
             e.taken = true;
             e._cull = true;
-            w.tokensCollected += 1; // ← score increments by 1 per token
+            w.tokensCollected += 1; // internal counter
+            w.score += 200; // ← combined score bumps by 200 per token
             w.particles.push({ x: e.x, y: e.y, t: 0, life: 0.5, gold: true, big: true });
             playToken();
             if (navigator.vibrate) navigator.vibrate([20, 15, 40]);
@@ -621,7 +628,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
         // lane → death. Bombs in the middle pass safely.
         for (const e of w.entities) {
           if (e.type === "oni" && e.wall === w.ninja.wall && Math.abs(e.y - restY) < REST_DEATH_TOL) {
-            gameOver(w.tokensCollected);
+            gameOver(Math.floor(w.score));
             return;
           }
           if (
@@ -630,7 +637,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             Math.abs(e.y - restY) < BOMB_Y_TOL &&
             Math.abs(e.x - nx) < BOMB_X_TOL
           ) {
-            gameOver(w.tokensCollected);
+            gameOver(Math.floor(w.score));
             return;
           }
         }
@@ -852,7 +859,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#FDE093]/80 backdrop-blur-sm px-6">
               <p className="text-xs tracking-[0.15em] text-[#3a2a1a] text-center leading-relaxed font-mono">
                 Dash between walls.<br />
-                Snag <img src={TOKEN_IMG_URL} alt="token" className="inline w-4 h-4 align-middle" /> for +1 score. Slash 👹 and 💣 just to survive.<br />
+                Climb to earn distance points • Slice 👹 +10 • Slice 💣 +100 • Grab <img src={TOKEN_IMG_URL} alt="token" className="inline w-4 h-4 align-middle" /> +200<br />
                 Don't rest on an oni — and don't ignore a bomb on your wall!
               </p>
               <button
@@ -903,7 +910,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
           <img src={ONI_ICON_URL} alt="oni" className="w-4 h-4 leading-none object-contain" />
           <img src={BOMB_ICON_URL} alt="bomb" className="w-4 h-4 leading-none object-contain" />
           <img src={TOKEN_IMG_URL} alt="token" className="w-4 h-4 leading-none" />
-          <span className="ml-1">SPACE • CLICK • TAP — DASH TO ATTACK</span>
+          <span className="ml-1">CLIMB • SLICE • COLLECT — STACK YOUR SCORE</span>
         </div>
       </div>
 
