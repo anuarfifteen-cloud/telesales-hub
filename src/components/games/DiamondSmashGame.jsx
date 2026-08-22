@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { flushSync } from "react-dom";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Trophy, RotateCcw, Trash2, Crown, Lock } from "lucide-react";
 import { toast } from "sonner";
@@ -449,9 +450,11 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       chain++;
 
       // Flag the exit tiles → Board → Candy plays the smash/spin keyframes
-      setMatchedIds(pass.isMatchedId);
-      setExplosionIds(pass.isExplosionId);
-      setSpecialMatchIds(pass.isSpecialMatchId);
+      flushSync(() => {
+        setMatchedIds(pass.isMatchedId);
+        setExplosionIds(pass.isExplosionId);
+        setSpecialMatchIds(pass.isSpecialMatchId);
+      });
 
       if (pass.hasSpecial) {
         sounds.explosion();
@@ -470,25 +473,27 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       }
 
       // Smash — let destruction keyframes finish
-      await sleep(260);
+      await sleep(200);
 
       // Clear — gaps appear
       working = clearMatches(working, pass.allClear);
-      setBoard(working);
-      setMatchedIds(new Set());
-      setExplosionIds(new Set());
-      setSpecialMatchIds(new Set());
-      await sleep(60);
+      flushSync(() => {
+        setBoard(working);
+        setMatchedIds(new Set());
+        setExplosionIds(new Set());
+        setSpecialMatchIds(new Set());
+      });
+      await sleep(40);
 
       // Gravity — survivors slide (layout FLIP)
       working = applyGravity(working);
       setBoard(working);
-      await sleep(100);
+      await sleep(80);
 
       // Refill — new pieces bounce in
       working = refill(working);
-      setBoard(working);
-      await sleep(220);
+      flushSync(() => setBoard(working));
+      await sleep(160);
 
       gained += pass.stepScore * chain;
       scoreRef.current += pass.stepScore * chain;
