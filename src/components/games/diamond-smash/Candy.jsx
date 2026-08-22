@@ -5,10 +5,10 @@ import { CELL, GAP } from "./constants";
 // Destruction keyframes live in `exit` so AnimatePresence can play them on unmount.
 // Matched (aligned 3/4/5 run tiles) → burst-squash pop
 const MATCH_EXIT = { scale: [1, 1.5, 0], opacity: [1, 1, 0] };
-// Special 4+/T/L/five in-run tiles → quick spin, then vanish
-const SPECIAL_EXIT = { scale: [1, 1.2, 0], opacity: [1, 1, 0], rotate: [0, 360] };
-// Explosion (4/5+ collateral tiles) → grow to 2×, quarter-turn then full flip, fade
-const EXPLOSION_EXIT = { scale: [1, 2, 0], opacity: [1, 0.6, 0], rotate: [0, 90, 270] };
+// Special 4+/T/L/five in-run tiles → half-spin, then vanish
+const SPECIAL_EXIT = { scale: [1, 1.2, 0], opacity: [1, 0.8, 0], rotate: [0, 180] };
+// Explosion (4/5+ collateral tiles) → single rotation, smaller peak, mobile-friendly
+const EXPLOSION_EXIT = { scale: [1, 1.4, 0], opacity: [1, 0.5, 0], rotate: [0, 180] };
 
 export default function Candy({ piece, r, c, selected, onPointerDown, isMatched, isExplosion, isSpecialMatch, disabled }) {
   const exitKind = isMatched ? "match" : isExplosion ? "explosion" : undefined;
@@ -22,10 +22,10 @@ export default function Candy({ piece, r, c, selected, onPointerDown, isMatched,
   const useLayout = !isMatched && !isExplosion;
 
   // Exit animates only transform (scale/rotate) + opacity — cheap, GPU-friendly,
-  // no box-model repaints. Special matches get a longer destruction window for the spin.
-  const exitDuration = isMatched && isSpecialMatch ? 0.25 : 0.15;
+  // no box-model repaints. Faster exits mean fewer frames rendered simultaneously.
+  const exitDuration = isMatched && isSpecialMatch ? 0.18 : 0.12;
   const transition = useLayout
-    ? { layout: { type: "tween", duration: 0.1, ease: "easeOut" }, type: "spring", stiffness: 550, damping: 16 }
+    ? { layout: { type: "tween", duration: 0.14, ease: "easeOut" }, type: "spring", stiffness: 400, damping: 22 }
     : { duration: exitDuration, ease: "easeOut" };
 
   return (
@@ -37,7 +37,8 @@ export default function Candy({ piece, r, c, selected, onPointerDown, isMatched,
         top: r * (CELL + GAP),
         width: CELL,
         height: CELL,
-        willChange: useLayout ? "transform" : "transform, opacity",
+        willChange: useLayout ? "transform" : "auto",
+        contain: useLayout ? "layout style" : "none",
       }}
       transition={transition}
       initial={{ scale: 0.5, y: -30, opacity: 0 }}
