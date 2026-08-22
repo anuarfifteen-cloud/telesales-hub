@@ -7,7 +7,7 @@ import { BOARD_W, BOARD_H } from "./constants";
 // `.match-shake` CSS class on the candy layer for 300ms (reuses the
 // @keyframes match-shake already defined in src/index.css). No Framer Motion
 // controls — one cheap CSS animation, no per-frame JS.
-export default function Board({ pieces, selected, onCellClick, phase, busy, matchedIds, explosionIds, shakeTrigger }) {
+export default function Board({ pieces, selected, onCellClick, phase, busy, matchedIds, explosionIds, specialMatchIds, shakeTrigger }) {
   const [shaking, setShaking] = useState(false);
   const shakeTimer = useRef(null);
 
@@ -43,6 +43,7 @@ export default function Board({ pieces, selected, onCellClick, phase, busy, matc
               onPointerDown={() => onCellClick(r, c)}
               isMatched={matchedIds.has(piece.id)}
               isExplosion={explosionIds.has(piece.id)}
+              isSpecialMatch={specialMatchIds && specialMatchIds.has(piece.id)}
               disabled={disabled}
             />
           ))}

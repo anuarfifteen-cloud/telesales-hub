@@ -247,11 +247,23 @@ export function computePass(working) {
     else isExplosionId.add(piece.id);
   }
 
+  // Special-match tiles — in-run tiles belonging to a 4+/T/L/five cluster get the spin
+  const isSpecialMatchId = new Set();
+  for (const cl of clusters) {
+    if (cl.shape !== "normal") {
+      for (const cell of cl.cells) {
+        const piece = working[cell.r][cell.c];
+        if (piece) isSpecialMatchId.add(piece.id);
+      }
+    }
+  }
+
   return {
     clusters,
     allClear,
     isMatchedId,
     isExplosionId,
+    isSpecialMatchId,
     specialLabel,
     isPower,
     hasSpecial: !!specialLabel,

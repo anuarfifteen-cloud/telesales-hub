@@ -5,23 +5,28 @@ import { CELL, GAP } from "./constants";
 // Destruction keyframes live in `exit` so AnimatePresence can play them on unmount.
 // Matched (aligned 3/4/5 run tiles) → burst-squash pop
 const MATCH_EXIT = { scale: [1, 1.5, 0], opacity: [1, 1, 0] };
+// Special 4+/T/L/five in-run tiles → quick spin, then vanish
+const SPECIAL_EXIT = { scale: [1, 1.2, 0], opacity: [1, 1, 0], rotate: [0, 360] };
 // Explosion (4/5+ collateral tiles) → grow to 2×, quarter-turn then full flip, fade
 const EXPLOSION_EXIT = { scale: [1, 2, 0], opacity: [1, 0.6, 0], rotate: [0, 90, 270] };
 
-export default function Candy({ piece, r, c, selected, onPointerDown, isMatched, isExplosion, disabled }) {
+export default function Candy({ piece, r, c, selected, onPointerDown, isMatched, isExplosion, isSpecialMatch, disabled }) {
   const exitKind = isMatched ? "match" : isExplosion ? "explosion" : undefined;
-  const exit = isMatched ? MATCH_EXIT : isExplosion ? EXPLOSION_EXIT : undefined;
+  const exit = isMatched
+    ? (isSpecialMatch ? SPECIAL_EXIT : MATCH_EXIT)
+    : isExplosion ? EXPLOSION_EXIT : undefined;
 
-  // Surviving pieces keep `layout` for the 0.18s gravity slide (FLIP on transform).
+  // Surviving pieces keep `layout` for the gravity slide (FLIP on transform).
   // Exiting pieces DROP layout so the FLIP correction can't override the spin/scale
   // exit keyframes — both write to `transform`, and layout would win otherwise.
   const useLayout = !isMatched && !isExplosion;
 
   // Exit animates only transform (scale/rotate) + opacity — cheap, GPU-friendly,
-  // no box-model repaints. Survivors use the spring; refills enter on the same spring.
+  // no box-model repaints. Special matches get a longer destruction window for the spin.
+  const exitDuration = isMatched && isSpecialMatch ? 0.25 : 0.15;
   const transition = useLayout
     ? { layout: { type: "tween", duration: 0.1, ease: "easeOut" }, type: "spring", stiffness: 550, damping: 16 }
-    : { duration: 0.15, ease: "easeOut" };
+    : { duration: exitDuration, ease: "easeOut" };
 
   return (
     <motion.div

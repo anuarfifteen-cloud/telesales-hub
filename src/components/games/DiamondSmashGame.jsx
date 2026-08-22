@@ -214,6 +214,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   // Per-piece exit flags (Sets of piece.id) → passed to Board → Candy keyframes
   const [matchedIds, setMatchedIds] = useState(() => new Set());
   const [explosionIds, setExplosionIds] = useState(() => new Set());
+  const [specialMatchIds, setSpecialMatchIds] = useState(() => new Set());
 
   // CSS `.match-shake` trigger (incremented on each special)
   const [shakeTrigger, setShakeTrigger] = useState(0);
@@ -390,6 +391,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setSaving(false);
     setMatchedIds(new Set());
     setExplosionIds(new Set());
+    setSpecialMatchIds(new Set());
     setShakeTrigger(0);
     setCombo(null);
     if (comboTimer.current) { clearTimeout(comboTimer.current); comboTimer.current = null; }
@@ -449,6 +451,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       // Flag the exit tiles → Board → Candy plays the smash/spin keyframes
       setMatchedIds(pass.isMatchedId);
       setExplosionIds(pass.isExplosionId);
+      setSpecialMatchIds(pass.isSpecialMatchId);
 
       if (pass.hasSpecial) {
         sounds.explosion();
@@ -467,24 +470,25 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       }
 
       // Smash — let destruction keyframes finish
-      await sleep(180);
+      await sleep(260);
 
       // Clear — gaps appear
       working = clearMatches(working, pass.allClear);
       setBoard(working);
       setMatchedIds(new Set());
       setExplosionIds(new Set());
-      await sleep(50);
+      setSpecialMatchIds(new Set());
+      await sleep(60);
 
       // Gravity — survivors slide (layout FLIP)
       working = applyGravity(working);
       setBoard(working);
-      await sleep(80);
+      await sleep(100);
 
       // Refill — new pieces bounce in
       working = refill(working);
       setBoard(working);
-      await sleep(150);
+      await sleep(220);
 
       gained += pass.stepScore * chain;
       scoreRef.current += pass.stepScore * chain;
@@ -608,6 +612,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           busy={busy}
           matchedIds={matchedIds}
           explosionIds={explosionIds}
+          specialMatchIds={specialMatchIds}
           shakeTrigger={shakeTrigger}
         />
 
