@@ -20,8 +20,8 @@ export default function Candy({ piece, r, c, selected, onPointerDown, isMatched,
   // Exit animates only transform (scale/rotate) + opacity — cheap, GPU-friendly,
   // no box-model repaints. Survivors use the spring; refills enter on the same spring.
   const transition = useLayout
-    ? { layout: { duration: 0.18, ease: "easeOut" }, type: "spring", stiffness: 550, damping: 11 }
-    : { duration: 0.22, ease: "easeOut" };
+    ? { layout: { type: "tween", duration: 0.1, ease: "easeOut" }, type: "spring", stiffness: 550, damping: 16 }
+    : { duration: 0.15, ease: "easeOut" };
 
   return (
     <motion.div
