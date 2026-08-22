@@ -473,7 +473,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       }
 
       // Smash — let destruction keyframes finish
-      await sleep(200);
+      await sleep(260);
 
       // Clear — gaps appear
       working = clearMatches(working, pass.allClear);
@@ -483,17 +483,17 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         setExplosionIds(new Set());
         setSpecialMatchIds(new Set());
       });
-      await sleep(40);
+      await sleep(60);
 
       // Gravity — survivors slide (layout FLIP)
       working = applyGravity(working);
       setBoard(working);
-      await sleep(80);
+      await sleep(100);
 
       // Refill — new pieces bounce in
       working = refill(working);
       flushSync(() => setBoard(working));
-      await sleep(160);
+      await sleep(220);
 
       gained += pass.stepScore * chain;
       scoreRef.current += pass.stepScore * chain;
