@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
-import CoinFlipArena from "@/components/coinflip/CoinFlipArena";
+import CoinFlipStreak from "@/components/coinflip/CoinFlipStreak";
 import PerfectTen from "@/components/coinflip/PerfectTen";
 import VipActivityFeed from "@/components/coinflip/VipActivityFeed";
 import NinjaTokenGame from "@/components/games/NinjaTokenGame";
@@ -191,7 +191,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
 
       {/* Coin Flip */}
       {innerTab === "coinflip" && (
-        <CoinFlipArena user={user} onUserUpdate={onUserUpdate} isAdmin={isAdmin} />
+        <CoinFlipStreak user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {/* Ninja Token (only when enabled and settings loaded) */}
