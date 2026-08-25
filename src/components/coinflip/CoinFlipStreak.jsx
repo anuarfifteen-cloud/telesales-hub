@@ -52,7 +52,7 @@ const playTension = () => {
   });
 };
 
-const STAKE = 2; // starting pot when a chain begins (1 token wagered)
+const PRESETS = [1, 2, 5, 10];
 
 export default function CoinFlipStreak({ user, onUserUpdate }) {
   const tokens = user?.earlyAccessTokens ?? 0;
@@ -65,7 +65,20 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
   const [coinRot, setCoinRot] = useState(0);
   const [outcome, setOutcome] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [wager, setWager] = useState(1); // flexible entry wager
   const coinRotRef = useRef(0);
+
+  const clampWager = (v) => {
+    const n = Math.floor(Number(v));
+    if (!Number.isFinite(n) || n < 1) return 1;
+    if (n > tokens) return tokens;
+    return n;
+  };
+  const handleManualWager = (e) => {
+    const raw = e.target.value;
+    if (raw === "") { setWager(1); return; }
+    setWager(clampWager(raw));
+  };
 
   const userName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
@@ -79,19 +92,24 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
     });
   };
 
-  // ── start a new chain: wager 1 token, pot set to 2 ──────────────────────
+  // ── start a new chain: wager chosen tokens, pot set to wager × 2 ──────────
   const startChain = async () => {
     if (busy) return;
+    const w = clampWager(wager);
     if (tokens < 1) {
       toast.error("You need at least 1 token to start a chain.");
       return;
     }
+    if (w > tokens) {
+      toast.error("Not enough tokens for that wager.");
+      return;
+    }
     setBusy(true);
     try {
-      await base44.auth.updateMe({ earlyAccessTokens: tokens - 1 });
-      await logTx(-1, "Coin Flip Entry — Double or Nothing");
+      await base44.auth.updateMe({ earlyAccessTokens: tokens - w });
+      await logTx(-w, "Coin Flip Entry — Double or Nothing");
       await onUserUpdate?.();
-      setCurrentPot(STAKE);
+      setCurrentPot(w * 2);
       setCurrentStreak(0);
       setChoice(null);
       setOutcome(null);
@@ -331,14 +349,45 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
           {showStart && (
             <div className="flex flex-col items-center gap-3">
               <p className="text-center text-sm text-emerald-100/70">
-                Wager <span className="font-black text-amber-300">1 token</span> to start a chain. Win to double your pot — cash out or risk it all.
+                Pick your wager to start a chain. Win to double your pot — cash out or risk it all.
               </p>
+              {/* preset chips */}
+              <div className="flex flex-wrap justify-center gap-2">
+                {PRESETS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setWager(clampWager(p))}
+                    disabled={p > tokens}
+                    className={`min-w-[3rem] rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-widest transition ${
+                      wager === p
+                        ? "border-amber-400 bg-amber-500/25 text-amber-200 ring-2 ring-amber-400/60"
+                        : "border-amber-400/40 bg-black/30 text-amber-200/80 hover:bg-amber-500/15"
+                    } disabled:opacity-30`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              {/* manual input */}
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-200/60">Or enter tokens</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={tokens}
+                  value={wager}
+                  onChange={handleManualWager}
+                  disabled={tokens < 1}
+                  className="w-24 rounded-lg border border-amber-400/40 bg-black/40 px-3 py-1.5 text-center text-sm font-black text-amber-200 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 disabled:opacity-40"
+                />
+              </div>
               <button
                 onClick={startChain}
                 disabled={busy || tokens < 1}
                 className="w-full rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500 to-yellow-400 py-3 text-sm font-black uppercase tracking-widest text-emerald-950 shadow-lg shadow-amber-500/30 transition hover:scale-[1.02] active:scale-95 disabled:opacity-40"
               >
-                🎯 Start Chain (1 Token)
+                🎯 Start Chain ({wager} Token{wager === 1 ? "" : "s"})
               </button>
               {tokens < 1 && (
                 <p className="text-[11px] text-red-300/80">Not enough tokens to play.</p>
