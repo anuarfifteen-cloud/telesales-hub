@@ -2,49 +2,35 @@ import { motion } from "framer-motion";
 import { EMOJIS } from "@/hooks/useMatch3";
 import { CELL, GAP } from "./constants";
 
-// Destruction keyframes live in `exit` so AnimatePresence can play them on unmount.
-// Matched (aligned 3/4/5 run tiles) → burst-squash pop
-const MATCH_EXIT = { scale: [1, 1.5, 0], opacity: [1, 1, 0] };
-// Special 4+/T/L/five in-run tiles → half-spin, then vanish
-const SPECIAL_EXIT = { scale: [1, 1.2, 0], opacity: [1, 0.8, 0], rotate: [0, 180] };
-// Explosion (4/5+ collateral tiles) → single rotation, smaller peak, mobile-friendly
-const EXPLOSION_EXIT = { scale: [1, 1.4, 0], opacity: [1, 0.5, 0], rotate: [0, 180] };
+// Clean, mobile-first tile. One resting state per piece.
+// - Enter: spring bounce in.
+// - Survive (gravity): `layout` prop slides via FLIP.
+// - Exit (cleared): one parallel fade + shrink — no spin, no explosion split.
+const ENTER = { scale: 0.5, opacity: 0 };
+const REST = { scale: 1, opacity: 1 };
+const EXIT = { scale: 0, opacity: 0 };
 
-export default function Candy({ piece, r, c, selected, onPointerDown, isMatched, isExplosion, isSpecialMatch, disabled }) {
-  const exitKind = isMatched ? "match" : isExplosion ? "explosion" : undefined;
-  const exit = isMatched
-    ? (isSpecialMatch ? SPECIAL_EXIT : MATCH_EXIT)
-    : isExplosion ? EXPLOSION_EXIT : undefined;
-
-  // Surviving pieces keep `layout` for the gravity slide (FLIP on transform).
-  // Exiting pieces DROP layout so the FLIP correction can't override the spin/scale
-  // exit keyframes — both write to `transform`, and layout would win otherwise.
-  const useLayout = !isMatched && !isExplosion;
-
-  // Exit animates only transform (scale/rotate) + opacity — cheap, GPU-friendly,
-  // no box-model repaints. Faster exits mean fewer frames rendered simultaneously.
-  const exitDuration = isMatched && isSpecialMatch ? 0.18 : 0.12;
-  const transition = useLayout
-    ? { layout: { type: "tween", duration: 0.14, ease: "easeOut" }, type: "spring", stiffness: 400, damping: 22 }
-    : { duration: exitDuration, ease: "easeOut" };
-
+export default function Candy({ piece, r, c, selected, onPointerDown, disabled }) {
   return (
     <motion.div
-      layout={useLayout}
+      layout
+      transition={{
+        layout: { type: "tween", duration: 0.16, ease: "easeOut" },
+        type: "spring",
+        stiffness: 420,
+        damping: 26,
+      }}
       style={{
         position: "absolute",
         left: c * (CELL + GAP),
         top: r * (CELL + GAP),
         width: CELL,
         height: CELL,
-        willChange: useLayout ? "transform" : "auto",
-        contain: useLayout ? "layout style" : "none",
       }}
-      transition={transition}
-      initial={{ scale: 0.5, y: -30, opacity: 0 }}
-      animate={{ scale: 1, y: 0, opacity: 1 }}
-      exit={exit}
-      className={`flex items-center justify-center ${(exitKind || selected) ? "z-30" : "z-20"}`}
+      initial={ENTER}
+      animate={REST}
+      exit={EXIT}
+      className={`flex items-center justify-center ${selected ? "z-30" : "z-20"}`}
     >
       <button
         onPointerDown={onPointerDown}

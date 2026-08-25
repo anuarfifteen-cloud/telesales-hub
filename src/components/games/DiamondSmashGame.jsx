@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { flushSync } from "react-dom";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Trophy, RotateCcw, Trash2, Crown, Lock } from "lucide-react";
 import { toast } from "sonner";
@@ -212,14 +211,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const [personalBest, setPersonalBest] = useState(null);
   const [loadingPB, setLoadingPB] = useState(true);
 
-  // Per-piece exit flags (Sets of piece.id) → passed to Board → Candy keyframes
-  const [matchedIds, setMatchedIds] = useState(() => new Set());
-  const [explosionIds, setExplosionIds] = useState(() => new Set());
-  const [specialMatchIds, setSpecialMatchIds] = useState(() => new Set());
-
-  // CSS `.match-shake` trigger (incremented on each special)
-  const [shakeTrigger, setShakeTrigger] = useState(0);
-
   const {
     sfxOn, musicOn, toggleSfx, toggleMusic,
     sounds, playGameOver, startMusic, stopMusic,
@@ -390,10 +381,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setSelected(null);
     setBusy(false);
     setSaving(false);
-    setMatchedIds(new Set());
-    setExplosionIds(new Set());
-    setSpecialMatchIds(new Set());
-    setShakeTrigger(0);
     setCombo(null);
     if (comboTimer.current) { clearTimeout(comboTimer.current); comboTimer.current = null; }
     setFloating({ points: 0, reaction: "", visible: false, key: 0 });
@@ -437,7 +424,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setBoard(swapped);
     await sleep(140);
 
-    // 2. Resolve the full cascade chain
+    // 2. Resolve the full cascade chain — one clean pass per match:
+    //    clear (fade+shrink exit) → gravity (layout slide) → refill (bounce in)
     let chain = 0;
     let gained = 0;
     let lastSpecial = null;
@@ -449,16 +437,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       if (pass.clusters.length === 0) break;
       chain++;
 
-      // Flag the exit tiles → Board → Candy plays the smash/spin keyframes
-      flushSync(() => {
-        setMatchedIds(pass.isMatchedId);
-        setExplosionIds(pass.isExplosionId);
-        setSpecialMatchIds(pass.isSpecialMatchId);
-      });
-
-      if (pass.hasSpecial) {
+      if (pass.specialLabel) {
         sounds.explosion();
-        setShakeTrigger((t) => t + 1); // Board toggles .match-shake for 300ms
         if (navigator.vibrate) navigator.vibrate(30);
       } else {
         sounds.match(chain);
@@ -472,28 +452,20 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         setMoves(movesRef.current);
       }
 
-      // Smash — let destruction keyframes finish
-      await sleep(260);
-
-      // Clear — gaps appear
+      // Clear — matched tiles fade out & shrink via AnimatePresence exit
       working = clearMatches(working, pass.allClear);
-      flushSync(() => {
-        setBoard(working);
-        setMatchedIds(new Set());
-        setExplosionIds(new Set());
-        setSpecialMatchIds(new Set());
-      });
-      await sleep(60);
+      setBoard(working);
+      await sleep(180);
 
-      // Gravity — survivors slide (layout FLIP)
+      // Gravity — survivors slide into the gaps (layout FLIP)
       working = applyGravity(working);
       setBoard(working);
-      await sleep(100);
+      await sleep(140);
 
       // Refill — new pieces bounce in
       working = refill(working);
-      flushSync(() => setBoard(working));
-      await sleep(220);
+      setBoard(working);
+      await sleep(120);
 
       gained += pass.stepScore * chain;
       scoreRef.current += pass.stepScore * chain;
@@ -536,7 +508,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     }
   };
 
-  const pieces = flattenPieces(board);
+  const pieces = useMemo(() => flattenPieces(board), [board]);
 
   return (
     <div className="bg-gradient-to-br from-slate-100 via-purple-50 to-slate-200 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 flex flex-col items-center gap-5 pb-6 p-4 sm:p-6 rounded-3xl">
@@ -615,10 +587,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           onCellClick={handleCellClick}
           phase={phase}
           busy={busy}
-          matchedIds={matchedIds}
-          explosionIds={explosionIds}
-          specialMatchIds={specialMatchIds}
-          shakeTrigger={shakeTrigger}
         />
 
         {/* Cascade combo badge */}

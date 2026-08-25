@@ -189,13 +189,14 @@ export function refill(board) {
   return next;
 }
 
-// Compute one cascade pass: returns the cleared cell set, the matched/explosion
-// split (per piece.id), the special label, +1-move flag, hasSpecial, and the
-// base step score for this pass. Pure — no React, no side effects.
+// Compute one cascade pass: returns the cleared cell set, the special label,
+// the +1-move power flag, and the base step score for this pass. Pure — no
+// React, no side effects, no per-piece exit flags (animation is handled by
+// AnimatePresence on tile removal).
 export function computePass(working) {
   const clusters = findMatchClusters(working);
   if (clusters.length === 0) {
-    return { clusters: [], allClear: [], isMatchedId: new Set(), isExplosionId: new Set(), specialLabel: null, isPower: false, hasSpecial: false, stepScore: 0 };
+    return { clusters: [], allClear: [], specialLabel: null, isPower: false, stepScore: 0 };
   }
 
   const clearKeys = new Set();
@@ -206,22 +207,19 @@ export function computePass(working) {
     for (const cell of cl.cells) clearKeys.add(`${cell.r},${cell.c}`);
 
     if (cl.shape === "five" || cl.shape === "tl") {
-      // 💣 COLOR WIPE — clear EVERY tile of the matched color on the board
-      isPower = true;
+      isPower = true; // 💣 COLOR WIPE — clear every tile of the matched color
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           if (working[r][c]?.type === cl.type) clearKeys.add(`${r},${c}`);
         }
       }
-      specialLabel = "💣 COLOR WIPE!";
+      if (!specialLabel) specialLabel = "💣 COLOR WIPE!";
     } else if (cl.shape === "h4") {
-      // ↕️ COLUMN SMASH — clear entire vertical column at the pivot
-      const pivot = cl.cells[Math.floor(cl.cells.length / 2)];
+      const pivot = cl.cells[Math.floor(cl.cells.length / 2)]; // ↕️ COLUMN SMASH
       for (let r = 0; r < ROWS; r++) clearKeys.add(`${r},${pivot.c}`);
       if (!specialLabel) specialLabel = "↕️ COLUMN SMASH!";
     } else if (cl.shape === "v4") {
-      // ↔️ ROW SMASH — clear entire horizontal row at the pivot
-      const pivot = cl.cells[Math.floor(cl.cells.length / 2)];
+      const pivot = cl.cells[Math.floor(cl.cells.length / 2)]; // ↔️ ROW SMASH
       for (let c = 0; c < COLS; c++) clearKeys.add(`${pivot.r},${c}`);
       if (!specialLabel) specialLabel = "↔️ ROW SMASH!";
     }
@@ -232,43 +230,13 @@ export function computePass(working) {
     return { r, c };
   });
 
-  // matchedCells = tiles directly in an aligned run; explosionCells = collateral
-  const clusterCellKeys = new Set();
-  for (const cl of clusters) for (const cell of cl.cells) clusterCellKeys.add(`${cell.r},${cell.c}`);
-
-  const isMatchedId = new Set();
-  const isExplosionId = new Set();
   let stepScore = 0;
   for (const m of allClear) {
     const piece = working[m.r][m.c];
-    if (!piece) continue;
-    stepScore += POINTS[piece.type] ?? 0;
-    if (clusterCellKeys.has(`${m.r},${m.c}`)) isMatchedId.add(piece.id);
-    else isExplosionId.add(piece.id);
+    if (piece) stepScore += POINTS[piece.type] ?? 0;
   }
 
-  // Special-match tiles — in-run tiles belonging to a 4+/T/L/five cluster get the spin
-  const isSpecialMatchId = new Set();
-  for (const cl of clusters) {
-    if (cl.shape !== "normal") {
-      for (const cell of cl.cells) {
-        const piece = working[cell.r][cell.c];
-        if (piece) isSpecialMatchId.add(piece.id);
-      }
-    }
-  }
-
-  return {
-    clusters,
-    allClear,
-    isMatchedId,
-    isExplosionId,
-    isSpecialMatchId,
-    specialLabel,
-    isPower,
-    hasSpecial: !!specialLabel,
-    stepScore,
-  };
+  return { clusters, allClear, specialLabel, isPower, stepScore };
 }
 
 // Test-swap a board for match validity; returns the swapped board (or null).
