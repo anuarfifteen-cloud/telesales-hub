@@ -457,10 +457,11 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       setBoard(working);
       await sleep(180);
 
-      // Gravity — survivors slide into the gaps (layout FLIP)
+      // Gravity — survivors slide into the gaps with a weighty, staggered fall
+      // (spring ~220ms + up to ~105ms row stagger), then a landing squash thud.
       working = applyGravity(working);
       setBoard(working);
-      await sleep(140);
+      await sleep(360);
 
       // Refill — new pieces bounce in
       working = refill(working);

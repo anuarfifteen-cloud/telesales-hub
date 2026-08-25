@@ -1,12 +1,37 @@
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import Candy from "./Candy";
 import { BOARD_W, BOARD_H } from "./constants";
 
 // Board owns the candy-layer container. AnimatePresence plays each cleared
-// tile's fade+shrink exit in parallel; surviving tiles slide via Framer Motion
-// `layout`. No shake state, no per-piece exit flags.
+// tile's fade+shrink exit; surviving tiles slide via Framer Motion `layout`.
+// A per-piece squash signal is bumped whenever a tile's row increases (a fall),
+// so Candy can play a one-shot landing squash. The signal only ever increases,
+// so in-flight squashes are never cancelled by the refill/next render.
 export default function Board({ pieces, selected, onCellClick, phase, busy }) {
   const disabled = phase !== "playing" || busy;
+  const prevRowsRef = useRef(new Map());
+  const [squashMap, setSquashMap] = useState(new Map());
+
+  // After each render: diff rows to detect falls, bump that piece's squash
+  // signal (carrying the fall distance), then snapshot rows for next diff.
+  useEffect(() => {
+    const prev = prevRowsRef.current;
+    let anyFall = false;
+    const next = new Map(squashMap);
+    const newPrev = new Map();
+    for (const { piece, r } of pieces) {
+      newPrev.set(piece.id, r);
+      const p = prev.get(piece.id);
+      if (p != null && r > p) {
+        anyFall = true;
+        const cur = next.get(piece.id);
+        next.set(piece.id, { signal: (cur?.signal ?? 0) + 1, fallRows: r - p });
+      }
+    }
+    prevRowsRef.current = newPrev;
+    if (anyFall) setSquashMap(next);
+  });
 
   return (
     <div
@@ -15,17 +40,25 @@ export default function Board({ pieces, selected, onCellClick, phase, busy }) {
     >
       <div className="relative" style={{ width: BOARD_W, height: BOARD_H }}>
         <AnimatePresence>
-          {pieces.map(({ piece, r, c }) => (
-            <Candy
-              key={piece.id}
-              piece={piece}
-              r={r}
-              c={c}
-              selected={selected && selected.r === r && selected.c === c}
-              onPointerDown={() => onCellClick(r, c)}
-              disabled={disabled}
-            />
-          ))}
+          {pieces.map(({ piece, r, c }) => {
+            const prevR = prevRowsRef.current.get(piece.id);
+            const fallRows = prevR != null ? Math.max(0, r - prevR) : 0;
+            const sig = squashMap.get(piece.id);
+            return (
+              <Candy
+                key={piece.id}
+                piece={piece}
+                r={r}
+                c={c}
+                fallRows={fallRows}
+                squashSignal={sig?.signal ?? 0}
+                squashFallRows={sig?.fallRows ?? 0}
+                selected={selected && selected.r === r && selected.c === c}
+                onPointerDown={() => onCellClick(r, c)}
+                disabled={disabled}
+              />
+            );
+          })}
         </AnimatePresence>
       </div>
     </div>
