@@ -109,7 +109,7 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
       await base44.auth.updateMe({ earlyAccessTokens: tokens - w });
       await logTx(-w, "Coin Flip Entry — Double or Nothing");
       await onUserUpdate?.();
-      setCurrentPot(w * 2);
+      setCurrentPot(w);
       setCurrentStreak(0);
       setChoice(null);
       setOutcome(null);
