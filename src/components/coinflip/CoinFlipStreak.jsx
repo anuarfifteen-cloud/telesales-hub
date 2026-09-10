@@ -53,6 +53,8 @@ const playTension = () => {
 };
 
 const PRESETS = [1, 2, 5, 10];
+const MAX_STREAK = 5; // auto-cashout after 5 consecutive wins
+const FLIP_FEE = 2;   // tokens charged to double down
 
 export default function CoinFlipStreak({ user, onUserUpdate }) {
   const tokens = user?.earlyAccessTokens ?? 0;
@@ -150,10 +152,18 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
     const won = result === choice;
     if (won) {
       const newPot = currentPot * 2;
+      const newStreak = currentStreak + 1;
       setCurrentPot(newPot);
-      setCurrentStreak((s) => s + 1);
+      setCurrentStreak(newStreak);
       setChoice(null);
       playWin();
+      if (newStreak >= MAX_STREAK) {
+        // Max streak cap reached — auto-cash out the doubled pot.
+        toast.success(`🏆 5-Win Streak Maxed! Auto-cashing out ${newPot} tokens!`);
+        setBusy(false);
+        await cashOut(newPot);
+        return;
+      }
       playTension();
       toast.success(`✨ You won! Pot doubled to ${newPot}!`);
       setPhase("TENSION");
@@ -172,8 +182,14 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
   const collect = async () => {
     if (busy) return;
     setBusy(true);
+    await cashOut(currentPot);
+  };
+
+  // Shared cashout helper — banks a given (already-doubled) pot amount.
+  // Used by both the manual Take Profit button and the max-streak auto-cashout,
+  // so the max-cap path banks the freshly doubled pot rather than stale state.
+  const cashOut = async (pot) => {
     try {
-      const pot = currentPot;
       await base44.auth.updateMe({ earlyAccessTokens: tokens + pot });
       await logTx(pot, "Coin Flip Cashout");
       await onUserUpdate?.();
@@ -186,16 +202,28 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
       setPhase("IDLE");
     } catch {
       toast.error("Cashout failed. Try again.");
+    } finally {
       setBusy(false);
     }
   };
 
-  // ── double down: keep pot, choose H/T for another flip ──────────────────
-  const doubleDown = () => {
+  // ── double down: pay fee, keep pot, choose H/T for another flip ─────────
+  const doubleDown = async () => {
     if (busy) return;
-    setChoice(null);
-    setOutcome(null);
-    setPickMode(true); // phase stays TENSION; user picks again
+    if (tokens < FLIP_FEE) {
+      toast.error("Not enough tokens to pay the fee!");
+      return;
+    }
+    try {
+      await base44.auth.updateMe({ earlyAccessTokens: tokens - FLIP_FEE });
+      await logTx(-FLIP_FEE, "Coin Flip Fee");
+      await onUserUpdate?.();
+      setChoice(null);
+      setOutcome(null);
+      setPickMode(true); // phase stays TENSION; user picks again
+    } catch {
+      toast.error("Couldn't pay the fee. Try again.");
+    }
   };
 
   const resetLost = () => {
@@ -472,13 +500,15 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
               >
                 <Trophy className="mr-1 inline h-4 w-4" /> 🟢 Take Profit ({currentPot} Tokens)
               </button>
-              <button
-                onClick={doubleDown}
-                disabled={busy}
-                className="w-full rounded-xl border border-red-500/50 bg-gradient-to-r from-red-600 to-rose-500 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-red-600/30 transition hover:scale-[1.02] active:scale-95 disabled:opacity-40"
-              >
-                🔴 Double Down (Risk it All)
-              </button>
+              {currentStreak < MAX_STREAK && (
+                <button
+                  onClick={doubleDown}
+                  disabled={busy || tokens < FLIP_FEE}
+                  className="w-full rounded-xl border border-red-500/50 bg-gradient-to-r from-red-600 to-rose-500 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-red-600/30 transition hover:scale-[1.02] active:scale-95 disabled:opacity-40"
+                >
+                  🔴 Double Down (Cost: 2 Tokens)
+                </button>
+              )}
             </div>
           )}
 
