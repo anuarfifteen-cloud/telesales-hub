@@ -334,25 +334,49 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
             >
               {/* heads (front) */}
               <div
-                className="cf-face text-amber-600"
+                className="cf-face"
                 style={{
-                  background: "linear-gradient(135deg,#fff6d5 0%,#f7d774 35%,#d4af37 70%,#a37a29 100%)",
+                  backgroundImage: `url("https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png")`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
                   boxShadow: "inset 0 0 12px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.45)",
                   border: "3px solid #8a6a1f",
                 }}
               >
-                <span style={{ textShadow: "0 1px 2px rgba(0,0,0,.3)" }}>H</span>
+                <span
+                  style={{
+                    color: "#5a3a0e",
+                    fontWeight: 900,
+                    fontSize: 22,
+                    letterSpacing: 1,
+                    textShadow: "0 1px 0 rgba(255,236,160,.5), 0 -1px 1px rgba(0,0,0,.35)",
+                  }}
+                >
+                  HEAD
+                </span>
               </div>
               {/* tails (back) */}
               <div
-                className="cf-face cf-back text-emerald-700"
+                className="cf-face cf-back"
                 style={{
-                  background: "linear-gradient(135deg,#eafff2 0%,#9de7be 35%,#34a06a 70%,#16553a 100%)",
+                  backgroundImage: `url("https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png")`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
                   boxShadow: "inset 0 0 12px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.45)",
-                  border: "3px solid #0f3d2a",
+                  border: "3px solid #8a6a1f",
                 }}
               >
-                <span style={{ textShadow: "0 1px 2px rgba(0,0,0,.3)" }}>T</span>
+                <span
+                  style={{
+                    color: "#5a3a0e",
+                    fontWeight: 900,
+                    fontSize: 22,
+                    letterSpacing: 1,
+                    textShadow: "0 1px 0 rgba(255,236,160,.5), 0 -1px 1px rgba(0,0,0,.35)",
+                  }}
+                >
+                  TAIL
+                </span>
               </div>
             </div>
           </div>
