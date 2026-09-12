@@ -47,7 +47,7 @@ export default function TapVaultCard({ user, onUserUpdate }) {
 
   const reinvest = async () => {
     if (busy || locked) return;
-    const growth = Math.max(1, Math.floor(vault * 0.025));
+    const growth = Math.max(1, Math.floor(vault * 0.10));
     const grown = vault + growth;
     setBusy(true);
     try {
@@ -63,7 +63,7 @@ export default function TapVaultCard({ user, onUserUpdate }) {
     }
   };
 
-  const estGrowth = Math.max(1, Math.floor(vault * 0.025));
+  const estGrowth = Math.max(1, Math.floor(vault * 0.10));
 
   return (
     <div className="space-y-3">
@@ -120,7 +120,7 @@ export default function TapVaultCard({ user, onUserUpdate }) {
           className="flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground py-2.5 text-xs font-black uppercase tracking-widest transition hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
-          📈 Re-Invest +2.5%
+          📈 Re-Invest +10%
         </button>
       </div>
 
@@ -162,7 +162,7 @@ export default function TapVaultCard({ user, onUserUpdate }) {
           </li>
           <li className="flex gap-1.5 text-[11px] text-muted-foreground leading-snug">
             <span className="text-sky-500 flex-shrink-0">•</span>
-            <span><span className="font-bold text-foreground">Monthly Choice:</span> On the 1st of every month, withdraw 10% into your active spending wallet OR let it sit to compound at +2.5% growth.</span>
+            <span><span className="font-bold text-foreground">Monthly Choice:</span> On the 1st of every month, withdraw 10% into your active spending wallet OR let it sit to compound at +10% growth.</span>
           </li>
         </ul>
 
