@@ -88,7 +88,7 @@ export default function TapVaultCard({ user, onUserUpdate }) {
           <span className="text-3xl font-black tabular-nums text-primary leading-none">
             {vault}
           </span>
-          <span className="text-[11px] text-muted-foreground">🪙 tokens locked away</span>
+          <span className="text-[11px] text-muted-foreground"> tokens locked away</span>
         </div>
       </div>
 
