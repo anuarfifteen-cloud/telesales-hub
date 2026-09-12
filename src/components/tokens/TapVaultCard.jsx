@@ -79,17 +79,24 @@ export default function TapVaultCard({ user, onUserUpdate }) {
       </div>
 
       {/* Balance display */}
-      <div className="flex items-center gap-3 rounded-xl bg-muted/50 border border-border px-4 py-3 mb-3">
-        <Lock className="h-6 w-6 text-primary flex-shrink-0" />
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Vault Balance
-          </span>
-          <span className="text-3xl font-black tabular-nums text-primary leading-none">
-            {vault}
-          </span>
-          <span className="text-[11px] text-muted-foreground"> tokens locked away</span>
+      <div className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 border border-border px-4 py-3 mb-3">
+        <div className="flex items-center gap-3">
+          <Lock className="h-6 w-6 text-primary flex-shrink-0" />
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Vault Balance
+            </span>
+            <span className="text-3xl font-black tabular-nums text-primary leading-none">
+              {vault}
+            </span>
+            <span className="text-[11px] text-muted-foreground"> tokens locked away</span>
+          </div>
         </div>
+        <img
+          src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png"
+          alt="token"
+          className="w-14 h-14 object-contain flex-shrink-0"
+        />
       </div>
 
       {/* Status text */}
