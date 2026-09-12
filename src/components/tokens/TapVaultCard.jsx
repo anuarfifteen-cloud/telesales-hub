@@ -134,12 +134,12 @@ export default function TapVaultCard({ user, onUserUpdate }) {
         {/* 2-column micro-stat row */}
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-center">
-            <p className="text-[11px] font-black text-emerald-300">🔒 80% Net Worth Retained</p>
-            <p className="text-[10px] text-emerald-200/70 leading-tight mt-0.5">80% of your tax stays in your vault</p>
+            <p className="text-[11px] font-black text-emerald-300">🔒 80% of Tax Saved</p>
+            <p className="text-[10px] text-emerald-200/70 leading-tight mt-0.5">80% of your tax bill goes here</p>
           </div>
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center">
-            <p className="text-[11px] font-black text-amber-300">🏛️ 20% Treasury Reserve</p>
-            <p className="text-[10px] text-amber-200/70 leading-tight mt-0.5">20% goes to floor stabilization</p>
+            <p className="text-[11px] font-black text-amber-300">🏛️ 20% of Tax to Treasury</p>
+            <p className="text-[10px] text-amber-200/70 leading-tight mt-0.5">20% of your tax bill is burned</p>
           </div>
         </div>
 
@@ -158,6 +158,36 @@ export default function TapVaultCard({ user, onUserUpdate }) {
             <span><span className="font-bold text-sky-300">Monthly Choice:</span> On the 1st of every month, withdraw 10% into your active spending wallet OR let it sit to compound at +2.5% growth.</span>
           </li>
         </ul>
+
+        {/* Tax bracket legend */}
+        <div className="rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2.5 mb-3">
+          <h5 className="text-[11px] font-black uppercase tracking-wide text-slate-200 mb-2">
+            📊 Monthly Wealth Tax Brackets <span className="font-normal text-slate-400 normal-case">(Applies on 1st of Month)</span>
+          </h5>
+          <ul className="space-y-1">
+            <li className="flex items-center justify-between text-[11px] text-slate-300">
+              <span>0 – 100 Tokens</span>
+              <span className="font-bold text-emerald-400">0% Tax (Completely Tax-Free)</span>
+            </li>
+            <li className="flex items-center justify-between text-[11px] text-slate-300 border-t border-slate-700/60 pt-1">
+              <span>101 – 500 Tokens</span>
+              <span className="font-bold text-yellow-400">10% Tax</span>
+            </li>
+            <li className="flex items-center justify-between text-[11px] text-slate-300 border-t border-slate-700/60 pt-1">
+              <span>501 – 5,000 Tokens</span>
+              <span className="font-bold text-orange-400">50% Tax</span>
+            </li>
+            <li className="flex items-center justify-between text-[11px] text-slate-300 border-t border-slate-700/60 pt-1">
+              <span>5,001+ Tokens</span>
+              <span className="font-bold text-rose-400">85% Tax</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Clarifying note */}
+        <p className="text-[10px] text-amber-200/80 leading-snug mb-3">
+          💡 <span className="font-semibold">Note:</span> Tax applies ONLY to tokens within each bracket. The 80% vault / 20% treasury split is calculated from your total tax bill, NOT your total wallet balance!
+        </p>
 
         {/* Estimated next month earnings */}
         <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-center">
