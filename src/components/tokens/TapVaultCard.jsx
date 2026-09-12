@@ -139,7 +139,7 @@ export default function TapVaultCard({ user, onUserUpdate }) {
           </div>
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center">
             <p className="text-[11px] font-black text-amber-300">🏛️ 20% of Tax to Treasury</p>
-            <p className="text-[10px] text-amber-200/70 leading-tight mt-0.5">20% of your tax bill is burned</p>
+            <p className="text-[10px] text-amber-200/70 leading-tight mt-0.5">20% of your tax bill goes here</p>
           </div>
         </div>
 
