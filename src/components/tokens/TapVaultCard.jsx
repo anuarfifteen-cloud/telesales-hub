@@ -63,8 +63,11 @@ export default function TapVaultCard({ user, onUserUpdate }) {
     }
   };
 
+  const estGrowth = Math.max(1, Math.floor(vault * 0.025));
+
   return (
-    <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/40 shadow-lg p-5 text-white">
+    <div className="space-y-3">
+      <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/40 shadow-lg p-5 text-white">
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/15 ring-1 ring-amber-400/40">
@@ -120,6 +123,49 @@ export default function TapVaultCard({ user, onUserUpdate }) {
           🔒 Action Claimed for This Month
         </p>
       )}
+      </div>
+
+      {/* ── Breakdown & Transparency card ── */}
+      <div className="rounded-2xl border border-slate-700 bg-slate-900/80 shadow-lg p-4 text-white">
+        <h4 className="text-xs font-black uppercase tracking-widest text-slate-200 mb-3 flex items-center gap-1.5">
+          ℹ️ Vault Breakdown & Transparency
+        </h4>
+
+        {/* 2-column micro-stat row */}
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-center">
+            <p className="text-[11px] font-black text-emerald-300">🔒 80% Net Worth Retained</p>
+            <p className="text-[10px] text-emerald-200/70 leading-tight mt-0.5">80% of your tax stays in your vault</p>
+          </div>
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center">
+            <p className="text-[11px] font-black text-amber-300">🏛️ 20% Treasury Reserve</p>
+            <p className="text-[10px] text-amber-200/70 leading-tight mt-0.5">20% goes to floor stabilization</p>
+          </div>
+        </div>
+
+        {/* Bullet points */}
+        <ul className="space-y-1.5 mb-3">
+          <li className="flex gap-1.5 text-[11px] text-slate-300 leading-snug">
+            <span className="text-emerald-400 flex-shrink-0">•</span>
+            <span><span className="font-bold text-emerald-300">Tax Protection:</span> 80% of your monthly progressive tax is automatically saved here instead of lost.</span>
+          </li>
+          <li className="flex gap-1.5 text-[11px] text-slate-300 leading-snug">
+            <span className="text-amber-400 flex-shrink-0">•</span>
+            <span><span className="font-bold text-amber-300">Treasury Reserve:</span> 20% is allocated to the Hub Treasury Stabilization Reserve to protect overall token value.</span>
+          </li>
+          <li className="flex gap-1.5 text-[11px] text-slate-300 leading-snug">
+            <span className="text-sky-400 flex-shrink-0">•</span>
+            <span><span className="font-bold text-sky-300">Monthly Choice:</span> On the 1st of every month, withdraw 10% into your active spending wallet OR let it sit to compound at +2.5% growth.</span>
+          </li>
+        </ul>
+
+        {/* Estimated next month earnings */}
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-center">
+          <p className="text-[11px] font-semibold text-emerald-200">
+            Est. Growth Next Month: <span className="font-black text-emerald-300">+{estGrowth} tokens</span> if re-invested.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
