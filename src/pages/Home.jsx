@@ -36,6 +36,7 @@ import DailySpinWheel from "@/components/booking/DailySpinWheel";
 import TokenVoucher from "@/components/booking/MysteryBoxModal";
 import ThemeShop from "@/components/profile/ThemeShop";
 import InboxView from "@/components/inbox/InboxView";
+import TapVaultCard from "@/components/tokens/TapVaultCard";
 import { toast } from "sonner";
 
 const EMPLOYEES = [
@@ -1061,6 +1062,11 @@ useEffect(() => {
           user.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) :
           (user?.email?.[0] || "?").toUpperCase();
 
+          // TAP Vault unclaimed-action indicator (balance > 0 and no action this month)
+          const nowMonth = new Date().toISOString().slice(0, 7);
+          const vaultActionAvailable =
+            (Number(user?.tapVaultBalance) || 0) > 0 && user?.lastVaultActionDate !== nowMonth;
+
           return (
             <div className="relative flex flex-col gap-4 pb-4">
               {/* Profile sub-tabs */}
@@ -1080,9 +1086,23 @@ useEffect(() => {
                     </span>
                   }
                 </button>
+                <button
+                  onClick={() => setProfileTab("vault")}
+                  className={`relative flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${profileTab === "vault" ? "bg-primary text-primary-foreground shadow-md" : "bg-transparent text-muted-foreground hover:text-foreground"}`}>
+                  <span>🏛️</span> TAP Vault
+                  {vaultActionAvailable &&
+                    <span className="absolute top-1.5 right-2 w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-card animate-pulse" />
+                  }
+                </button>
               </div>
 
               {profileTab === "inbox" && <InboxView user={user} />}
+
+              {profileTab === "vault" && (
+                <div className="pt-4">
+                  <TapVaultCard user={user} onUserUpdate={refreshUser} />
+                </div>
+              )}
 
               {profileTab === "profile" && (<>
               {/* Admin Banner */}
