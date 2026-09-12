@@ -46,6 +46,15 @@
     "active_pass_expiry": {
       "type": "string",
       "description": "ISO timestamp of when the user's 7-Day Priority Access pass expires"
+    },
+    "tapVaultBalance": {
+      "type": "number",
+      "default": 0,
+      "description": "TAP Savings Vault balance \u2014 80% of monthly wealth tax is deposited here"
+    },
+    "lastTaxDate": {
+      "type": "string",
+      "description": "YYYY-MM of the last month this user was taxed by the Monthly Progressive Tax"
     }
   },
   "rls": {

@@ -17,6 +17,7 @@ import AdminGiftVoucherGen from "./AdminGiftVoucherGen";
 import AdminCoinFlipLogs from "./AdminCoinFlipLogs";
 import AdminDiamondSmash from "./AdminDiamondSmash";
 import AdminVoucherLog from "./AdminVoucherLog";
+import AdminTaxEngine from "./AdminTaxEngine";
 
 const LIVE_FEED_KEY = "liveFeedEnabled";
 
@@ -348,6 +349,9 @@ export default function AdminDashboard({ onBack }) {
             <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${ninjaEnabled ? "translate-x-7" : "translate-x-1"}`} />
           </button>
         </div>
+
+        {/* Manual Monthly Progressive Tax Engine */}
+        <AdminTaxEngine />
 
         {/* Contact Directory Sync */}
         <div className="bg-white rounded-2xl border border-border p-5 flex items-center justify-between gap-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
