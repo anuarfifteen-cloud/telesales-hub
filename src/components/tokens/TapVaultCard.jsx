@@ -62,63 +62,63 @@ export default function TapVaultCard({ user, onUserUpdate }) {
     }
   };
 
-  return (
-    <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/40 shadow-lg p-5 text-white hidden">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/15 ring-1 ring-amber-400/40">
-          <Landmark className="h-5 w-5 text-amber-400" />
-        </div>
-        <h3 className="text-sm font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500">
-          🏛️ TAP Savings & Investment Vault
-        </h3>
-      </div>
+  return null;
 
-      {/* Balance display */}
-      <div className="flex items-center gap-3 rounded-xl bg-black/40 border border-amber-400/20 px-4 py-3 mb-3">
-        <Lock className="h-6 w-6 text-amber-400 flex-shrink-0" />
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-amber-200/70">
-            Vault Balance
-          </span>
-          <span className="text-3xl font-black tabular-nums text-amber-300 leading-none">
-            {vault}
-          </span>
-          <span className="text-[11px] text-amber-200/60">🪙 tokens locked away</span>
-        </div>
-      </div>
 
-      {/* Status text */}
-      <p className="text-[11px] text-slate-300/80 mb-4 text-center">
-        Next monthly action available on the 1st of next month.
-      </p>
 
-      {/* Action buttons */}
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          onClick={withdraw}
-          disabled={locked || busy}
-          className="flex items-center justify-center gap-2 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-yellow-500/10 py-2.5 text-xs font-black uppercase tracking-widest text-amber-200 transition hover:from-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed">
-          
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />}
-          💸 Withdraw 10%
-        </button>
-        <button
-          onClick={reinvest}
-          disabled={locked || busy}
-          className="flex items-center justify-center gap-2 rounded-xl border border-emerald-400/40 bg-gradient-to-r from-emerald-500/20 to-green-500/10 py-2.5 text-xs font-black uppercase tracking-widest text-emerald-200 transition hover:from-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed">
-          
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
-          📈 Re-Invest +2.5%
-        </button>
-      </div>
 
-      {/* Lock label */}
-      {locked &&
-      <p className="mt-3 text-center text-[11px] font-bold uppercase tracking-widest text-amber-300/70">
-          🔒 Action Claimed for This Month
-        </p>
-      }
-    </div>);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }
