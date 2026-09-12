@@ -184,7 +184,6 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
               showMilestones={true}
             />
           </div>
-          <TapVaultCard user={user} onUserUpdate={onUserUpdate} />
         </>
       )}
 
