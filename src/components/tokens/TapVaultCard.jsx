@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Landmark, Lock, TrendingUp, Banknote, Loader2 } from "lucide-react";
+import { Landmark, Lock, TrendingUp, Banknote, Loader2, Plus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
@@ -58,6 +58,48 @@ export default function TapVaultCard({ user, onUserUpdate }) {
       toast.success(`📈 Re-investment successful! Earned +${growth} tokens in compound growth.`);
     } catch (e) {
       toast.error("Re-investment failed. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ── Manual Deposit ────────────────────────────────────────────────────
+  const MAX_DEPOSIT = 1000;
+  const today = new Date();
+  const depositFrozen = [28, 29, 30, 31].includes(today.getDate());
+  const [showDeposit, setShowDeposit] = useState(false);
+  const [depositAmount, setDepositAmount] = useState("");
+
+  const deposit = async () => {
+    if (busy) return;
+    if (depositFrozen) {
+      toast.error("🚫 Deposits are frozen on the 28th–31st each month (tax season). Reopens on the 1st.");
+      return;
+    }
+    const amount = Math.floor(Number(depositAmount));
+    if (!Number.isFinite(amount) || amount < 1) {
+      toast.error("Enter a whole number of tokens (1 or more).");
+      return;
+    }
+    if (amount > tokens) {
+      toast.error("Not enough tokens in your wallet for that deposit.");
+      return;
+    }
+    if (amount > MAX_DEPOSIT) {
+      toast.error(`Maximum deposit is ${MAX_DEPOSIT} tokens per transaction.`);
+      return;
+    }
+    setBusy(true);
+    try {
+      await persist({
+        earlyAccessTokens: tokens - amount,
+        tapVaultBalance: vault + amount,
+      });
+      setDepositAmount("");
+      setShowDeposit(false);
+      toast.success(`🔒 Successfully vaulted ${amount} tokens! They will now earn +10% monthly interest.`);
+    } catch (e) {
+      toast.error("Deposit failed. Try again.");
     } finally {
       setBusy(false);
     }
@@ -130,6 +172,61 @@ export default function TapVaultCard({ user, onUserUpdate }) {
           🔒 Action Claimed for This Month
         </p>
       )}
+
+      {/* ── Manual Deposit to Vault ── */}
+      <div className="mt-3 border-t border-border pt-3">
+        {showDeposit ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                max={Math.min(MAX_DEPOSIT, tokens)}
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                placeholder={`Tokens to vault (max ${Math.min(MAX_DEPOSIT, tokens)})`}
+                className="flex-1 rounded-xl border border-border bg-input text-foreground px-3 py-2.5 text-sm font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+              <button
+                onClick={deposit}
+                disabled={busy}
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-xs font-black uppercase tracking-widest transition hover:bg-primary/90 disabled:opacity-40"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                Vault
+              </button>
+              <button
+                onClick={() => { setShowDeposit(false); setDepositAmount(""); }}
+                className="flex items-center justify-center rounded-xl border border-border bg-secondary text-secondary-foreground px-3 py-2.5 transition hover:bg-secondary/80"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-snug">
+              🔒 Deposited tokens add directly to your Vault balance for +10% monthly yield. Depositing does not consume your monthly action.
+            </p>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowDeposit(true)}
+            disabled={depositFrozen || busy}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 py-2.5 text-xs font-black uppercase tracking-widest transition hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            ➕ Deposit to Vault
+          </button>
+        )}
+        {depositFrozen && !showDeposit && (
+          <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+            🚫 Deposits frozen (28th–31st) — reopens on the 1st
+          </p>
+        )}
+        {!depositFrozen && !showDeposit && (
+          <p className="mt-1.5 text-center text-[10px] text-muted-foreground leading-snug">
+            🔒 Deposited tokens add directly to your Vault balance for +10% monthly yield. Depositing does not consume your monthly action.
+          </p>
+        )}
+      </div>
       </div>
 
       {/* ── Breakdown & Transparency card ── */}
