@@ -74,20 +74,16 @@ export default function TapVaultCard({ user, onUserUpdate }) {
           <Landmark className="h-5 w-5 text-amber-400" />
         </div>
         <h3 className="text-sm font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500">
-          🏛️ TAP Savings & Investment Vault
+           TAP Savings & Investment Vault
         </h3>
       </div>
 
       {/* Balance display */}
       <div className="flex items-center gap-3 rounded-xl bg-black/40 border border-amber-400/20 px-4 py-3 mb-3">
-        <img
-          src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png"
-          alt="token"
-          className="w-12 h-12 object-contain flex-shrink-0"
-        />
+        <Lock className="h-6 w-6 text-amber-400 flex-shrink-0" />
         <div className="flex flex-col">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-amber-200/70 flex items-center gap-1">
-            <Lock className="h-3 w-3" /> Vault Balance
+          <span className="text-[10px] font-bold uppercase tracking-widest text-amber-200/70">
+            Vault Balance
           </span>
           <span className="text-3xl font-black tabular-nums text-amber-300 leading-none">
             {vault}
