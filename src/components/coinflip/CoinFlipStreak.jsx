@@ -336,48 +336,24 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
               <div
                 className="cf-face"
                 style={{
-                  backgroundImage: `url("https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png")`,
+                  backgroundImage: `url("https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/cd50f9082_Gemini_Generated_Image_p9a3ihp9a3ihp9a3.jpg")`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                   boxShadow: "inset 0 0 12px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.45)",
                   border: "3px solid #8a6a1f",
                 }}
-              >
-                <span
-                  style={{
-                    color: "#5a3a0e",
-                    fontWeight: 900,
-                    fontSize: 22,
-                    letterSpacing: 1,
-                    textShadow: "0 1px 0 rgba(255,236,160,.5), 0 -1px 1px rgba(0,0,0,.35)",
-                  }}
-                >
-                  HEAD
-                </span>
-              </div>
+              />
               {/* tails (back) */}
               <div
                 className="cf-face cf-back"
                 style={{
-                  backgroundImage: `url("https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png")`,
+                  backgroundImage: `url("https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/4ebcb135c_Gemini_Generated_Image_boxakvboxakvboxa.jpg")`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                   boxShadow: "inset 0 0 12px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.45)",
                   border: "3px solid #8a6a1f",
                 }}
-              >
-                <span
-                  style={{
-                    color: "#5a3a0e",
-                    fontWeight: 900,
-                    fontSize: 22,
-                    letterSpacing: 1,
-                    textShadow: "0 1px 0 rgba(255,236,160,.5), 0 -1px 1px rgba(0,0,0,.35)",
-                  }}
-                >
-                  TAIL
-                </span>
-              </div>
+              />
             </div>
           </div>
 
