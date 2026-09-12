@@ -55,6 +55,10 @@
     "lastTaxDate": {
       "type": "string",
       "description": "YYYY-MM of the last month this user was taxed by the Monthly Progressive Tax"
+    },
+    "lastVaultActionDate": {
+      "type": "string",
+      "description": "YYYY-MM of the last month the user took a TAP Vault action (withdraw or re-invest)"
     }
   },
   "rls": {

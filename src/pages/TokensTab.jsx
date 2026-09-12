@@ -11,6 +11,7 @@ import BlindVoucherShop from "@/components/tokens/BlindVoucherShop";
 import FlappyTokenGame from "@/components/games/FlappyTokenGame";
 import DiamondSmashGame from "@/components/games/DiamondSmashGame";
 import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
+import TapVaultCard from "@/components/tokens/TapVaultCard";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin }) {
   const [innerTab, setInnerTab] = useState("milestones");
@@ -174,14 +175,17 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
 
       {/* Milestones */}
       {innerTab === "milestones" && (
-        <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
-          <EarlyAccessToggle
-            user={user}
-            onUserUpdate={onUserUpdate}
-            totalBookingCount={totalBookingCount}
-            showMilestones={true}
-          />
-        </div>
+        <>
+          <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+            <EarlyAccessToggle
+              user={user}
+              onUserUpdate={onUserUpdate}
+              totalBookingCount={totalBookingCount}
+              showMilestones={true}
+            />
+          </div>
+          <TapVaultCard user={user} onUserUpdate={onUserUpdate} />
+        </>
       )}
 
       {/* Perfect 10 */}
