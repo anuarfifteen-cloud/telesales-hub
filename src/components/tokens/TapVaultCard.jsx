@@ -141,7 +141,7 @@ export default function TapVaultCard({ user, onUserUpdate }) {
         {/* 2-column micro-stat row */}
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="rounded-lg border border-border bg-emerald-500/10 px-3 py-2 text-center">
-            <p className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">🔒 80% of Tax Saved</p>
+            <p className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">🔒 80% of Tax goes to Savings</p>
             <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">80% of your tax bill goes here</p>
           </div>
           <div className="rounded-lg border border-border bg-amber-500/10 px-3 py-2 text-center">
