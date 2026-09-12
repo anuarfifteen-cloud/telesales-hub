@@ -47,14 +47,15 @@ export default function TapVaultCard({ user, onUserUpdate }) {
 
   const reinvest = async () => {
     if (busy || locked) return;
-    const grown = Math.floor(vault * 1.025);
+    const growth = Math.max(1, Math.floor(vault * 0.025));
+    const grown = vault + growth;
     setBusy(true);
     try {
       await persist({
         tapVaultBalance: grown,
         lastVaultActionDate: currentMonth,
       });
-      toast.success(`📈 Re-invested! Your Vault grew by +2.5% to ${grown} tokens.`);
+      toast.success(`📈 Re-investment successful! Earned +${growth} tokens in compound growth.`);
     } catch (e) {
       toast.error("Re-investment failed. Try again.");
     } finally {
