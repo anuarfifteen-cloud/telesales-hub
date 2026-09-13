@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Trophy, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { getVaultTier } from "@/lib/vaultTiers";
+import { getVaultTier, VAULT_TIERS } from "@/lib/vaultTiers";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -93,20 +93,40 @@ export default function VaultTitansLeaderboard({ currentUser }) {
                     {u.full_name || u.email || "Anonymous"}
                     {isMe && <span className="ml-1.5 text-[10px] font-black text-primary">(YOU)</span>}
                   </p>
-                  {tier && (
-                    <span className={`text-[10px] font-bold ${tier.accent}`}>
-                      {tier.icon} {tier.title}
-                    </span>
-                  )}
                 </div>
-                <span className="text-sm font-black tabular-nums text-primary">
-                  {u.vault.toLocaleString()}
-                </span>
+                {tier ? (
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide ${tier.badge} text-slate-900`}>
+                    {tier.icon} {tier.title}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-500 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide">
+                    🏚️ No Tier
+                  </span>
+                )}
               </li>
             );
           })}
         </ol>
       )}
+
+      {/* Tier Threshold Legend */}
+      <div className="mt-3 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+        <h5 className="text-[10px] font-black uppercase tracking-wide text-foreground mb-1.5">
+          📊 Tier Thresholds
+        </h5>
+        <ul className="grid grid-cols-1 gap-1">
+          {VAULT_TIERS.map((t, i) => {
+            const upper = i > 0 ? VAULT_TIERS[i - 1].min - 1 : null;
+            const range = upper === null ? "5,000,001+ Tokens" : `${t.min.toLocaleString()} – ${upper.toLocaleString()} Tokens`;
+            return (
+              <li key={t.title} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span className="font-bold">{t.icon} {t.title}</span>
+                <span className="tabular-nums">{range}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
 
       {/* My rank callout */}
       {currentUser && !loading && (
