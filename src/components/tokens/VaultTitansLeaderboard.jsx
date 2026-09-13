@@ -57,7 +57,7 @@ export default function VaultTitansLeaderboard({ currentUser }) {
   return (
     <div className="rounded-2xl border border-border bg-card text-card-foreground shadow-sm p-4">
       <h4 className="text-xs font-black uppercase tracking-widest text-foreground mb-3 flex items-center gap-1.5">
-        <Trophy className="w-4 h-4 text-amber-500" /> Vault Titans Leaderboard
+        <Trophy className="w-4 h-4 text-amber-500" /> Vault Leaderboard
       </h4>
 
       {loading ? (
