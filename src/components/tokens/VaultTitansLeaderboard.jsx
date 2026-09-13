@@ -114,7 +114,7 @@ export default function VaultTitansLeaderboard({ currentUser }) {
           {myRank >= 0 ? (
             <p className="text-[11px] text-muted-foreground">
               Your rank: <span className="font-black text-primary">#{myRank + 1}</span> of {ranked.length}{" "}
-              {ranked.length === 1 ? "titan" : "titans"}.
+              {ranked.length === 1 ? "users" : "titans"}.
             </p>
           ) : (
             <p className="text-[11px] text-muted-foreground">
