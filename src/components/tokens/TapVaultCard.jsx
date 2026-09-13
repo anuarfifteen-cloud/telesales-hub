@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Landmark, Lock, TrendingUp, Banknote, Loader2, Plus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { getVaultTier, getNextTier, tokensToNextTier } from "@/lib/vaultTiers";
+import VaultTitansLeaderboard from "./VaultTitansLeaderboard";
 
 function getCurrentMonth() {
   const now = new Date();
@@ -140,6 +142,37 @@ export default function TapVaultCard({ user, onUserUpdate }) {
           className="w-14 h-14 object-contain flex-shrink-0"
         />
       </div>
+
+      {/* Tier badge + progress callout */}
+      {(() => {
+        const tier = getVaultTier(vault);
+        const next = getNextTier(vault);
+        const remaining = tokensToNextTier(vault);
+        return (
+          <div className="mb-3 rounded-xl border border-border bg-muted/30 px-3 py-2.5 text-center">
+            {tier ? (
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black uppercase tracking-widest ${tier.badge} text-slate-900`}>
+                {tier.icon} {tier.title} Tier
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 text-slate-500 px-3 py-1 text-xs font-black uppercase tracking-widest">
+                🏚️ No Tier Yet
+              </span>
+            )}
+            {next ? (
+              <p className="mt-2 text-[11px] text-muted-foreground leading-snug">
+                Deposit <span className="font-black text-primary">{remaining.toLocaleString()}</span> more tokens to reach <span className="font-bold">{next.icon} {next.title}</span>!
+              </p>
+            ) : (
+              tier && (
+                <p className="mt-2 text-[11px] font-bold text-amber-600 dark:text-amber-400 leading-snug">
+                  👑 You've reached the highest tier — Platinum!
+                </p>
+              )
+            )}
+          </div>
+        );
+      })()}
 
       {/* Status text */}
       <p className="text-[11px] text-muted-foreground mb-4 text-center">
@@ -300,6 +333,9 @@ export default function TapVaultCard({ user, onUserUpdate }) {
           </p>
         </div>
       </div>
+
+      {/* ── Vault Titans Leaderboard ── */}
+      <VaultTitansLeaderboard currentUser={user} />
     </div>
   );
 }

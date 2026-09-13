@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Landmark, Users, BarChart3, Search, ArrowUpDown, Loader2, Pencil, Check, X } from "lucide-react";
+import { Landmark, Users, BarChart3, Search, ArrowUpDown, Loader2, Pencil, Check, X, EyeOff, UserX } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
@@ -19,6 +19,9 @@ export default function AdminVaultHoldings() {
   const [adjustValue, setAdjustValue] = useState("");
   const [adjustMode, setAdjustMode] = useState("add"); // add | subtract
   const [saving, setSaving] = useState(false);
+  const [settingsId, setSettingsId] = useState(null);
+  const [filterInactive, setFilterInactive] = useState(false);
+  const [togglingHideId, setTogglingHideId] = useState(null);
 
   const currentMonth = getCurrentMonth();
 
@@ -36,6 +39,13 @@ export default function AdminVaultHoldings() {
 
   useEffect(() => {
     loadUsers();
+    base44.entities.AppSettings.list().then((rows) => {
+      const s = rows[0];
+      if (s) {
+        setSettingsId(s.id);
+        setFilterInactive(s.filterInactiveFromLeaderboard === true);
+      }
+    }).catch(() => {});
   }, []);
 
   const enriched = useMemo(() => {
@@ -72,6 +82,37 @@ export default function AdminVaultHoldings() {
   const totalVaulted = enriched.reduce((s, u) => s + u.vault, 0);
   const activeAccounts = enriched.filter((u) => u.vault > 0).length;
   const avgBalance = activeAccounts > 0 ? Math.round(totalVaulted / activeAccounts) : 0;
+
+  const toggleInactiveFilter = async (val) => {
+    setFilterInactive(val);
+    const payload = { filterInactiveFromLeaderboard: val };
+    try {
+      if (settingsId) {
+        await base44.entities.AppSettings.update(settingsId, payload);
+      } else {
+        const created = await base44.entities.AppSettings.create(payload);
+        setSettingsId(created.id);
+      }
+      toast.success(val ? "Inactive users (>30 days) hidden from the leaderboard." : "Inactive filter disabled.");
+    } catch (e) {
+      toast.error("Failed to update setting: " + (e?.message || "Unknown error"));
+      setFilterInactive(!val);
+    }
+  };
+
+  const toggleHideFromLeaderboard = async (u) => {
+    setTogglingHideId(u.id);
+    try {
+      const next = !u.hideFromLeaderboard;
+      await base44.entities.User.update(u.id, { hideFromLeaderboard: next });
+      toast.success(next ? `${u.full_name || u.email} hidden from public leaderboard.` : `${u.full_name || u.email} visible on public leaderboard.`);
+      await loadUsers();
+    } catch (e) {
+      toast.error("Toggle failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setTogglingHideId(null);
+    }
+  };
 
   const startEdit = (u) => {
     setEditingId(u.id);
@@ -165,6 +206,28 @@ export default function AdminVaultHoldings() {
         )}
       </div>
 
+      {/* Leaderboard Visibility Settings */}
+      <div className="bg-white rounded-2xl border border-border p-4 flex items-center justify-between gap-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-50 ring-1 ring-indigo-200 flex-shrink-0">
+            <UserX className="w-4 h-4 text-indigo-600" />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-900 text-sm"> Hide Inactive Users from Leaderboard</h3>
+            <p className="text-xs text-slate-500 mt-0.5 leading-snug">
+              Auto-filter users with no app activity in the last 30 days from the public Vault Titans leaderboard.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => toggleInactiveFilter(!filterInactive)}
+          className={`relative inline-flex h-7 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${filterInactive ? "bg-emerald-500" : "bg-slate-300"}`}
+          style={{ width: "52px" }}
+        >
+          <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${filterInactive ? "translate-x-7" : "translate-x-1"}`} />
+        </button>
+      </div>
+
       {/* Search + table */}
       <div className="bg-white rounded-2xl border border-border overflow-hidden" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
         <div className="p-3 border-b border-border">
@@ -204,6 +267,7 @@ export default function AdminVaultHoldings() {
                   </th>
                   <th className="text-left font-semibold px-3 py-2 whitespace-nowrap">Last Vault Action</th>
                   <th className="text-left font-semibold px-3 py-2 whitespace-nowrap">Action Status</th>
+                  <th className="text-center font-semibold px-3 py-2 whitespace-nowrap">Leaderboard</th>
                   <th className="text-center font-semibold px-3 py-2 whitespace-nowrap">Override</th>
                 </tr>
               </thead>
@@ -224,6 +288,24 @@ export default function AdminVaultHoldings() {
                       {u.lastVaultActionDate || "—"}
                     </td>
                     <td className="px-3 py-2">{statusBadge(u.status)}</td>
+                    <td className="px-3 py-2 text-center">
+                      <button
+                        onClick={() => toggleHideFromLeaderboard(u)}
+                        disabled={togglingHideId === u.id}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold border transition-colors disabled:opacity-50 ${
+                          u.hideFromLeaderboard
+                            ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                            : "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+                        }`}
+                      >
+                        {togglingHideId === u.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <EyeOff className="w-3 h-3" />
+                        )}
+                        {u.hideFromLeaderboard ? "Hidden" : "Visible"}
+                      </button>
+                    </td>
                     <td className="px-3 py-2">
                       {editingId === u.id ? (
                         <div className="flex items-center justify-center gap-1">

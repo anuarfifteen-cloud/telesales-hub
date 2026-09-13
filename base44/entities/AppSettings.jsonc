@@ -99,6 +99,11 @@
     "theme_offer_end_time": {
       "type": "string",
       "description": "ISO datetime when the limited-time theme offer expires"
+    },
+    "filterInactiveFromLeaderboard": {
+      "type": "boolean",
+      "description": "When true, the Vault Titans leaderboard auto-filters users with no app activity in the last 30 days",
+      "default": false
     }
   },
   "required": []

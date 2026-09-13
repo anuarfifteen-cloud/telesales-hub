@@ -59,6 +59,15 @@
     "lastVaultActionDate": {
       "type": "string",
       "description": "YYYY-MM of the last month the user took a TAP Vault action (withdraw or re-invest)"
+    },
+    "hideFromLeaderboard": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, this user is excluded from the public Vault Titans leaderboard (set by admin)"
+    },
+    "lastActiveDate": {
+      "type": "string",
+      "description": "YYYY-MM-DD (Brunei timezone) of the user's most recent app session, updated client-side on app load for inactive-user leaderboard filtering"
     }
   },
   "rls": {

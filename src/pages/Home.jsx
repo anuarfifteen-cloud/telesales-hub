@@ -275,7 +275,15 @@ useEffect(() => {
   };
 
   useEffect(() => {
-    refreshUser().catch(() => {});
+    refreshUser().then((u) => {
+      // Update lastActiveDate (YYYY-MM-DD, Brunei) for inactive-user leaderboard filtering
+      if (u) {
+        const today = new Date().toLocaleDateString("en-CA", { timeZone: TZ });
+        if (u.lastActiveDate !== today) {
+          base44.auth.updateMe({ lastActiveDate: today }).catch(() => {});
+        }
+      }
+    }).catch(() => {});
     applyTheme(getStoredTheme());
   }, []);
 
