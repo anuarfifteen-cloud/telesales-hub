@@ -219,20 +219,42 @@ export function computePass(working) {
     }
   };
 
+  const DIAMOND_TYPE = 4; // 💎 — the only candy that fires a 3×3 blast
+
   for (const cl of clusters) {
-    // Clear all matched tiles
+    // Always clear all matched tiles first
     for (const cell of cl.cells) clearKeys.add(`${cell.r},${cell.c}`);
 
-    // Geometric center tile (clamped to board bounds)
-    let cr = 0, cc = 0;
-    for (const cell of cl.cells) { cr += cell.r; cc += cell.c; }
-    cr = Math.max(0, Math.min(ROWS - 1, Math.round(cr / cl.cells.length)));
-    cc = Math.max(0, Math.min(COLS - 1, Math.round(cc / cl.cells.length)));
-    addBlast(cr, cc);
+    if (cl.type === DIAMOND_TYPE) {
+      // 💎 Diamond match (3+) → 3×3 blast centered on the geometric center
+      let cr = 0, cc = 0;
+      for (const cell of cl.cells) { cr += cell.r; cc += cell.c; }
+      cr = Math.max(0, Math.min(ROWS - 1, Math.round(cr / cl.cells.length)));
+      cc = Math.max(0, Math.min(COLS - 1, Math.round(cc / cl.cells.length)));
+      addBlast(cr, cc);
+    } else if (cl.shape === "five" || cl.shape === "tl" || cl.shape === "six") {
+      // 5+ (or T/L) → clear every same-emoji tile on the board
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (working[r][c]?.type === cl.type) clearKeys.add(`${r},${c}`);
+        }
+      }
+      if (!specialLabel) specialLabel = cl.shape === "six" ? "✦ LEGENDARY 6+!" : "💣 COLOR WIPE!";
+    } else if (cl.shape === "h4") {
+      // 4 in a row → entire column at pivot cleared
+      const pivot = cl.cells[Math.floor(cl.cells.length / 2)];
+      for (let r = 0; r < ROWS; r++) clearKeys.add(`${r},${pivot.c}`);
+      if (!specialLabel) specialLabel = "↕️ COLUMN SMASH!";
+    } else if (cl.shape === "v4") {
+      // 4 in a column → entire row at pivot cleared
+      const pivot = cl.cells[Math.floor(cl.cells.length / 2)];
+      for (let c = 0; c < COLS; c++) clearKeys.add(`${pivot.r},${c}`);
+      if (!specialLabel) specialLabel = "↔️ ROW SMASH!";
+    }
+    // else: normal 3-match (non-diamond) — matched tiles already cleared above
 
     if (cl.shape === "six") {
       isPower = true; // ✦ LEGENDARY 6+ → +1 bonus move
-      if (!specialLabel) specialLabel = "✦ LEGENDARY 6+!";
     }
   }
 
