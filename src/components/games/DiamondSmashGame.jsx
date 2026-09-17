@@ -812,8 +812,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         </div>
       </div>
 
-      {/* Board + overlays */}
-      <div className="relative" style={{ width: BOARD_W + 16, height: BOARD_H + 16 }}>
+      {/* Board + overlays — `isolate` traps internal z-20…z-60 inside the card */}
+      <div className="relative isolate" style={{ width: BOARD_W + 16, height: BOARD_H + 16 }}>
         <Board
           pieces={pieces}
           selected={selected}
