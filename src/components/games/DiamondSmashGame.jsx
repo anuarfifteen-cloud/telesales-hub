@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Trophy, RotateCcw, Trash2, Crown, Lock } from "lucide-react";
+import { Loader2, Trophy, RotateCcw, Trash2, Crown, Lock, Coins, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useDiamondSmashAudio } from "@/hooks/useDiamondSmashAudio";
@@ -193,6 +193,66 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
   );
 }
 
+// ── Booster selection screen ───────────────────────────────────────────────
+const BOOSTERS = [
+  { id: "time_freeze", icon: "❄️", name: "Time Freeze", desc: "Auto-pauses the timer for 15s when it hits 10 seconds.", accent: "from-cyan-400 to-blue-500" },
+  { id: "end_game", icon: "💰", name: "End-Game Conversion", desc: "Converts every leftover move into +250 points at game over.", accent: "from-amber-400 to-orange-500" },
+  { id: "move_boost", icon: "⚡", name: "Move Boost", desc: "Instantly adds +10 extra moves to this game session.", accent: "from-fuchsia-400 to-pink-500" },
+];
+
+function BoosterSelect({ user, onEquip, onSkip, onBack }) {
+  const tokens = Number(user?.earlyAccessTokens) || 0;
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-start gap-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-3xl z-40 border border-white/60 dark:border-slate-700/60 p-5 overflow-y-auto">
+      <h2 className="font-black text-2xl tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-amber-400 text-center">
+        🛒 BOOSTER SHOP
+      </h2>
+      <p className="text-[11px] text-purple-700/80 dark:text-slate-300/80 text-center leading-snug">
+        Equip ONE booster per game. 5 🪙 each — no refunds.
+      </p>
+      <div className="flex items-center gap-1.5 rounded-full bg-amber-400/10 border border-amber-400/40 px-4 py-1.5">
+        <Coins className="w-4 h-4 text-amber-500" />
+        <span className="text-sm font-black text-amber-600 dark:text-amber-400 tabular-nums">{tokens} tokens</span>
+      </div>
+      <div className="grid grid-cols-1 gap-2.5 w-full max-w-[320px]">
+        {BOOSTERS.map((b) => {
+          const afford = tokens >= 5;
+          return (
+            <div key={b.id} className="rounded-xl border border-border dark:border-slate-700 bg-white dark:bg-slate-800/80 p-3 flex items-center gap-3 shadow-sm">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${b.accent} text-white text-lg flex-shrink-0`}>
+                {b.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-black text-foreground truncate">{b.name}</p>
+                <p className="text-[10px] text-muted-foreground leading-snug">{b.desc}</p>
+              </div>
+              <button
+                onClick={() => onEquip(b.id)}
+                disabled={!afford}
+                className="flex-shrink-0 rounded-lg px-3 py-2 text-[11px] font-black uppercase tracking-wide bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 transition-transform"
+              >
+                5 🪙
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      <button
+        onClick={onSkip}
+        className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+      >
+        Play without booster →
+      </button>
+      <button
+        onClick={onBack}
+        className="absolute top-3 left-3 w-9 h-9 flex items-center justify-center rounded-full bg-white/60 dark:bg-slate-800/60 border border-border dark:border-slate-700 hover:bg-muted transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+      </button>
+    </div>
+  );
+}
+
 // ── Main game ──────────────────────────────────────────────────────────────
 export default function DiamondSmashGame({ user, onUserUpdate }) {
   const [board, setBoard] = useState(() => newPieceBoard());
@@ -242,6 +302,22 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const endedRef = useRef(false);
   const busyRef = useRef(false);
   const timeUpRef = useRef(false);
+
+  // ── Booster system ──
+  const equippedBoosterRef = useRef(null); // null | 'time_freeze' | 'end_game' | 'move_boost'
+  const [frozen, setFrozen] = useState(false);
+  const frozenRef = useRef(false);
+  const freezeUsedRef = useRef(false);
+  const freezeRemainingRef = useRef(0);
+  const [blastFlash, setBlastFlash] = useState(null); // { cells: [{r,c}], key }
+  const [legendary, setLegendary] = useState(null); // { key }
+  const legendaryTimer = useRef(null);
+
+  const showLegendary = () => {
+    setLegendary({ key: Date.now() });
+    if (legendaryTimer.current) clearTimeout(legendaryTimer.current);
+    legendaryTimer.current = setTimeout(() => setLegendary(null), 900);
+  };
 
   const loadScores = useCallback(async () => {
     const rows = await base44.entities.DiamondSmashScores.list("-score", 50);
@@ -300,6 +376,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
       if (comboTimer.current) { clearTimeout(comboTimer.current); comboTimer.current = null; }
       if (floatTimer.current) { clearTimeout(floatTimer.current); floatTimer.current = null; }
+      if (legendaryTimer.current) { clearTimeout(legendaryTimer.current); legendaryTimer.current = null; }
       stopMusic();
     };
   }, [stopMusic]);
@@ -358,12 +435,25 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     if (endedRef.current) return;
     endedRef.current = true;
     stopTimer();
+    setFrozen(false);
+    frozenRef.current = false;
     setBusy(false);
     busyRef.current = false;
     playGameOver();
     stopMusic();
+    // End-Game Conversion booster: leftover moves → +250 pts each
+    let score = finalScore;
+    if (equippedBoosterRef.current === "end_game") {
+      const bonus = Math.max(0, movesRef.current) * 250;
+      if (bonus > 0) {
+        score += bonus;
+        scoreRef.current = score;
+        setScore(score);
+        toast.success(`End-Game Conversion: +${bonus} points!`);
+      }
+    }
     setPhase("over");
-    saveScore(finalScore);
+    saveScore(score);
   };
 
   const startGame = () => {
@@ -372,11 +462,20 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     timeUpRef.current = false;
     busyRef.current = false;
     scoreRef.current = 0;
-    movesRef.current = MAX_MOVES;
+    // Move Boost booster: +10 moves
+    const startingMoves = equippedBoosterRef.current === "move_boost" ? MAX_MOVES + 10 : MAX_MOVES;
+    movesRef.current = startingMoves;
     timeLeftRef.current = GAME_TIME;
+    // Time Freeze reset
+    frozenRef.current = false;
+    freezeUsedRef.current = false;
+    freezeRemainingRef.current = 0;
+    setFrozen(false);
+    setBlastFlash(null);
+    setLegendary(null);
     setBoard(newPieceBoard());
     setScore(0);
-    setMoves(MAX_MOVES);
+    setMoves(startingMoves);
     setTimeLeft(GAME_TIME);
     setSelected(null);
     setBusy(false);
@@ -385,12 +484,29 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     if (comboTimer.current) { clearTimeout(comboTimer.current); comboTimer.current = null; }
     setFloating({ points: 0, reaction: "", visible: false, key: 0 });
     if (floatTimer.current) { clearTimeout(floatTimer.current); floatTimer.current = null; }
+    if (legendaryTimer.current) { clearTimeout(legendaryTimer.current); legendaryTimer.current = null; }
     setPhase("playing");
     startMusic();
 
     timerRef.current = setInterval(() => {
+      // Time Freeze: while frozen, count down the 15s pause instead of the game timer
+      if (frozenRef.current) {
+        freezeRemainingRef.current -= 1;
+        if (freezeRemainingRef.current <= 0) {
+          frozenRef.current = false;
+          setFrozen(false);
+        }
+        return;
+      }
       timeLeftRef.current -= 1;
       setTimeLeft(timeLeftRef.current);
+      // Time Freeze auto-trigger at 10s
+      if (timeLeftRef.current === 10 && equippedBoosterRef.current === "time_freeze" && !freezeUsedRef.current) {
+        freezeUsedRef.current = true;
+        frozenRef.current = true;
+        setFrozen(true);
+        freezeRemainingRef.current = 15;
+      }
       if (timeLeftRef.current <= 0) {
         stopTimer();
         if (busyRef.current) {
@@ -450,9 +566,17 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       if (pass.isPower) {
         movesRef.current += 1;
         setMoves(movesRef.current);
+        showLegendary();
       }
 
-      // Clear — matched tiles fade out & shrink via AnimatePresence exit
+      // 3×3 blast flash overlay (white pop) before tiles clear
+      if (pass.blastCells && pass.blastCells.length > 0) {
+        setBlastFlash({ cells: pass.blastCells, key: Date.now() + chain });
+        await sleep(180);
+        setBlastFlash(null);
+      }
+
+      // Clear — matched + blast tiles fade out & shrink via AnimatePresence exit
       working = clearMatches(working, pass.allClear);
       setBoard(working);
       await sleep(180);
@@ -509,6 +633,25 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     }
   };
 
+  // Buy & equip a booster (5 tokens, no refunds), then start the game
+  const equipBooster = async (booster) => {
+    const tokens = Number(user?.earlyAccessTokens) || 0;
+    if (tokens < 5) {
+      toast.error("Not enough tokens! You need 5 🪙 to equip a booster.");
+      return;
+    }
+    try {
+      await base44.auth.updateMe({ earlyAccessTokens: tokens - 5 });
+      await onUserUpdate?.();
+      equippedBoosterRef.current = booster;
+      const name = booster === "time_freeze" ? "Time Freeze" : booster === "end_game" ? "End-Game Conversion" : "Move Boost";
+      toast.success(`✅ ${name} equipped!`);
+      startGame();
+    } catch (e) {
+      toast.error("Booster purchase failed. Try again.");
+    }
+  };
+
   const pieces = useMemo(() => flattenPieces(board), [board]);
 
   return (
@@ -519,6 +662,131 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           25% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
           70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
           100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+        }
+
+        /* ── Freeze-bar stat design ── */
+        .ds-statbar {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 12px;
+          padding: 14px;
+          background: #f7fbff;
+          border: 1px solid #c9ddec;
+          border-radius: 18px;
+          box-shadow: 0 14px 30px rgba(53,91,122,.14), inset 0 1px 0 #fff;
+          animation: dsRise 0.5s cubic-bezier(.2,.8,.2,1) both;
+        }
+        .dark .ds-statbar {
+          background: hsl(220 14% 18%);
+          border-color: hsl(220 13% 24%);
+          box-shadow: 0 14px 30px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.05);
+        }
+        .ds-stat {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 76px;
+          padding: 9px 10px;
+          background: #fff;
+          border: 1px solid #d7e5ef;
+          border-radius: 13px;
+          box-shadow: 0 5px 12px rgba(61,105,136,.08);
+          overflow: visible;
+        }
+        .ds-stat::before {
+          content: "";
+          position: absolute;
+          top: 0; left: 18px; right: 18px;
+          height: 3px;
+          border-radius: 0 0 5px 5px;
+          background: #b8c9d5;
+        }
+        .ds-stat-score::before { background: #7b8de8; }
+        .ds-stat-moves::before { background: #edbd68; }
+        .ds-stat-time::before { background: #45c3e6; }
+        .ds-stat-label {
+          margin: 0 0 6px;
+          color: #8495a5;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: .16em;
+          line-height: 1;
+          text-transform: uppercase;
+        }
+        .ds-stat-value {
+          margin: 0;
+          font-size: 28px;
+          font-weight: 850;
+          line-height: 1;
+          letter-spacing: -.04em;
+          font-variant-numeric: tabular-nums;
+        }
+        .ds-stat-score .ds-stat-value { color: #697ce2; }
+        .ds-stat-moves .ds-stat-value { color: #d89635; }
+        .ds-stat-time .ds-stat-value { color: #31a9d2; }
+        .ds-stat-frozen {
+          background: #eefaff;
+          border-color: #8bcbe5;
+          box-shadow: 0 0 0 3px rgba(113,207,239,.12), 0 7px 18px rgba(62,170,207,.15);
+        }
+        .dark .ds-stat { background: hsl(220 14% 22%); border-color: hsl(220 13% 28%); box-shadow: 0 5px 12px rgba(0,0,0,.3); }
+        .dark .ds-stat-label { color: hsl(220 10% 62%); }
+        .dark .ds-stat-frozen { background: rgba(113,207,239,.14); border-color: rgba(113,207,239,.45); }
+        .ds-freeze-chip {
+          position: absolute;
+          top: -13px; right: -8px;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          padding: 5px 9px;
+          background: #dff7ff;
+          border: 1px solid #76cfe8;
+          border-radius: 999px;
+          color: #167d9d;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: .08em;
+          line-height: 1;
+          box-shadow: 0 4px 10px rgba(48,157,192,.2);
+          animation: dsIce 0.8s ease-out 0.35s both;
+          z-index: 20;
+        }
+        .ds-flake { font-size: 14px; line-height: 1; animation: dsSpin 2.8s linear infinite; }
+        @keyframes dsRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes dsIce { 0% { opacity: 0; transform: scale(.72) translateY(5px); } 70% { opacity: 1; transform: scale(1.06) translateY(-1px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes dsSpin { to { transform: rotate(360deg); } }
+
+        /* ── 3×3 blast flash ── */
+        .ds-blast-flash {
+          position: absolute;
+          z-index: 4;
+          pointer-events: none;
+          border-radius: 8px;
+          background: #ffffff;
+          animation: dsFlash 180ms ease-in-out forwards;
+        }
+        @keyframes dsFlash { 0% { opacity: 0; } 45% { opacity: 0.9; } 100% { opacity: 0; } }
+
+        /* ── Legendary 6+ full-board shimmer ── */
+        .ds-legendary {
+          position: absolute;
+          inset: 0;
+          z-index: 15;
+          pointer-events: none;
+          border-radius: 24px;
+          background: radial-gradient(circle, rgba(255,215,0,0.35), rgba(217,70,239,0.25), transparent 70%);
+          animation: dsLegendaryShimmer 900ms ease-out forwards;
+        }
+        @keyframes dsLegendaryShimmer {
+          0% { opacity: 0; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1.05); }
+          100% { opacity: 0; transform: scale(1.1); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .ds-statbar, .ds-freeze-chip, .ds-flake, .ds-blast-flash, .ds-legendary { animation: none; }
         }
       `}</style>
 
@@ -544,11 +812,11 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         </button>
       </div>
 
-      {/* Stat bar */}
-      <div className="w-full grid grid-cols-3 gap-2" style={{ maxWidth: BOARD_W }}>
-        <div className="relative bg-white/60 backdrop-blur-md border border-white shadow-md dark:bg-slate-800/80 dark:border-slate-700 rounded-xl p-2 text-center">
-          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Score</p>
-          <p className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500 tabular-nums">{score}</p>
+      {/* Stat bar — freeze-bar design */}
+      <div className="ds-statbar w-full" style={{ maxWidth: BOARD_W }}>
+        <div className="ds-stat ds-stat-score relative">
+          <p className="ds-stat-label">Score</p>
+          <p className="ds-stat-value">{score}</p>
           {floating.visible && (
             <motion.div
               key={floating.key}
@@ -568,15 +836,18 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
             </motion.div>
           )}
         </div>
-        <div className="bg-white/60 backdrop-blur-md border border-white shadow-md dark:bg-slate-800/80 dark:border-slate-700 rounded-xl p-2 text-center">
-          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Moves</p>
-          <p className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500 tabular-nums">{moves}</p>
+        <div className="ds-stat ds-stat-moves">
+          <p className="ds-stat-label">Moves</p>
+          <p className="ds-stat-value">{moves}</p>
         </div>
-        <div className="bg-white/60 backdrop-blur-md border border-white shadow-md dark:bg-slate-800/80 dark:border-slate-700 rounded-xl p-2 text-center">
-          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Time</p>
-          <p className={`text-2xl font-black tabular-nums ${timeLeft <= 10 ? "text-red-500 animate-pulse" : "text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500"}`}>
-            {timeLeft}
-          </p>
+        <div className={`ds-stat ds-stat-time ${frozen ? "ds-stat-frozen" : ""}`}>
+          {frozen && (
+            <span className="ds-freeze-chip">
+              <span className="ds-flake">❄</span>FROZEN
+            </span>
+          )}
+          <p className="ds-stat-label">Time</p>
+          <p className="ds-stat-value">{timeLeft}</p>
         </div>
       </div>
 
@@ -588,6 +859,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           onCellClick={handleCellClick}
           phase={phase}
           busy={busy}
+          blastFlash={blastFlash}
         />
 
         {/* Cascade combo badge */}
@@ -603,6 +875,11 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           </div>
         )}
 
+        {/* Legendary 6+ full-board shimmer */}
+        {legendary && (
+          <div key={legendary.key} className="ds-legendary" />
+        )}
+
         {/* Start screen */}
         {phase === "idle" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl z-40 border border-white/60 dark:border-slate-700/60">
@@ -614,12 +891,22 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
               💎 = 5 pts · 🍬, 🍭, 🍫, 🍩 = 2 pts each
             </p>
             <button
-              onClick={startGame}
+              onClick={() => setPhase("booster-select")}
               className="px-8 py-3 rounded-xl font-black text-sm tracking-widest uppercase bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white shadow-[0_0_20px_rgba(217,70,239,0.6)] hover:scale-105 transition-transform"
             >
               ▶ Start Smash
             </button>
           </div>
+        )}
+
+        {/* Booster selection screen */}
+        {phase === "booster-select" && (
+          <BoosterSelect
+            user={user}
+            onEquip={equipBooster}
+            onSkip={() => { equippedBoosterRef.current = null; startGame(); }}
+            onBack={() => setPhase("idle")}
+          />
         )}
 
         {/* Game over overlay */}
@@ -640,7 +927,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
               )}
             </div>
             <button
-              onClick={startGame}
+              onClick={() => { equippedBoosterRef.current = null; setPhase("booster-select"); }}
               disabled={saving}
               className="mt-3 mb-4 w-full max-w-[220px] px-4 py-3 rounded-lg font-black text-sm tracking-widest uppercase bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white shadow-[0_0_15px_rgba(217,70,239,0.5)] hover:scale-105 transition-transform flex items-center justify-center gap-2"
             >

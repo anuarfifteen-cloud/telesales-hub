@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import Candy from "./Candy";
-import { BOARD_W, BOARD_H } from "./constants";
+import { BOARD_W, BOARD_H, CELL, GAP } from "./constants";
 
 // Board owns the candy-layer container. AnimatePresence plays each cleared
 // tile's fade+shrink exit; surviving tiles slide via Framer Motion `layout`.
 // A per-piece squash signal is bumped whenever a tile's row increases (a fall),
 // so Candy can play a one-shot landing squash. The signal only ever increases,
 // so in-flight squashes are never cancelled by the refill/next render.
-export default function Board({ pieces, selected, onCellClick, phase, busy }) {
+export default function Board({ pieces, selected, onCellClick, phase, busy, blastFlash }) {
   const disabled = phase !== "playing" || busy;
   const prevRowsRef = useRef(new Map());
   const [squashMap, setSquashMap] = useState(new Map());
@@ -60,6 +60,13 @@ export default function Board({ pieces, selected, onCellClick, phase, busy }) {
             );
           })}
         </AnimatePresence>
+        {blastFlash?.cells?.map((cell, i) => (
+          <div
+            key={`blast-${blastFlash.key}-${i}`}
+            className="ds-blast-flash"
+            style={{ left: cell.c * (CELL + GAP), top: cell.r * (CELL + GAP), width: CELL, height: CELL }}
+          />
+        ))}
       </div>
     </div>
   );

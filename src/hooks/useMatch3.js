@@ -148,7 +148,8 @@ export function findMatchClusters(board) {
       return { r, c };
     });
     let shape = "normal";
-    if (maxH >= 5 || maxV >= 5) shape = "five";
+    if (maxH >= 6 || maxV >= 6) shape = "six";
+    else if (maxH >= 5 || maxV >= 5) shape = "five";
     else if (hasH && hasV) shape = "tl";
     else if (maxH === 4) shape = "h4";
     else if (maxV === 4) shape = "v4";
@@ -202,30 +203,44 @@ export function computePass(working) {
   const clearKeys = new Set();
   let specialLabel = null;
   let isPower = false;
+  const blasts = []; // 3×3 blast centers
+  const blastCellKeys = new Set();
 
-  for (const cl of clusters) {
-    for (const cell of cl.cells) clearKeys.add(`${cell.r},${cell.c}`);
-
-    if (cl.shape === "five" || cl.shape === "tl") {
-      isPower = true; // 💣 COLOR WIPE — clear every tile of the matched color
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          if (working[r][c]?.type === cl.type) clearKeys.add(`${r},${c}`);
+  const addBlast = (cr, cc) => {
+    blasts.push({ r: cr, c: cc });
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const nr = cr + dr, nc = cc + dc;
+        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+          clearKeys.add(`${nr},${nc}`);
+          blastCellKeys.add(`${nr},${nc}`);
         }
       }
-      if (!specialLabel) specialLabel = "💣 COLOR WIPE!";
-    } else if (cl.shape === "h4") {
-      const pivot = cl.cells[Math.floor(cl.cells.length / 2)]; // ↕️ COLUMN SMASH
-      for (let r = 0; r < ROWS; r++) clearKeys.add(`${r},${pivot.c}`);
-      if (!specialLabel) specialLabel = "↕️ COLUMN SMASH!";
-    } else if (cl.shape === "v4") {
-      const pivot = cl.cells[Math.floor(cl.cells.length / 2)]; // ↔️ ROW SMASH
-      for (let c = 0; c < COLS; c++) clearKeys.add(`${pivot.r},${c}`);
-      if (!specialLabel) specialLabel = "↔️ ROW SMASH!";
+    }
+  };
+
+  for (const cl of clusters) {
+    // Clear all matched tiles
+    for (const cell of cl.cells) clearKeys.add(`${cell.r},${cell.c}`);
+
+    // Geometric center tile (clamped to board bounds)
+    let cr = 0, cc = 0;
+    for (const cell of cl.cells) { cr += cell.r; cc += cell.c; }
+    cr = Math.max(0, Math.min(ROWS - 1, Math.round(cr / cl.cells.length)));
+    cc = Math.max(0, Math.min(COLS - 1, Math.round(cc / cl.cells.length)));
+    addBlast(cr, cc);
+
+    if (cl.shape === "six") {
+      isPower = true; // ✦ LEGENDARY 6+ → +1 bonus move
+      if (!specialLabel) specialLabel = "✦ LEGENDARY 6+!";
     }
   }
 
   const allClear = Array.from(clearKeys).map((s) => {
+    const [r, c] = s.split(",").map(Number);
+    return { r, c };
+  });
+  const blastCells = Array.from(blastCellKeys).map((s) => {
     const [r, c] = s.split(",").map(Number);
     return { r, c };
   });
@@ -236,7 +251,7 @@ export function computePass(working) {
     if (piece) stepScore += POINTS[piece.type] ?? 0;
   }
 
-  return { clusters, allClear, specialLabel, isPower, stepScore };
+  return { clusters, allClear, specialLabel, isPower, stepScore, blasts, blastCells };
 }
 
 // Test-swap a board for match validity; returns the swapped board (or null).
