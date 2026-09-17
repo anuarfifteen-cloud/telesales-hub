@@ -6,6 +6,9 @@ import { motion } from "framer-motion";
 import { useDiamondSmashAudio } from "@/hooks/useDiamondSmashAudio";
 import DiamondSmashMysteryMode from "@/components/games/DiamondSmashMysteryMode";
 import Board from "@/components/games/diamond-smash/Board";
+import BoosterShop from "@/components/games/diamond-smash/BoosterShop";
+import BoosterHUD from "@/components/games/diamond-smash/BoosterHUD";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { BOARD_W, BOARD_H, MAX_MOVES, GAME_TIME } from "@/components/games/diamond-smash/constants";
 import {
   newPieceBoard,
@@ -193,66 +196,6 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
   );
 }
 
-// ── Booster selection screen ───────────────────────────────────────────────
-const BOOSTERS = [
-  { id: "time_freeze", icon: "❄️", name: "Time Freeze", desc: "Auto-pauses the timer for 15s when it hits 10 seconds.", accent: "from-cyan-400 to-blue-500" },
-  { id: "end_game", icon: "💰", name: "End-Game Conversion", desc: "Converts every leftover move into +250 points at game over.", accent: "from-amber-400 to-orange-500" },
-  { id: "move_boost", icon: "⚡", name: "Move Boost", desc: "Instantly adds +10 extra moves to this game session.", accent: "from-fuchsia-400 to-pink-500" },
-];
-
-function BoosterSelect({ user, onEquip, onSkip, onBack }) {
-  const tokens = Number(user?.earlyAccessTokens) || 0;
-  return (
-    <div className="absolute inset-0 flex flex-col items-center justify-start gap-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-3xl z-40 border border-white/60 dark:border-slate-700/60 p-5 overflow-y-auto">
-      <h2 className="font-black text-2xl tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-amber-400 text-center">
-        🛒 BOOSTER SHOP
-      </h2>
-      <p className="text-[11px] text-purple-700/80 dark:text-slate-300/80 text-center leading-snug">
-        Equip ONE booster per game. 5 🪙 each — no refunds.
-      </p>
-      <div className="flex items-center gap-1.5 rounded-full bg-amber-400/10 border border-amber-400/40 px-4 py-1.5">
-        <Coins className="w-4 h-4 text-amber-500" />
-        <span className="text-sm font-black text-amber-600 dark:text-amber-400 tabular-nums">{tokens} tokens</span>
-      </div>
-      <div className="grid grid-cols-1 gap-2.5 w-full max-w-[320px]">
-        {BOOSTERS.map((b) => {
-          const afford = tokens >= 5;
-          return (
-            <div key={b.id} className="rounded-xl border border-border dark:border-slate-700 bg-white dark:bg-slate-800/80 p-3 flex items-center gap-3 shadow-sm">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${b.accent} text-white text-lg flex-shrink-0`}>
-                {b.icon}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-black text-foreground truncate">{b.name}</p>
-                <p className="text-[10px] text-muted-foreground leading-snug">{b.desc}</p>
-              </div>
-              <button
-                onClick={() => onEquip(b.id)}
-                disabled={!afford}
-                className="flex-shrink-0 rounded-lg px-3 py-2 text-[11px] font-black uppercase tracking-wide bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 transition-transform"
-              >
-                5 🪙
-              </button>
-            </div>
-          );
-        })}
-      </div>
-      <button
-        onClick={onSkip}
-        className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
-      >
-        Play without booster →
-      </button>
-      <button
-        onClick={onBack}
-        className="absolute top-3 left-3 w-9 h-9 flex items-center justify-center rounded-full bg-white/60 dark:bg-slate-800/60 border border-border dark:border-slate-700 hover:bg-muted transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4 text-muted-foreground" />
-      </button>
-    </div>
-  );
-}
-
 // ── Main game ──────────────────────────────────────────────────────────────
 export default function DiamondSmashGame({ user, onUserUpdate }) {
   const [board, setBoard] = useState(() => newPieceBoard());
@@ -304,10 +247,12 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const timeUpRef = useRef(false);
 
   // ── Booster system ──
-  const equippedBoosterRef = useRef(null); // null | 'time_freeze' | 'end_game' | 'move_boost'
+  const [activatedBooster, setActivatedBooster] = useState(null); // null | 'time_freeze' | 'end_game' | 'move_boost'
+  const [boosterUsedThisGame, setBoosterUsedThisGame] = useState(false);
+  const [endGameConversion, setEndGameConversion] = useState(false);
+  const [boosterBusy, setBoosterBusy] = useState(false);
   const [frozen, setFrozen] = useState(false);
   const frozenRef = useRef(false);
-  const freezeUsedRef = useRef(false);
   const freezeRemainingRef = useRef(0);
   const [blastFlash, setBlastFlash] = useState(null); // { cells: [{r,c}], key }
   const [legendary, setLegendary] = useState(null); // { key }
@@ -443,7 +388,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     stopMusic();
     // End-Game Conversion booster: leftover moves → +250 pts each
     let score = finalScore;
-    if (equippedBoosterRef.current === "end_game") {
+    if (endGameConversion) {
       const bonus = Math.max(0, movesRef.current) * 250;
       if (bonus > 0) {
         score += bonus;
@@ -462,20 +407,21 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     timeUpRef.current = false;
     busyRef.current = false;
     scoreRef.current = 0;
-    // Move Boost booster: +10 moves
-    const startingMoves = equippedBoosterRef.current === "move_boost" ? MAX_MOVES + 10 : MAX_MOVES;
-    movesRef.current = startingMoves;
+    movesRef.current = MAX_MOVES;
     timeLeftRef.current = GAME_TIME;
-    // Time Freeze reset
+    // Booster state reset
+    setActivatedBooster(null);
+    setBoosterUsedThisGame(false);
+    setEndGameConversion(false);
+    setBoosterBusy(false);
     frozenRef.current = false;
-    freezeUsedRef.current = false;
     freezeRemainingRef.current = 0;
     setFrozen(false);
     setBlastFlash(null);
     setLegendary(null);
     setBoard(newPieceBoard());
     setScore(0);
-    setMoves(startingMoves);
+    setMoves(MAX_MOVES);
     setTimeLeft(GAME_TIME);
     setSelected(null);
     setBusy(false);
@@ -500,13 +446,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       }
       timeLeftRef.current -= 1;
       setTimeLeft(timeLeftRef.current);
-      // Time Freeze auto-trigger at 10s
-      if (timeLeftRef.current === 10 && equippedBoosterRef.current === "time_freeze" && !freezeUsedRef.current) {
-        freezeUsedRef.current = true;
-        frozenRef.current = true;
-        setFrozen(true);
-        freezeRemainingRef.current = 15;
-      }
       if (timeLeftRef.current <= 0) {
         stopTimer();
         if (busyRef.current) {
@@ -633,22 +572,42 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     }
   };
 
-  // Buy & equip a booster (5 tokens, no refunds), then start the game
-  const equipBooster = async (booster) => {
-    const tokens = Number(user?.earlyAccessTokens) || 0;
-    if (tokens < 5) {
-      toast.error("Not enough tokens! You need 5 🪙 to equip a booster.");
+  // On-demand mid-game booster activation (max 1 per game session).
+  // Consumes 1 from persistent stock, locks the other buttons, fires the effect.
+  const activateBooster = async (boosterId) => {
+    if (boosterBusy || boosterUsedThisGame || phase !== "playing") return;
+    const stock = user?.diamondSmashBoosters || {};
+    const owned = Number(stock[boosterId]) || 0;
+    if (owned <= 0) {
+      toast.error("No stock! Buy this booster in the Shop below.");
       return;
     }
+    setBoosterBusy(true);
     try {
-      await base44.auth.updateMe({ earlyAccessTokens: tokens - 5 });
+      await base44.auth.updateMe({
+        diamondSmashBoosters: { ...stock, [boosterId]: owned - 1 },
+      });
       await onUserUpdate?.();
-      equippedBoosterRef.current = booster;
-      const name = booster === "time_freeze" ? "Time Freeze" : booster === "end_game" ? "End-Game Conversion" : "Move Boost";
-      toast.success(`✅ ${name} equipped!`);
-      startGame();
+      setActivatedBooster(boosterId);
+      setBoosterUsedThisGame(true);
+
+      if (boosterId === "time_freeze") {
+        frozenRef.current = true;
+        freezeRemainingRef.current = 15;
+        setFrozen(true);
+        toast.success("❄️ Time Freeze! Timer paused for 15s.");
+      } else if (boosterId === "move_boost") {
+        movesRef.current += 10;
+        setMoves(movesRef.current);
+        toast.success("⚡ Move Boost! +10 moves added.");
+      } else if (boosterId === "end_game") {
+        setEndGameConversion(true);
+        toast.success("💰 End-Game Conversion equipped! Leftover moves × 250 at game over.");
+      }
     } catch (e) {
-      toast.error("Booster purchase failed. Try again.");
+      toast.error("Activation failed. Try again.");
+    } finally {
+      setBoosterBusy(false);
     }
   };
 
@@ -891,22 +850,12 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
               💎 = 5 pts · 🍬, 🍭, 🍫, 🍩 = 2 pts each
             </p>
             <button
-              onClick={() => setPhase("booster-select")}
+              onClick={startGame}
               className="px-8 py-3 rounded-xl font-black text-sm tracking-widest uppercase bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white shadow-[0_0_20px_rgba(217,70,239,0.6)] hover:scale-105 transition-transform"
             >
               ▶ Start Smash
             </button>
           </div>
-        )}
-
-        {/* Booster selection screen */}
-        {phase === "booster-select" && (
-          <BoosterSelect
-            user={user}
-            onEquip={equipBooster}
-            onSkip={() => { equippedBoosterRef.current = null; startGame(); }}
-            onBack={() => setPhase("idle")}
-          />
         )}
 
         {/* Game over overlay */}
@@ -927,7 +876,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
               )}
             </div>
             <button
-              onClick={() => { equippedBoosterRef.current = null; setPhase("booster-select"); }}
+              onClick={startGame}
               disabled={saving}
               className="mt-3 mb-4 w-full max-w-[220px] px-4 py-3 rounded-lg font-black text-sm tracking-widest uppercase bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white shadow-[0_0_15px_rgba(217,70,239,0.5)] hover:scale-105 transition-transform flex items-center justify-center gap-2"
             >
@@ -938,10 +887,30 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         )}
       </div>
 
+      {/* Mid-game booster activation HUD */}
+      {phase === "playing" && (
+        <TooltipProvider>
+          <BoosterHUD
+            user={user}
+            phase={phase}
+            activatedBooster={activatedBooster}
+            boosterUsedThisGame={boosterUsedThisGame}
+            busy={busy}
+            onActivate={activateBooster}
+            buying={boosterBusy}
+          />
+        </TooltipProvider>
+      )}
+
       {/* How-to-play hint */}
       <div className="w-full text-center text-xs text-slate-600 dark:text-slate-300 px-2 space-y-1" style={{ maxWidth: BOARD_W }}>
         <p>Tap a candy, then tap next to it to swap. Match 3 or more to smash them!</p>
         <p>💥 Bonus: If pieces fall and match again automatically, you get a chain bonus — x2, x3, x4 and more!</p>
+      </div>
+
+      {/* Booster Shop — always visible below the canvas */}
+      <div className="w-full" style={{ maxWidth: BOARD_W }}>
+        <BoosterShop user={user} onUserUpdate={onUserUpdate} />
       </div>
 
       {/* Leaderboard — or Mystery Mode card when the admin has hidden it */}

@@ -68,6 +68,29 @@
     "lastActiveDate": {
       "type": "string",
       "description": "YYYY-MM-DD (Brunei timezone) of the user's most recent app session, updated client-side on app load for inactive-user leaderboard filtering"
+    },
+    "diamondSmashBoosters": {
+      "type": "object",
+      "description": "Persistent stock of Diamond Smash boosters purchased by the user",
+      "properties": {
+        "time_freeze": {
+          "type": "number",
+          "default": 0
+        },
+        "end_game": {
+          "type": "number",
+          "default": 0
+        },
+        "move_boost": {
+          "type": "number",
+          "default": 0
+        }
+      },
+      "default": {
+        "time_freeze": 0,
+        "end_game": 0,
+        "move_boost": 0
+      }
     }
   },
   "rls": {
