@@ -91,6 +91,25 @@
         "end_game": 0,
         "move_boost": 0
       }
+    },
+    "monthlyVoucherData": {
+      "type": "object",
+      "description": "Tracks how many tokens the user has gifted into vouchers this Brunei-calendar month (50/month cap)",
+      "properties": {
+        "month": {
+          "type": "string",
+          "description": "YYYY-MM of the tracked month (Brunei timezone)"
+        },
+        "amount": {
+          "type": "number",
+          "default": 0,
+          "description": "Tokens gifted into vouchers during the tracked month"
+        }
+      },
+      "default": {
+        "month": "",
+        "amount": 0
+      }
     }
   },
   "rls": {

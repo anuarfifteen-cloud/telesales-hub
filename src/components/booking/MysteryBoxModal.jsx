@@ -1,8 +1,12 @@
 import { useState } from "react";
+import { format } from "date-fns-tz";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Copy, Check } from "lucide-react";
+
+const VOUCHER_MONTHLY_CAP = 50;
+const BRUNEI_TZ = "Asia/Brunei";
 
 export default function TokenVoucher({ user, onUserUpdate }) {
   const [amount, setAmount] = useState("");
@@ -14,11 +18,21 @@ export default function TokenVoucher({ user, onUserUpdate }) {
 
   const currentTokens = user?.earlyAccessTokens ?? 0;
 
+  // ── Monthly voucher cap tracking (Brunei timezone) ──
+  const currentMonth = format(new Date(), "yyyy-MM", { timeZone: BRUNEI_TZ });
+  const monthlyVoucherData = user?.monthlyVoucherData || { month: "", amount: 0 };
+  const usedThisMonth = monthlyVoucherData.month === currentMonth ? (monthlyVoucherData.amount || 0) : 0;
+  const remainingCap = Math.max(0, VOUCHER_MONTHLY_CAP - usedThisMonth);
+  const capReached = remainingCap <= 0;
+
   // ── 1. GENERATE VOUCHER CODE ──
   const handleCreateVoucher = async () => {
     const tokenNum = parseInt(amount, 10);
     if (isNaN(tokenNum) || tokenNum <= 0) {
       return toast.error("Please enter a valid number of tokens.");
+    }
+    if (tokenNum > remainingCap) {
+      return toast.error(`Monthly limit exceeded! You can only gift ${remainingCap} more tokens this month.`);
     }
     if (tokenNum > currentTokens) {
       return toast.error("Insufficient tokens in your balance!");
@@ -28,7 +42,10 @@ export default function TokenVoucher({ user, onUserUpdate }) {
     const uniqueCode = `VCH-${Math.random().toString(36).substring(2, 7).toUpperCase()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
     try {
-      await base44.auth.updateMe({ earlyAccessTokens: currentTokens - tokenNum });
+      await base44.auth.updateMe({
+        earlyAccessTokens: currentTokens - tokenNum,
+        monthlyVoucherData: { month: currentMonth, amount: usedThisMonth + tokenNum },
+      });
       await base44.entities.TokenTransaction.create({
         user_id: user.id,
         user_name: user.full_name || user.email,
@@ -254,15 +271,17 @@ export default function TokenVoucher({ user, onUserUpdate }) {
         {/* Issuing Panel */}
         <div className="space-y-2">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Create a Gift Voucher</p>
+          <p className="text-[10px] font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">🪙 {usedThisMonth}/50 gifted this month · {remainingCap} left</p>
           <div className="flex gap-2">
             <input
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="Enter amount to generate..."
-              className="w-full text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background"
+              disabled={capReached}
+              placeholder={`Enter amount (Max ${Math.min(currentTokens, remainingCap)})...`}
+              className="w-full text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-background disabled:opacity-50 disabled:cursor-not-allowed"
             />
-            <Button size="sm" onClick={handleCreateVoucher} disabled={loading} className="text-xs h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white">
+            <Button size="sm" onClick={handleCreateVoucher} disabled={loading || capReached} className="text-xs h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white">
               Generate
             </Button>
           </div>
