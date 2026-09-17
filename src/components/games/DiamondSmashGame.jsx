@@ -749,6 +749,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         }
       `}</style>
 
+      {/* Full-screen play overlay — covers the bottom nav and page content while playing */}
+      <div className={phase === "playing" ? "fixed inset-0 z-[60] overflow-y-auto flex flex-col items-center gap-4 p-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)] bg-gradient-to-br from-slate-100 via-purple-50 to-slate-200 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900" : "contents"}>
       {/* Audio toggles */}
       <div className="w-full flex items-center justify-center gap-2" style={{ maxWidth: BOARD_W }}>
         <button
@@ -901,6 +903,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           />
         </TooltipProvider>
       )}
+      </div>
 
       {/* How-to-play hint */}
       <div className="w-full text-center text-xs text-slate-600 dark:text-slate-300 px-2 space-y-1" style={{ maxWidth: BOARD_W }}>
