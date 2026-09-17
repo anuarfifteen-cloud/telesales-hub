@@ -889,19 +889,21 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         )}
       </div>
 
-      {/* Mid-game booster activation HUD */}
+      {/* Mid-game booster activation HUD — constrained to canvas width for a neat, even row */}
       {phase === "playing" && (
-        <TooltipProvider>
-          <BoosterHUD
-            user={user}
-            phase={phase}
-            activatedBooster={activatedBooster}
-            boosterUsedThisGame={boosterUsedThisGame}
-            busy={busy}
-            onActivate={activateBooster}
-            buying={boosterBusy}
-          />
-        </TooltipProvider>
+        <div className="w-full" style={{ maxWidth: BOARD_W }}>
+          <TooltipProvider>
+            <BoosterHUD
+              user={user}
+              phase={phase}
+              activatedBooster={activatedBooster}
+              boosterUsedThisGame={boosterUsedThisGame}
+              busy={busy}
+              onActivate={activateBooster}
+              buying={boosterBusy}
+            />
+          </TooltipProvider>
+        </div>
       )}
       </div>
 
