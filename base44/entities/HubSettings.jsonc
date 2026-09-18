@@ -4,7 +4,7 @@
   "properties": {
     "isNinjaTokenActive": {
       "type": "boolean",
-      "description": "Whether the Ninja Token game is available to players in the Tokens menu",
+      "description": "Whether the Ninja Slice game is available to players in the Tokens menu",
       "default": false
     }
   },

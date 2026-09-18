@@ -102,7 +102,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
                 : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             }`}
           >
-            {ninjaEnabled ? "🥷 Ninja Token" : "🧠 Daily Quiz"}
+            {ninjaEnabled ? "🥷 Ninja Slice" : "🧠 Daily Quiz"}
           </button>
         </div>
         {/* Row 2 */}

@@ -21,7 +21,7 @@ const GAMES = {
     unit: "TAPS",
   },
   ninja: {
-    label: "Ninja Token",
+    label: "Ninja Slice",
     color: "#d4af37",
     chipBg: "bg-amber-100",
     chipText: "text-amber-700",
@@ -113,7 +113,7 @@ export default function AdminGameHistory({ user }) {
       // Ninja Token champion is auto-granted the Songket Heritage theme (permanent).
       if (gameTab === "ninja") {
         await grantSongket(u, championName);
-        toast.success(`👑 ${championName} crowned Ninja Token champion — Songket Heritage unlocked!`);
+        toast.success(`👑 ${championName} crowned Ninja Slice champion — Songket Heritage unlocked!`);
       } else {
         toast.success("🏆 Champion added to Hall of Fame!");
       }

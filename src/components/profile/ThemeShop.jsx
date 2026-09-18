@@ -45,7 +45,7 @@ const THEMES = [
   {
     id: "songket",
     name: "Songket Heritage",
-    description: "Royal purple silk · woven gold. Exclusive Ninja Token champion skin.",
+    description: "Royal purple silk · woven gold. Exclusive Ninja Slice champion skin.",
     preview: "linear-gradient(135deg, #2a0a4a 0%, #1a0533 40%, #d4af37 100%)",
     exclusive: true,
     exclusiveSource: "Ninja Token",
@@ -242,7 +242,7 @@ export default function ThemeShop({ user, onUserUpdate }) {
                 <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{theme.description}</p>
                 {isLockedExclusive ? (
                   <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-500 dark:text-amber-400 mt-1">
-                    👑 Win Ninja Token to unlock
+                    👑 Win Ninja Slice to unlock
                   </span>
                 ) : THEME_BADGES[theme.id] ? (
                   <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-muted-foreground mt-1">

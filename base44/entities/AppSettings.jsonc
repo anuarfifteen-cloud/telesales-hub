@@ -34,7 +34,7 @@
     },
     "ninja_enabled": {
       "type": "boolean",
-      "description": "Whether the Ninja Token arcade game is visible to players. When false, the Ninja Token sub-tab button and game panel are completely hidden.",
+      "description": "Whether the Ninja Slice arcade game is visible to players. When false, the Ninja Slice sub-tab button and game panel are completely hidden.",
       "default": true
     },
     "voucher_feed_enabled": {
@@ -63,9 +63,21 @@
       },
       "description": "User IDs of the current Diamond Smash defending champions (publicly readable for leaderboard crown display)"
     },
+    "defending_champ_ninja_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "User IDs of the current Ninja Slice defending champions (publicly readable for leaderboard crown display)"
+    },
     "hide_diamond_smash_leaderboard": {
       "type": "boolean",
       "description": "When true, the live Diamond Smash leaderboard is hidden from players (Mystery Mode) \u2014 the game stays fully playable and players still see their own personal best",
+      "default": false
+    },
+    "hide_ninja_slice_leaderboard": {
+      "type": "boolean",
+      "description": "When true, the live Ninja Slice leaderboard is hidden from players (Mystery Mode) \u2014 the game stays fully playable and players still see their own personal best",
       "default": false
     },
     "diamond_store_enabled": {

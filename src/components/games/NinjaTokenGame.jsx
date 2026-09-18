@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Trophy, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
+import NinjaSliceMysteryMode from "@/components/games/NinjaSliceMysteryMode";
 
 // Emoji-capable font stack — makes canvas paint full-color opaque emoji
 // (serif fallback renders ghosted outline glyphs on many browsers)
@@ -122,6 +123,8 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
   const [muted, setMuted] = useState(() => localStorage.getItem("ninja_muted") === "1");
   const [resetting, setResetting] = useState(false);
   const [tokenSplash, setTokenSplash] = useState(false);
+  const [champIds, setChampIds] = useState(() => new Set());
+  const [hideLeaderboard, setHideLeaderboard] = useState(false);
   const splashTimerRef = useRef(null);
 
   // Fire the massive +200 token splash — lasts 800ms, retriggers cleanly.
@@ -388,6 +391,20 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
     const unsub = base44.entities.NinjaTokenScore.subscribe(() => refreshLeaders());
     return unsub;
   }, [user?.id, refreshLeaders]);
+
+  // ── Defending champ IDs + Mystery Mode flag (AppSettings) ───────────────────
+  useEffect(() => {
+    let mounted = true;
+    const load = () =>
+      base44.entities.AppSettings.list().then((rows) => {
+        if (!mounted) return;
+        setChampIds(new Set(rows[0]?.defending_champ_ninja_ids || []));
+        setHideLeaderboard(!!rows[0]?.hide_ninja_slice_leaderboard);
+      });
+    load();
+    const unsub = base44.entities.AppSettings.subscribe(load);
+    return () => { mounted = false; unsub && unsub(); };
+  }, []);
 
   // ── Canvas sizing (DPR-aware, responsive) ────────────────────────────────────
   const resize = useCallback(() => {
@@ -863,7 +880,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             <span className="text-xl">🥷</span>
             <div className="leading-none">
               <h1 className="text-lg font-black tracking-[0.2em] text-[#3a2a1a]">
-                NINJA TOKEN
+                NINJA SLICE
               </h1>
               <p className="mt-0.5 text-[9px] tracking-[0.4em] text-[#7a3b00]">BETA ARCADE</p>
             </div>
@@ -969,7 +986,14 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
         </div>
       </div>
 
-      {/* Top Ninjas leaderboard — at the bottom */}
+      {/* Top Ninjas leaderboard — at the bottom (or Mystery Mode when hidden) */}
+      {hideLeaderboard && user?.role !== "admin" ? (
+        <NinjaSliceMysteryMode
+          personalBest={best != null && best > 0 ? { score: best, user_id: user?.id } : null}
+          loadingPB={leadersLoading}
+          currentUserId={user?.id}
+        />
+      ) : (
       <div className="rounded-2xl border border-[#B8860B] bg-[#FFF7E0]/95 shadow-md overflow-hidden font-mono">
         <div className="px-4 py-2.5 border-b border-[#B8860B]/50 bg-[#FDE093]/60 flex items-center justify-center gap-2">
           <Trophy className="w-4 h-4 text-[#B8860B]" />
@@ -993,14 +1017,14 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             <button
               onClick={async () => {
                 if (resetting) return;
-                if (!window.confirm("Wipe ALL saved Ninja Token high scores for every player?")) return;
+                if (!window.confirm("Wipe ALL saved Ninja Slice high scores for every player?")) return;
                 setResetting(true);
                 try {
                   await base44.entities.NinjaTokenScore.deleteMany({});
                   setLeaders([]);
                   setBest(0);
                 } catch (e) {
-                  console.error("[NinjaToken] reset failed:", e?.message || e);
+                  console.error("[NinjaSlice] reset failed:", e?.message || e);
                 } finally {
                   setResetting(false);
                 }
@@ -1016,21 +1040,33 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
 
         {top5.length > 0 && (
           <div className="divide-y divide-[#B8860B]/30">
-            {top5.map((l, i) => (
-              <div key={l.id} className="flex items-center gap-3 px-4 py-2">
-                <span className="w-6 text-center text-base">{i < 3 ? medals[i] : `${i + 1}`}</span>
-                <span
-                  className="flex-1 min-w-0 text-sm font-bold text-[#3a2a1a] truncate"
-                  style={{ wordBreak: "break-word" }}
-                >
-                  {l.user_name}
-                </span>
-                <span className="text-sm font-black text-[#B8860B] tabular-nums">{l.score}</span>
-              </div>
-            ))}
+            {top5.map((l, i) => {
+              const isChamp = champIds.has(l.user_id);
+              return (
+                <div key={l.id} className={`flex items-center gap-3 px-4 py-2 ${isChamp ? "opacity-60" : ""}`}>
+                  <span className="w-6 text-center text-base">{i < 3 ? medals[i] : `${i + 1}`}</span>
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    <span
+                      className="text-sm font-bold text-[#3a2a1a] truncate flex items-center gap-1"
+                      style={{ wordBreak: "break-word" }}
+                    >
+                      {l.user_name}
+                      {isChamp && <span className="text-base flex-shrink-0">👑</span>}
+                    </span>
+                    {isChamp && (
+                      <span className="text-[9px] uppercase tracking-widest text-[#7a3b00] font-bold">
+                        Defending Champ — Prize Cooldown
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sm font-black text-[#B8860B] tabular-nums">{l.score}</span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

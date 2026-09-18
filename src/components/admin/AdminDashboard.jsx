@@ -16,6 +16,7 @@ import QuizMaintenanceToggle from "./QuizMaintenanceToggle";
 import AdminGiftVoucherGen from "./AdminGiftVoucherGen";
 import AdminCoinFlipLogs from "./AdminCoinFlipLogs";
 import AdminDiamondSmash from "./AdminDiamondSmash";
+import AdminNinjaSlice from "./AdminNinjaSlice";
 import AdminVoucherLog from "./AdminVoucherLog";
 import AdminTaxEngine from "./AdminTaxEngine";
 import AdminVaultHoldings from "./AdminVaultHoldings";
@@ -215,7 +216,7 @@ export default function AdminDashboard({ onBack }) {
 
       {/* Tab switcher */}
       <div className="max-w-2xl mx-auto px-4 pt-4 grid grid-cols-3 gap-2">
-        {[{ id: "general", label: "⚙️ General" }, { id: "quiz", label: "🧠 Daily Quiz" }, { id: "spin", label: "🎡 Spin Logs" }, { id: "supertap", label: "⚡ Super Tap" }, { id: "flappy", label: "🐦 Flappy" }, { id: "gamehistory", label: "🏅 Game History" }, { id: "tokens", label: "🪙 Token Log" }, { id: "coinflip", label: "🪙 Coin Flip" }, { id: "diamond", label: "💎 Diamond" }, { id: "vouchers", label: "🎟️ Vouchers" }, { id: "vault", label: "🏛️ TAP Vault" }].map(tab => (
+        {[{ id: "general", label: "⚙️ General" }, { id: "quiz", label: "🧠 Daily Quiz" }, { id: "spin", label: "🎡 Spin Logs" }, { id: "supertap", label: "⚡ Super Tap" }, { id: "flappy", label: "🐦 Flappy" }, { id: "gamehistory", label: "🏅 Game History" }, { id: "tokens", label: "🪙 Token Log" }, { id: "coinflip", label: "🪙 Coin Flip" }, { id: "diamond", label: "💎 Diamond" }, { id: "ninja", label: "🥷 Ninja Slice" }, { id: "vouchers", label: "🎟️ Vouchers" }, { id: "vault", label: "🏛️ TAP Vault" }].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -271,6 +272,12 @@ export default function AdminDashboard({ onBack }) {
       {activeTab === "diamond" && (
         <main className="max-w-2xl mx-auto px-4 pt-4 pb-10">
           <AdminDiamondSmash />
+        </main>
+      )}
+
+      {activeTab === "ninja" && (
+        <main className="max-w-2xl mx-auto px-4 pt-4 pb-10">
+          <AdminNinjaSlice />
         </main>
       )}
 
@@ -340,9 +347,9 @@ export default function AdminDashboard({ onBack }) {
         {/* Ninja Token Visibility Toggle */}
         <div className="bg-white rounded-2xl border border-border p-5 flex items-center justify-between gap-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
           <div>
-            <h3 className="font-bold text-slate-900 text-base">🥷 Ninja Token Game</h3>
+            <h3 className="font-bold text-slate-900 text-base">🥷 Ninja Slice Game</h3>
             <p className="text-sm text-slate-500 mt-0.5">
-              Show the Ninja Token arcade game to players. When off, the tab and game are completely hidden.
+              Show the Ninja Slice arcade game to players. When off, the tab and game are completely hidden.
             </p>
             <p className={`text-xs font-semibold mt-1 ${ninjaEnabled ? "text-emerald-600" : "text-slate-400"}`}>
               {ninjaEnabled ? "Currently VISIBLE" : "Currently HIDDEN"}

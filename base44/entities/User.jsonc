@@ -34,6 +34,11 @@
       "default": false,
       "description": "Whether this user is the defending Diamond Smash champion, placed on a one-season prize cooldown"
     },
+    "is_defending_champ_ninja": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this user is the defending Ninja Slice champion, placed on a one-season prize cooldown"
+    },
     "diamonds": {
       "type": "number",
       "default": 0,
