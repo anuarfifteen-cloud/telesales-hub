@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Crown, Loader2, Trash2, Plus, Trophy } from "lucide-react";
+import { Crown, Loader2, Trash2, Plus, Trophy, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -19,6 +19,13 @@ const GAMES = {
     chipBg: "bg-cyan-100",
     chipText: "text-cyan-700",
     unit: "TAPS",
+  },
+  ninja: {
+    label: "Ninja Token",
+    color: "#d4af37",
+    chipBg: "bg-amber-100",
+    chipText: "text-amber-700",
+    unit: "PTS",
   },
 };
 
@@ -40,12 +47,17 @@ export default function AdminGameHistory({ user }) {
     queryFn: () => base44.entities.User.list(),
   });
 
-  const liveQueryKey = gameTab === "flappy" ? ["flappyAdminLive"] : ["tapScoreAdminLive"];
+  const liveQueryKey =
+    gameTab === "flappy" ? ["flappyAdminLive"] :
+    gameTab === "ninja" ? ["ninjaScoreAdminLive"] :
+    ["tapScoreAdminLive"];
   const { data: liveScores = [], isLoading: liveLoading } = useQuery({
     queryKey: liveQueryKey,
     queryFn: () =>
       gameTab === "flappy"
         ? base44.entities.FlappyLeaderboard.list("-score", 50)
+        : gameTab === "ninja"
+        ? base44.entities.NinjaTokenScore.list("-score", 50)
         : base44.entities.TapScore.list("-high_score", 50),
   });
 
@@ -58,6 +70,30 @@ export default function AdminGameHistory({ user }) {
     queryClient.invalidateQueries({ queryKey: ["gameChampions", gameTab] });
   };
 
+  // Grant the exclusive Songket Heritage theme to a Ninja Token champion.
+  // Merges "songket" into the champion's unlockedThemes (permanent) and logs a token tx.
+  const grantSongket = async (championUser, championName) => {
+    if (!championUser) return;
+    try {
+      const existing = Array.isArray(championUser.unlockedThemes) ? championUser.unlockedThemes : ["default"];
+      if (!existing.includes("songket")) {
+        await base44.entities.User.update(championUser.id, {
+          unlockedThemes: [...new Set([...existing, "songket"])],
+        });
+      }
+      await base44.entities.TokenTransaction.create({
+        user_id: championUser.id,
+        user_name: championName,
+        amount: 0,
+        source: "Ninja Token Champion Reward: Songket Theme",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error("Songket grant failed", e);
+      throw e;
+    }
+  };
+
   const handleAdd = async () => {
     if (!form.user_id || !form.score || !form.season_date_awarded) {
       toast.error("Please select a player, enter a score, and season date.");
@@ -66,20 +102,41 @@ export default function AdminGameHistory({ user }) {
     setSaving(true);
     try {
       const u = users.find((x) => x.id === form.user_id);
+      const championName = u?.full_name || u?.email || form.user_name || "Player";
       await base44.entities.GameChampions.create({
         game_name: gameTab,
         user_id: form.user_id,
-        user_name: u?.full_name || u?.email || form.user_name || "Player",
+        user_name: championName,
         score: Number(form.score),
         season_date_awarded: form.season_date_awarded,
       });
-      toast.success("🏆 Champion added to Hall of Fame!");
+      // Ninja Token champion is auto-granted the Songket Heritage theme (permanent).
+      if (gameTab === "ninja") {
+        await grantSongket(u, championName);
+        toast.success(`👑 ${championName} crowned Ninja Token champion — Songket Heritage unlocked!`);
+      } else {
+        toast.success("🏆 Champion added to Hall of Fame!");
+      }
       setForm({ user_id: "", user_name: "", score: "", season_date_awarded: getLocalDateStr() });
       refresh();
     } catch (e) {
       toast.error("Failed to add champion: " + (e?.message || "Unknown error"));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const [regrantingId, setRegrantingId] = useState(null);
+  const handleRegrantSongket = async (champion) => {
+    setRegrantingId(champion.id);
+    try {
+      const u = users.find((x) => x.id === champion.user_id) || { id: champion.user_id, unlockedThemes: ["default"] };
+      await grantSongket(u, champion.user_name);
+      toast.success(`👑 Songket re-granted to ${champion.user_name}.`);
+    } catch (e) {
+      toast.error("Re-grant failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setRegrantingId(null);
     }
   };
 
@@ -230,6 +287,16 @@ export default function AdminGameHistory({ user }) {
                       <p className="text-[10px] uppercase tracking-widest text-slate-400">Season: {c.season_date_awarded}</p>
                     </div>
                     <span className="text-sm font-black tabular-nums text-slate-900">{c.score} {g.unit}</span>
+                    {gameTab === "ninja" && (
+                      <button
+                        onClick={() => handleRegrantSongket(c)}
+                        disabled={regrantingId === c.id}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-amber-500 hover:bg-amber-50 transition-colors flex-shrink-0 disabled:opacity-50"
+                        title="Re-grant Songket theme"
+                      >
+                        {regrantingId === c.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDelete(c.id)}
                       className="w-8 h-8 flex items-center justify-center rounded-lg text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"

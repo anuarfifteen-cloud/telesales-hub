@@ -6,9 +6,10 @@
       "type": "string",
       "enum": [
         "flappy",
-        "supertap"
+        "supertap",
+        "ninja"
       ],
-      "description": "Which game this champion won (flappy = Flappy Token, supertap = Super Taps)"
+      "description": "Which game this champion won (flappy = Flappy Token, supertap = Super Taps, ninja = Ninja Token)"
     },
     "user_id": {
       "type": "string",

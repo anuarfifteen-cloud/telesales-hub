@@ -119,6 +119,63 @@
     --ring: 340 85% 50%;
   }
 
+  /* ───────────────────────── SONGKET HERITAGE — Royal Purple Silk & Gold ─────────────────────────
+     Deep royal-purple silk base, polished obsidian cards, metallic gold (Benang Emas)
+     primary, neon cyan accent. Dark-mode only.
+     --background  #2a0a4a → 270 76% 16%   Deep royal purple silk
+     --foreground  #f5e6c8 → 40 69% 87%    Warm light-gold text
+     --card        #120c1e → 260 43% 8%    Polished obsidian panel
+     --primary     #d4af37 → 46 65% 52%     Metallic gold / Benang Emas
+     --accent      #22d3ee → 188 60% 40%    Neon cyan (darkened for contrast)
+  */
+  [data-theme="songket"] {
+    --background: 270 76% 16%;
+    --foreground: 40 69% 87%;
+    --card: 260 43% 8%;
+    --card-foreground: 40 69% 87%;
+    --popover: 260 43% 8%;
+    --popover-foreground: 40 69% 87%;
+    --primary: 46 65% 52%;
+    --primary-foreground: 270 76% 10%;
+    --secondary: 267 40% 20%;
+    --secondary-foreground: 46 65% 75%;
+    --muted: 267 30% 16%;
+    --muted-foreground: 40 40% 70%;
+    --accent: 188 60% 40%;
+    --accent-foreground: 188 86% 90%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 46 50% 38%;
+    --input: 267 40% 14%;
+    --ring: 188 86% 53%;
+  }
+
+  /* Songket: metallic gold primary buttons + thin gold card borders */
+  [data-theme="songket"] .bg-primary,
+  [data-theme="songket"] [data-active="true"],
+  [data-theme="songket"] .active-tab-indicator {
+    background: linear-gradient(135deg, #a37a29 0%, #d4af37 25%, #fef1c9 50%, #d4af37 75%, #a37a29 100%) !important;
+    border: 1px solid #ffe8a3 !important;
+    color: #1a0533 !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 20px rgba(212, 175, 55, 0.18) !important;
+  }
+  [data-theme="songket"] .text-primary {
+    color: #d4af37 !important;
+  }
+  /* Subtle woven Songket motif behind large surfaces (not behind cards) */
+  [data-theme="songket"] body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.06;
+    background-image:
+      repeating-linear-gradient(45deg, transparent 0 14px, #d4af37 14px 15px, transparent 15px 28px, #22d3ee 28px 29px),
+      repeating-linear-gradient(-45deg, transparent 0 14px, #d4af37 14px 15px, transparent 15px 28px, #22d3ee 28px 29px);
+  }
+
   /* ───────────────────────── GAMER / RETRO — 90s PC Neubrutalist ─────────────────────────
      (RGB intent → HSL equivalents for Tailwind's hsl(var(--...)) maps)
      --background  253 246 238  → 32 79% 96%    Creamy off-white

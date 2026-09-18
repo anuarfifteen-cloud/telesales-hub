@@ -13,6 +13,7 @@ export const THEME_MODE_LOCK = {
   gold: "dark",
   gamer: "light",
   pink: "light",
+  songket: "dark",
 };
 
 export function getStoredTheme() {
