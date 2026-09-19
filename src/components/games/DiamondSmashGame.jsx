@@ -8,6 +8,8 @@ import DiamondSmashMysteryMode from "@/components/games/DiamondSmashMysteryMode"
 import Board from "@/components/games/diamond-smash/Board";
 import BoosterShop from "@/components/games/diamond-smash/BoosterShop";
 import BoosterHUD from "@/components/games/diamond-smash/BoosterHUD";
+import SongketHeader from "@/components/games/songket/SongketHeader";
+import SongketFooter from "@/components/games/songket/SongketFooter";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BOARD_W, BOARD_H, MAX_MOVES, GAME_TIME } from "@/components/games/diamond-smash/constants";
 import {
@@ -64,17 +66,17 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
   }, [loadHof]);
 
   return (
-    <div className="w-full space-y-3">
-      <div className="w-full flex gap-2 p-1.5 bg-muted rounded-xl border border-border backdrop-blur dark:bg-[#0a0530]/80 dark:border-white/10">
+    <div className="w-full space-y-3 ds-leaderboard">
+      <div className="w-full flex gap-2 p-1.5 bg-muted rounded-xl border border-border backdrop-blur dark:bg-[#0a0530]/80 dark:border-white/10 ds-tabs">
         <button
           onClick={() => setPrimaryTab("live")}
-          className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ${primaryTab === "live" ? DS_TAB_ACTIVE : DS_TAB_INACTIVE}`}
+          className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ds-tab ${primaryTab === "live" ? DS_TAB_ACTIVE + " ds-tab-active" : DS_TAB_INACTIVE}`}
         >
           🏆 LIVE SCORES
         </button>
         <button
           onClick={() => setPrimaryTab("hall_of_fame")}
-          className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ${primaryTab === "hall_of_fame" ? DS_TAB_ACTIVE : DS_TAB_INACTIVE}`}
+          className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ds-tab ${primaryTab === "hall_of_fame" ? DS_TAB_ACTIVE + " ds-tab-active" : DS_TAB_INACTIVE}`}
         >
           🎖 HALL OF FAME
         </button>
@@ -612,9 +614,10 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   };
 
   const pieces = useMemo(() => flattenPieces(board), [board]);
+  const isSongket = user?.activeTheme === "songket";
 
   return (
-    <div className="bg-gradient-to-br from-slate-100 via-purple-50 to-slate-200 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 flex flex-col items-center gap-5 pb-6 p-4 sm:p-6 rounded-3xl">
+    <div className="ds-game-root bg-gradient-to-br from-slate-100 via-purple-50 to-slate-200 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 flex flex-col items-center gap-5 pb-6 p-4 sm:p-6 rounded-3xl">
       <style>{`
         @keyframes dsComboPop {
           0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
@@ -750,7 +753,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       `}</style>
 
       {/* Full-screen play overlay — covers the bottom nav and page content while playing */}
-      <div className={phase === "playing" ? "fixed inset-0 z-[60] overflow-y-auto flex flex-col items-center gap-4 p-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)] bg-gradient-to-br from-slate-100 via-purple-50 to-slate-200 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900" : "contents"}>
+      <div className={phase === "playing" ? "ds-play-overlay fixed inset-0 z-[60] overflow-y-auto flex flex-col items-center gap-4 p-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)] bg-gradient-to-br from-slate-100 via-purple-50 to-slate-200 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900" : "contents"}>
+      {isSongket && <SongketHeader />}
       {/* Audio toggles */}
       <div className="w-full flex items-center justify-center gap-2" style={{ maxWidth: BOARD_W }}>
         <button
@@ -813,6 +817,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       </div>
 
       {/* Board + overlays — `isolate` traps internal z-20…z-60 inside the card */}
+      <div className={isSongket ? "songket-board-frame" : ""}>
       <div className="relative isolate" style={{ width: BOARD_W + 16, height: BOARD_H + 16 }}>
         <Board
           pieces={pieces}
@@ -888,6 +893,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           </div>
         )}
       </div>
+      </div>
 
       {/* Mid-game booster activation HUD — constrained to canvas width for a neat, even row */}
       {phase === "playing" && (
@@ -937,6 +943,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           />
         )}
       </div>
+      {isSongket && <SongketFooter />}
     </div>
   );
 }

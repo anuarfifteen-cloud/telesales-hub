@@ -35,7 +35,7 @@ export default function Board({ pieces, selected, onCellClick, phase, busy, blas
 
   return (
     <div
-      className="relative isolate overflow-hidden rounded-3xl border border-white/60 bg-white/80 shadow-xl shadow-slate-300/50 dark:bg-slate-800/95 dark:border-slate-700/80 dark:shadow-purple-900/20 p-2"
+      className="ds-board relative isolate overflow-hidden rounded-3xl border border-white/60 bg-white/80 shadow-xl shadow-slate-300/50 dark:bg-slate-800/95 dark:border-slate-700/80 dark:shadow-purple-900/20 p-2"
       style={{ width: BOARD_W + 16, height: BOARD_H + 16 }}
     >
       <div className="relative" style={{ width: BOARD_W, height: BOARD_H }}>
