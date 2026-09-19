@@ -194,7 +194,7 @@
     height: 8px;
     background: hsl(215 18% 74%);
     transform: rotate(45deg);
-    box-shadow: 0 0 6px rgba(192, 200, 220, 0.55);
+    box-shadow: none;
   }
 
   /* ── Songket: Diamond Smash reference replica ── */
@@ -232,15 +232,18 @@
     position: relative;
     padding: 16px;
     border-radius: 24px;
-    background:
-      url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='44'%20height='44'%3E%3Cpath%20d='M22%206%20L30%2014%20L22%2022%20L14%2014%20Z'%20fill='none'%20stroke='rgba(192,200,220,0.42)'%20stroke-width='1'/%3E%3Cpath%20d='M22%2014%20L26%2018%20L22%2022%20L18%2018%20Z'%20fill='none'%20stroke='rgba(192,200,220,0.3)'%20stroke-width='0.8'/%3E%3Cpath%20d='M0%200%20L8%200%20L4%208%20Z'%20fill='none'%20stroke='rgba(192,200,220,0.28)'%20stroke-width='0.8'/%3E%3Cpath%20d='M44%2044%20L36%2044%20L40%2036%20Z'%20fill='none'%20stroke='rgba(192,200,220,0.28)'%20stroke-width='0.8'/%3E%3Ccircle%20cx='22'%20cy='14'%20r='1.3'%20fill='rgba(220,228,245,0.5)'/%3E%3C/svg%3E") repeat,
+    background-image:
+      var(--songket-corner), var(--songket-corner), var(--songket-corner), var(--songket-corner),
+      url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='44'%20height='44'%3E%3Cpath%20d='M22%206%20L30%2014%20L22%2022%20L14%2014%20Z'%20fill='none'%20stroke='rgba(192,200,220,0.42)'%20stroke-width='1'/%3E%3Cpath%20d='M22%2014%20L26%2018%20L22%2022%20L18%2018%20Z'%20fill='none'%20stroke='rgba(192,200,220,0.3)'%20stroke-width='0.8'/%3E%3Cpath%20d='M0%200%20L8%200%20L4%208%20Z'%20fill='none'%20stroke='rgba(192,200,220,0.28)'%20stroke-width='0.8'/%3E%3Cpath%20d='M44%2044%20L36%2044%20L40%2036%20Z'%20fill='none'%20stroke='rgba(192,200,220,0.28)'%20stroke-width='0.8'/%3E%3Ccircle%20cx='22'%20cy='14'%20r='1.3'%20fill='rgba(192,200,220,0.5)'/%3E%3C/svg%3E"),
       linear-gradient(160deg, rgba(74, 30, 92, 0.6), rgba(30, 16, 50, 0.75));
+    background-position: top left, top right, bottom left, bottom right, center, center;
+    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+    background-size: 30px 30px, 30px 30px, 30px 30px, 30px 30px, 44px 44px, auto;
     box-shadow:
       inset 0 0 0 1px rgba(192, 200, 220, 0.5),
       inset 0 0 0 3px rgba(42, 22, 70, 0.95),
       inset 0 0 0 4px rgba(192, 200, 220, 0.32),
-      0 22px 50px rgba(0, 0, 0, 0.5),
-      0 0 30px rgba(160, 175, 210, 0.12);
+      0 22px 50px rgba(0, 0, 0, 0.5);
   }
   [data-theme="songket"] .ds-board {
     background: linear-gradient(160deg, rgba(40, 22, 66, 0.92), rgba(24, 14, 44, 0.95)) !important;
@@ -260,10 +263,7 @@
 
   /* Leaderboard: ornamental glassmorphism + silver tabs */
   [data-theme="songket"] .ds-leaderboard {
-    background: linear-gradient(180deg, rgba(53, 32, 85, 0.7), rgba(30, 16, 50, 0.8)) !important;
-    border: 1px solid rgba(192, 200, 220, 0.32) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 16px 40px rgba(0, 0, 0, 0.45) !important;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(6px);
   }
   [data-theme="songket"] .ds-tabs {
     background: rgba(30, 16, 50, 0.6) !important;
@@ -278,7 +278,37 @@
     background: linear-gradient(135deg, rgba(192, 200, 220, 0.22), rgba(120, 90, 160, 0.3)) !important;
     border-color: rgba(192, 200, 220, 0.6) !important;
     color: hsl(40 34% 94%) !important;
-    box-shadow: 0 0 14px rgba(160, 175, 210, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* ── Songket: app-wide ornate card/panel treatment (matte silver, no shine) ── */
+  [data-theme="songket"] {
+    --songket-corner: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='28'%20height='28'%3E%3Cpath%20d='M14%204%20L20%2010%20L14%2016%20L8%2010%20Z'%20fill='none'%20stroke='%23c0c8dc'%20stroke-width='1.3'/%3E%3Cpath%20d='M14%209%20L17%2012%20L14%2015%20L11%2012%20Z'%20fill='%23c0c8dc'%20opacity='0.5'/%3E%3C/svg%3E");
+  }
+  [data-theme="songket"] .bg-card.rounded-2xl,
+  [data-theme="songket"] .bg-card.rounded-xl,
+  [data-theme="songket"] .bg-card.rounded-lg,
+  [data-theme="songket"] div.rounded-2xl.border,
+  [data-theme="songket"] div.rounded-xl.border,
+  [data-theme="songket"] section.rounded-2xl.border,
+  [data-theme="songket"] section.rounded-xl.border {
+    border-color: rgba(192, 200, 220, 0.5) !important;
+    background-image:
+      var(--songket-corner), var(--songket-corner), var(--songket-corner), var(--songket-corner) !important;
+    background-position: top left, top right, bottom left, bottom right !important;
+    background-repeat: no-repeat !important;
+    background-size: 22px 22px !important;
+    box-shadow:
+      inset 0 0 0 1px rgba(42, 22, 70, 0.92),
+      inset 0 0 0 2px rgba(192, 200, 220, 0.3),
+      0 10px 28px rgba(0, 0, 0, 0.4) !important;
+  }
+  /* Silver woven active tab/indicator state (full ornament, no shine) */
+  [data-theme="songket"] .active-tab-indicator {
+    background: linear-gradient(135deg, rgba(192, 200, 220, 0.28), rgba(120, 90, 160, 0.35)) !important;
+    color: hsl(40 34% 94%) !important;
+    border: 1px solid rgba(192, 200, 220, 0.6) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 6px 16px rgba(0, 0, 0, 0.3) !important;
   }
 
   /* ───────────────────────── GAMER / RETRO — 90s PC Neubrutalist ─────────────────────────
