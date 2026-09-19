@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Pacifico&family=Cinzel:wght@400;500;600;700&family=Cinzel+Decorative:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Pacifico&family=Cinzel:wght@400;500;600;700&family=Cinzel+Decorative:wght@400;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -120,214 +120,207 @@
     --ring: 340 85% 50%;
   }
 
+  /* ════════════════════════════════════════════════════════════════════
+     SONGKET — "Royal Glass" · VIP luxury · vibrant indigo · silver rims
+     Dark-only. Does NOT affect Default, Gold, Pink, or Gamer themes.
+     ════════════════════════════════════════════════════════════════════ */
   [data-theme="songket"] {
-    /* Silver Songket Heritage — Perak Benang (deep royal purple silk) */
-    --background: 262 52% 16%;
-    --foreground: 40 34% 90%;
-    --card: 262 40% 22%;
-    --card-foreground: 40 34% 90%;
-    --popover: 262 40% 20%;
-    --popover-foreground: 40 34% 90%;
-    --primary: 215 18% 74%;
-    --primary-foreground: 262 52% 14%;
-    --secondary: 267 36% 26%;
-    --secondary-foreground: 215 15% 82%;
-    --muted: 267 30% 20%;
-    --muted-foreground: 215 14% 68%;
-    --accent: 188 55% 42%;
-    --accent-foreground: 188 86% 92%;
-    --destructive: 0 60% 50%;
+    --background: 263 80% 20%;
+    --foreground: 0 0% 100%;
+    --card: 263 60% 24%;
+    --card-foreground: 0 0% 100%;
+    --popover: 263 60% 20%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 210 20% 82%;
+    --primary-foreground: 263 80% 16%;
+    --secondary: 263 40% 28%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 263 40% 22%;
+    --muted-foreground: 210 16% 78%;
+    --accent: 210 20% 82%;
+    --accent-foreground: 263 80% 16%;
+    --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 215 16% 50%;
-    --input: 267 38% 18%;
-    --ring: 188 86% 53%;
-    --font-display: 'Cinzel', 'Cormorant Garamond', serif;
+    --border: 210 20% 75%;
+    --input: 263 40% 18%;
+    --ring: 210 20% 82%;
+    --font-display: 'Cinzel', 'Playfair Display', serif;
   }
 
+  /* Vibrant electric-indigo gradient base */
   [data-theme="songket"] body {
-    background-color: hsl(262 52% 16%);
+    background-image: linear-gradient(135deg, #4200a8 0%, #220055 100%);
     background-attachment: fixed;
-    background-image:
-      url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%2272%22%20height=%2272%22%3E%3Cline%20x1=%220%22%20y1=%2236%22%20x2=%2236%22%20y2=%220%22%20stroke=%22rgba(180,190,215,0.2)%22%20stroke-width=%221.2%22/%3E%3Cline%20x1=%2236%22%20y1=%220%22%20x2=%2272%22%20y2=%2236%22%20stroke=%22rgba(180,190,215,0.2)%22%20stroke-width=%221.2%22/%3E%3Cline%20x1=%220%22%20y1=%2236%22%20x2=%2236%22%20y2=%2272%22%20stroke=%22rgba(180,190,215,0.2)%22%20stroke-width=%221.2%22/%3E%3Cline%20x1=%2236%22%20y1=%2272%22%20x2=%2272%22%20y2=%2236%22%20stroke=%22rgba(180,190,215,0.2)%22%20stroke-width=%221.2%22/%3E%3Cpolygon%20points=%2236,20%2052,36%2036,52%2020,36%22%20fill=%22none%22%20stroke=%22rgba(200,210,230,0.38)%22%20stroke-width=%221.3%22/%3E%3Cpolygon%20points=%2236,26%2046,36%2036,46%2026,36%22%20fill=%22none%22%20stroke=%22rgba(180,190,215,0.28)%22%20stroke-width=%220.9%22/%3E%3Cline%20x1=%2236%22%20y1=%2220%22%20x2=%2236%22%20y2=%2252%22%20stroke=%22rgba(180,190,215,0.18)%22%20stroke-width=%220.8%22/%3E%3Cline%20x1=%2220%22%20y1=%2236%22%20x2=%2252%22%20y2=%2236%22%20stroke=%22rgba(180,190,215,0.18)%22%20stroke-width=%220.8%22/%3E%3Ccircle%20cx=%2236%22%20cy=%2236%22%20r=%222.5%22%20fill=%22rgba(200,210,235,0.45)%22/%3E%3Ccircle%20cx=%2236%22%20cy=%2236%22%20r=%221%22%20fill=%22rgba(220,230,248,0.6)%22/%3E%3Ccircle%20cx=%2236%22%20cy=%220%22%20r=%221.8%22%20fill=%22rgba(200,210,235,0.3)%22/%3E%3Ccircle%20cx=%220%22%20cy=%2236%22%20r=%221.8%22%20fill=%22rgba(200,210,235,0.3)%22/%3E%3Ccircle%20cx=%2272%22%20cy=%2236%22%20r=%221.8%22%20fill=%22rgba(200,210,235,0.3)%22/%3E%3Ccircle%20cx=%2236%22%20cy=%2272%22%20r=%221.8%22%20fill=%22rgba(200,210,235,0.3)%22/%3E%3C/svg%3E"),
-      repeating-linear-gradient(
-        45deg,
-        transparent 0px, transparent 17px,
-        rgba(160, 175, 210, 0.1) 17px, rgba(160, 175, 210, 0.1) 18px
-      ),
-      repeating-linear-gradient(
-        -45deg,
-        transparent 0px, transparent 17px,
-        rgba(160, 175, 210, 0.1) 17px, rgba(160, 175, 210, 0.1) 18px
-      );
+    color: #ffffff;
   }
 
-  [data-theme="songket"] body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: -1;
-    background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(120, 70, 200, 0.2) 0%, transparent 70%);
-  }
-
-  /* ── Songket: Cinzel serif headings + spaced all-caps labels ── */
+  /* ── VIP typography ── */
   [data-theme="songket"] h1,
   [data-theme="songket"] h2,
   [data-theme="songket"] h3,
+  [data-theme="songket"] h4,
   [data-theme="songket"] .font-heading,
-  [data-theme="songket"] .songket-title {
-    font-family: var(--font-display);
+  [data-theme="songket"] .songket-title,
+  [data-theme="songket"] .ds-stat-value {
+    font-family: 'Cinzel', 'Playfair Display', serif;
     letter-spacing: 0.04em;
     font-weight: 600;
   }
-  [data-theme="songket"] .songket-label {
+  /* Active tabs & Diamond Smash stats in Cinzel */
+  [data-theme="songket"] .active-tab-indicator,
+  [data-theme="songket"] .ds-tab.ds-tab-active {
+    font-family: 'Cinzel', 'Playfair Display', serif;
+    letter-spacing: 0.06em;
+  }
+  /* Tracked all-caps secondary labels (editorial) */
+  [data-theme="songket"] .songket-label,
+  [data-theme="songket"] .ds-stat-label {
     font-family: 'Inter', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.22em;
-    font-weight: 700;
-    font-size: 0.62rem;
-    color: hsl(215 18% 74%);
+    letter-spacing: 0.15em;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.72);
+  }
+  /* Primary text pure white; secondary text luminous silver */
+  [data-theme="songket"] .text-muted-foreground {
+    color: rgba(214, 222, 240, 0.78) !important;
   }
   [data-theme="songket"] .songket-diamond {
     display: inline-block;
     width: 8px;
     height: 8px;
-    background: hsl(215 18% 74%);
+    background: linear-gradient(45deg, #ffffff, #c0c8dc);
     transform: rotate(45deg);
     box-shadow: none;
   }
 
-  /* ── Songket: Diamond Smash reference replica ── */
-  [data-theme="songket"] .ds-game-root {
-    background: transparent !important;
-  }
-  [data-theme="songket"] .ds-play-overlay {
-    background: hsl(262 52% 16%) !important;
-    background-image: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(120, 70, 200, 0.2), transparent 70%) !important;
-  }
-  [data-theme="songket"] .ds-statbar {
-    background: linear-gradient(180deg, rgba(74, 30, 92, 0.5), rgba(42, 22, 70, 0.62)) !important;
-    border: 1px solid rgba(192, 200, 220, 0.32) !important;
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 24px rgba(160, 175, 210, 0.08) !important;
-    backdrop-filter: blur(10px);
-  }
-  [data-theme="songket"] .ds-stat {
-    background: linear-gradient(180deg, rgba(53, 32, 85, 0.72), rgba(30, 16, 50, 0.8)) !important;
-    border: 1px solid rgba(192, 200, 220, 0.3) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 6px 16px rgba(0, 0, 0, 0.35) !important;
-    backdrop-filter: blur(6px);
-  }
-  [data-theme="songket"] .ds-stat-label { color: hsl(215 18% 76%) !important; }
-  [data-theme="songket"] .ds-stat-value { color: hsl(40 34% 92%) !important; }
-  [data-theme="songket"] .ds-stat-score::before { background: linear-gradient(90deg, transparent, hsl(215 18% 74%), transparent) !important; }
-  [data-theme="songket"] .ds-stat-moves::before { background: linear-gradient(90deg, transparent, hsl(188 55% 50%), transparent) !important; }
-  [data-theme="songket"] .ds-stat-time::before { background: linear-gradient(90deg, transparent, hsl(215 18% 74%), transparent) !important; }
-  [data-theme="songket"] .ds-stat-frozen {
-    background: linear-gradient(180deg, rgba(120, 180, 210, 0.3), rgba(80, 130, 170, 0.35)) !important;
-    border-color: rgba(150, 210, 235, 0.6) !important;
-  }
-
-  /* Ornate silver woven frame around the game grid */
-  [data-theme="songket"] .songket-board-frame {
-    position: relative;
-    padding: 16px;
-    border-radius: 24px;
-    background-image:
-      var(--songket-corner), var(--songket-corner), var(--songket-corner), var(--songket-corner),
-      url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='44'%20height='44'%3E%3Cpath%20d='M22%206%20L30%2014%20L22%2022%20L14%2014%20Z'%20fill='none'%20stroke='rgba(192,200,220,0.42)'%20stroke-width='1'/%3E%3Cpath%20d='M22%2014%20L26%2018%20L22%2022%20L18%2018%20Z'%20fill='none'%20stroke='rgba(192,200,220,0.3)'%20stroke-width='0.8'/%3E%3Cpath%20d='M0%200%20L8%200%20L4%208%20Z'%20fill='none'%20stroke='rgba(192,200,220,0.28)'%20stroke-width='0.8'/%3E%3Cpath%20d='M44%2044%20L36%2044%20L40%2036%20Z'%20fill='none'%20stroke='rgba(192,200,220,0.28)'%20stroke-width='0.8'/%3E%3Ccircle%20cx='22'%20cy='14'%20r='1.3'%20fill='rgba(192,200,220,0.5)'/%3E%3C/svg%3E"),
-      linear-gradient(160deg, rgba(74, 30, 92, 0.6), rgba(30, 16, 50, 0.75));
-    background-position: top left, top right, bottom left, bottom right, center, center;
-    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat, no-repeat;
-    background-size: 30px 30px, 30px 30px, 30px 30px, 30px 30px, 44px 44px, auto;
-    box-shadow:
-      inset 0 0 0 1px rgba(192, 200, 220, 0.5),
-      inset 0 0 0 3px rgba(42, 22, 70, 0.95),
-      inset 0 0 0 4px rgba(192, 200, 220, 0.32),
-      0 22px 50px rgba(0, 0, 0, 0.5);
-  }
-  [data-theme="songket"] .ds-board {
-    background: linear-gradient(160deg, rgba(40, 22, 66, 0.92), rgba(24, 14, 44, 0.95)) !important;
-    border: 1px solid rgba(192, 200, 220, 0.28) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 0 26px rgba(0, 0, 0, 0.4) !important;
-  }
-  [data-theme="songket"] .ds-board button {
-    background: linear-gradient(160deg, rgba(74, 30, 92, 0.85), rgba(42, 22, 70, 0.9)) !important;
-    border: 1px solid rgba(192, 200, 220, 0.38) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
-  }
-  [data-theme="songket"] .ds-board button.ring-fuchsia-400 {
-    background: linear-gradient(160deg, rgba(130, 100, 165, 0.92), rgba(74, 30, 92, 0.95)) !important;
-    border-color: rgba(225, 232, 248, 0.85) !important;
-    box-shadow: 0 0 0 2px rgba(192, 200, 220, 0.6), 0 0 14px rgba(160, 175, 210, 0.45) !important;
-  }
-
-  /* Leaderboard: ornamental glassmorphism + silver tabs */
-  [data-theme="songket"] .ds-leaderboard {
-    backdrop-filter: blur(6px);
-  }
-  [data-theme="songket"] .ds-tabs {
-    background: rgba(30, 16, 50, 0.6) !important;
-    border-color: rgba(192, 200, 220, 0.22) !important;
-    backdrop-filter: blur(6px);
-  }
-  [data-theme="songket"] .ds-tab {
-    border-color: rgba(192, 200, 220, 0.2) !important;
-    color: hsl(215 14% 70%) !important;
-  }
-  [data-theme="songket"] .ds-tab.ds-tab-active {
-    background: linear-gradient(135deg, rgba(192, 200, 220, 0.22), rgba(120, 90, 160, 0.3)) !important;
-    border-color: rgba(192, 200, 220, 0.6) !important;
-    color: hsl(40 34% 94%) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 16px rgba(0, 0, 0, 0.3) !important;
-  }
-
-  /* ── Songket: geometric patterned-track frame (matte silver, no shine) ── */
-  [data-theme="songket"] {
-    --songket-corner: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='24'%20height='24'%3E%3Cpath%20d='M12%202%20L20%2010%20L12%2018%20L4%2010%20Z'%20fill='none'%20stroke='%23c0c8dc'%20stroke-width='1.3'/%3E%3Cpath%20d='M12%207%20L16%2011%20L12%2015%20L8%2011%20Z'%20fill='%23c0c8dc'/%3E%3C/svg%3E");
-    --songket-track: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='40'%20height='40'%3E%3Cpath%20d='M20%2012%20L26%2018%20L20%2024%20L14%2018%20Z'%20fill='none'%20stroke='%23c0c8dc'%20stroke-width='1'%20opacity='0.85'/%3E%3Ccircle%20cx='20'%20cy='18'%20r='1.2'%20fill='%23c0c8dc'/%3E%3Cpath%20d='M20%204%20L24%208%20L16%208%20Z'%20fill='%23c0c8dc'%20opacity='0.8'/%3E%3Cpath%20d='M20%2036%20L24%2032%20L16%2032%20Z'%20fill='%23c0c8dc'%20opacity='0.8'/%3E%3C/svg%3E");
-  }
-  /* Dark cards: thick patterned track (padding) + dark inner container + nested-diamond corners */
+  /* ── Frosted glass + shiny silver rim (dark cards) ── */
   [data-theme="songket"] .bg-card.rounded-2xl,
   [data-theme="songket"] .bg-card.rounded-xl,
   [data-theme="songket"] .bg-card.rounded-lg,
   [data-theme="songket"] div.rounded-2xl.border:not(.bg-white),
   [data-theme="songket"] div.rounded-xl.border:not(.bg-white),
+  [data-theme="songket"] div.rounded-lg.border:not(.bg-white),
   [data-theme="songket"] section.rounded-2xl.border:not(.bg-white),
-  [data-theme="songket"] section.rounded-xl.border:not(.bg-white) {
-    padding: 12px !important;
-    border: 1px solid rgba(192, 200, 220, 0.45) !important;
-    border-radius: 10px !important;
-    background-color: transparent !important;
-    background-image:
-      linear-gradient(160deg, rgba(38, 20, 62, 0.96), rgba(22, 12, 42, 0.98)),
-      var(--songket-corner), var(--songket-corner), var(--songket-corner), var(--songket-corner),
-      var(--songket-track) !important;
-    background-origin: content-box, border-box, border-box, border-box, border-box, border-box !important;
-    background-clip: content-box, border-box, border-box, border-box, border-box, border-box !important;
-    background-position: center, left 2px top 2px, right 2px top 2px, left 2px bottom 2px, right 2px bottom 2px, center !important;
-    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat !important;
-    background-size: auto, 16px 16px, 16px 16px, 16px 16px, 16px 16px, 16px 16px !important;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4) !important;
+  [data-theme="songket"] section.rounded-xl.border:not(.bg-white),
+  [data-theme="songket"] section.rounded-lg.border:not(.bg-white) {
+    border: 1px solid transparent !important;
+    border-radius: 16px !important;
+    background:
+      linear-gradient(rgba(30, 10, 60, 0.55), rgba(30, 10, 60, 0.55)) padding-box,
+      linear-gradient(45deg, #e0e0e0, #ffffff, #666666, #ffffff, #e0e0e0) border-box !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
   }
-  /* White cards: keep readable white inner, add silver border + nested-diamond corners */
+  /* White cards: light frosted glass + silver rim (keeps dark text readable) */
   [data-theme="songket"] .bg-white.rounded-2xl,
   [data-theme="songket"] .bg-white.rounded-xl,
   [data-theme="songket"] .bg-white.rounded-lg {
-    border: 1px solid rgba(192, 200, 220, 0.5) !important;
-    border-radius: 10px !important;
-    background-image:
-      var(--songket-corner), var(--songket-corner), var(--songket-corner), var(--songket-corner) !important;
-    background-position: left 2px top 2px, right 2px top 2px, left 2px bottom 2px, right 2px bottom 2px !important;
-    background-repeat: no-repeat !important;
-    background-size: 16px 16px !important;
-    box-shadow: inset 0 0 0 1px rgba(192, 200, 220, 0.25), 0 8px 22px rgba(0, 0, 0, 0.25) !important;
+    border: 1px solid transparent !important;
+    border-radius: 16px !important;
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)) padding-box,
+      linear-gradient(45deg, #e0e0e0, #ffffff, #666666, #ffffff, #e0e0e0) border-box !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45) !important;
   }
-  /* Silver woven active tab/indicator state (full ornament, no shine) */
-  [data-theme="songket"] .active-tab-indicator {
-    background: linear-gradient(135deg, rgba(192, 200, 220, 0.28), rgba(120, 90, 160, 0.35)) !important;
-    color: hsl(40 34% 94%) !important;
-    border: 1px solid rgba(192, 200, 220, 0.6) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+
+  /* ── Tapered silver dividers ── */
+  [data-theme="songket"] hr,
+  [data-theme="songket"] [data-orientation="horizontal"] {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent) !important;
+    height: 1px !important;
+    border: 0 !important;
+  }
+  [data-theme="songket"] [data-orientation="vertical"] {
+    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.6), transparent) !important;
+    width: 1px !important;
+    border: 0 !important;
+  }
+
+  /* ── Active tabs: glowing silver tint + text-shadow ── */
+  [data-theme="songket"] .ds-tab {
+    color: rgba(214, 222, 240, 0.7) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+  }
+  [data-theme="songket"] .active-tab-indicator,
+  [data-theme="songket"] .ds-tab.ds-tab-active {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(192, 200, 220, 0.1)) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 16px rgba(192, 200, 220, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+  }
+
+  /* ── Diamond Smash: royal glass panels ── */
+  [data-theme="songket"] .ds-game-root { background: transparent !important; }
+  [data-theme="songket"] .ds-play-overlay {
+    background: linear-gradient(135deg, #4200a8 0%, #220055 100%) !important;
+  }
+  [data-theme="songket"] .ds-statbar {
+    border: 1px solid transparent !important;
+    background:
+      linear-gradient(rgba(30, 10, 60, 0.55), rgba(30, 10, 60, 0.55)) padding-box,
+      linear-gradient(45deg, #e0e0e0, #ffffff, #666666, #ffffff, #e0e0e0) border-box !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  }
+  [data-theme="songket"] .ds-stat {
+    border: 1px solid transparent !important;
+    background:
+      linear-gradient(rgba(40, 16, 72, 0.6), rgba(26, 8, 50, 0.6)) padding-box,
+      linear-gradient(45deg, #c8c8d0, #ffffff, #555555, #ffffff, #c8c8d0) border-box !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+  }
+  [data-theme="songket"] .ds-stat-label { color: rgba(214, 222, 240, 0.72) !important; }
+  [data-theme="songket"] .ds-stat-value { color: #ffffff !important; }
+  [data-theme="songket"] .ds-stat-score::before,
+  [data-theme="songket"] .ds-stat-moves::before,
+  [data-theme="songket"] .ds-stat-time::before {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent) !important;
+  }
+  [data-theme="songket"] .ds-stat-frozen {
+    border: 1px solid transparent !important;
+    background:
+      linear-gradient(rgba(120, 180, 220, 0.35), rgba(80, 130, 180, 0.35)) padding-box,
+      linear-gradient(45deg, #d8e8ff, #ffffff, #7aa0c8, #ffffff, #d8e8ff) border-box !important;
+  }
+  [data-theme="songket"] .songket-board-frame {
+    border: 1px solid transparent !important;
+    border-radius: 20px !important;
+    background:
+      linear-gradient(rgba(30, 10, 60, 0.5), rgba(22, 8, 48, 0.6)) padding-box,
+      linear-gradient(45deg, #e0e0e0, #ffffff, #666666, #ffffff, #e0e0e0) border-box !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5) !important;
+  }
+  [data-theme="songket"] .ds-board {
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    background: linear-gradient(160deg, rgba(30, 12, 60, 0.7), rgba(18, 8, 40, 0.8)) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 24px rgba(0, 0, 0, 0.35) !important;
+  }
+  [data-theme="songket"] .ds-board button {
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    background: linear-gradient(160deg, rgba(60, 24, 110, 0.7), rgba(34, 14, 70, 0.75)) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  }
+  [data-theme="songket"] .ds-board button.ring-fuchsia-400 {
+    border-color: rgba(255, 255, 255, 0.85) !important;
+    background: linear-gradient(160deg, rgba(120, 90, 200, 0.85), rgba(70, 30, 120, 0.9)) !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5), 0 0 14px rgba(192, 200, 220, 0.4) !important;
+  }
+  [data-theme="songket"] .ds-leaderboard { backdrop-filter: blur(12px); }
+  [data-theme="songket"] .ds-tabs {
+    background: rgba(30, 10, 60, 0.5) !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    backdrop-filter: blur(12px);
   }
 
   /* ───────────────────────── GAMER / RETRO — 90s PC Neubrutalist ─────────────────────────
