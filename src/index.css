@@ -119,72 +119,53 @@
     --ring: 340 85% 50%;
   }
 
-  /* ───────────────────────── SONGKET HERITAGE — Royal Purple Silk & Silver ─────────────────────────
-     Deep royal-purple silk base with traditional woven Songket textile backdrop,
-     polished obsidian cards, metallic silver (Benang Perak) primary, neon cyan
-     accent. Dark-mode only.
-     --background  #2a0a4a → 270 76% 16%   Deep royal purple silk
-     --foreground  #f0f0f5 → 240 20% 95%    Cool light-silver text
-     --card        #120c1e → 260 43% 8%     Polished obsidian panel
-     --primary     #c0c0c0 → 0 0% 75%       Metallic silver / Benang Perak
-     --accent      #22d3ee → 188 60% 40%    Neon cyan (darkened for contrast)
-  */
   [data-theme="songket"] {
-    --background: 270 76% 16%;
-    --foreground: 240 20% 95%;
-    --card: 260 43% 8%;
-    --card-foreground: 240 20% 95%;
-    --popover: 260 43% 8%;
-    --popover-foreground: 240 20% 95%;
-    --primary: 0 0% 75%;
-    --primary-foreground: 270 76% 10%;
-    --secondary: 267 40% 20%;
-    --secondary-foreground: 0 0% 82%;
-    --muted: 267 30% 16%;
-    --muted-foreground: 240 15% 75%;
-    --accent: 188 60% 40%;
+    /* Silver Songket Heritage — Perak Benang */
+    --background: 262 72% 11%;
+    --foreground: 40 20% 88%;
+    --card: 262 60% 7%;
+    --card-foreground: 40 20% 88%;
+    --popover: 262 60% 7%;
+    --popover-foreground: 40 20% 88%;
+    --primary: 215 20% 72%;
+    --primary-foreground: 262 72% 10%;
+    --secondary: 267 30% 20%;
+    --secondary-foreground: 215 15% 80%;
+    --muted: 267 25% 16%;
+    --muted-foreground: 215 10% 62%;
+    --accent: 188 60% 38%;
     --accent-foreground: 188 86% 90%;
     --destructive: 0 60% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 65%;
-    --input: 267 40% 14%;
+    --border: 215 15% 48%;
+    --input: 267 35% 14%;
     --ring: 188 86% 53%;
   }
 
-  /* Songket: traditional woven textile backdrop (real Songket reference, fixed) */
   [data-theme="songket"] body {
-    background-color: hsl(270, 76%, 16%); /* Deep Royal Purple fallback */
-    background-image: url("https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/39a240b40_315f38c0-c8fa-4939-86fe-7eaced2841df.jpeg");
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-position: center;
+    background-color: hsl(262 72% 11%);
     background-attachment: fixed;
+    background-image:
+      url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%2272%22%20height=%2272%22%3E%3Cline%20x1=%220%22%20y1=%2236%22%20x2=%2236%22%20y2=%220%22%20stroke=%22rgba(180,190,215,0.2)%22%20stroke-width=%221.2%22/%3E%3Cline%20x1=%2236%22%20y1=%220%22%20x2=%2272%22%20y2=%2236%22%20stroke=%22rgba(180,190,215,0.2)%22%20stroke-width=%221.2%22/%3E%3Cline%20x1=%220%22%20y1=%2236%22%20x2=%2236%22%20y2=%2272%22%20stroke=%22rgba(180,190,215,0.2)%22%20stroke-width=%221.2%22/%3E%3Cline%20x1=%2236%22%20y1=%2272%22%20x2=%2272%22%20y2=%2236%22%20stroke=%22rgba(180,190,215,0.2)%22%20stroke-width=%221.2%22/%3E%3Cpolygon%20points=%2236,20%2052,36%2036,52%2020,36%22%20fill=%22none%22%20stroke=%22rgba(200,210,230,0.38)%22%20stroke-width=%221.3%22/%3E%3Cpolygon%20points=%2236,26%2046,36%2036,46%2026,36%22%20fill=%22none%22%20stroke=%22rgba(180,190,215,0.28)%22%20stroke-width=%220.9%22/%3E%3Cline%20x1=%2236%22%20y1=%2220%22%20x2=%2236%22%20y2=%2252%22%20stroke=%22rgba(180,190,215,0.18)%22%20stroke-width=%220.8%22/%3E%3Cline%20x1=%2220%22%20y1=%2236%22%20x2=%2252%22%20y2=%2236%22%20stroke=%22rgba(180,190,215,0.18)%22%20stroke-width=%220.8%22/%3E%3Ccircle%20cx=%2236%22%20cy=%2236%22%20r=%222.5%22%20fill=%22rgba(200,210,235,0.45)%22/%3E%3Ccircle%20cx=%2236%22%20cy=%2236%22%20r=%221%22%20fill=%22rgba(220,230,248,0.6)%22/%3E%3Ccircle%20cx=%2236%22%20cy=%220%22%20r=%221.8%22%20fill=%22rgba(200,210,235,0.3)%22/%3E%3Ccircle%20cx=%220%22%20cy=%2236%22%20r=%221.8%22%20fill=%22rgba(200,210,235,0.3)%22/%3E%3Ccircle%20cx=%2272%22%20cy=%2236%22%20r=%221.8%22%20fill=%22rgba(200,210,235,0.3)%22/%3E%3Ccircle%20cx=%2236%22%20cy=%2272%22%20r=%221.8%22%20fill=%22rgba(200,210,235,0.3)%22/%3E%3C/svg%3E"),
+      repeating-linear-gradient(
+        45deg,
+        transparent 0px, transparent 17px,
+        rgba(160, 175, 210, 0.1) 17px, rgba(160, 175, 210, 0.1) 18px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        transparent 0px, transparent 17px,
+        rgba(160, 175, 210, 0.1) 17px, rgba(160, 175, 210, 0.1) 18px
+      );
   }
 
-  /* Songket: metallic silver primary buttons + thin silver card borders */
-  [data-theme="songket"] .bg-primary,
-  [data-theme="songket"] [data-active="true"],
-  [data-theme="songket"] .active-tab-indicator {
-    background: linear-gradient(135deg, #8a8a8a 0%, #c0c0c0 25%, #f5f5f5 50%, #c0c0c0 75%, #8a8a8a 100%) !important;
-    border: 1px solid #e8e8e8 !important;
-    color: #1a0533 !important;
-    font-weight: 800 !important;
-    box-shadow: 0 4px 20px rgba(192, 192, 192, 0.18) !important;
-  }
-  [data-theme="songket"] .text-primary {
-    color: #c0c0c0 !important;
-  }
-  /* Subtle woven silver motif behind large surfaces (not behind cards) */
   [data-theme="songket"] body::before {
     content: "";
     position: fixed;
     inset: 0;
-    z-index: -1;
     pointer-events: none;
-    opacity: 0.05;
-    background-image:
-      repeating-linear-gradient(45deg, transparent 0 14px, #c0c0c0 14px 15px, transparent 15px 28px, #22d3ee 28px 29px),
-      repeating-linear-gradient(-45deg, transparent 0 14px, #c0c0c0 14px 15px, transparent 15px 28px, #22d3ee 28px 29px);
+    z-index: -1;
+    background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(100, 60, 180, 0.18) 0%, transparent 70%);
   }
 
   /* ───────────────────────── GAMER / RETRO — 90s PC Neubrutalist ─────────────────────────

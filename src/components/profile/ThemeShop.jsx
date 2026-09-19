@@ -45,8 +45,8 @@ const THEMES = [
   {
     id: "songket",
     name: "Songket Heritage",
-    description: "Royal purple silk · woven gold. Exclusive Ninja Slice champion skin.",
-    preview: "linear-gradient(135deg, #2a0a4a 0%, #1a0533 40%, #d4af37 100%)",
+    description: "Royal purple silk · woven silver. Exclusive champion skin.",
+    preview: "linear-gradient(135deg, #1a0840 0%, #2d1060 40%, #4a1e8a 65%, #c0c8dc 85%, #22d3ee 100%)",
     exclusive: true,
     exclusiveSource: "Ninja Token",
   },
