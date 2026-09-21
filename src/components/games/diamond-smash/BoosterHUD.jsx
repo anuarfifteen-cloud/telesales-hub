@@ -41,7 +41,7 @@ export default function BoosterHUD({
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-3">
         {BOOSTER_DEFS.map((b) => {
           const owned = getStock(b.id);
           const isActivated = activatedBooster === b.id;
@@ -57,7 +57,7 @@ export default function BoosterHUD({
               type="button"
               disabled={disabled}
               onClick={() => onActivate(b.id)}
-              className={`group relative flex flex-col items-center gap-1.5 overflow-hidden rounded-2xl border p-2.5 transition-all duration-200
+              className={`group relative w-full flex flex-col items-center gap-1.5 overflow-hidden rounded-2xl border p-2.5 transition-all duration-200
                 ${isActivated
                   ? "border-emerald-400/70 bg-emerald-500/15 ring-2 ring-emerald-400/50 shadow-[0_0_18px_rgba(52,211,153,0.45)]"
                   : isLockedState
