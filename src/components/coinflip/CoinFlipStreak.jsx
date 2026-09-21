@@ -207,23 +207,12 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
     }
   };
 
-  // ── double down: pay fee, keep pot, choose H/T for another flip ─────────
-  const doubleDown = async () => {
+  // ── double down: keep pot, choose H/T for another flip (free) ────────────
+  const doubleDown = () => {
     if (busy) return;
-    if (tokens < FLIP_FEE) {
-      toast.error("Not enough tokens to pay the fee!");
-      return;
-    }
-    try {
-      await base44.auth.updateMe({ earlyAccessTokens: tokens - FLIP_FEE });
-      await logTx(-FLIP_FEE, "Coin Flip Fee");
-      await onUserUpdate?.();
-      setChoice(null);
-      setOutcome(null);
-      setPickMode(true); // phase stays TENSION; user picks again
-    } catch {
-      toast.error("Couldn't pay the fee. Try again.");
-    }
+    setChoice(null);
+    setOutcome(null);
+    setPickMode(true); // phase stays TENSION; user picks again
   };
 
   const resetLost = () => {
@@ -296,8 +285,8 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
         .cf-sad { animation: cfSadShake .5s ease-in-out 2; }
       `}</style>
 
-      {/* premium casino panel */}
-      <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-emerald-950 via-gray-950 to-emerald-900 shadow-2xl shadow-emerald-900/60">
+      {/* premium casino panel — theme-aware */}
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-2xl">
         {/* header */}
         <div className="flex items-center justify-between px-5 pt-5">
           <div className="flex items-center gap-2">
@@ -308,7 +297,7 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
               Double or Nothing
             </h2>
           </div>
-          <span className="rounded-full border border-amber-400/30 bg-black/30 px-3 py-1 text-[11px] font-bold text-amber-200">
+          <span className="rounded-full border border-amber-400/30 bg-muted px-3 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
             🪙 {tokens} tokens
           </span>
         </div>
@@ -317,10 +306,10 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
         <div className="mt-3 flex justify-center">
           <div className={`flex items-center gap-1.5 rounded-full px-4 py-1 text-xs font-bold uppercase tracking-widest ${
             fireLevel > 0
-              ? "bg-orange-500/15 text-orange-300 ring-1 ring-orange-400/50"
-              : "bg-white/5 text-emerald-200/70 ring-1 ring-white/10"
+              ? "bg-orange-500/15 text-orange-500 dark:text-orange-300 ring-1 ring-orange-400/50"
+              : "bg-muted text-muted-foreground ring-1 ring-border"
           }`}>
-            <Flame className={`h-3.5 w-3.5 ${fireLevel > 0 ? "text-orange-400 animate-pulse" : "text-emerald-400/60"}`} />
+            <Flame className={`h-3.5 w-3.5 ${fireLevel > 0 ? "text-orange-400 animate-pulse" : "text-muted-foreground"}`} />
             Current Win Streak: {currentStreak}
           </div>
         </div>
@@ -360,13 +349,13 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
           {/* outcome / status line */}
           <div className="mt-4 h-5 text-center text-xs font-bold uppercase tracking-widest">
             {showFlipping ? (
-              <span className="text-emerald-300/80 animate-pulse">Flipping…</span>
+              <span className="text-emerald-500/80 animate-pulse">Flipping…</span>
             ) : outcome ? (
-              <span className={outcome === "heads" ? "text-amber-300" : "text-emerald-300"}>
+              <span className={outcome === "heads" ? "text-amber-600 dark:text-amber-300" : "text-emerald-600 dark:text-emerald-300"}>
                 Landed: {outcome.toUpperCase()}
               </span>
             ) : (
-              <span className="text-white/30">—</span>
+              <span className="text-muted-foreground/40">—</span>
             )}
           </div>
         </div>
@@ -376,7 +365,7 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
           {/* START */}
           {showStart && (
             <div className="flex flex-col items-center gap-3">
-              <p className="text-center text-sm text-emerald-100/70">
+              <p className="text-center text-sm text-muted-foreground">
                 Pick your wager to start a chain. Win to double your pot — cash out or risk it all.
               </p>
               {/* preset chips */}
@@ -389,8 +378,8 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
                     disabled={p > tokens}
                     className={`min-w-[3rem] rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-widest transition ${
                       wager === p
-                        ? "border-amber-400 bg-amber-500/25 text-amber-200 ring-2 ring-amber-400/60"
-                        : "border-amber-400/40 bg-black/30 text-amber-200/80 hover:bg-amber-500/15"
+                        ? "border-amber-400 bg-amber-500/25 text-amber-600 dark:text-amber-200 ring-2 ring-amber-400/60"
+                        : "border-amber-400/40 bg-muted text-amber-600/80 dark:text-amber-400/80 hover:bg-amber-500/15"
                     } disabled:opacity-30`}
                   >
                     {p}
@@ -399,7 +388,7 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
               </div>
               {/* manual input */}
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-200/60">Or enter tokens</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Or enter tokens</span>
                 <input
                   type="number"
                   min={1}
@@ -407,7 +396,7 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
                   value={wager}
                   onChange={handleManualWager}
                   disabled={tokens < 1}
-                  className="w-24 rounded-lg border border-amber-400/40 bg-black/40 px-3 py-1.5 text-center text-sm font-black text-amber-200 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 disabled:opacity-40"
+                  className="w-24 rounded-lg border border-amber-400/40 bg-muted px-3 py-1.5 text-center text-sm font-black text-amber-600 dark:text-amber-400 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 disabled:opacity-40"
                 />
               </div>
               <button
@@ -418,7 +407,7 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
                 🎯 Start Chain ({wager} Token{wager === 1 ? "" : "s"})
               </button>
               {tokens < 1 && (
-                <p className="text-[11px] text-red-300/80">Not enough tokens to play.</p>
+                <p className="text-[11px] text-red-500 dark:text-red-400">Not enough tokens to play.</p>
               )}
             </div>
           )}
@@ -426,11 +415,11 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
           {/* PICK H/T (first flip or double down) */}
           {showPick && (
             <div className="flex flex-col gap-3">
-              <p className="text-center text-sm font-bold text-emerald-100/90">
+              <p className="text-center text-sm font-bold text-foreground">
                 {currentStreak === 0 ? "Call it in the air" : "Risk it all — call it again"}
                 {currentPot > 0 && (
-                  <span className="block text-[11px] font-normal text-amber-200/70 mt-0.5">
-                    Pot at stake: <span className="font-black text-amber-300">{currentPot}</span> 🪙
+                  <span className="block text-[11px] font-normal text-amber-600/70 dark:text-amber-400/70 mt-0.5">
+                    Pot at stake: <span className="font-black text-amber-600 dark:text-amber-300">{currentPot}</span> 🪙
                   </span>
                 )}
               </p>
@@ -441,8 +430,8 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
                     onClick={() => setChoice(side)}
                     className={`rounded-xl border py-3 text-sm font-black uppercase tracking-widest transition ${
                       choice === side
-                        ? "border-amber-400 bg-amber-500/25 text-amber-200 ring-2 ring-amber-400/60"
-                        : "border-white/10 bg-white/5 text-emerald-100/70 hover:bg-white/10"
+                        ? "border-amber-400 bg-amber-500/25 text-amber-600 dark:text-amber-200 ring-2 ring-amber-400/60"
+                        : "border-border bg-muted text-muted-foreground hover:bg-muted/60"
                     }`}
                   >
                     {side === "heads" ? "👑 Heads" : "🏛️ Tails"}
@@ -462,7 +451,7 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
           {/* FLIPPING	wait state */}
           {showFlipping && (
             <div className="flex items-center justify-center">
-              <span className="text-xs font-bold uppercase tracking-widest text-emerald-300/60 animate-pulse">
+              <span className="text-xs font-bold uppercase tracking-widest text-emerald-500/60 animate-pulse">
                 Hold your breath…
               </span>
             </div>
@@ -471,7 +460,7 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
           {/* TENSION — cash out or double down */}
           {showTension && (
             <div className="flex flex-col gap-4">
-              <p className="cf-anim-win text-center text-sm font-black uppercase tracking-widest text-emerald-300 drop-shadow-[0_0_8px_rgba(16,185,129,.8)]">
+              <p className="cf-anim-win text-center text-sm font-black uppercase tracking-widest text-emerald-500 dark:text-emerald-300 drop-shadow-[0_0_8px_rgba(16,185,129,.8)]">
                 ✨ You Won — Pot Doubled!
               </p>
               <div
@@ -479,18 +468,18 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
                   fireLevel === 3 ? "cf-anim-fire3" :
                   fireLevel === 2 ? "cf-anim-fire2" :
                   fireLevel === 1 ? "cf-anim-fire1" : ""
-                } bg-black/40`}
+                } bg-muted`}
               >
                 {fireLevel > 0 && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-lg">
                     {fireLevel >= 2 ? "🔥🔥" : "🔥"}
                   </span>
                 )}
-                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-200/60">Current Pot</span>
-                <span className={`cf-anim-pot mt-1 text-6xl font-black tabular-nums text-amber-300`}>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Current Pot</span>
+                <span className={`cf-anim-pot mt-1 text-6xl font-black tabular-nums text-amber-500 dark:text-amber-300`}>
                   {currentPot}
                 </span>
-                <span className="mt-1 text-[11px] font-bold uppercase tracking-widest text-amber-200/70">🪙 Tokens</span>
+                <span className="mt-1 text-[11px] font-bold uppercase tracking-widest text-amber-600/70 dark:text-amber-400/70">🪙 Tokens</span>
               </div>
 
               <button
@@ -503,10 +492,10 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
               {currentStreak < MAX_STREAK && (
                 <button
                   onClick={doubleDown}
-                  disabled={busy || tokens < FLIP_FEE}
+                  disabled={busy}
                   className="w-full rounded-xl border border-red-500/50 bg-gradient-to-r from-red-600 to-rose-500 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-red-600/30 transition hover:scale-[1.02] active:scale-95 disabled:opacity-40"
                 >
-                  🔴 Double Down (Cost: 2 Tokens)
+                  🔴 Double Down (Free)
                 </button>
               )}
             </div>
@@ -515,14 +504,14 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
           {/* LOST — wiped out */}
           {phase === "LOST" && (
             <div className="cf-sad flex flex-col items-center gap-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-600/15 ring-1 ring-red-500/40">
-                <Skull className="h-8 w-8 text-red-400" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/15 ring-1 ring-red-500/40">
+                <Skull className="h-8 w-8 text-red-500 dark:text-red-400" />
               </div>
-              <p className="text-xl font-black uppercase tracking-widest text-red-400">Wiped Out</p>
-              <p className="text-center text-sm text-red-200/70">The pot is gone. The house takes it all.</p>
+              <p className="text-xl font-black uppercase tracking-widest text-red-500 dark:text-red-400">Wiped Out</p>
+              <p className="text-center text-sm text-red-600/70 dark:text-red-300/70">The pot is gone. The house takes it all.</p>
               <button
                 onClick={resetLost}
-                className="w-full rounded-xl border border-white/15 bg-white/5 py-3 text-sm font-bold uppercase tracking-widest text-emerald-100 transition hover:bg-white/10"
+                className="w-full rounded-xl border border-border bg-muted py-3 text-sm font-bold uppercase tracking-widest text-foreground transition hover:bg-muted/60"
               >
                 <RotateCcw className="mr-1 inline h-4 w-4" /> Try Again
               </button>
