@@ -121,206 +121,114 @@
   }
 
   /* ════════════════════════════════════════════════════════════════════
-     SONGKET — "Royal Glass" · VIP luxury · vibrant indigo · silver rims
-     Dark-only. Does NOT affect Default, Gold, Pink, or Gamer themes.
+     LILAC BLOOM — "Cute Bubble UI" · soft lilac · gentle gradients
+     Light-only. Does NOT affect Default, Gold, Pink, or Gamer themes.
      ════════════════════════════════════════════════════════════════════ */
-  [data-theme="songket"] {
-    --background: 263 80% 20%;
-    --foreground: 0 0% 100%;
-    --card: 263 60% 24%;
-    --card-foreground: 0 0% 100%;
-    --popover: 263 60% 20%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 210 20% 82%;
-    --primary-foreground: 263 80% 16%;
-    --secondary: 263 40% 28%;
+  [data-theme="lilac_bloom"] {
+    --background: 270 46% 89%;
+    --foreground: 267 45% 25%;
+    --card: 270 55% 96%;
+    --card-foreground: 267 45% 25%;
+    --popover: 270 55% 96%;
+    --popover-foreground: 267 45% 25%;
+    --primary: 187 85% 53%;
+    --primary-foreground: 267 45% 15%;
+    --secondary: 271 76% 66%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 263 40% 22%;
-    --muted-foreground: 210 16% 78%;
-    --accent: 210 20% 82%;
-    --accent-foreground: 263 80% 16%;
+    --muted: 270 30% 90%;
+    --muted-foreground: 273 20% 55%;
+    --accent: 45 96% 56%;
+    --accent-foreground: 267 45% 15%;
     --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 210 20% 75%;
-    --input: 263 40% 18%;
-    --ring: 210 20% 82%;
-    --font-display: 'Cinzel', 'Playfair Display', serif;
+    --border: 270 35% 80%;
+    --input: 270 40% 92%;
+    --ring: 271 76% 66%;
   }
 
-  /* Vibrant electric-indigo gradient base */
-  [data-theme="songket"] body {
-    background-image: linear-gradient(135deg, #4200a8 0%, #220055 100%);
-    background-attachment: fixed;
-    color: #ffffff;
+  /* Soft lilac base */
+  [data-theme="lilac_bloom"] body {
+    background-color: #e6d9f5;
+    color: #3b1f5c;
   }
 
-  /* ── VIP typography ── */
-  [data-theme="songket"] h1,
-  [data-theme="songket"] h2,
-  [data-theme="songket"] h3,
-  [data-theme="songket"] h4,
-  [data-theme="songket"] .font-heading,
-  [data-theme="songket"] .songket-title,
-  [data-theme="songket"] .ds-stat-value {
-    font-family: 'Cinzel', 'Playfair Display', serif;
-    letter-spacing: 0.04em;
-    font-weight: 600;
-  }
-  /* Active tabs & Diamond Smash stats in Cinzel */
-  [data-theme="songket"] .active-tab-indicator,
-  [data-theme="songket"] .ds-tab.ds-tab-active {
-    font-family: 'Cinzel', 'Playfair Display', serif;
-    letter-spacing: 0.06em;
-  }
-  /* Tracked all-caps secondary labels (editorial) */
-  [data-theme="songket"] .songket-label,
-  [data-theme="songket"] .ds-stat-label {
-    font-family: 'Inter', sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    font-weight: 600;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.72);
-  }
-  /* Primary text pure white; secondary text luminous silver */
-  [data-theme="songket"] .text-muted-foreground {
-    color: rgba(214, 222, 240, 0.78) !important;
-  }
-  [data-theme="songket"] .songket-diamond {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    background: linear-gradient(45deg, #ffffff, #c0c8dc);
-    transform: rotate(45deg);
-    box-shadow: none;
-  }
-
-  /* ── Frosted glass + shiny silver rim (dark cards) ── */
-  [data-theme="songket"] .bg-card.rounded-2xl,
-  [data-theme="songket"] .bg-card.rounded-xl,
-  [data-theme="songket"] .bg-card.rounded-lg,
-  [data-theme="songket"] div.rounded-2xl.border:not(.bg-white),
-  [data-theme="songket"] div.rounded-xl.border:not(.bg-white),
-  [data-theme="songket"] div.rounded-lg.border:not(.bg-white),
-  [data-theme="songket"] section.rounded-2xl.border:not(.bg-white),
-  [data-theme="songket"] section.rounded-xl.border:not(.bg-white),
-  [data-theme="songket"] section.rounded-lg.border:not(.bg-white) {
-    border: 1px solid transparent !important;
-    border-radius: 16px !important;
+  /* Ambient bubble motif — translucent circles in corners (theme-wide) */
+  [data-theme="lilac_bloom"] body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
     background:
-      linear-gradient(rgba(30, 10, 60, 0.55), rgba(30, 10, 60, 0.55)) padding-box,
-      linear-gradient(45deg, #e0e0e0, #ffffff, #666666, #ffffff, #e0e0e0) border-box !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+      radial-gradient(circle at 8% 12%, rgba(255,255,255,0.18) 0%, transparent 14%),
+      radial-gradient(circle at 92% 18%, rgba(192,132,252,0.14) 0%, transparent 16%),
+      radial-gradient(circle at 15% 88%, rgba(168,85,247,0.10) 0%, transparent 18%),
+      radial-gradient(circle at 88% 92%, rgba(255,255,255,0.12) 0%, transparent 13%);
   }
-  /* White cards: light frosted glass + silver rim (keeps dark text readable) */
-  [data-theme="songket"] .bg-white.rounded-2xl,
-  [data-theme="songket"] .bg-white.rounded-xl,
-  [data-theme="songket"] .bg-white.rounded-lg {
-    border: 1px solid transparent !important;
-    border-radius: 16px !important;
-    background:
-      linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)) padding-box,
-      linear-gradient(45deg, #e0e0e0, #ffffff, #666666, #ffffff, #e0e0e0) border-box !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45) !important;
+  [data-theme="lilac_bloom"] #root { position: relative; z-index: 1; }
+
+  /* ── Soft bubble cards: borderless, large radius, diffused shadow ── */
+  [data-theme="lilac_bloom"] .bg-card.rounded-2xl,
+  [data-theme="lilac_bloom"] .bg-card.rounded-xl,
+  [data-theme="lilac_bloom"] .bg-card.rounded-lg,
+  [data-theme="lilac_bloom"] .bg-white.rounded-2xl,
+  [data-theme="lilac_bloom"] .bg-white.rounded-xl,
+  [data-theme="lilac_bloom"] .bg-white.rounded-lg,
+  [data-theme="lilac_bloom"] div.rounded-2xl.border,
+  [data-theme="lilac_bloom"] div.rounded-xl.border,
+  [data-theme="lilac_bloom"] div.rounded-lg.border,
+  [data-theme="lilac_bloom"] section.rounded-2xl.border,
+  [data-theme="lilac_bloom"] section.rounded-xl.border,
+  [data-theme="lilac_bloom"] section.rounded-lg.border {
+    border: none !important;
+    border-radius: 26px !important;
+    box-shadow: 0 8px 24px rgba(168, 85, 247, 0.14), 0 2px 6px rgba(168, 85, 247, 0.07) !important;
+    backdrop-filter: none !important;
+  }
+  [data-theme="lilac_bloom"] .bg-white.rounded-2xl,
+  [data-theme="lilac_bloom"] .bg-white.rounded-xl,
+  [data-theme="lilac_bloom"] .bg-white.rounded-lg {
+    background-color: #f3ebfb !important;
   }
 
-  /* ── Tapered silver dividers ── */
-  [data-theme="songket"] hr,
-  [data-theme="songket"] [data-orientation="horizontal"] {
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent) !important;
-    height: 1px !important;
-    border: 0 !important;
-  }
-  [data-theme="songket"] [data-orientation="vertical"] {
-    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.6), transparent) !important;
-    width: 1px !important;
-    border: 0 !important;
-  }
-
-  /* ── Active tabs: glowing silver tint + text-shadow ── */
-  [data-theme="songket"] .ds-tab {
-    color: rgba(214, 222, 240, 0.7) !important;
-    border-color: rgba(255, 255, 255, 0.12) !important;
-  }
-  [data-theme="songket"] .active-tab-indicator,
-  [data-theme="songket"] .ds-tab.ds-tab-active {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(192, 200, 220, 0.1)) !important;
+  /* ── Primary CTA buttons: cyan→orchid gradient pill (button.bg-primary only) ── */
+  [data-theme="lilac_bloom"] button.bg-primary {
+    background: linear-gradient(135deg, #22d3ee 0%, #a855f7 100%) !important;
     color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.4) !important;
-    text-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
-    box-shadow: 0 0 16px rgba(192, 200, 220, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+    border: none !important;
+    border-radius: 999px !important;
+    box-shadow: 0 6px 16px rgba(168, 85, 247, 0.3) !important;
+  }
+  [data-theme="lilac_bloom"] button.bg-primary:hover {
+    filter: brightness(1.05);
   }
 
-  /* ── Diamond Smash: royal glass panels ── */
-  [data-theme="songket"] .ds-game-root { background: transparent !important; }
-  [data-theme="songket"] .ds-play-overlay {
-    background: linear-gradient(135deg, #4200a8 0%, #220055 100%) !important;
+  /* ── Secondary/nav buttons: flat pale-lavender pill ── */
+  [data-theme="lilac_bloom"] button.bg-secondary {
+    background: #f3ebfb !important;
+    color: #3b1f5c !important;
+    border: 1px solid rgba(168, 85, 247, 0.2) !important;
+    border-radius: 999px !important;
+    box-shadow: 0 2px 8px rgba(168, 85, 247, 0.1) !important;
   }
-  [data-theme="songket"] .ds-statbar {
-    border: 1px solid transparent !important;
-    background:
-      linear-gradient(rgba(30, 10, 60, 0.55), rgba(30, 10, 60, 0.55)) padding-box,
-      linear-gradient(45deg, #e0e0e0, #ffffff, #666666, #ffffff, #e0e0e0) border-box !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+
+  /* ── Active/selected states: solid dark plum pill ── */
+  [data-theme="lilac_bloom"] .active-tab-indicator,
+  [data-theme="lilac_bloom"] [aria-selected="true"] {
+    background: #3b1f5c !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 999px !important;
+    box-shadow: 0 4px 14px rgba(59, 31, 92, 0.3) !important;
   }
-  [data-theme="songket"] .ds-stat {
-    border: 1px solid transparent !important;
-    background:
-      linear-gradient(rgba(40, 16, 72, 0.6), rgba(26, 8, 50, 0.6)) padding-box,
-      linear-gradient(45deg, #c8c8d0, #ffffff, #555555, #ffffff, #c8c8d0) border-box !important;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 18px rgba(0, 0, 0, 0.35) !important;
-  }
-  [data-theme="songket"] .ds-stat-label { color: rgba(214, 222, 240, 0.72) !important; }
-  [data-theme="songket"] .ds-stat-value { color: #ffffff !important; }
-  [data-theme="songket"] .ds-stat-score::before,
-  [data-theme="songket"] .ds-stat-moves::before,
-  [data-theme="songket"] .ds-stat-time::before {
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent) !important;
-  }
-  [data-theme="songket"] .ds-stat-frozen {
-    border: 1px solid transparent !important;
-    background:
-      linear-gradient(rgba(120, 180, 220, 0.35), rgba(80, 130, 180, 0.35)) padding-box,
-      linear-gradient(45deg, #d8e8ff, #ffffff, #7aa0c8, #ffffff, #d8e8ff) border-box !important;
-  }
-  [data-theme="songket"] .songket-board-frame {
-    border: 1px solid transparent !important;
-    border-radius: 20px !important;
-    background:
-      linear-gradient(rgba(30, 10, 60, 0.5), rgba(22, 8, 48, 0.6)) padding-box,
-      linear-gradient(45deg, #e0e0e0, #ffffff, #666666, #ffffff, #e0e0e0) border-box !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5) !important;
-  }
-  [data-theme="songket"] .ds-board {
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    background: linear-gradient(160deg, rgba(30, 12, 60, 0.7), rgba(18, 8, 40, 0.8)) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 24px rgba(0, 0, 0, 0.35) !important;
-  }
-  [data-theme="songket"] .ds-board button {
-    border: 1px solid rgba(255, 255, 255, 0.16) !important;
-    background: linear-gradient(160deg, rgba(60, 24, 110, 0.7), rgba(34, 14, 70, 0.75)) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
-  }
-  [data-theme="songket"] .ds-board button.ring-fuchsia-400 {
-    border-color: rgba(255, 255, 255, 0.85) !important;
-    background: linear-gradient(160deg, rgba(120, 90, 200, 0.85), rgba(70, 30, 120, 0.9)) !important;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5), 0 0 14px rgba(192, 200, 220, 0.4) !important;
-  }
-  [data-theme="songket"] .ds-leaderboard { backdrop-filter: blur(12px); }
-  [data-theme="songket"] .ds-tabs {
-    background: rgba(30, 10, 60, 0.5) !important;
-    border-color: rgba(255, 255, 255, 0.14) !important;
-    backdrop-filter: blur(12px);
+
+  /* ── Daily Spin / CTA banner ── */
+  [data-theme="lilac_bloom"] .daily-spin-banner {
+    background: linear-gradient(135deg, #c084fc 0%, #9333ea 100%) !important;
+    border-radius: 28px !important;
+    border: none !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 28px rgba(147, 51, 234, 0.3) !important;
   }
 
   /* ───────────────────────── GAMER / RETRO — 90s PC Neubrutalist ─────────────────────────

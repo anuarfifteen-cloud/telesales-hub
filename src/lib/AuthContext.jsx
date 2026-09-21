@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
+import { applyActiveTheme } from '@/lib/theme';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
 const AuthContext = createContext();
@@ -96,6 +97,19 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
+      // One-time songket → lilac_bloom migration (writes only when 'songket' is present)
+      const _themes = Array.isArray(currentUser.unlockedThemes) ? currentUser.unlockedThemes : [];
+      if (_themes.includes("songket") || currentUser.activeTheme === "songket") {
+        try {
+          const newThemes = Array.from(new Set(_themes.map((t) => (t === "songket" ? "lilac_bloom" : t))));
+          const newActive = currentUser.activeTheme === "songket" ? "lilac_bloom" : currentUser.activeTheme;
+          await base44.auth.updateMe({ unlockedThemes: newThemes, activeTheme: newActive });
+          setUser({ ...currentUser, unlockedThemes: newThemes, activeTheme: newActive });
+          applyActiveTheme(newActive);
+        } catch (e) {
+          console.error("Theme migration failed", e);
+        }
+      }
       setIsLoadingAuth(false);
       setAuthChecked(true);
     } catch (error) {

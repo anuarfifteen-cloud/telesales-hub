@@ -70,26 +70,26 @@ export default function AdminGameHistory({ user }) {
     queryClient.invalidateQueries({ queryKey: ["gameChampions", gameTab] });
   };
 
-  // Grant the exclusive Songket Heritage theme to a Ninja Token champion.
-  // Merges "songket" into the champion's unlockedThemes (permanent) and logs a token tx.
-  const grantSongket = async (championUser, championName) => {
+  // Grant the exclusive Lilac Bloom theme to a Ninja Token champion.
+  // Merges "lilac_bloom" into the champion's unlockedThemes (permanent) and logs a token tx.
+  const grantLilacBloom = async (championUser, championName) => {
     if (!championUser) return;
     try {
       const existing = Array.isArray(championUser.unlockedThemes) ? championUser.unlockedThemes : ["default"];
-      if (!existing.includes("songket")) {
+      if (!existing.includes("lilac_bloom")) {
         await base44.entities.User.update(championUser.id, {
-          unlockedThemes: [...new Set([...existing, "songket"])],
+          unlockedThemes: [...new Set([...existing, "lilac_bloom"])],
         });
       }
       await base44.entities.TokenTransaction.create({
         user_id: championUser.id,
         user_name: championName,
         amount: 0,
-        source: "Ninja Token Champion Reward: Songket Theme",
+        source: "Ninja Token Champion Reward: Lilac Bloom Theme",
         timestamp: new Date().toISOString(),
       });
     } catch (e) {
-      console.error("Songket grant failed", e);
+      console.error("Lilac Bloom grant failed", e);
       throw e;
     }
   };
@@ -110,10 +110,10 @@ export default function AdminGameHistory({ user }) {
         score: Number(form.score),
         season_date_awarded: form.season_date_awarded,
       });
-      // Ninja Token champion is auto-granted the Songket Heritage theme (permanent).
+      // Ninja Token champion is auto-granted the Lilac Bloom theme (permanent).
       if (gameTab === "ninja") {
-        await grantSongket(u, championName);
-        toast.success(`👑 ${championName} crowned Ninja Slice champion — Songket Heritage unlocked!`);
+        await grantLilacBloom(u, championName);
+        toast.success(`👑 ${championName} crowned Ninja Slice champion — Lilac Bloom unlocked!`);
       } else {
         toast.success("🏆 Champion added to Hall of Fame!");
       }
@@ -127,12 +127,12 @@ export default function AdminGameHistory({ user }) {
   };
 
   const [regrantingId, setRegrantingId] = useState(null);
-  const handleRegrantSongket = async (champion) => {
+  const handleRegrantLilacBloom = async (champion) => {
     setRegrantingId(champion.id);
     try {
       const u = users.find((x) => x.id === champion.user_id) || { id: champion.user_id, unlockedThemes: ["default"] };
-      await grantSongket(u, champion.user_name);
-      toast.success(`👑 Songket re-granted to ${champion.user_name}.`);
+      await grantLilacBloom(u, champion.user_name);
+      toast.success(`👑 Lilac Bloom re-granted to ${champion.user_name}.`);
     } catch (e) {
       toast.error("Re-grant failed: " + (e?.message || "Unknown error"));
     } finally {
@@ -289,10 +289,10 @@ export default function AdminGameHistory({ user }) {
                     <span className="text-sm font-black tabular-nums text-slate-900">{c.score} {g.unit}</span>
                     {gameTab === "ninja" && (
                       <button
-                        onClick={() => handleRegrantSongket(c)}
+                        onClick={() => handleRegrantLilacBloom(c)}
                         disabled={regrantingId === c.id}
                         className="w-8 h-8 flex items-center justify-center rounded-lg text-amber-500 hover:bg-amber-50 transition-colors flex-shrink-0 disabled:opacity-50"
-                        title="Re-grant Songket theme"
+                        title="Re-grant Lilac Bloom theme"
                       >
                         {regrantingId === c.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                       </button>

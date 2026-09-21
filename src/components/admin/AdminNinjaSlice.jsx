@@ -128,20 +128,20 @@ export default function AdminNinjaSlice() {
     (u.full_name || u.email || "").toLowerCase().includes(pickerSearch.toLowerCase())
   );
 
-  // Grant the exclusive Songket Heritage theme to a Ninja Slice champion.
-  const grantSongket = async (championUser, championName) => {
+  // Grant the exclusive Lilac Bloom theme to a Ninja Slice champion.
+  const grantLilacBloom = async (championUser, championName) => {
     if (!championUser) return;
     const existing = Array.isArray(championUser.unlockedThemes) ? championUser.unlockedThemes : ["default"];
-    if (!existing.includes("songket")) {
+    if (!existing.includes("lilac_bloom")) {
       await base44.entities.User.update(championUser.id, {
-        unlockedThemes: [...new Set([...existing, "songket"])],
+        unlockedThemes: [...new Set([...existing, "lilac_bloom"])],
       });
     }
     await base44.entities.TokenTransaction.create({
       user_id: championUser.id,
       user_name: championName,
       amount: 0,
-      source: "Ninja Slice Champion Reward: Songket Theme",
+      source: "Ninja Slice Champion Reward: Lilac Bloom Theme",
       timestamp: new Date().toISOString(),
     });
   };
@@ -178,11 +178,11 @@ export default function AdminNinjaSlice() {
         if (i === 0) newChampUserId = u.id;
       }
 
-      // Grant Songket + record Hall of Fame for the #1 eligible winner
+      // Grant Lilac Bloom + record Hall of Fame for the #1 eligible winner
       const top1 = top3[0];
       if (top1 && top1.user_id) {
         const champUser = userMap[top1.user_id];
-        await grantSongket(champUser, top1.user_name);
+        await grantLilacBloom(champUser, top1.user_name);
         await base44.entities.GameChampions.create({
           game_name: "ninja",
           user_id: top1.user_id,
@@ -190,7 +190,7 @@ export default function AdminNinjaSlice() {
           score: top1.score,
           season_date_awarded: getLocalDateStr(),
         });
-        toast.success(`👑 ${top1.user_name} crowned Ninja Slice champion — Songket Heritage unlocked!`);
+        toast.success(`👑 ${top1.user_name} crowned Ninja Slice champion — Lilac Bloom unlocked!`);
       }
 
       // Clear all existing defending champ ninja flags
@@ -277,7 +277,7 @@ export default function AdminNinjaSlice() {
         <div>
           <h3 className="font-bold text-red-800 dark:text-red-300 text-sm">🚨 End Season (Auto-Payout & Wipe)</h3>
           <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
-            Awards tokens to Top 3 eligible players (defending champ skipped), records the champ to the Hall of Fame, grants the Songket Heritage theme, then wipes the leaderboard.
+            Awards tokens to Top 3 eligible players (defending champ skipped), records the champ to the Hall of Fame, grants the Lilac Bloom theme, then wipes the leaderboard.
           </p>
         </div>
         <button
@@ -431,7 +431,7 @@ export default function AdminNinjaSlice() {
               <br />
               Defending champ is on cooldown and skipped — the highest eligible player is crowned.
               <br /><br />
-              The #1 winner is recorded to the Hall of Fame, granted the Songket Heritage theme, given the defending-champ cooldown flag, and <strong>ALL scores will be permanently deleted</strong>. This cannot be undone.
+              The #1 winner is recorded to the Hall of Fame, granted the Lilac Bloom theme, given the defending-champ cooldown flag, and <strong>ALL scores will be permanently deleted</strong>. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

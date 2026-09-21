@@ -14,7 +14,7 @@ const THEME_BADGES = {
   gold: "Dark",
   pink: "Light",
   gamer: "Dark",
-  songket: "Dark",
+  lilac_bloom: "Light",
 };
 
 const THEMES = [
@@ -43,10 +43,10 @@ const THEMES = [
     preview: "linear-gradient(135deg, #fdf6ee 0%, #00b4d8 40%, #ff85a1 72%, #ffb703 100%)",
   },
   {
-    id: "songket",
-    name: "Songket Heritage",
-    description: "Royal purple silk · woven silver. Exclusive champion skin.",
-    preview: "linear-gradient(135deg, #1a0840 0%, #2d1060 40%, #4a1e8a 65%, #c0c8dc 85%, #22d3ee 100%)",
+    id: "lilac_bloom",
+    name: "Lilac Bloom",
+    description: "Soft lilac bubbles, gentle gradients, and playful orchid accents.",
+    preview: "linear-gradient(135deg, #e6d9f5 0%, #c084fc 60%, #a855f7 100%)",
     exclusive: true,
     exclusiveSource: "Ninja Token",
   },

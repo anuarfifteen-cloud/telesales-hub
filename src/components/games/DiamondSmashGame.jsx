@@ -8,8 +8,6 @@ import DiamondSmashMysteryMode from "@/components/games/DiamondSmashMysteryMode"
 import Board from "@/components/games/diamond-smash/Board";
 import BoosterShop from "@/components/games/diamond-smash/BoosterShop";
 import BoosterHUD from "@/components/games/diamond-smash/BoosterHUD";
-import SongketHeader from "@/components/games/songket/SongketHeader";
-import SongketFooter from "@/components/games/songket/SongketFooter";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   AlertDialog,
@@ -663,7 +661,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   };
 
   const pieces = useMemo(() => flattenPieces(board), [board]);
-  const isSongket = user?.activeTheme === "songket";
 
   return (
     <div className="ds-game-root bg-gradient-to-br from-slate-100 via-purple-50 to-slate-200 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 flex flex-col items-center gap-5 pb-6 p-4 sm:p-6 rounded-3xl">
@@ -819,7 +816,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           </button>
         </div>
       )}
-      {isSongket && <SongketHeader />}
       {/* Audio toggles */}
       <div className="w-full flex items-center justify-center gap-2" style={{ maxWidth: BOARD_W }}>
         <button
@@ -882,7 +878,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       </div>
 
       {/* Board + overlays — `isolate` traps internal z-20…z-60 inside the card */}
-      <div className={isSongket ? "songket-board-frame" : ""}>
+      <div>
       <div className="relative isolate" style={{ width: BOARD_W + 16, height: BOARD_H + 16 }}>
         <Board
           pieces={pieces}
@@ -1023,7 +1019,6 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           />
         )}
       </div>
-      {isSongket && <SongketFooter />}
     </div>
   );
 }
