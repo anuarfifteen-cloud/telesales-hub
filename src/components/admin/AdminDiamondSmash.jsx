@@ -155,38 +155,45 @@ export default function AdminDiamondSmash() {
         if (i === 0) newChampUserId = u.id;
       }
 
-      // Save #1 eligible winner to Hall of Fame
-      const top1 = top3[0];
-      if (top1 && top1.user_id) {
-        await base44.entities.DiamondSmashHallOfFame.create({
-          user_id: top1.user_id,
-          user_name: top1.user_name,
-          score: top1.score,
-          rank: 1,
-          season_label: `Season — ${new Date().toLocaleString("default", { month: "long", year: "numeric" })}`,
-          awarded_at: new Date().toISOString(),
-        });
-      }
-
-      // Clear all existing defending champ diamond flags
-      for (const u of freshUsers) {
-        if (u.is_defending_champ_diamond) {
-          await base44.entities.User.update(u.id, { is_defending_champ_diamond: false });
-        }
-      }
-
-      // Set new defending champ
-      if (newChampUserId) {
-        await base44.entities.User.update(newChampUserId, { is_defending_champ_diamond: true });
-      }
-      await syncChampSettings(newChampUserId ? [newChampUserId] : []);
-
-      // Wipe the leaderboard
+      // Wipe the leaderboard immediately after payouts — before any fragile
+      // post-payout steps so a Hall-of-Fame/champ-sync failure can't leave scores behind
       await base44.entities.DiamondSmashScores.deleteMany({});
 
       queryClient.invalidateQueries({ queryKey: ["diamondSmashScoresAdmin"] });
-      queryClient.invalidateQueries({ queryKey: ["allUsersAdminDiamond"] });
-      toast.success("✅ Diamond Smash season ended! Top 3 eligible players paid & leaderboard wiped.");
+
+      // Hall of Fame + defending-champ sync — guarded so a failure here never aborts
+      // the payouts or the wipe that already landed
+      try {
+        const top1 = top3[0];
+        if (top1 && top1.user_id) {
+          await base44.entities.DiamondSmashHallOfFame.create({
+            user_id: top1.user_id,
+            user_name: top1.user_name,
+            score: top1.score,
+            rank: 1,
+            season_label: `Season — ${new Date().toLocaleString("default", { month: "long", year: "numeric" })}`,
+            awarded_at: new Date().toISOString(),
+          });
+        }
+
+        for (const u of freshUsers) {
+          if (u.is_defending_champ_diamond) {
+            await base44.entities.User.update(u.id, { is_defending_champ_diamond: false });
+          }
+        }
+
+        if (newChampUserId) {
+          await base44.entities.User.update(newChampUserId, { is_defending_champ_diamond: true });
+        }
+        await syncChampSettings(newChampUserId ? [newChampUserId] : []);
+
+        queryClient.invalidateQueries({ queryKey: ["allUsersAdminDiamond"] });
+        toast.success("✅ Diamond Smash season ended! Top 3 eligible players paid & leaderboard wiped.");
+      } catch (syncErr) {
+        console.error("Post-wipe champ/Hall-of-Fame sync failed", syncErr);
+        queryClient.invalidateQueries({ queryKey: ["allUsersAdminDiamond"] });
+        toast.warning("✅ Payouts done & leaderboard wiped, but champ/Hall-of-Fame sync had an issue.");
+      }
     } catch (err) {
       toast.error("Error: " + err.message);
     } finally {
