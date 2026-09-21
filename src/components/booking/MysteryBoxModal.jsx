@@ -184,12 +184,12 @@ export default function TokenVoucher({ user, onUserUpdate }) {
             }),
           ]);
           setVoucherStatus({
-            text: `Success! +${reward} ${reward === 1 ? 'Token' : 'Tokens'} Added 🪙`,
+            text: `Success! +${reward} ${reward === 1 ? 'Token' : 'Tokens'} Added`,
             color: "text-emerald-600 dark:text-emerald-400"
           });
           setClaimCode("");
           await onUserUpdate();
-          toast.success(`Success! Added +${reward} tokens to your balance. 🪙`);
+          toast.success(`Success! Added +${reward} tokens to your balance.`);
           return;
         } else {
           // Catch-all safety — reject anything outside valid ranges
@@ -232,13 +232,13 @@ export default function TokenVoucher({ user, onUserUpdate }) {
       });
 
       setVoucherStatus({ 
-        text: `Success! +${tokenRewardValue} ${tokenRewardValue === 1 ? 'Token' : 'Tokens'} Added 🪙`, 
+        text: `Success! +${tokenRewardValue} ${tokenRewardValue === 1 ? 'Token' : 'Tokens'} Added`, 
         color: "text-emerald-600 dark:text-emerald-400" 
       });
       
       setClaimCode("");
       await onUserUpdate();
-      toast.success(`Success! Added +${tokenRewardValue} tokens to your balance. 🪙`);
+      toast.success(`Success! Added +${tokenRewardValue} tokens to your balance.`);
     } catch (e) {
       toast.error("Error processing voucher claim.");
     } finally {
@@ -271,7 +271,14 @@ export default function TokenVoucher({ user, onUserUpdate }) {
         {/* Issuing Panel */}
         <div className="space-y-2">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Create a Gift Voucher</p>
-          <p className="text-[10px] font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">🪙 {usedThisMonth}/50 gifted this month · {remainingCap} left</p>
+          <p className="text-[10px] font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded inline-flex items-center gap-1">
+            <img
+              src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png"
+              alt="token"
+              className="w-3.5 h-3.5 object-contain"
+            />
+            {usedThisMonth}/50 gifted this month · {remainingCap} left
+          </p>
           <div className="flex gap-2">
             <input
               type="number"

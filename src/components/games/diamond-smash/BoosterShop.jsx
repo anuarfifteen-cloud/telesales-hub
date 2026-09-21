@@ -19,7 +19,7 @@ export default function BoosterShop({ user, onUserUpdate }) {
 
   const buy = async (id, name) => {
     if (tokens < COST) {
-      toast.error("Not enough tokens! You need 5 🪙 to buy a booster.");
+      toast.error("Not enough tokens! You need 5 tokens to buy a booster.");
       return;
     }
     try {
@@ -41,7 +41,13 @@ export default function BoosterShop({ user, onUserUpdate }) {
           🛒 Booster Shop
         </h3>
         <span className="flex items-center gap-1.5 rounded-full bg-amber-400/10 border border-amber-400/40 px-2.5 py-1">
-          <span className="text-xs font-black text-amber-600 dark:text-amber-400 tabular-nums">{tokens} 🪙</span>
+          <span className="text-xs font-black text-amber-600 dark:text-amber-400 tabular-nums flex items-center gap-1">{tokens}
+              <img
+                src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png"
+                alt="token"
+                className="w-3.5 h-3.5 object-contain inline-block"
+              />
+            </span>
         </span>
       </div>
 
@@ -70,7 +76,12 @@ export default function BoosterShop({ user, onUserUpdate }) {
                 className="flex-shrink-0 rounded-lg px-3 py-2 text-[11px] font-black uppercase tracking-wide bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 transition-transform flex items-center gap-1"
               >
                 <Plus className="w-3 h-3" />
-                5 🪙
+                5
+                <img
+                  src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png"
+                  alt="token"
+                  className="w-3 h-3 object-contain"
+                />
               </button>
             </div>
           );
