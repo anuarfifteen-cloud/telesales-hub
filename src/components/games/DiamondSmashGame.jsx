@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Trophy, RotateCcw, Trash2, Crown, Lock, Coins, ArrowLeft } from "lucide-react";
+import { Loader2, Trophy, RotateCcw, Trash2, Crown, Lock, Coins, ArrowLeft, X } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useDiamondSmashAudio } from "@/hooks/useDiamondSmashAudio";
@@ -11,6 +11,16 @@ import BoosterHUD from "@/components/games/diamond-smash/BoosterHUD";
 import SongketHeader from "@/components/games/songket/SongketHeader";
 import SongketFooter from "@/components/games/songket/SongketFooter";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { BOARD_W, BOARD_H, MAX_MOVES, GAME_TIME } from "@/components/games/diamond-smash/constants";
 import {
   newPieceBoard,
@@ -259,6 +269,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const [blastFlash, setBlastFlash] = useState(null); // { cells: [{r,c}], key }
   const [legendary, setLegendary] = useState(null); // { key }
   const legendaryTimer = useRef(null);
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
 
   const showLegendary = () => {
     setLegendary({ key: Date.now() });
@@ -457,6 +468,44 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         }
       }
     }, 1000);
+  };
+
+  // Exit mid-run: stop everything, discard score (no save), collapse overlay to idle
+  const exitGame = () => {
+    stopTimer();
+    endedRef.current = true;
+    timeUpRef.current = false;
+    setBusy(false);
+    busyRef.current = false;
+    setFrozen(false);
+    frozenRef.current = false;
+    freezeRemainingRef.current = 0;
+    stopMusic();
+    setActivatedBooster(null);
+    setBoosterUsedThisGame(false);
+    setEndGameConversion(false);
+    setBoosterBusy(false);
+    setBlastFlash(null);
+    setLegendary(null);
+    setCombo(null);
+    if (comboTimer.current) { clearTimeout(comboTimer.current); comboTimer.current = null; }
+    setFloating({ points: 0, reaction: "", visible: false, key: 0 });
+    if (floatTimer.current) { clearTimeout(floatTimer.current); floatTimer.current = null; }
+    if (legendaryTimer.current) { clearTimeout(legendaryTimer.current); legendaryTimer.current = null; }
+    scoreRef.current = 0;
+    movesRef.current = MAX_MOVES;
+    timeLeftRef.current = GAME_TIME;
+    setBoard(newPieceBoard());
+    setScore(0);
+    setMoves(MAX_MOVES);
+    setTimeLeft(GAME_TIME);
+    setSelected(null);
+    setPhase("idle");
+  };
+
+  const confirmRestart = () => {
+    setShowRestartConfirm(false);
+    startGame();
   };
 
   // Animate one full move resolution (swap → cascades → score)
@@ -754,6 +803,22 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
 
       {/* Full-screen play overlay — covers the bottom nav and page content while playing */}
       <div className={phase === "playing" ? "ds-play-overlay fixed inset-0 z-[60] overflow-y-auto flex flex-col items-center gap-4 p-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)] bg-gradient-to-br from-slate-100 via-purple-50 to-slate-200 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900" : "contents"}>
+      {phase === "playing" && (
+        <div className="w-full flex items-center justify-between gap-2" style={{ maxWidth: BOARD_W }}>
+          <button
+            onClick={exitGame}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide bg-black/30 backdrop-blur-md text-white border border-white/20 hover:bg-black/40 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" /> Exit
+          </button>
+          <button
+            onClick={() => setShowRestartConfirm(true)}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide bg-black/30 backdrop-blur-md text-white border border-white/20 hover:bg-black/40 transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Restart
+          </button>
+        </div>
+      )}
       {isSongket && <SongketHeader />}
       {/* Audio toggles */}
       <div className="w-full flex items-center justify-center gap-2" style={{ maxWidth: BOARD_W }}>
@@ -912,6 +977,21 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         </div>
       )}
       </div>
+
+      <AlertDialog open={showRestartConfirm} onOpenChange={setShowRestartConfirm}>
+        <AlertDialogContent className="max-w-xs">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restart run?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your current progress will be lost and a new run starts immediately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRestart}>Restart</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* How-to-play hint */}
       <div className="w-full text-center text-xs text-slate-600 dark:text-slate-300 px-2 space-y-1" style={{ maxWidth: BOARD_W }}>
