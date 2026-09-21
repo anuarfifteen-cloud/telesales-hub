@@ -221,8 +221,9 @@ export function computePass(working) {
 
   const DIAMOND_TYPE = 4; // 💎 — the only candy that fires a 3×3 blast
 
-  // Count distinct diamond (💎) match clusters in this pass — each grants +1 move
-  const diamondMatchCount = clusters.filter((c) => c.type === DIAMOND_TYPE).length;
+  // Count distinct diamond (💎) match clusters of size 4+ in this pass — each grants +1 move.
+  // (3-diamond matches still fire the 3×3 blast below but no longer grant a free move.)
+  const diamondMatchCount = clusters.filter((c) => c.type === DIAMOND_TYPE && c.cells.length >= 4).length;
 
   for (const cl of clusters) {
     // Always clear all matched tiles first

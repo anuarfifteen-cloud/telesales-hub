@@ -69,7 +69,7 @@ export default function BoosterShop({ user, onUserUpdate }) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-black text-foreground truncate">{b.name}</p>
-                <p className="text-[10px] text-muted-foreground leading-snug truncate">{b.desc}</p>
+                <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2">{b.desc}</p>
               </div>
               <span className="flex-shrink-0 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 px-2 py-1 text-[10px] font-black text-fuchsia-600 dark:text-fuchsia-300 tabular-nums">
                 x{owned}
