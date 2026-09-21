@@ -82,6 +82,21 @@ export default function Home() {
   const [showCancelDstConfirm, setShowCancelDstConfirm] = useState(false);
   const [activePopup, setActivePopup] = useState(null);
   const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
+  const [ninjaEnabled, setNinjaEnabled] = useState(true);
+
+  // Preload AppSettings once at session start so the Tokens tab's Ninja Slice
+  // sub-tab is already resolved (present/absent) by the time the user switches.
+  useEffect(() => {
+    let mounted = true;
+    const load = () =>
+      base44.entities.AppSettings.list().then((rows) => {
+        if (!mounted) return;
+        setNinjaEnabled(rows[0]?.ninja_enabled !== false);
+      }).catch(() => {});
+    load();
+    const unsub = base44.entities.AppSettings.subscribe(load);
+    return () => { mounted = false; unsub && unsub(); };
+  }, []);
 
 
   const checkMilestones = async (totalCount) => {
@@ -1046,7 +1061,7 @@ useEffect(() => {
 
         {/* ── TOKENS TAB ── */}
         {activeTab === "tokens" && (
-          <TokensTab user={user} onUserUpdate={refreshUser} totalBookingCount={totalBookingCount} isAdmin={isAdmin} />
+          <TokensTab user={user} onUserUpdate={refreshUser} totalBookingCount={totalBookingCount} isAdmin={isAdmin} ninjaEnabled={ninjaEnabled} />
         )}
 
         {/* ── ADMIN TAB ── */}

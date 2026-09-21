@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState, useEffect } from "react";
 import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
 import CoinFlipStreak from "@/components/coinflip/CoinFlipStreak";
 import PerfectTen from "@/components/coinflip/PerfectTen";
@@ -12,35 +11,13 @@ import DiamondSmashGame from "@/components/games/DiamondSmashGame";
 import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
 import TapVaultCard from "@/components/tokens/TapVaultCard";
 
-export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin }) {
+export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true }) {
   const [innerTab, setInnerTab] = useState("milestones");
   // tabs: milestones | vip | duo | perfect10 | coinflip
   const tokens = user?.earlyAccessTokens ?? 0;
 
-  // Admin can hide the Ninja Token game entirely (tab + panel)
-  // Until settings load, treat ninja as hidden so no Ninja Token label/panel flashes.
-  const [ninjaEnabled, setNinjaEnabled] = useState(false);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
-  useEffect(() => {
-    let mounted = true;
-    const load = () =>
-      base44.entities.AppSettings.list().then((rows) => {
-        if (!mounted) return;
-        const enabled = rows[0]?.ninja_enabled !== false;
-        setNinjaEnabled(enabled);
-        setSettingsLoaded(true);
-      });
-    load();
-    const unsub = base44.entities.AppSettings.subscribe(load);
-    return () => { mounted = false; unsub && unsub(); };
-  }, []);
-  // Set the landing sub-tab once on first settings load (don't disrupt the player's choice later)
-  const landedRef = useRef(false);
-  useEffect(() => {
-    if (landedRef.current || !settingsLoaded) return;
-    landedRef.current = true;
-    setInnerTab("milestones");
-  }, [settingsLoaded]);
+  // ninjaEnabled is preloaded by Home (via AppSettings subscription) so the tab
+  // is already resolved by the time the user switches here — no 1s pop-in.
   // Avoid lingering on the Ninja tab if it gets hidden later
   useEffect(() => {
     if (!ninjaEnabled && innerTab === "ninja") setInnerTab("milestones");
@@ -198,8 +175,8 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         <CoinFlipStreak user={user} onUserUpdate={onUserUpdate} />
       )}
 
-      {/* Ninja Slice (only when enabled and settings loaded) */}
-      {settingsLoaded && ninjaEnabled && innerTab === "ninja" && (
+      {/* Ninja Slice (only when enabled) */}
+      {ninjaEnabled && innerTab === "ninja" && (
         <NinjaTokenGame user={user} onUserUpdate={onUserUpdate} />
       )}
 
