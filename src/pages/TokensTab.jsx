@@ -5,7 +5,6 @@ import CoinFlipStreak from "@/components/coinflip/CoinFlipStreak";
 import PerfectTen from "@/components/coinflip/PerfectTen";
 import VipActivityFeed from "@/components/coinflip/VipActivityFeed";
 import NinjaTokenGame from "@/components/games/NinjaTokenGame";
-import DailyDuoGame from "@/components/duo/DailyDuoGame";
 import SuperTapGame from "@/components/supertap/SuperTapGame";
 import BlindVoucherShop from "@/components/tokens/BlindVoucherShop";
 import FlappyTokenGame from "@/components/games/FlappyTokenGame";
@@ -40,11 +39,11 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
   useEffect(() => {
     if (landedRef.current || !settingsLoaded) return;
     landedRef.current = true;
-    setInnerTab(ninjaEnabled ? "ninja" : "milestones");
+    setInnerTab("milestones");
   }, [settingsLoaded]);
   // Avoid lingering on the Ninja tab if it gets hidden later
   useEffect(() => {
-    if (!ninjaEnabled && innerTab === "ninja") setInnerTab("dailyquiz");
+    if (!ninjaEnabled && innerTab === "ninja") setInnerTab("milestones");
   }, [ninjaEnabled, innerTab]);
 
   return (
@@ -69,11 +68,11 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         <DiamondBalanceCard user={user} onUserUpdate={onUserUpdate} />
       </div>
 
-      {/* Row 1: Milestones | VIP Pass | Daily Quiz */}
+      {/* Row 1: Milestones | VIP Pass | Ninja Slice (when enabled) */}
       {/* Row 2: Coin Flip  | Perfect 10 */}
       <div className="flex flex-col gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
         {/* Row 1 */}
-        <div className="grid grid-cols-3 gap-1">
+        <div className={`grid gap-1 ${ninjaEnabled ? "grid-cols-3" : "grid-cols-2"}`}>
           <button
             onClick={() => setInnerTab("milestones")}
             className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
@@ -94,16 +93,18 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           >
             👑 VIP Pass
           </button>
-          <button
-            onClick={() => setInnerTab(ninjaEnabled ? "ninja" : "dailyquiz")}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              (ninjaEnabled ? innerTab === "ninja" : innerTab === "dailyquiz")
-                ? "bg-pink-600 text-white shadow"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            {ninjaEnabled ? "🥷 Ninja Slice" : "🧠 Daily Quiz"}
-          </button>
+          {ninjaEnabled && (
+            <button
+              onClick={() => setInnerTab("ninja")}
+              className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                innerTab === "ninja"
+                  ? "bg-pink-600 text-white shadow"
+                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
+            >
+              🥷 Ninja Slice
+            </button>
+          )}
         </div>
         {/* Row 2 */}
         <div className="grid grid-cols-3 gap-1">
@@ -197,14 +198,9 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         <CoinFlipStreak user={user} onUserUpdate={onUserUpdate} />
       )}
 
-      {/* Ninja Token (only when enabled and settings loaded) */}
+      {/* Ninja Slice (only when enabled and settings loaded) */}
       {settingsLoaded && ninjaEnabled && innerTab === "ninja" && (
         <NinjaTokenGame user={user} onUserUpdate={onUserUpdate} />
-      )}
-
-      {/* Daily Quiz (replaces Ninja Token slot when hidden, or while settings load) */}
-      {(!settingsLoaded || !ninjaEnabled) && innerTab === "dailyquiz" && (
-        <DailyDuoGame user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {/* Super Tap */}
