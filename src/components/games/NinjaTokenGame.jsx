@@ -1001,6 +1001,9 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
             TOP NINJAS 🥷
           </p>
         </div>
+        <p className="px-4 py-1.5 text-[9px] tracking-widest uppercase text-[#7a3b00]/70 text-center border-b border-[#B8860B]/30">
+          ⏳ Leaderboard resets on the 1st of every month at 11pm.
+        </p>
         {leadersLoading ? (
           <div className="py-4 flex justify-center">
             <Loader2 className="w-4 h-4 animate-spin text-[#B8860B]" />
