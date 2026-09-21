@@ -2,8 +2,21 @@ import { Loader2, Check, Lock } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { BOOSTER_DEFS } from "./BoosterShop";
 
+// Colored glow shadow per booster — matches each accent gradient's hue so the
+// "available" state feels alive and tappable (cyan / amber / magenta).
+const GLOW = {
+  time_freeze: "shadow-[0_0_18px_rgba(34,211,238,0.45)]",
+  end_game: "shadow-[0_0_18px_rgba(251,191,36,0.45)]",
+  move_boost: "shadow-[0_0_18px_rgba(217,70,239,0.45)]",
+};
+
 // Mid-game booster activation HUD. Max ONE booster per game session.
-// Modern futuristic glass panels with neon accent lines and tabular stock badges.
+// Each booster carries a distinct vibrant gradient identity tied to its function:
+//   Time Freeze  → cyan/blue   (time-based)
+//   End-Game     → amber/orange (rewards)
+//   Move Boost   → magenta/pink (game action)
+// Locked / out-of-stock boosters keep the exact same card footprint — only the
+// saturation + opacity drop and a lock overlay appears, so the row never shifts.
 export default function BoosterHUD({
   user,
   phase,
@@ -19,7 +32,7 @@ export default function BoosterHUD({
 
   return (
     <div className="w-full">
-      <div className="mb-2 flex items-center justify-between px-0.5">
+      <div className="mb-1.5 flex items-center justify-between px-0.5">
         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-white/70">
           ⚡ Boosters
         </span>
@@ -36,6 +49,7 @@ export default function BoosterHUD({
           const locked = (boosterUsedThisGame && !isActivated) || isActivated;
           const noStock = owned <= 0;
           const disabled = !inPlay || busy || locked || noStock || buying;
+          const isLockedState = locked || noStock;
           const shortName = b.name === "End-Game Conversion" ? "End-Game" : b.name.split(" ")[0];
 
           const buttonEl = (
@@ -45,45 +59,52 @@ export default function BoosterHUD({
               onClick={() => onActivate(b.id)}
               className={`group relative flex flex-col items-center gap-1.5 overflow-hidden rounded-2xl border p-2.5 transition-all duration-200
                 ${isActivated
-                  ? "border-emerald-400/70 bg-emerald-500/10 ring-2 ring-emerald-400/50 shadow-[0_0_18px_rgba(52,211,153,0.45)]"
-                  : locked
-                  ? "border-white/10 bg-slate-900/40 opacity-45 grayscale"
-                  : noStock
-                  ? "border-dashed border-white/15 bg-slate-900/40 opacity-50"
-                  : "border-white/15 bg-slate-900/50 backdrop-blur-md hover:border-white/35 hover:bg-slate-800/60 hover:scale-[1.04] hover:shadow-[0_0_18px_rgba(192,200,220,0.3)]"}
+                  ? "border-emerald-400/70 bg-emerald-500/15 ring-2 ring-emerald-400/50 shadow-[0_0_18px_rgba(52,211,153,0.45)]"
+                  : isLockedState
+                  ? `bg-gradient-to-b ${b.accent} grayscale opacity-50 border-white/20`
+                  : `bg-gradient-to-b ${b.accent} border-white/30 hover:scale-[1.04] active:scale-95 ${GLOW[b.id] || ""}`}
                 disabled:cursor-not-allowed`}
             >
-              {/* Neon top accent line */}
+              {/* Glossy top highlight line — white sheen on available, faint on locked */}
               <span
-                className={`pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r ${b.accent} ${
-                  isActivated || locked ? "opacity-30" : "opacity-80"
+                className={`pointer-events-none absolute inset-x-3 top-0 h-px ${
+                  isLockedState ? "bg-white/10" : "bg-white/40"
                 }`}
               />
-              {/* Icon orb */}
+
+              {/* Icon orb — frosted white circle so the emoji pops on the gradient */}
               <span
-                className={`relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${b.accent} text-lg text-white shadow-md ${
-                  locked ? "opacity-60" : "drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]"
+                className={`relative flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm text-lg shadow-inner ${
+                  isLockedState ? "opacity-80" : "drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]"
                 }`}
               >
-                {b.icon}
+                <span className="leading-none">{b.icon}</span>
                 {isActivated && (
                   <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-400 text-black">
                     <Check className="h-2.5 w-2.5" strokeWidth={3} />
                   </span>
                 )}
               </span>
-              <span className="text-center text-[9.5px] font-bold uppercase tracking-wider leading-tight text-white/85">
+
+              <span className="text-center text-[9.5px] font-bold uppercase tracking-wider leading-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
                 {shortName}
               </span>
-              <span className="flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[9.5px] font-black tabular-nums text-white/80">
+
+              {/* Live stock badge — ×N pulled from user.diamondSmashBoosters[id] */}
+              <span className="flex items-center gap-1 rounded-full border border-white/30 bg-black/25 px-2 py-0.5 text-[9.5px] font-black tabular-nums text-white">
                 {buying ? (
                   <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                ) : noStock ? (
-                  <Lock className="h-2.5 w-2.5 opacity-70" />
                 ) : (
                   `×${owned}`
                 )}
               </span>
+
+              {/* Lock overlay for locked / out-of-stock — same footprint, no size change */}
+              {isLockedState && !isActivated && (
+                <span className="pointer-events-none absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white">
+                  <Lock className="h-3 w-3" />
+                </span>
+              )}
             </button>
           );
 

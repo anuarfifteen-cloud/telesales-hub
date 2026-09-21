@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { BOARD_W, BOARD_H, MAX_MOVES, GAME_TIME } from "@/components/games/diamond-smash/constants";
+import { BOARD_W, BOARD_H, MAX_MOVES, GAME_TIME, PANEL_W } from "@/components/games/diamond-smash/constants";
 import {
   newPieceBoard,
   findPieceMatches,
@@ -801,7 +801,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       {/* Full-screen play overlay — covers the bottom nav and page content while playing */}
       <div className={phase === "playing" ? "ds-play-overlay fixed inset-0 z-[60] overflow-y-auto flex flex-col items-center gap-4 p-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)] bg-gradient-to-br from-slate-100 via-purple-50 to-slate-200 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900" : "contents"}>
       {phase === "playing" && (
-        <div className="w-full flex items-center justify-between gap-2" style={{ maxWidth: BOARD_W }}>
+        <div className="w-full flex items-center justify-between gap-2" style={{ maxWidth: PANEL_W }}>
           <button
             onClick={exitGame}
             className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide bg-black/30 backdrop-blur-md text-white border border-white/20 hover:bg-black/40 transition-colors"
@@ -817,7 +817,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         </div>
       )}
       {/* Audio toggles */}
-      <div className="w-full flex items-center justify-center gap-2" style={{ maxWidth: BOARD_W }}>
+      <div className="w-full flex items-center justify-center gap-2" style={{ maxWidth: PANEL_W }}>
         <button
           onClick={toggleSfx}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
@@ -839,7 +839,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       </div>
 
       {/* Stat bar — freeze-bar design */}
-      <div className="ds-statbar w-full" style={{ maxWidth: BOARD_W }}>
+      <div className="ds-statbar w-full" style={{ maxWidth: PANEL_W }}>
         <div className="ds-stat ds-stat-score relative">
           <p className="ds-stat-label">Score</p>
           <p className="ds-stat-value">{score}</p>
@@ -958,7 +958,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
 
       {/* Mid-game booster activation HUD — constrained to canvas width for a neat, even row */}
       {phase === "playing" && (
-        <div className="w-full" style={{ maxWidth: BOARD_W }}>
+        <div className="w-full" style={{ maxWidth: PANEL_W }}>
           <TooltipProvider>
             <BoosterHUD
               user={user}
@@ -990,18 +990,18 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       </AlertDialog>
 
       {/* How-to-play hint */}
-      <div className="w-full text-center text-xs text-slate-600 dark:text-slate-300 px-2 space-y-1" style={{ maxWidth: BOARD_W }}>
+      <div className="w-full text-center text-xs text-slate-600 dark:text-slate-300 px-2 space-y-1" style={{ maxWidth: PANEL_W }}>
         <p>Tap a candy, then tap next to it to swap. Match 3 or more to smash them!</p>
         <p>💥 Bonus: If pieces fall and match again automatically, you get a chain bonus — x2, x3, x4 and more!</p>
       </div>
 
       {/* Booster Shop — always visible below the canvas */}
-      <div className="w-full" style={{ maxWidth: BOARD_W }}>
+      <div className="w-full" style={{ maxWidth: PANEL_W }}>
         <BoosterShop user={user} onUserUpdate={onUserUpdate} />
       </div>
 
       {/* Leaderboard — or Mystery Mode card when the admin has hidden it */}
-      <div className="w-full" style={{ maxWidth: BOARD_W }}>
+      <div className="w-full" style={{ maxWidth: PANEL_W }}>
         {hideLeaderboard && user?.role !== "admin" ? (
           <DiamondSmashMysteryMode
             personalBest={personalBest}
