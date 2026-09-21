@@ -221,6 +221,9 @@ export function computePass(working) {
 
   const DIAMOND_TYPE = 4; // 💎 — the only candy that fires a 3×3 blast
 
+  // Count distinct diamond (💎) match clusters in this pass — each grants +1 move
+  const diamondMatchCount = clusters.filter((c) => c.type === DIAMOND_TYPE).length;
+
   for (const cl of clusters) {
     // Always clear all matched tiles first
     for (const cell of cl.cells) clearKeys.add(`${cell.r},${cell.c}`);
@@ -278,7 +281,7 @@ export function computePass(working) {
     if (piece) stepScore += POINTS[piece.type] ?? 0;
   }
 
-  return { clusters, allClear, specialLabel, isPower, stepScore, blasts, blastCells };
+  return { clusters, allClear, specialLabel, isPower, stepScore, blasts, blastCells, diamondMatchCount };
 }
 
 // Test-swap a board for match validity; returns the swapped board (or null).

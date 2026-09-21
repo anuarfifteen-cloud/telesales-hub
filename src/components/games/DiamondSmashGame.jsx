@@ -268,6 +268,17 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   const [legendary, setLegendary] = useState(null); // { key }
   const legendaryTimer = useRef(null);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  // "+N MOVES!" combined pop-up for diamond matches — anchored on the Moves stat
+  const [movePop, setMovePop] = useState({ moves: 0, visible: false, key: 0 });
+  const movePopTimer = useRef(null);
+  const showMovePop = (moves) => {
+    if (moves <= 0) return;
+    setMovePop({ moves, visible: true, key: Date.now() });
+    if (movePopTimer.current) clearTimeout(movePopTimer.current);
+    movePopTimer.current = setTimeout(() => setMovePop((p) => ({ ...p, visible: false })), 1000);
+  };
 
   const showLegendary = () => {
     setLegendary({ key: Date.now() });
@@ -333,6 +344,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       if (comboTimer.current) { clearTimeout(comboTimer.current); comboTimer.current = null; }
       if (floatTimer.current) { clearTimeout(floatTimer.current); floatTimer.current = null; }
       if (legendaryTimer.current) { clearTimeout(legendaryTimer.current); legendaryTimer.current = null; }
+      if (movePopTimer.current) { clearTimeout(movePopTimer.current); movePopTimer.current = null; }
       stopMusic();
     };
   }, [stopMusic]);
@@ -442,6 +454,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setFloating({ points: 0, reaction: "", visible: false, key: 0 });
     if (floatTimer.current) { clearTimeout(floatTimer.current); floatTimer.current = null; }
     if (legendaryTimer.current) { clearTimeout(legendaryTimer.current); legendaryTimer.current = null; }
+    if (movePopTimer.current) { clearTimeout(movePopTimer.current); movePopTimer.current = null; }
+    setMovePop({ moves: 0, visible: false, key: 0 });
     setPhase("playing");
     startMusic();
 
@@ -490,6 +504,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setFloating({ points: 0, reaction: "", visible: false, key: 0 });
     if (floatTimer.current) { clearTimeout(floatTimer.current); floatTimer.current = null; }
     if (legendaryTimer.current) { clearTimeout(legendaryTimer.current); legendaryTimer.current = null; }
+    if (movePopTimer.current) { clearTimeout(movePopTimer.current); movePopTimer.current = null; }
+    setMovePop({ moves: 0, visible: false, key: 0 });
     scoreRef.current = 0;
     movesRef.current = MAX_MOVES;
     timeLeftRef.current = GAME_TIME;
@@ -533,6 +549,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     let chain = 0;
     let gained = 0;
     let lastSpecial = null;
+    let diamondMovesEarned = 0;
     let working = swapped;
 
     while (true) {
@@ -555,6 +572,13 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         movesRef.current += 1;
         setMoves(movesRef.current);
         showLegendary();
+      }
+
+      // 💎 Diamond match (3+) — +1 move per diamond cluster in this pass.
+      // Accumulated across the whole cascade and applied as ONE combined pop-up
+      // at the end, fully additive to the legendary 6+ bonus above.
+      if (pass.diamondMatchCount > 0) {
+        diamondMovesEarned += pass.diamondMatchCount;
       }
 
       // 3×3 blast flash overlay (white pop) before tiles clear
@@ -584,6 +608,13 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       scoreRef.current += pass.stepScore * chain;
       setScore(scoreRef.current);
       if (pass.specialLabel) lastSpecial = pass.specialLabel;
+    }
+
+    // Apply the combined diamond free-move bonus at the end of the cascade
+    if (diamondMovesEarned > 0) {
+      movesRef.current += diamondMovesEarned;
+      setMoves(movesRef.current);
+      showMovePop(diamondMovesEarned);
     }
 
     if (gained > 0) {
@@ -803,7 +834,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       {phase === "playing" && (
         <div className="w-full flex items-center justify-between gap-2" style={{ maxWidth: PANEL_W }}>
           <button
-            onClick={exitGame}
+            onClick={() => setShowExitConfirm(true)}
             className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide bg-black/30 backdrop-blur-md text-white border border-white/20 hover:bg-black/40 transition-colors"
           >
             <X className="w-3.5 h-3.5" /> Exit
@@ -862,9 +893,22 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
             </motion.div>
           )}
         </div>
-        <div className="ds-stat ds-stat-moves">
+        <div className="ds-stat ds-stat-moves relative">
           <p className="ds-stat-label">Moves</p>
           <p className="ds-stat-value">{moves}</p>
+          {movePop.visible && (
+            <motion.div
+              key={movePop.key}
+              initial={{ opacity: 0, y: 0, scale: 0.5 }}
+              animate={{ opacity: 1, y: -42, scale: 1.1 }}
+              transition={{ duration: 0.9, ease: "easeOut" }}
+              className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 z-50 pointer-events-none whitespace-nowrap text-center"
+            >
+              <span className="block font-black text-xl text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.9)]">
+                +{movePop.moves} MOVE{movePop.moves > 1 ? "S" : ""}!
+              </span>
+            </motion.div>
+          )}
         </div>
         <div className={`ds-stat ds-stat-time ${frozen ? "ds-stat-frozen" : ""}`}>
           {frozen && (
@@ -985,6 +1029,21 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmRestart}>Restart</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+        <AlertDialogContent className="max-w-xs">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Exit Diamond Smash?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your current progress and score for this run will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setShowExitConfirm(false); exitGame(); }}>Exit</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -18,6 +18,10 @@ export default function BoosterShop({ user, onUserUpdate }) {
   const getStock = (id) => Number(stock[id]) || 0;
 
   const buy = async (id, name) => {
+    if (getStock(id) >= 5) {
+      toast.error("Max stock reached (5). Use some down to buy more.");
+      return;
+    }
     if (tokens < COST) {
       toast.error("Not enough tokens! You need 5 tokens to buy a booster.");
       return;
@@ -70,19 +74,28 @@ export default function BoosterShop({ user, onUserUpdate }) {
               <span className="flex-shrink-0 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 px-2 py-1 text-[10px] font-black text-fuchsia-600 dark:text-fuchsia-300 tabular-nums">
                 x{owned}
               </span>
-              <button
-                onClick={() => buy(b.id, b.name)}
-                disabled={!afford}
-                className="flex-shrink-0 rounded-lg px-3 py-2 text-[11px] font-black uppercase tracking-wide bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 transition-transform flex items-center gap-1"
-              >
-                <Plus className="w-3 h-3" />
-                5
-                <img
-                  src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png"
-                  alt="token"
-                  className="w-3 h-3 object-contain"
-                />
-              </button>
+              {owned >= 5 ? (
+                <button
+                  disabled
+                  className="flex-shrink-0 rounded-lg px-3 py-2 text-[11px] font-black uppercase tracking-wide bg-muted border border-border text-muted-foreground cursor-not-allowed"
+                >
+                  MAX
+                </button>
+              ) : (
+                <button
+                  onClick={() => buy(b.id, b.name)}
+                  disabled={!afford}
+                  className="flex-shrink-0 rounded-lg px-3 py-2 text-[11px] font-black uppercase tracking-wide bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 transition-transform flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  5
+                  <img
+                    src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png"
+                    alt="token"
+                    className="w-3 h-3 object-contain"
+                  />
+                </button>
+              )}
             </div>
           );
         })}
