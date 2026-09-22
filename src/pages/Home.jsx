@@ -1143,8 +1143,8 @@ useEffect(() => {
                 </div>
               }
 
-              {/* Avatar + Name — wrapped in a card for legibility over themed backgrounds */}
-              <div className="flex flex-col items-center gap-3 bg-card rounded-2xl border border-border shadow-sm p-6">
+              {/* Avatar + Name */}
+              <div className="flex flex-col items-center pt-4 gap-2">
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/70 to-primary flex items-center justify-center shadow-lg ring-4 ring-primary/20">
                   <span className="text-2xl font-bold text-primary-foreground">{initials}</span>
                 </div>
