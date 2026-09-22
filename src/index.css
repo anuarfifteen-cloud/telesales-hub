@@ -257,39 +257,13 @@
     --ring: 46 65% 52%;
   }
 
-  /* Batik textile background — pure CSS repeating-linear-gradient lattice on navy (guaranteed visible, no data URI) */
+  /* Batik textile background — AI-generated seamless navy + light-blue snowflake batik tile */
   [data-theme="royal_batik"] body {
-    background-color: #1a1a8c;
-    background-image:
-      repeating-linear-gradient(
-        45deg,
-        rgba(201, 168, 76, 0.25) 0px,
-        rgba(201, 168, 76, 0.25) 1px,
-        transparent 1px,
-        transparent 20px
-      ),
-      repeating-linear-gradient(
-        -45deg,
-        rgba(201, 168, 76, 0.25) 0px,
-        rgba(201, 168, 76, 0.25) 1px,
-        transparent 1px,
-        transparent 20px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(127, 170, 227, 0.10) 0px,
-        rgba(127, 170, 227, 0.10) 1px,
-        transparent 1px,
-        transparent 40px
-      ),
-      repeating-linear-gradient(
-        90deg,
-        rgba(127, 170, 227, 0.10) 0px,
-        rgba(127, 170, 227, 0.10) 1px,
-        transparent 1px,
-        transparent 40px
-      );
-    background-size: 40px 40px, 40px 40px, 40px 40px, 40px 40px;
+    background-color: #0a1a5a;
+    background-image: url('https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/eb4006803_generated_image.png');
+    background-repeat: repeat;
+    background-size: 260px 260px;
+    background-attachment: fixed;
   }
 
   /* ───────────────────────── GAMER / RETRO — 90s PC Neubrutalist ─────────────────────────
@@ -557,29 +531,30 @@
   [data-theme="royal_batik"] section.rounded-lg.border {
     background: #0f1560 !important;
     border: 2px solid #d4af37 !important;
-    border-radius: 16px !important;
-    box-shadow: 0 0 16px rgba(212, 175, 55, 0.5), 0 6px 20px rgba(212, 175, 55, 0.3) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 0 16px rgba(212, 175, 55, 0.5), 0 6px 20px rgba(212, 175, 55, 0.3), inset 0 0 10px rgba(212, 175, 55, 0.18) !important;
     backdrop-filter: none !important;
   }
 
-  /* Primary CTAs — gold with navy text */
+  /* Primary CTAs — gold pill with navy text + glow */
   [data-theme="royal_batik"] button.bg-primary {
     background: #d4af37 !important;
     color: #0d1260 !important;
     border: none !important;
-    border-radius: 10px !important;
-    box-shadow: 0 4px 14px rgba(212, 175, 55, 0.45) !important;
+    border-radius: 999px !important;
+    box-shadow: 0 4px 14px rgba(212, 175, 55, 0.45), inset 0 1px 4px rgba(255, 244, 200, 0.4) !important;
   }
   [data-theme="royal_batik"] button.bg-primary:hover {
     filter: brightness(1.06);
   }
 
-  /* Secondary buttons — transparent with gold outline */
+  /* Secondary buttons — transparent gold-outline pill */
   [data-theme="royal_batik"] button.bg-secondary {
     background: transparent !important;
     color: #d4af37 !important;
     border: 1px solid #d4af37 !important;
-    border-radius: 10px !important;
+    border-radius: 999px !important;
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.25) !important;
   }
 
   /* Active/selected states — solid gold pill with navy text */
