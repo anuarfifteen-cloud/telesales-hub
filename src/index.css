@@ -260,7 +260,7 @@
   /* Batik textile background — seamless AI-generated navy + gold star batik tile */
   [data-theme="royal_batik"] body {
     background-color: #162480;
-    background-image: url('https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/3dfa0bc85_Gemini_Generated_Image_ql76rpql76rpql76.jpg');
+    background-image: url('https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/d2b441018_generated_image.png');
     background-repeat: repeat;
     background-size: 240px 240px;
     background-attachment: fixed;
@@ -551,9 +551,9 @@
   [data-theme="royal_batik"] section.rounded-xl.border,
   [data-theme="royal_batik"] section.rounded-lg.border {
     background: #0f1560 !important;
-    border: 2px solid #d4af37 !important;
+    border: 1.5px solid rgba(255, 215, 0, 0.35) !important;
     border-radius: 24px !important;
-    box-shadow: 0 0 16px rgba(212, 175, 55, 0.5), 0 6px 20px rgba(212, 175, 55, 0.3), inset 0 0 10px rgba(212, 175, 55, 0.18) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7) !important;
     backdrop-filter: none !important;
   }
 
@@ -589,10 +589,11 @@
     box-shadow: 0 4px 12px rgba(212, 175, 55, 0.45) !important;
   }
 
-  /* Header — navy with gold border */
+  /* Header — navy with gold border + depth shadow */
   [data-theme="royal_batik"] header {
     background: rgba(13, 18, 96, 0.95) !important;
     border-bottom: 1px solid rgba(212, 175, 55, 0.4) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
   }
 
   /* Bottom nav: keep the full-width <nav> wrapper transparent, style only the inner pill */
@@ -602,8 +603,8 @@
   }
   [data-theme="royal_batik"] nav.fixed > div {
     background: rgba(13, 18, 96, 0.95) !important;
-    border: 1px solid rgba(212, 175, 55, 0.4) !important;
-    box-shadow: 0 0 16px rgba(212, 175, 55, 0.25) !important;
+    border: 1.5px solid rgba(255, 215, 0, 0.35) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7) !important;
   }
 
   /* Daily spin / CTA banner — gold gradient */
@@ -613,6 +614,22 @@
     border-radius: 16px !important;
     color: #0d1260 !important;
     box-shadow: 0 0 20px rgba(212, 175, 55, 0.45) !important;
+  }
+
+  /* Standalone text on the batik background gets a dark shadow for legibility.
+     Text inside cards/popovers is reset so it stays crisp on the dark fill. */
+  [data-theme="royal_batik"] main h2,
+  [data-theme="royal_batik"] main section h2,
+  [data-theme="royal_batik"] main > p,
+  [data-theme="royal_batik"] main section > p,
+  [data-theme="royal_batik"] main section > div > p {
+    text-shadow: 0px 2px 6px rgba(0, 0, 0, 0.9);
+  }
+  [data-theme="royal_batik"] .bg-card *,
+  [data-theme="royal_batik"] .bg-card\/90 *,
+  [data-theme="royal_batik"] .bg-white *,
+  [data-theme="royal_batik"] [role="dialog"] * {
+    text-shadow: none !important;
   }
 }
 
