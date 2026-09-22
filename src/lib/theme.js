@@ -15,6 +15,7 @@ export const THEME_MODE_LOCK = {
   gamer: "light",
   pink: "light",
   lilac_bloom: "light",
+  royal_batik: "dark",
 };
 
 export function getStoredTheme() {

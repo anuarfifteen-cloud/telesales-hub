@@ -5,9 +5,14 @@ import { Lock, Check, Sparkles, Loader2, Palette, Flame } from "lucide-react";
 import { applyActiveTheme } from "@/lib/theme";
 
 const TOKEN_IMG_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
+const DIAMOND_IMG_URL = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b52888c95_Gemini_Generated_Image_3fwfra3fwfra3fwf-removebg-preview.png";
 
 function CoinIcon({ className = "w-3 h-3" }) {
   return <img src={TOKEN_IMG_URL} alt="token" className={className} />;
+}
+
+function DiamondIcon({ className = "w-3 h-3" }) {
+  return <img src={DIAMOND_IMG_URL} alt="diamond" className={className} />;
 }
 
 const THEME_BADGES = {
@@ -15,6 +20,7 @@ const THEME_BADGES = {
   pink: "Light",
   gamer: "Dark",
   lilac_bloom: "Light",
+  royal_batik: "Dark",
 };
 
 const THEMES = [
@@ -49,6 +55,16 @@ const THEMES = [
     preview: "linear-gradient(135deg, #e6d9f5 0%, #c084fc 60%, #a855f7 100%)",
     exclusive: true,
     exclusiveSource: "Ninja Token",
+  },
+  {
+    id: "royal_batik",
+    name: "Royal Batik",
+    description: "A royal Malaysian batik heritage theme. Deep navy, gold borders, and an intricate batik pattern.",
+    preview: "linear-gradient(135deg, #1a1a8c 0%, #c9a84c 60%, #0f1560 100%)",
+    badge: "Dark",
+    price: 2,
+    currency: "diamond",
+    exclusive: false,
   },
 ];
 
@@ -117,6 +133,32 @@ export default function ThemeShop({ user, onUserUpdate }) {
 
   const handlePurchase = async (theme) => {
     if (busy) return;
+
+    // Diamond-currency themes (e.g. Royal Batik) — deduct from user.diamonds, no token txn log.
+    if (theme.currency === "diamond") {
+      const diamonds = user?.diamonds ?? 0;
+      if (diamonds < theme.price) {
+        toast.error(`Not enough 💎 — you need ${theme.price} diamonds to unlock this theme.`);
+        return;
+      }
+      setBusy(theme.id);
+      try {
+        await base44.auth.updateMe({
+          diamonds: diamonds - theme.price,
+          unlockedThemes: [...new Set([...unlocked, theme.id])],
+          activeTheme: theme.id,
+        });
+        applyAttr(theme.id);
+        await onUserUpdate?.();
+        toast.success(`${theme.name} theme unlocked & equipped!`);
+      } catch (e) {
+        toast.error("Purchase failed: " + (e?.message || "Unknown error"));
+      }
+      setBusy(null);
+      return;
+    }
+
+    // Token-currency themes (default path)
     if (tokens < effectivePrice) {
       toast.error(`You need ${effectivePrice} tokens to unlock this theme.`);
       return;
@@ -195,6 +237,10 @@ export default function ThemeShop({ user, onUserUpdate }) {
           const isLockedExclusive = isExclusive && !owned;
           const displayPrice = isFree ? 0 : effectivePrice;
           const showOriginalStr = offerLive && !isFree && !owned && basePrice !== effectivePrice;
+          const isDiamond = theme.currency === "diamond";
+          const diamondBalance = user?.diamonds ?? 0;
+          const canAffordDiamond = diamondBalance >= theme.price;
+          const canAffordTheme = isDiamond ? canAffordDiamond : canAfford;
           return (
             <div
               key={theme.id}
@@ -225,6 +271,11 @@ export default function ThemeShop({ user, onUserUpdate }) {
                     <span className="text-[10px] font-black text-amber-500 dark:text-amber-400 uppercase tracking-wide">👑 Locked</span>
                   ) : isFree ? (
                     <span className="text-[10px] font-bold text-muted-foreground">Free</span>
+                  ) : isDiamond ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <DiamondIcon className="w-3 h-3" />
+                      <span className="text-[10px] font-bold text-cyan-500 dark:text-cyan-400">{theme.price}</span>
+                    </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5">
                       <CoinIcon className="w-3 h-3" />
@@ -259,13 +310,13 @@ export default function ThemeShop({ user, onUserUpdate }) {
                 ) : (
                   <button
                     onClick={() => (owned ? handleEquip(theme) : handlePurchase(theme))}
-                    disabled={isBusy || isActive || (!owned && displayPrice > 0 && !canAfford)}
+                    disabled={isBusy || isActive || (!owned && !isFree && !canAffordTheme)}
                     className={`mt-2 w-full text-xs font-bold rounded-lg py-1.5 flex items-center justify-center gap-1 transition-colors disabled:opacity-50 ${
                       isActive
                         ? "bg-muted text-muted-foreground cursor-default"
                         : owned
                         ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : canAfford
+                        : canAffordTheme
                         ? offerLive
                           ? "bg-rose-500 text-white hover:bg-rose-600"
                           : "bg-amber-500 text-white hover:bg-amber-600"
@@ -280,8 +331,10 @@ export default function ThemeShop({ user, onUserUpdate }) {
                       <><Sparkles className="w-3 h-3" /> Equip</>
                     ) : isFree ? (
                       "Unlock"
-                    ) : canAfford ? (
+                    ) : canAffordTheme ? (
                       <><Lock className="w-3 h-3" /> Buy</>
+                    ) : isDiamond ? (
+                      <>Not enough 💎</>
                     ) : (
                       <><Lock className="w-3 h-3" /> {displayPrice} <CoinIcon className="w-3 h-3" /></>
                     )}
