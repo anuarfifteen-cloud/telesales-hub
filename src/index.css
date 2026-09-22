@@ -589,11 +589,21 @@
     box-shadow: 0 4px 12px rgba(212, 175, 55, 0.45) !important;
   }
 
-  /* Header & nav — navy with gold border */
-  [data-theme="royal_batik"] header,
-  [data-theme="royal_batik"] nav {
+  /* Header — navy with gold border */
+  [data-theme="royal_batik"] header {
     background: rgba(13, 18, 96, 0.95) !important;
     border-bottom: 1px solid rgba(212, 175, 55, 0.4) !important;
+  }
+
+  /* Bottom nav: keep the full-width <nav> wrapper transparent, style only the inner pill */
+  [data-theme="royal_batik"] nav {
+    background: transparent !important;
+    border: none !important;
+  }
+  [data-theme="royal_batik"] nav.fixed > div {
+    background: rgba(13, 18, 96, 0.95) !important;
+    border: 1px solid rgba(212, 175, 55, 0.4) !important;
+    box-shadow: 0 0 16px rgba(212, 175, 55, 0.25) !important;
   }
 
   /* Daily spin / CTA banner — gold gradient */
