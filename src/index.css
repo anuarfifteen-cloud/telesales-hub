@@ -257,19 +257,34 @@
     --ring: 46 65% 52%;
   }
 
-  /* Batik textile background — user-supplied royal blue + gold star batik tile */
+  /* Batik textile background — seamless AI-generated navy + gold star batik tile */
   [data-theme="royal_batik"] body {
     background-color: #162480;
-    background-image: url('https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b1d73c691_batik.jpeg');
+    background-image: url('https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/d2b441018_generated_image.png');
     background-repeat: repeat;
-    background-size: 220px 220px;
+    background-size: 240px 240px;
     background-attachment: fixed;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   /* Make the app's full-bleed bg-background wrapper transparent so the body tile shows through */
   [data-theme="royal_batik"] .min-h-screen.bg-background {
     background-color: transparent !important;
     background-image: none !important;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Ensure the batik fills the mobile safe-area inset at the bottom (no blue strip) */
+  [data-theme="royal_batik"] html,
+  [data-theme="royal_batik"] body {
+    min-height: 100%;
+    background-position: center top;
+  }
+  [data-theme="royal_batik"] #root {
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   /* ───────────────────────── GAMER / RETRO — 90s PC Neubrutalist ─────────────────────────
