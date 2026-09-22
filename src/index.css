@@ -266,6 +266,12 @@
     background-attachment: fixed;
   }
 
+  /* Make the app's full-bleed bg-background wrapper transparent so the body tile shows through */
+  [data-theme="royal_batik"] .min-h-screen.bg-background {
+    background-color: transparent !important;
+    background-image: none !important;
+  }
+
   /* ───────────────────────── GAMER / RETRO — 90s PC Neubrutalist ─────────────────────────
      (RGB intent → HSL equivalents for Tailwind's hsl(var(--...)) maps)
      --background  253 246 238  → 32 79% 96%    Creamy off-white
