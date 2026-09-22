@@ -257,16 +257,39 @@
     --ring: 46 65% 52%;
   }
 
-  /* Batik textile background — CSS-only gold diamond lattice on navy (guaranteed visible) */
+  /* Batik textile background — pure CSS repeating-linear-gradient lattice on navy (guaranteed visible, no data URI) */
   [data-theme="royal_batik"] body {
     background-color: #1a1a8c;
     background-image:
-      repeating-linear-gradient(45deg, transparent 0 19px, rgba(212, 175, 55, 0.5) 19px 20px),
-      repeating-linear-gradient(-45deg, transparent 0 19px, rgba(212, 175, 55, 0.5) 19px 20px),
-      repeating-linear-gradient(45deg, transparent 0 39px, rgba(212, 175, 55, 0.3) 39px 40px),
-      repeating-linear-gradient(-45deg, transparent 0 39px, rgba(212, 175, 55, 0.3) 39px 40px);
+      repeating-linear-gradient(
+        45deg,
+        rgba(201, 168, 76, 0.25) 0px,
+        rgba(201, 168, 76, 0.25) 1px,
+        transparent 1px,
+        transparent 20px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        rgba(201, 168, 76, 0.25) 0px,
+        rgba(201, 168, 76, 0.25) 1px,
+        transparent 1px,
+        transparent 20px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        rgba(127, 170, 227, 0.10) 0px,
+        rgba(127, 170, 227, 0.10) 1px,
+        transparent 1px,
+        transparent 40px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(127, 170, 227, 0.10) 0px,
+        rgba(127, 170, 227, 0.10) 1px,
+        transparent 1px,
+        transparent 40px
+      );
     background-size: 40px 40px, 40px 40px, 40px 40px, 40px 40px;
-    background-repeat: repeat;
   }
 
   /* ───────────────────────── GAMER / RETRO — 90s PC Neubrutalist ─────────────────────────
