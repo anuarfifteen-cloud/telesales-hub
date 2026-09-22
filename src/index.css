@@ -252,17 +252,21 @@
     --accent-foreground: 235 80% 15%;
     --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 43 62% 54%;
+    --border: 45 70% 55%;
     --input: 235 70% 28%;
-    --ring: 43 62% 54%;
+    --ring: 46 65% 52%;
   }
 
-  /* Batik textile background — body only, inline SVG data URI, compact tile */
+  /* Batik textile background — CSS-only gold diamond lattice on navy (guaranteed visible) */
   [data-theme="royal_batik"] body {
     background-color: #1a1a8c;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='80' height='80' fill='%231a1a8c'/%3E%3Cg stroke='%23c9a84c' stroke-width='1.5' stroke-linecap='round' fill='none'%3E%3Cline x1='20' y1='9' x2='20' y2='31'/%3E%3Cline x1='9' y1='20' x2='31' y2='20'/%3E%3Cline x1='12.2' y1='12.2' x2='27.8' y2='27.8'/%3E%3Cline x1='27.8' y1='12.2' x2='12.2' y2='27.8'/%3E%3C/g%3E%3Cg stroke='%23c9a84c' stroke-width='1.5' stroke-linecap='round' fill='none'%3E%3Cline x1='60' y1='49' x2='60' y2='71'/%3E%3Cline x1='49' y1='60' x2='71' y2='60'/%3E%3Cline x1='52.2' y1='52.2' x2='67.8' y2='67.8'/%3E%3Cline x1='67.8' y1='52.2' x2='52.2' y2='67.8'/%3E%3C/g%3E%3Cpath d='M60,12 L68,20 L60,28 L52,20 Z' fill='none' stroke='%237faae3' stroke-width='1.5'/%3E%3Ccircle cx='60' cy='20' r='1.4' fill='%237faae3'/%3E%3Cpath d='M20,52 L28,60 L20,68 L12,60 Z' fill='none' stroke='%237faae3' stroke-width='1.5'/%3E%3Ccircle cx='20' cy='60' r='1.4' fill='%237faae3'/%3E%3C/svg%3E");
+    background-image:
+      repeating-linear-gradient(45deg, transparent 0 19px, rgba(212, 175, 55, 0.5) 19px 20px),
+      repeating-linear-gradient(-45deg, transparent 0 19px, rgba(212, 175, 55, 0.5) 19px 20px),
+      repeating-linear-gradient(45deg, transparent 0 39px, rgba(212, 175, 55, 0.3) 39px 40px),
+      repeating-linear-gradient(-45deg, transparent 0 39px, rgba(212, 175, 55, 0.3) 39px 40px);
+    background-size: 40px 40px, 40px 40px, 40px 40px, 40px 40px;
     background-repeat: repeat;
-    background-size: 80px 80px;
   }
 
   /* ───────────────────────── GAMER / RETRO — 90s PC Neubrutalist ─────────────────────────
@@ -514,66 +518,72 @@
   [data-theme="royal_batik"] .bg-card.rounded-2xl,
   [data-theme="royal_batik"] .bg-card.rounded-xl,
   [data-theme="royal_batik"] .bg-card.rounded-lg,
+  [data-theme="royal_batik"] .bg-card.rounded-3xl,
   [data-theme="royal_batik"] .bg-white.rounded-2xl,
   [data-theme="royal_batik"] .bg-white.rounded-xl,
   [data-theme="royal_batik"] .bg-white.rounded-lg,
+  [data-theme="royal_batik"] div.rounded-2xl,
+  [data-theme="royal_batik"] div.rounded-xl,
   [data-theme="royal_batik"] div.rounded-2xl.border,
   [data-theme="royal_batik"] div.rounded-xl.border,
   [data-theme="royal_batik"] div.rounded-lg.border,
+  [data-theme="royal_batik"] section.rounded-2xl,
+  [data-theme="royal_batik"] section.rounded-xl,
   [data-theme="royal_batik"] section.rounded-2xl.border,
   [data-theme="royal_batik"] section.rounded-xl.border,
   [data-theme="royal_batik"] section.rounded-lg.border {
     background: #0f1560 !important;
-    border: 2px solid #c9a84c !important;
+    border: 2px solid #d4af37 !important;
     border-radius: 16px !important;
-    box-shadow: 0 0 16px rgba(201, 168, 76, 0.5), 0 6px 20px rgba(201, 168, 76, 0.3) !important;
+    box-shadow: 0 0 16px rgba(212, 175, 55, 0.5), 0 6px 20px rgba(212, 175, 55, 0.3) !important;
     backdrop-filter: none !important;
   }
 
   /* Primary CTAs — gold with navy text */
   [data-theme="royal_batik"] button.bg-primary {
-    background: #c9a84c !important;
+    background: #d4af37 !important;
     color: #0d1260 !important;
     border: none !important;
     border-radius: 10px !important;
-    box-shadow: 0 4px 14px rgba(201, 168, 76, 0.4) !important;
+    box-shadow: 0 4px 14px rgba(212, 175, 55, 0.45) !important;
   }
   [data-theme="royal_batik"] button.bg-primary:hover {
-    filter: brightness(1.05);
+    filter: brightness(1.06);
   }
 
   /* Secondary buttons — transparent with gold outline */
   [data-theme="royal_batik"] button.bg-secondary {
     background: transparent !important;
-    color: #c9a84c !important;
-    border: 1px solid #c9a84c !important;
+    color: #d4af37 !important;
+    border: 1px solid #d4af37 !important;
     border-radius: 10px !important;
   }
 
   /* Active/selected states — solid gold pill with navy text */
   [data-theme="royal_batik"] .active-tab-indicator,
-  [data-theme="royal_batik"] [aria-selected="true"] {
-    background: #c9a84c !important;
+  [data-theme="royal_batik"] [aria-selected="true"],
+  [data-theme="royal_batik"] .select-date-card-active {
+    background: #d4af37 !important;
     color: #0d1260 !important;
     border: none !important;
     border-radius: 999px !important;
-    box-shadow: 0 4px 12px rgba(201, 168, 76, 0.4) !important;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.45) !important;
   }
 
   /* Header & nav — navy with gold border */
   [data-theme="royal_batik"] header,
   [data-theme="royal_batik"] nav {
     background: rgba(13, 18, 96, 0.95) !important;
-    border-bottom: 1px solid rgba(201, 168, 76, 0.3) !important;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.4) !important;
   }
 
   /* Daily spin / CTA banner — gold gradient */
   [data-theme="royal_batik"] .daily-spin-banner {
-    background: linear-gradient(135deg, #c9a84c 0%, #8b6914 100%) !important;
-    border: 2px solid #c9a84c !important;
+    background: linear-gradient(135deg, #d4af37 0%, #8b6914 100%) !important;
+    border: 2px solid #d4af37 !important;
     border-radius: 16px !important;
     color: #0d1260 !important;
-    box-shadow: 0 0 20px rgba(201, 168, 76, 0.4) !important;
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.45) !important;
   }
 }
 
