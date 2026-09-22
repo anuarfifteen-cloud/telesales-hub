@@ -616,6 +616,34 @@
     box-shadow: 0 0 20px rgba(212, 175, 55, 0.45) !important;
   }
 
+  /* ── Royal Batik: Ninja Slice leaderboard legibility ──
+     The game hardcodes a cream/gold/brown palette; under Royal Batik the blanket
+     card override repaints the container navy, so recolor the hardcoded text/bg
+     classes to gold/cream so names & labels stay readable. */
+  [data-theme="royal_batik"] .text-\[\#3a2a1a\] {
+    color: #F5E6B8 !important;
+  }
+  [data-theme="royal_batik"] .text-\[\#7a3b00\] {
+    color: #d4af37 !important;
+  }
+  [data-theme="royal_batik"] .text-\[\#7a3b00\]\/70 {
+    color: rgba(212, 175, 55, 0.75) !important;
+  }
+  [data-theme="royal_batik"] .bg-\[\#FFF7E0\]\/95,
+  [data-theme="royal_batik"] .bg-\[\#FDE093\]\/60,
+  [data-theme="royal_batik"] .bg-\[\#FDE093\]\/80,
+  [data-theme="royal_batik"] .bg-\[\#FDE093\]\/90 {
+    background: transparent !important;
+  }
+  [data-theme="royal_batik"] .border-\[\#B8860B\],
+  [data-theme="royal_batik"] .border-\[\#B8860B\]\/50,
+  [data-theme="royal_batik"] .border-\[\#B8860B\]\/30 {
+    border-color: rgba(212, 175, 55, 0.45) !important;
+  }
+  [data-theme="royal_batik"] .divide-\[\#B8860B\]\/30 > * {
+    border-color: rgba(212, 175, 55, 0.25) !important;
+  }
+
   /* Standalone text on the batik background gets a dark shadow for legibility.
      Text inside cards/popovers is reset so it stays crisp on the dark fill. */
   [data-theme="royal_batik"] main h2,

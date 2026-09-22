@@ -135,10 +135,10 @@ export default function MySchedule({ bookings, selectedDate }) {
     .forEach((b, i) => { globalRankMap[b.id] = i + 1; });
 
   return (
-    <section className="rounded-xl border border-primary/20 bg-accent p-4 space-y-4">
+    <section className="rounded-xl border border-primary/20 bg-card p-4 space-y-4">
       <div className="flex items-center gap-2">
-        <CalendarCheck className="w-4 h-4 text-accent-foreground" />
-        <p className="text-sm font-semibold text-accent-foreground">Daily Master Schedule</p>
+        <CalendarCheck className="w-4 h-4 text-foreground" />
+        <p className="text-sm font-semibold text-foreground">Daily Master Schedule</p>
       </div>
       <ShiftSection label="AM Shift" emoji="🌤" slots={amSlots} bookings={bookings} globalRankMap={globalRankMap} />
       <ShiftSection label="PM Shift" emoji="🌆" slots={pmSlots} bookings={bookings} globalRankMap={globalRankMap} />
