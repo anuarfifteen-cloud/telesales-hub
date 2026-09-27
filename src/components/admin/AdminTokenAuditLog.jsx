@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, RefreshCw } from "lucide-react";
 
 function formatTimestamp(ts) {
   if (!ts) return "—";
@@ -17,27 +17,24 @@ function getBruneiDateStr(ts) {
 }
 
 export default function AdminTokenAuditLog() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  const { data: transactions = [], isLoading } = useQuery({
+  const { data: transactions = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ["tokenTransactions"],
     queryFn: async () => {
-      const LIMIT = 5000;
-      let skip = 0;
-      let all = [];
-      while (true) {
-        const batch = await base44.entities.TokenTransaction.list("-timestamp", LIMIT, skip);
-        all = all.concat(batch);
-        if (batch.length < LIMIT) break;
-        skip += LIMIT;
-      }
-      return all;
+      const rows = await base44.entities.TokenTransaction.list("-timestamp", 2000);
+      return rows || [];
     },
-    refetchInterval: 30000,
   });
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["tokenTransactions"] });
+    refetch();
+  };
 
   const uniqueUsers = [...new Set(transactions.map(t => t.user_name).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
@@ -55,16 +52,26 @@ export default function AdminTokenAuditLog() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Search bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Filter by user name…"
-          className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+      {/* Search bar + Refresh */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Filter by user name…"
+            className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isFetching}
+          className="flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-semibold border border-border rounded-xl bg-card text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+          Refresh
+        </button>
       </div>
 
       {/* User filter */}
