@@ -404,13 +404,18 @@ useEffect(() => {
       const freshUserForVip = await base44.auth.me();
       const nowMs = Date.now();
 
+      // 7-Day Priority Pass (diamond) — highest tier, books at 6:00 PM. Stays
+      // active for its full 7-day duration; NOT reset after a booking.
+      const priorityExp = freshUserForVip?.active_pass_expiry ? new Date(freshUserForVip.active_pass_expiry) : null;
+      const usingPriority = priorityExp && priorityExp.getTime() > nowMs;
+
       const vipPlusExp = freshUserForVip?.vipPlusExpiresAt ? new Date(freshUserForVip.vipPlusExpiresAt) : null;
-      const usingVipPlus = vipPlusExp && vipPlusExp.getTime() > nowMs;
+      const usingVipPlus = vipPlusExp && vipPlusExp.getTime() > nowMs && !usingPriority;
 
       const vipExp = freshUserForVip?.vipExpiresAt ? new Date(freshUserForVip.vipExpiresAt) : null;
-      const usingVip = vipExp && vipExp.getTime() > nowMs;
+      const usingVip = vipExp && vipExp.getTime() > nowMs && !usingVipPlus && !usingPriority;
 
-      // Write the booking
+      // Write the booking — stamp the single highest active tier (priority > vip_plus > vip)
       const newBooking = await base44.entities.Booking.create({
         date: selectedDate,
         slot_id: slot.id,
@@ -419,8 +424,9 @@ useEffect(() => {
         user_email: user.email,
         user_name: user.full_name,
         booked_at: tzFormat(new Date(), "hh:mm:ss.SSS aa", { timeZone: TZ }),
+        priority_used: !!usingPriority,
         vip_plus_used: !!usingVipPlus,
-        vip_used: !!usingVip && !usingVipPlus,
+        vip_used: !!usingVip,
       });
 
       // --- POST-WRITE TIMESTAMP TIE-BREAKER ---

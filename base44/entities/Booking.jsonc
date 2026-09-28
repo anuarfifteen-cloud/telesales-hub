@@ -44,6 +44,11 @@
       "type": "boolean",
       "description": "True if the user activated their VIP Plus 1-hour early access token for this booking",
       "default": false
+    },
+    "priority_used": {
+      "type": "boolean",
+      "description": "True if the user claimed this slot using their diamond-purchased 7-Day Priority Access pass (6:00 PM priority window). Highest tier \u2014 overrides vip_plus_used and vip_used on the schedule badge.",
+      "default": false
     }
   },
   "required": [

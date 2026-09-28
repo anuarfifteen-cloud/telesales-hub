@@ -2,6 +2,17 @@
 module.exports = {
     darkMode: ["class"],
     content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
+    safelist: [
+      "priority-row",
+      "priority-badge",
+      "bg-indigo-50",
+      "dark:bg-indigo-950/40",
+      "border-indigo-200",
+      "dark:border-indigo-800",
+      "text-indigo-500",
+      "text-indigo-600",
+      "dark:text-indigo-400",
+    ],
   theme: {
   	extend: {
   		borderRadius: {

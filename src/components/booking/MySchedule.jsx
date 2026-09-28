@@ -44,6 +44,7 @@ function SlotRow({ slot, bookings, globalRankMap }) {
       globalRank: globalRankMap[b.id],
       vip_used: b.vip_used,
       vip_plus_used: b.vip_plus_used, // 👈 Captured property from database object
+      priority_used: b.priority_used, // 💎 7-Day Priority Access (diamond pass)
     })),
     ...Array(Math.max(0, remaining)).fill({ type: "available" }),
   ];
@@ -69,32 +70,41 @@ function SlotRow({ slot, bookings, globalRankMap }) {
               className={`flex flex-col items-start px-2 py-1 rounded-md min-w-0 
                 ${item.globalRank === 1 
                   ? "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800" 
-                  : item.vip_plus_used 
-                    ? "bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 shadow-sm animate-pulse" // Premium Purple row wrapper
-                    : item.vip_used 
-                      ? "bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800" 
-                      : "bg-secondary"}`}
+                  : item.priority_used
+                    ? "priority-row bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 shadow-sm"
+                    : item.vip_plus_used 
+                      ? "bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 shadow-sm animate-pulse" // Premium Purple row wrapper
+                      : item.vip_used 
+                        ? "bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800" 
+                        : "bg-secondary"}`}
             >
               <span className="text-xs font-semibold text-foreground break-words whitespace-normal flex items-center gap-1">
-                {item.vip_plus_used && <span className="text-purple-500 text-[11px]">⚡</span>}
-                {item.vip_used && !item.vip_plus_used && <span className="text-amber-500 text-[11px]">👑</span>}
+                {item.priority_used && <span className="text-indigo-500 text-[11px]">💎</span>}
+                {item.vip_plus_used && !item.priority_used && <span className="text-purple-500 text-[11px]">⚡</span>}
+                {item.vip_used && !item.vip_plus_used && !item.priority_used && <span className="text-amber-500 text-[11px]">👑</span>}
                 {item.name}
               </span>
-              <span className={`text-[10px] leading-tight mt-0.5 font-medium 
-                ${item.globalRank === 1 
-                  ? "text-emerald-600 dark:text-emerald-400" 
-                  : item.vip_plus_used 
-                    ? "text-purple-600 dark:text-purple-400 font-bold" // Purple sub-label style
+              {item.priority_used ? (
+                <span className="priority-badge text-[10px] leading-tight mt-0.5 font-bold px-1.5 py-0.5 rounded-full inline-block">
+                  💎 7-Day Priority Access
+                </span>
+              ) : (
+                <span className={`text-[10px] leading-tight mt-0.5 font-medium 
+                  ${item.globalRank === 1 
+                    ? "text-emerald-600 dark:text-emerald-400" 
+                    : item.vip_plus_used 
+                      ? "text-purple-600 dark:text-purple-400 font-bold" // Purple sub-label style
+                      : item.vip_used 
+                        ? "text-amber-600 dark:text-amber-400" 
+                        : "text-muted-foreground"}`}
+                >
+                  {item.vip_plus_used 
+                    ? "🔮 1-Hour VIP Plus 🔮" 
                     : item.vip_used 
-                      ? "text-amber-600 dark:text-amber-400" 
-                      : "text-muted-foreground"}`}
-              >
-                {item.vip_plus_used 
-                  ? "🔮 1-Hour VIP Plus 🔮" 
-                  : item.vip_used 
-                    ? "👑 VIP Booking Pass 👑" 
-                    : `#${item.globalRank}${item.booked_at ? ` · ${item.booked_at.replace(/:\d{2}\.\d{3}/, "")}` : ""}`}
-              </span>
+                      ? "👑 VIP Booking Pass 👑" 
+                      : `#${item.globalRank}${item.booked_at ? ` · ${item.booked_at.replace(/:\d{2}\.\d{3}/, "")}` : ""}`}
+                </span>
+              )}
             </div>
           ) : (
             <span key={idx} className="text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">

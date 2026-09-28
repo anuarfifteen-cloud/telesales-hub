@@ -661,6 +661,31 @@
   }
 }
 
+/* ── 7-Day Priority Access badge (diamond pass) ──
+   Indigo gradient pill with a gold ring + faint blue glow. */
+.priority-badge {
+  background: linear-gradient(135deg, #1e3a8a, #4338ca) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 215, 0, 0.4) !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.45) !important;
+}
+
+/* Royal Batik — indigo clashes with the navy batik background, so swap the
+   badge to gold text on a navy fill with a gold ring, and tint the row gold. */
+[data-theme="royal_batik"] .priority-badge {
+  background: #0f1560 !important;
+  color: #f7c25a !important;
+  border: 1px solid rgba(247, 194, 90, 0.55) !important;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.4) !important;
+}
+[data-theme="royal_batik"] .priority-row {
+  background: rgba(247, 194, 90, 0.12) !important;
+  border-color: rgba(247, 194, 90, 0.35) !important;
+}
+[data-theme="royal_batik"] .priority-row .text-indigo-500 {
+  color: #f7c25a !important;
+}
+
 @keyframes tapPop {
   0%   { transform: scale(1.4); }
   100% { transform: scale(1); }
