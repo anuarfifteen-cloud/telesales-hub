@@ -1047,7 +1047,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
               const isChamp = champIds.has(l.user_id);
               return (
                 <div key={l.id} className={`flex items-center gap-3 px-4 py-2 ${isChamp ? "opacity-60" : ""}`}>
-                  <span className="w-6 text-center text-base">{i < 3 ? medals[i] : `${i + 1}`}</span>
+                  <span className="w-6 text-center text-base text-[#3a2a1a] font-bold">{i < 3 ? medals[i] : `${i + 1}`}</span>
                   <div className="flex-1 min-w-0 flex flex-col">
                     <span
                       className="text-sm font-bold text-[#3a2a1a] truncate flex items-center gap-1"
