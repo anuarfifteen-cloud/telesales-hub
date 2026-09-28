@@ -1,10 +1,12 @@
 import { useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Coins, Flame, Trophy, Skull, RotateCcw } from "lucide-react";
+import { Flame, Trophy, Skull, RotateCcw } from "lucide-react";
 import { playClick, playWin, playLoss } from "@/lib/sounds";
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 
 // ── tiny local synth (whoosh + tension sting) ────────────────────────────
 let _ctx;
@@ -291,14 +293,15 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
         <div className="flex items-center justify-between px-5 pt-5">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/15 ring-1 ring-amber-400/40">
-              <Coins className="h-5 w-5 text-amber-400" />
+              <img src={TOKEN_IMG} alt="token" className="h-5 w-5 object-contain" />
             </div>
             <h2 className="text-lg font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500">
               Double or Nothing
             </h2>
           </div>
-          <span className="rounded-full border border-amber-400/30 bg-muted px-3 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
-            🪙 {tokens} tokens
+          <span className="flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-muted px-3 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+            <img src={TOKEN_IMG} alt="token" className="h-3.5 w-3.5 object-contain" />
+            {tokens} tokens
           </span>
         </div>
 
@@ -419,7 +422,7 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
                 {currentStreak === 0 ? "Call it in the air" : "Risk it all — call it again"}
                 {currentPot > 0 && (
                   <span className="block text-[11px] font-normal text-amber-600/70 dark:text-amber-400/70 mt-0.5">
-                    Pot at stake: <span className="font-black text-amber-600 dark:text-amber-300">{currentPot}</span> 🪙
+                    Pot at stake: <span className="font-black text-amber-600 dark:text-amber-300">{currentPot}</span> <img src={TOKEN_IMG} alt="token" className="inline h-3 w-3 object-contain align-middle" />
                   </span>
                 )}
               </p>
@@ -479,7 +482,7 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
                 <span className={`cf-anim-pot mt-1 text-6xl font-black tabular-nums text-amber-500 dark:text-amber-300`}>
                   {currentPot}
                 </span>
-                <span className="mt-1 text-[11px] font-bold uppercase tracking-widest text-amber-600/70 dark:text-amber-400/70">🪙 Tokens</span>
+                <span className="mt-1 flex items-center justify-center gap-1 text-[11px] font-bold uppercase tracking-widest text-amber-600/70 dark:text-amber-400/70"><img src={TOKEN_IMG} alt="token" className="h-3 w-3 object-contain" /> Tokens</span>
               </div>
 
               <button
