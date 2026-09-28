@@ -12,12 +12,14 @@ function getBruneiToday() {
 }
 
 // ── Prize table (order = slice index 0..4, clockwise from top) ────────────────
+const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
+
 const PRIZES = [
   { label: "No Luck! 😢",     tokens: 0, isWinner: false, emoji: "😢", lockDate: true,  wheelColor: "#c0392b", textColor: "#fff",     dotColor: "bg-red-600"    },
-  { label: "1 Token! 🪙",    tokens: 1, isWinner: true,  emoji: "🪙", lockDate: true,  wheelColor: "#1d4ed8", textColor: "#fff",     dotColor: "bg-blue-700"   },
+  { label: "1 Token! 🪙",    tokens: 1, isWinner: true,  emoji: "🪙", lockDate: true,  wheelColor: "#1d4ed8", textColor: "#fff",     dotColor: "bg-blue-700",   useTokenImg: true },
   { label: "Spin Again! 🔄", tokens: 0, isWinner: false, emoji: "🔄", lockDate: false, wheelColor: "#d97706", textColor: "#1e293b",  dotColor: "bg-amber-600"  },
   { label: "Lucky Two! 🌟",  tokens: 2, isWinner: true,  emoji: "🌟", lockDate: true,  wheelColor: "#15803d", textColor: "#fff",     dotColor: "bg-green-700"  },
-  { label: "JACKPOT! 🏆",    tokens: 3, isWinner: true,  emoji: "🏆", lockDate: true,  wheelColor: "#b45309", textColor: "#fff",     dotColor: "bg-yellow-700" },
+  { label: "JACKPOT! 🏆",    tokens: 3, isWinner: true,  emoji: "🏆", lockDate: true,  wheelColor: "#b45309", textColor: "#fff",     dotColor: "bg-yellow-700", useTokenImg: true },
 ];
 
 function rollPrizeIndex() {
@@ -231,7 +233,12 @@ function WheelModal({ onClose, onClaim, user, today }) {
           {PRIZES.map((p, i) => (
             <div key={i} className="flex items-center gap-1.5 bg-gray-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-slate-600 shadow-sm">
               <div className={`w-3 h-3 rounded-full flex-shrink-0 ${p.dotColor}`} />
-              <span className="text-xs font-bold text-gray-700 dark:text-gray-200 whitespace-nowrap">{p.emoji} {p.label.replace(/[😢🪙🔄🌟🏆]/g, "").trim()}</span>
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-200 whitespace-nowrap flex items-center gap-1">
+                {p.useTokenImg
+                  ? <img src={TOKEN_IMG} alt="token" className="w-3.5 h-3.5 object-contain" />
+                  : <span>{p.emoji}</span>}
+                {p.label.replace(/[😢🪙🔄🌟🏆]/g, "").trim()}
+              </span>
             </div>
           ))}
         </div>
