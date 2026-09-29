@@ -211,7 +211,7 @@ export default function AdminTaxEngine() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-[11px]">
+              <table className="w-full text-[11px] bg-white">
                 <thead className="bg-slate-100 text-slate-600">
                   <tr>
                     <th className="text-left font-semibold px-2 py-2 whitespace-nowrap">User Name</th>
