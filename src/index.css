@@ -300,13 +300,13 @@
      --muted-fg    100 100 100 → 0 0% 39%
   */
   [data-theme="gamer"], [data-theme="retro"] {
-    --background: 32 79% 96%;
+    --background: 37 53% 94%;
     --foreground: 0 0% 10%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 10%;
-    --primary: 190 74% 42%;
+    --primary: 186 43% 40%;
     --primary-foreground: 0 0% 100%;
     --secondary: 30 40% 90%;
     --secondary-foreground: 0 0% 10%;
@@ -318,7 +318,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 10%;
     --input: 0 0% 90%;
-    --ring: 190 74% 42%;
+    --ring: 186 43% 40%;
   }
 
 }
@@ -345,8 +345,8 @@
   [data-theme="retro"] section.rounded-xl.border,
   [data-theme="gamer"] section.rounded-lg.border,
   [data-theme="retro"] section.rounded-lg.border {
-    border: 3px solid #1a1a1a;
-    box-shadow: 4px 4px 0px #1a1a1a;
+    border: 2px solid #2b2b2b;
+    box-shadow: 3px 3px 0px #2b2b2b;
     border-radius: 12px;
     background: #ffffff;
   }
@@ -354,8 +354,8 @@
   /* 2. All buttons — blocky with flat black drop shadow */
   [data-theme="gamer"] button,
   [data-theme="retro"] button {
-    border: 3px solid #1a1a1a;
-    box-shadow: 3px 3px 0px #1a1a1a;
+    border: 2px solid #2b2b2b;
+    box-shadow: 3px 3px 0px #2b2b2b;
     border-radius: 8px;
     font-weight: 900;
   }
@@ -363,7 +363,7 @@
   /* 3. Primary buttons — retro teal */
   [data-theme="gamer"] button.bg-primary,
   [data-theme="retro"] button.bg-primary {
-    background-color: #00b4d8;
+    background-color: #3a8a92;
     color: #ffffff;
   }
 
@@ -375,9 +375,9 @@
   [data-theme="gamer"] .active-tab-indicator,
   [data-theme="retro"] .active-tab-indicator {
     background-color: #ffb703;
-    color: #1a1a1a;
-    border: 3px solid #1a1a1a;
-    box-shadow: 3px 3px 0px #1a1a1a;
+    color: #2b2b2b;
+    border: 3px solid #2b2b2b;
+    box-shadow: 3px 3px 0px #2b2b2b;
   }
 
   /* 6. Bottom nav pill buttons override — inactive flat, active yellow block */
@@ -392,9 +392,9 @@
   [data-theme="gamer"] nav button.bg-primary,
   [data-theme="retro"] nav button.bg-primary {
     background-color: #ffb703;
-    color: #1a1a1a;
-    border: 2px solid #1a1a1a;
-    box-shadow: 2px 2px 0px #1a1a1a;
+    color: #2b2b2b;
+    border: 1.5px solid #2b2b2b;
+    box-shadow: 2px 2px 0px #2b2b2b;
   }
 
   /* 5. Input fields */
@@ -404,8 +404,8 @@
   [data-theme="retro"] select,
   [data-theme="gamer"] textarea,
   [data-theme="retro"] textarea {
-    border: 2px solid #1a1a1a;
-    box-shadow: 2px 2px 0px #1a1a1a;
+    border: 1.5px solid #2b2b2b;
+    box-shadow: 2px 2px 0px #2b2b2b;
     border-radius: 6px;
     background: #ffffff;
   }
@@ -413,7 +413,7 @@
   /* 8. .text-primary — retro teal text, no background, no border */
   [data-theme="gamer"] .text-primary,
   [data-theme="retro"] .text-primary {
-    color: #00b4d8;
+    color: #3a8a92;
     font-weight: 900;
   }
 
@@ -421,7 +421,7 @@
   [data-theme="gamer"] .time-highlight,
   [data-theme="retro"] .time-highlight {
     background-color: #7bc67e;
-    color: #1a1a1a;
+    color: #2b2b2b;
     padding: 2px 6px;
     border-radius: 4px;
   }
@@ -434,15 +434,15 @@
   [data-theme="gamer"] .progress-bar-fill,
   [data-theme="retro"] .progress-bar-fill {
     background-color: #7bc67e;
-    border: 1px solid #1a1a1a;
+    border: 1px solid #2b2b2b;
     color: #ffffff;
   }
 
   /* 12. App header — clean cream + thick ink underline, no shadow blur */
   [data-theme="gamer"] header,
   [data-theme="retro"] header {
-    background: #fdf6ee !important;
-    border-bottom: 3px solid #1a1a1a !important;
+    background: #f7f1e6 !important;
+    border-bottom: 2px solid #2b2b2b !important;
     box-shadow: none !important;
     border-radius: 0;
   }
@@ -479,7 +479,7 @@
   [data-theme="retro"] .bg-card *,
   [data-theme="gamer"] .bg-white *,
   [data-theme="retro"] .bg-white * {
-    color: #1a1a1a;
+    color: #2b2b2b;
   }
   [data-theme="gamer"] button *,
   [data-theme="retro"] button * {
@@ -493,7 +493,7 @@
   [data-theme="retro"] .text-\[\#ff00c8\],
   [data-theme="gamer"] .text-white,
   [data-theme="retro"] .text-white {
-    color: #1a1a1a !important;
+    color: #2b2b2b !important;
   }
 
   /* 10. Token badge pills in leaderboard — ink black text */
@@ -505,7 +505,7 @@
   [data-theme="retro"] span.text-\[\#c0c0c0\],
   [data-theme="gamer"] span.text-\[\#cd7f32\],
   [data-theme="retro"] span.text-\[\#cd7f32\] {
-    color: #1a1a1a !important;
+    color: #2b2b2b !important;
     font-weight: 900 !important;
   }
 
