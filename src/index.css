@@ -764,6 +764,22 @@
   color: #ffffff !important;
 }
 
+/* ── Royal Batik: AdminTaxEngine Pre-Execution table legibility ──
+   The tax table hardcodes bg-white (body) + bg-slate-100 (header) + bg-rose-50
+   (high-roller row). Those are not rounded containers, so the blanket card
+   repaint skips them — they stay white while the global override above turns
+   the slate text white → white-on-white. Repaint all three to dark navy so the
+   forced-white text and colored tax numbers read. Light themes untouched. */
+[data-theme="royal_batik"] table.bg-white {
+  background-color: #0f1560 !important;
+}
+[data-theme="royal_batik"] table.bg-white thead.bg-slate-100 {
+  background-color: #0a0f4d !important;
+}
+[data-theme="royal_batik"] table.bg-white tbody tr.bg-rose-50 {
+  background-color: rgba(244, 63, 94, 0.15) !important;
+}
+
 @keyframes tapPop {
   0%   { transform: scale(1.4); }
   100% { transform: scale(1); }
