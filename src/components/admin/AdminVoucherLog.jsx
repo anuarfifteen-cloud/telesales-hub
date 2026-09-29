@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Search, Ticket, Gem } from "lucide-react";
 import AdminVoucherOut from "./AdminVoucherOut";
+import AdminTokenTransferAudit from "./AdminTokenTransferAudit";
 
 const VIEW_TABS = [
   { id: "out", label: "🎟️ Voucher Out" },
   { id: "status", label: "📋 Status Log" },
+  { id: "transfer", label: "🔄 Token Transfer Audit" },
 ];
 
 const STATUS_TABS = [
@@ -91,6 +93,8 @@ export default function AdminVoucherLog() {
 
       {view === "out" ? (
         <AdminVoucherOut />
+      ) : view === "transfer" ? (
+        <AdminTokenTransferAudit />
       ) : (
         <>
           {/* Summary */}
