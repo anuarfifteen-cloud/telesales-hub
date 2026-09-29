@@ -730,6 +730,40 @@
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9) !important;
 }
 
+/* ── Royal Batik: global dark-text legibility ──
+   The app hardcodes dark slate/gray text on light containers across Home,
+   Booking, Tokens, Roster, Profile, Inbox, Theme Shop and every Admin tab.
+   Under Royal Batik those containers turn opaque navy, so the dark text
+   vanishes. Force every dark shade to white while leaving intentional accent
+   colors (gold/amber/emerald/red/blue/green, status badges, gold CTAs) intact. */
+[data-theme="royal_batik"] .text-slate-900,
+[data-theme="royal_batik"] .text-slate-800,
+[data-theme="royal_batik"] .text-slate-700,
+[data-theme="royal_batik"] .text-slate-600,
+[data-theme="royal_batik"] .text-slate-500,
+[data-theme="royal_batik"] .text-slate-400,
+[data-theme="royal_batik"] .text-gray-900,
+[data-theme="royal_batik"] .text-gray-800,
+[data-theme="royal_batik"] .text-gray-700,
+[data-theme="royal_batik"] .text-gray-600,
+[data-theme="royal_batik"] .text-gray-500,
+[data-theme="royal_batik"] .text-gray-400,
+[data-theme="royal_batik"] .text-black,
+[data-theme="royal_batik"] .dark\:text-slate-900,
+[data-theme="royal_batik"] .dark\:text-slate-800,
+[data-theme="royal_batik"] .dark\:text-slate-700,
+[data-theme="royal_batik"] .dark\:text-slate-600,
+[data-theme="royal_batik"] .dark\:text-slate-500,
+[data-theme="royal_batik"] .dark\:text-slate-400,
+[data-theme="royal_batik"] .dark\:text-gray-900,
+[data-theme="royal_batik"] .dark\:text-gray-800,
+[data-theme="royal_batik"] .dark\:text-gray-700,
+[data-theme="royal_batik"] .dark\:text-gray-600,
+[data-theme="royal_batik"] .dark\:text-gray-500,
+[data-theme="royal_batik"] .dark\:text-gray-400 {
+  color: #ffffff !important;
+}
+
 @keyframes tapPop {
   0%   { transform: scale(1.4); }
   100% { transform: scale(1); }
