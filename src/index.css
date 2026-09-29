@@ -686,6 +686,50 @@
   color: #f7c25a !important;
 }
 
+/* ── Royal Batik: TAP Vault admin tab legibility ──
+   The component hardcodes light-theme slate text on bg-white containers; under
+   Royal Batik the blanket card repaint turns those containers opaque navy, so
+   the dark slate text vanishes. Give the stat cards, toggle bar and table a
+   semi-transparent navy glass surface and force white text so the busy batik
+   pattern stops clashing with the UI. Light themes are untouched. */
+[data-theme="royal_batik"] .vault-admin-card {
+  background: rgba(15, 21, 96, 0.8) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-color: rgba(255, 215, 0, 0.35) !important;
+}
+
+/* Force white text inside the glass containers — table, stat cards, toggle bar */
+[data-theme="royal_batik"] .vault-admin-card,
+[data-theme="royal_batik"] .vault-admin-card p,
+[data-theme="royal_batik"] .vault-admin-card h3,
+[data-theme="royal_batik"] .vault-admin-card th,
+[data-theme="royal_batik"] .vault-admin-card td {
+  color: #ffffff !important;
+  text-shadow: none !important;
+}
+
+/* TAP Vault balance column stays gold for emphasis */
+[data-theme="royal_batik"] .vault-admin-card td.text-amber-600,
+[data-theme="royal_batik"] .vault-admin-card .text-amber-600 {
+  color: #f7c25a !important;
+}
+
+/* Sortable header button hover stays readable */
+[data-theme="royal_batik"] .vault-admin-card thead button:hover {
+  color: #f7c25a !important;
+}
+
+/* Section header stands out against the batik pattern */
+[data-theme="royal_batik"] .vault-admin-title {
+  color: #ffffff !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9) !important;
+}
+[data-theme="royal_batik"] .vault-admin > div > p {
+  color: #f5e6b8 !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9) !important;
+}
+
 @keyframes tapPop {
   0%   { transform: scale(1.4); }
   100% { transform: scale(1); }

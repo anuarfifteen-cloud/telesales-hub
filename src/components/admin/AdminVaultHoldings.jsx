@@ -162,7 +162,7 @@ export default function AdminVaultHoldings() {
   };
 
   const metricCard = (icon, label, value, accent) => (
-    <div className="bg-white rounded-2xl border border-border p-4 flex items-center gap-3" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+    <div className="bg-white rounded-2xl border border-border p-4 flex items-center gap-3 vault-admin-card" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
       <div className={`flex h-10 w-10 items-center justify-center rounded-full ${accent}`}>
         {icon}
       </div>
@@ -174,9 +174,9 @@ export default function AdminVaultHoldings() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 vault-admin">
       <div>
-        <h2 className="font-bold text-slate-900 text-base flex items-center gap-2">
+        <h2 className="font-bold text-slate-900 text-base flex items-center gap-2 vault-admin-title">
           <Landmark className="w-5 h-5 text-amber-600" /> 🏛️ TAP Vault Holdings
         </h2>
         <p className="text-sm text-slate-500 mt-0.5">
@@ -207,7 +207,7 @@ export default function AdminVaultHoldings() {
       </div>
 
       {/* Leaderboard Visibility Settings */}
-      <div className="bg-white rounded-2xl border border-border p-4 flex items-center justify-between gap-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+      <div className="bg-white rounded-2xl border border-border p-4 flex items-center justify-between gap-4 vault-admin-card" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-50 ring-1 ring-indigo-200 flex-shrink-0">
             <UserX className="w-4 h-4 text-indigo-600" />
@@ -229,7 +229,7 @@ export default function AdminVaultHoldings() {
       </div>
 
       {/* Search + table */}
-      <div className="bg-white rounded-2xl border border-border overflow-hidden" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+      <div className="bg-white rounded-2xl border border-border overflow-hidden vault-admin-card" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
         <div className="p-3 border-b border-border">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
