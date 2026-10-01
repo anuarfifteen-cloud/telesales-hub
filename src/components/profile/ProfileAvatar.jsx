@@ -11,9 +11,9 @@ const TIER_RING = {
 };
 
 const SIZES = {
-  sm: { box: "w-9 h-9", icon: "w-5 h-5", text: "text-[11px]", crown: "w-4 h-4 -top-1 -right-1", count: "w-3 h-3 text-[7px]" },
-  md: { box: "w-12 h-12", icon: "w-6 h-6", text: "text-sm", crown: "w-5 h-5 -top-1.5 -right-1.5", count: "w-3.5 h-3.5 text-[8px]" },
-  lg: { box: "w-20 h-20", icon: "w-10 h-10", text: "text-2xl", crown: "w-7 h-7 -top-2 -right-2", count: "w-5 h-5 text-[10px]" },
+  sm: { box: "w-9 h-9", icon: "w-5 h-5", text: "text-[11px]" },
+  md: { box: "w-12 h-12", icon: "w-6 h-6", text: "text-sm" },
+  lg: { box: "w-20 h-20", icon: "w-10 h-10", text: "text-2xl" },
 };
 
 // Reusable avatar: tier-colored ring + photo (or custom initials, or default
@@ -44,16 +44,6 @@ export default function ProfileAvatar({ user, size = "md", showCrown = false, ch
           <span className={`font-bold text-primary-foreground ${s.text}`}>{fallbackInitials}</span>
         )}
       </div>
-      {showCrown && championCount > 0 && (
-        <span className={`absolute ${s.crown} flex items-center justify-center rounded-full bg-amber-400 text-amber-950 border-2 border-card shadow-md`} title={`Defending champion — ${championCount} title${championCount > 1 ? "s" : ""}`}>
-          <span className="leading-none text-[8px]">👑</span>
-          {championCount > 1 && (
-            <span className={`absolute -bottom-1 -right-1 ${s.count} flex items-center justify-center rounded-full bg-red-500 text-white font-black border border-card`}>
-              {championCount}
-            </span>
-          )}
-        </span>
-      )}
     </div>
   );
 }
