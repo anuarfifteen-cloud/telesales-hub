@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Search, RefreshCw, Ticket, CheckCircle2, Clock } from "lucide-react";
+import { Loader2, Search, RefreshCw, Ticket, CheckCircle2, Clock, Calendar } from "lucide-react";
 
 const BRUNEI_TZ = "Asia/Brunei";
 const VOUCHER_MONTHLY_CAP = 50;
@@ -17,7 +17,6 @@ const STATUS_TABS = [
 function bruneiMonthKey(iso) {
   if (!iso) return "";
   const d = new Date(iso);
-  // Use Asia/Brunei formatting via Intl to get local year/month
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: BRUNEI_TZ,
     year: "numeric",
@@ -26,6 +25,26 @@ function bruneiMonthKey(iso) {
   const y = parts.find((p) => p.type === "year")?.value || "";
   const m = parts.find((p) => p.type === "month")?.value || "";
   return `${y}-${m}`;
+}
+
+function bruneiDayKey(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: BRUNEI_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+function todayBruneiKey() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: BRUNEI_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 function fmtDate(iso) {
@@ -41,7 +60,7 @@ function fmtDate(iso) {
 }
 
 function displayName(name, email) {
-  if (name && name.trim()) return name;
+  if (name && String(name).trim()) return String(name).trim();
   if (email) return email.split("@")[0];
   return "Unknown";
 }
@@ -51,6 +70,9 @@ export default function AdminTokenTransferAudit() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState(() => todayBruneiKey());
+  const [allDates, setAllDates] = useState(false);
+  const [issuerFilter, setIssuerFilter] = useState("all");
 
   const load = async () => {
     setLoading(true);
@@ -68,58 +90,62 @@ export default function AdminTokenTransferAudit() {
     load();
   }, []);
 
-  // Reconstruct vouchers from transactions
+  // Reconstruct vouchers from BOTH ACTIVE and CLAIMED records.
+  // Claimed records are preferred when the same code exists in both,
+  // because MysteryBoxModal mutates the ACTIVE record's source to
+  // VOUCHER_CLAIMED on redemption (so claimed vouchers have no ACTIVE row).
   const vouchers = useMemo(() => {
-    const claimedByCode = new Map();
-    const activeByCode = new Map();
+    const byCode = new Map();
 
     (txs || []).forEach((t) => {
       const src = t.source || "";
       let m = src.match(CLAIMED_RE);
       if (m) {
-        const [, code, by] = m;
-        // keep the latest claimed record if multiple
-        const existing = claimedByCode.get(code);
-        if (!existing || new Date(t.timestamp || 0) > new Date(existing.timestamp || 0)) {
-          claimedByCode.set(code, { by, timestamp: t.timestamp });
-        }
+        const code = m[1];
+        const by = m[2];
+        const entry = {
+          code,
+          issuerName: displayName(t.user_name),
+          amount: Math.abs(Number(t.amount) || 0),
+          issuedAt: t.timestamp,
+          claimed: true,
+          claimedBy: by,
+          claimedAt: t.timestamp,
+        };
+        // claimed entry always wins (preferred)
+        byCode.set(code, entry);
         return;
       }
       m = src.match(ACTIVE_RE);
       if (m) {
         const code = m[1];
-        const existing = activeByCode.get(code);
-        if (!existing || new Date(t.timestamp || 0) > new Date(existing.timestamp || 0)) {
-          activeByCode.set(code, t);
+        if (!byCode.has(code)) {
+          byCode.set(code, {
+            code,
+            issuerName: displayName(t.user_name),
+            amount: Math.abs(Number(t.amount) || 0),
+            issuedAt: t.timestamp,
+            claimed: false,
+            claimedBy: null,
+            claimedAt: null,
+          });
         }
       }
     });
 
-    const list = [];
-    activeByCode.forEach((t, code) => {
-      const claim = claimedByCode.get(code);
-      list.push({
-        code,
-        issuerName: displayName(t.user_name, undefined),
-        amount: Math.abs(Number(t.amount) || 0),
-        issuedAt: t.timestamp,
-        claimed: !!claim,
-        claimedBy: claim ? claim.by : null,
-        claimedAt: claim ? claim.timestamp : null,
-      });
-    });
+    const list = Array.from(byCode.values());
     list.sort((a, b) => (b.issuedAt || "").localeCompare(a.issuedAt || ""));
     return list;
   }, [txs]);
 
   const currentMonth = bruneiMonthKey(new Date().toISOString());
 
-  // Top counts
+  // Top counts — computed on the FULL voucher set (unfiltered)
   const totalIssued = vouchers.length;
   const totalRedeemed = vouchers.filter((v) => v.claimed).length;
   const totalNotYet = totalIssued - totalRedeemed;
 
-  // Per-issuer monthly summary (cap tracking)
+  // Per-issuer monthly summary — computed on the FULL voucher set (unfiltered)
   const monthlyByIssuer = useMemo(() => {
     const map = new Map();
     vouchers.forEach((v) => {
@@ -135,19 +161,33 @@ export default function AdminTokenTransferAudit() {
 
   const totalGiftedThisMonth = monthlyByIssuer.reduce((s, r) => s + r.amount, 0);
 
-  // Filtered list
+  // Unique issuer list for dropdown
+  const issuers = useMemo(() => {
+    const set = new Set();
+    vouchers.forEach((v) => set.add(v.issuerName));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [vouchers]);
+
+  // Filtered list — respects date + issuer + status + search
   const filtered = vouchers.filter((v) => {
+    // date filter
+    if (!allDates && bruneiDayKey(v.issuedAt) !== dateFilter) return false;
+    // issuer filter
+    if (issuerFilter !== "all" && v.issuerName !== issuerFilter) return false;
+    // status filter
     const matchStatus =
       statusFilter === "all" ||
       (statusFilter === "redeemed" && v.claimed) ||
       (statusFilter === "active" && !v.claimed);
+    if (!matchStatus) return false;
+    // search
     const q = query.trim().toLowerCase();
     const matchQuery =
       !q ||
       (v.issuerName || "").toLowerCase().includes(q) ||
       (v.code || "").toLowerCase().includes(q) ||
       (v.claimedBy || "").toLowerCase().includes(q);
-    return matchStatus && matchQuery;
+    return matchQuery;
   });
 
   const summaryCards = [
@@ -219,6 +259,59 @@ export default function AdminTokenTransferAudit() {
         </div>
       )}
 
+      {/* Date + Issuer filters */}
+      <div className="grid grid-cols-2 gap-2">
+        {/* Date filter */}
+        <div className="rounded-xl border border-border bg-card p-2.5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 flex items-center gap-1">
+            <Calendar className="w-3 h-3" /> Issue Date
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => {
+                setDateFilter(e.target.value);
+                setAllDates(false);
+              }}
+              disabled={allDates}
+              className="flex-1 text-xs rounded-lg border border-input bg-background px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+            />
+            <button
+              onClick={() => {
+                setAllDates(!allDates);
+              }}
+              className={`text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-colors whitespace-nowrap ${
+                allDates
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground border-border hover:bg-muted"
+              }`}
+            >
+              {allDates ? "All Dates ✓" : "All Dates"}
+            </button>
+          </div>
+        </div>
+
+        {/* Issuer filter */}
+        <div className="rounded-xl border border-border bg-card p-2.5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
+            Issuer
+          </p>
+          <select
+            value={issuerFilter}
+            onChange={(e) => setIssuerFilter(e.target.value)}
+            className="w-full text-xs rounded-lg border border-input bg-background px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="all">All Issuers</option>
+            {issuers.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* Status filter pills */}
       <div className="grid grid-cols-3 gap-2">
         {STATUS_TABS.map((t) => (
@@ -254,7 +347,9 @@ export default function AdminTokenTransferAudit() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-card rounded-2xl border border-border p-6 text-center">
-          <p className="text-sm text-muted-foreground">No token transfers found.</p>
+          <p className="text-sm text-muted-foreground">
+            {allDates ? "No token transfers found." : `No token transfers for ${dateFilter}.`}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -282,9 +377,7 @@ export default function AdminTokenTransferAudit() {
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
                   +{v.amount} tokens · Issued {fmtDate(v.issuedAt)}
-                  {v.claimed
-                    ? ` · Claimed by ${v.claimedBy || "—"}`
-                    : ""}
+                  {v.claimed ? ` · Claimed by ${v.claimedBy || "—"}` : ""}
                 </p>
               </div>
 
