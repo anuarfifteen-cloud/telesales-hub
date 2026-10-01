@@ -1,14 +1,19 @@
 import { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Loader2, Upload, Trash2 } from "lucide-react";
+import { Loader2, Upload, Trash2, Lock } from "lucide-react";
+import { getVaultTier } from "@/lib/vaultTiers";
 
-// Lets a user upload (or remove) a profile photo. The photo is stored via
-// UploadPublicFile so leaderboards (public-readable) can display it.
+// Profile photo upload is a Silver-tier (Vault) exclusive. Users below Silver
+// see a locked "Silver Tier onwards — Exclusive" notice and no upload control.
+// Any previously uploaded photo still renders via ProfileAvatar.
 export default function AvatarPhotoEditor({ user, onUserUpdate }) {
   const [busy, setBusy] = useState(false);
   const inputRef = useRef(null);
   const hasPhoto = !!user?.avatar_photo_url;
+
+  const tier = getVaultTier(user?.tapVaultBalance);
+  const canUpload = tier && ["Platinum", "Diamond", "Gold", "Silver"].includes(tier.title);
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
@@ -57,27 +62,35 @@ export default function AvatarPhotoEditor({ user, onUserUpdate }) {
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
-        <button
-          onClick={() => inputRef.current?.click()}
-          disabled={busy}
-          className="inline-flex items-center gap-1 text-xs font-bold rounded-lg bg-primary text-primary-foreground px-3 py-1.5 hover:bg-primary/90 disabled:opacity-50"
-        >
-          {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-          {hasPhoto ? "Change" : "Upload"}
-        </button>
-        {hasPhoto && (
+
+      {canUpload ? (
+        <div className="flex items-center gap-2">
+          <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
           <button
-            onClick={handleRemove}
+            onClick={() => inputRef.current?.click()}
             disabled={busy}
-            className="inline-flex items-center justify-center text-xs font-bold rounded-lg border border-red-300 text-red-600 px-2.5 py-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50"
-            aria-label="Remove photo"
+            className="inline-flex items-center gap-1 text-xs font-bold rounded-lg bg-primary text-primary-foreground px-3 py-1.5 hover:bg-primary/90 disabled:opacity-50"
           >
-            <Trash2 className="w-3 h-3" />
+            {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+            {hasPhoto ? "Change" : "Upload"}
           </button>
-        )}
-      </div>
+          {hasPhoto && (
+            <button
+              onClick={handleRemove}
+              disabled={busy}
+              className="inline-flex items-center justify-center text-xs font-bold rounded-lg border border-red-300 text-red-600 px-2.5 py-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50"
+              aria-label="Remove photo"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      ) : (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-2.5 py-1">
+          <Lock className="w-3 h-3" />
+          Silver Tier onwards — Exclusive
+        </span>
+      )}
     </div>
   );
 }
