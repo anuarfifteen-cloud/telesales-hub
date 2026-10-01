@@ -380,7 +380,7 @@ export default function ThemeShop({ user, onUserUpdate }) {
                       <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-500 dark:text-amber-400 mt-1">
                         👑 Win Ninja Slice to unlock
                       </span>
-                    ) : isDiamond && !owned ? (
+                    ) : isDiamond && owned ? (
                       <span className="inline-flex items-center gap-1 text-[9px] font-bold text-muted-foreground mt-1">
                         <DiamondIcon className="w-3 h-3" /> Diamond Exclusive
                       </span>
