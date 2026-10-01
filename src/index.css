@@ -743,10 +743,10 @@
    vanishes. Force every dark shade to white while leaving intentional accent
    colors (gold/amber/emerald/red/blue/green, status badges, gold CTAs) intact. */
 [data-theme="royal_batik"] .text-slate-900,
-[data-theme="royal_batik"] .text-slate-800,
+[data-theme="royal_batik"] .text-slate-800:not(.pin-key),
 [data-theme="royal_batik"] .text-slate-700,
 [data-theme="royal_batik"] .text-slate-600,
-[data-theme="royal_batik"] .text-slate-500,
+[data-theme="royal_batik"] .text-slate-500:not(.pin-key),
 [data-theme="royal_batik"] .text-slate-400,
 [data-theme="royal_batik"] .text-gray-900,
 [data-theme="royal_batik"] .text-gray-800,
