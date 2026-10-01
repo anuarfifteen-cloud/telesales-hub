@@ -664,7 +664,8 @@
 /* ── 7-Day Priority Access badge (diamond pass) ──
    Indigo gradient pill with a gold ring + faint blue glow. */
 /* Royal Batik — PIN numpad keys: force black digits on the light key background */
-[data-theme="royal_batik"] .pin-key {
+[data-theme="royal_batik"] button.pin-key,
+[data-theme="royal_batik"] .pin-key.pin-key {
   color: #1a1a1a !important;
 }
 
