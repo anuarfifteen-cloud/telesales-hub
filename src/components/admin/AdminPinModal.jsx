@@ -76,7 +76,7 @@ export default function AdminPinModal({ onClose, onSuccess }) {
                 <button
                   key={i}
                   onClick={handleDelete}
-                  className="h-14 rounded-xl text-slate-500 font-semibold text-lg bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all"
+                  className="pin-key h-14 rounded-xl text-slate-500 font-semibold text-lg bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all"
                 >
                   ⌫
                 </button>
@@ -86,7 +86,7 @@ export default function AdminPinModal({ onClose, onSuccess }) {
               <button
                 key={i}
                 onClick={() => handleDigit(String(d))}
-                className="h-14 rounded-xl text-slate-800 font-semibold text-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-700 active:scale-95 transition-all"
+                className="pin-key h-14 rounded-xl text-slate-800 font-semibold text-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-700 active:scale-95 transition-all"
               >
                 {d}
               </button>

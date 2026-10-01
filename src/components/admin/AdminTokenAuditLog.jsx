@@ -26,7 +26,7 @@ export default function AdminTokenAuditLog() {
   const { data: transactions = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ["tokenTransactions"],
     queryFn: async () => {
-      const rows = await base44.entities.TokenTransaction.list("-timestamp", 2000);
+      const rows = await base44.entities.TokenTransaction.list("-timestamp", 300);
       return rows || [];
     },
   });
