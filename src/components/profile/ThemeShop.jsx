@@ -226,15 +226,14 @@ export default function ThemeShop({ user, onUserUpdate }) {
         </div>
       )}
 
+      {/* ── Regular purchasable themes ── */}
       <div className="grid grid-cols-2 gap-3">
-        {THEMES.map((theme) => {
+        {THEMES.filter((t) => !t.exclusive).map((theme) => {
           const owned = unlocked.includes(theme.id);
           const isActive = active === theme.id;
           const isBusy = busy === theme.id;
           const canAfford = tokens >= effectivePrice;
           const isFree = theme.id === "default";
-          const isExclusive = !!theme.exclusive && !isFree;
-          const isLockedExclusive = isExclusive && !owned;
           const displayPrice = isFree ? 0 : effectivePrice;
           const showOriginalStr = offerLive && !isFree && !owned && basePrice !== effectivePrice;
           const isDiamond = theme.currency === "diamond";
@@ -253,23 +252,16 @@ export default function ThemeShop({ user, onUserUpdate }) {
                   <Check className="w-2.5 h-2.5" /> Active
                 </span>
               )}
-              {offerLive && !isFree && !owned && !isLockedExclusive && (
+              {offerLive && !isFree && !owned && (
                 <span className="absolute top-1.5 left-1.5 z-10 inline-flex items-center gap-0.5 text-[9px] font-black bg-rose-500 text-white px-1.5 py-0.5 rounded-full">
                   -{shopConfig.discount}%
-                </span>
-              )}
-              {isLockedExclusive && (
-                <span className="absolute top-1.5 left-1.5 z-10 inline-flex items-center gap-0.5 text-[9px] font-black bg-amber-500 text-black px-1.5 py-0.5 rounded-full">
-                  👑 Exclusive
                 </span>
               )}
               <div className="h-16 w-full" style={{ background: theme.preview }} />
               <div className="p-3 bg-card">
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-sm font-bold text-foreground">{theme.name}</span>
-                  {isLockedExclusive ? (
-                    <span className="text-[10px] font-black text-amber-500 dark:text-amber-400 uppercase tracking-wide">👑 Locked</span>
-                  ) : isFree ? (
+                  {isFree ? (
                     <span className="text-[10px] font-bold text-muted-foreground">Free</span>
                   ) : isDiamond ? (
                     <span className="inline-flex items-center gap-1.5">
@@ -291,60 +283,133 @@ export default function ThemeShop({ user, onUserUpdate }) {
                   )}
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{theme.description}</p>
-                {isLockedExclusive ? (
-                  <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-500 dark:text-amber-400 mt-1">
-                    👑 Win Ninja Slice to unlock
-                  </span>
-                ) : THEME_BADGES[theme.id] ? (
+                {THEME_BADGES[theme.id] ? (
                   <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-muted-foreground mt-1">
                     🔒 {THEME_BADGES[theme.id]} Mode
                   </span>
                 ) : null}
-                {isLockedExclusive ? (
-                  <button
-                    disabled
-                    className="mt-2 w-full text-xs font-bold rounded-lg py-1.5 flex items-center justify-center gap-1 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed"
-                  >
-                    <Lock className="w-3 h-3" /> Exclusive
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => (owned ? handleEquip(theme) : handlePurchase(theme))}
-                    disabled={isBusy || isActive || (!owned && !isFree && !canAffordTheme)}
-                    className={`mt-2 w-full text-xs font-bold rounded-lg py-1.5 flex items-center justify-center gap-1 transition-colors disabled:opacity-50 ${
-                      isActive
-                        ? "bg-muted text-muted-foreground cursor-default"
-                        : owned
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : canAffordTheme
-                        ? offerLive
-                          ? "bg-rose-500 text-white hover:bg-rose-600"
-                          : "bg-amber-500 text-white hover:bg-amber-600"
-                        : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed"
-                    }`}
-                  >
-                    {isBusy ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : isActive ? (
-                      <><Check className="w-3 h-3" /> Equipped</>
-                    ) : owned ? (
-                      <><Sparkles className="w-3 h-3" /> Equip</>
-                    ) : isFree ? (
-                      "Unlock"
-                    ) : canAffordTheme ? (
-                      <><Lock className="w-3 h-3" /> Buy</>
-                    ) : isDiamond ? (
-                      <>Not enough 💎</>
-                    ) : (
-                      <><Lock className="w-3 h-3" /> {displayPrice} <CoinIcon className="w-3 h-3" /></>
-                    )}
-                  </button>
-                )}
+                <button
+                  onClick={() => (owned ? handleEquip(theme) : handlePurchase(theme))}
+                  disabled={isBusy || isActive || (!owned && !isFree && !canAffordTheme)}
+                  className={`mt-2 w-full text-xs font-bold rounded-lg py-1.5 flex items-center justify-center gap-1 transition-colors disabled:opacity-50 ${
+                    isActive
+                      ? "bg-muted text-muted-foreground cursor-default"
+                      : owned
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : canAffordTheme
+                      ? offerLive
+                        ? "bg-rose-500 text-white hover:bg-rose-600"
+                        : "bg-amber-500 text-white hover:bg-amber-600"
+                      : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                  }`}
+                >
+                  {isBusy ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : isActive ? (
+                    <><Check className="w-3 h-3" /> Equipped</>
+                  ) : owned ? (
+                    <><Sparkles className="w-3 h-3" /> Equip</>
+                  ) : isFree ? (
+                    "Unlock"
+                  ) : canAffordTheme ? (
+                    <><Lock className="w-3 h-3" /> Buy</>
+                  ) : isDiamond ? (
+                    <>Not enough 💎</>
+                  ) : (
+                    <><Lock className="w-3 h-3" /> {displayPrice} <CoinIcon className="w-3 h-3" /></>
+                  )}
+                </button>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* ── Exclusive reward themes (no price — win-only) ── */}
+      {THEMES.some((t) => t.exclusive) && (
+        <div className="mt-4">
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="text-[10px] font-black text-amber-500 dark:text-amber-400 uppercase tracking-widest">
+              🏆 Exclusive Reward Themes
+            </span>
+            <div className="flex-1 h-px bg-amber-300/40 dark:bg-amber-500/30" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {THEMES.filter((t) => t.exclusive).map((theme) => {
+              const owned = unlocked.includes(theme.id);
+              const isActive = active === theme.id;
+              const isBusy = busy === theme.id;
+              const isLockedExclusive = !owned;
+              return (
+                <div
+                  key={theme.id}
+                  className={`relative rounded-xl overflow-hidden border-2 transition-all ${
+                    isActive ? "border-amber-500 shadow-md" : "border-amber-300/50 dark:border-amber-500/40"
+                  }`}
+                >
+                  {isActive && (
+                    <span className="absolute top-1.5 right-1.5 z-10 inline-flex items-center gap-0.5 text-[9px] font-bold bg-amber-500 text-black px-1.5 py-0.5 rounded-full">
+                      <Check className="w-2.5 h-2.5" /> Active
+                    </span>
+                  )}
+                  {isLockedExclusive && (
+                    <span className="absolute top-1.5 left-1.5 z-10 inline-flex items-center gap-0.5 text-[9px] font-black bg-amber-500 text-black px-1.5 py-0.5 rounded-full">
+                      👑 Exclusive
+                    </span>
+                  )}
+                  <div className="h-16 w-full" style={{ background: theme.preview }} />
+                  <div className="p-3 bg-card">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-sm font-bold text-foreground">{theme.name}</span>
+                      {isLockedExclusive ? (
+                        <span className="text-[10px] font-black text-amber-500 dark:text-amber-400 uppercase tracking-wide">👑 Locked</span>
+                      ) : (
+                        <span className="text-[10px] font-black text-amber-500 dark:text-amber-400 uppercase tracking-wide">👑 Unlocked</span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{theme.description}</p>
+                    {isLockedExclusive ? (
+                      <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-500 dark:text-amber-400 mt-1">
+                        👑 Win Ninja Slice to unlock
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-muted-foreground mt-1">
+                        🎮 Ninja Slice Reward
+                      </span>
+                    )}
+                    {isLockedExclusive ? (
+                      <button
+                        disabled
+                        className="mt-2 w-full text-xs font-bold rounded-lg py-1.5 flex items-center justify-center gap-1 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                      >
+                        <Lock className="w-3 h-3" /> Exclusive
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleEquip(theme)}
+                        disabled={isBusy || isActive}
+                        className={`mt-2 w-full text-xs font-bold rounded-lg py-1.5 flex items-center justify-center gap-1 transition-colors disabled:opacity-50 ${
+                          isActive
+                            ? "bg-muted text-muted-foreground cursor-default"
+                            : "bg-amber-500 text-black hover:bg-amber-600"
+                        }`}
+                      >
+                        {isBusy ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : isActive ? (
+                          <><Check className="w-3 h-3" /> Equipped</>
+                        ) : (
+                          <><Sparkles className="w-3 h-3" /> Equip</>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
