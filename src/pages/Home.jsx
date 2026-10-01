@@ -35,6 +35,7 @@ import FeatureUnlockModal from "@/components/FeatureUnlockModal";
 import DailySpinWheel from "@/components/booking/DailySpinWheel";
 import TokenVoucher from "@/components/booking/MysteryBoxModal";
 import ThemeShop from "@/components/profile/ThemeShop";
+import AvatarInitialsEditor from "@/components/profile/AvatarInitialsEditor";
 import InboxView from "@/components/inbox/InboxView";
 import TapVaultCard from "@/components/tokens/TapVaultCard";
 import { toast } from "sonner";
@@ -1087,9 +1088,10 @@ useEffect(() => {
           const activeTheme = user?.activeTheme || "default";
           const themeLock = THEME_MODE_LOCK[activeTheme];
           const displayedDark = themeLock ? themeLock === "dark" : isDarkMode;
-          const initials = user?.full_name ?
+          const customInitials = (user?.avatar_initials || "").trim().slice(0, 2).toUpperCase();
+          const initials = customInitials || (user?.full_name ?
           user.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) :
-          (user?.email?.[0] || "?").toUpperCase();
+          (user?.email?.[0] || "?").toUpperCase());
 
           // TAP Vault unclaimed-action indicator (balance > 0 and no action this month)
           const nowMonth = new Date().toISOString().slice(0, 7);
@@ -1236,6 +1238,9 @@ useEffect(() => {
                       </div>
                     )}
                   </div>
+
+                  {/* Display Initials */}
+                  <AvatarInitialsEditor user={user} onUserUpdate={refreshUser} />
                 </div>
               </div>
 
