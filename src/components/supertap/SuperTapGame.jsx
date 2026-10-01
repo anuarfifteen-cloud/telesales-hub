@@ -4,6 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trophy, Medal, Zap, Timer, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import HallOfFame, { PrimaryTabs, SubTabs } from "@/components/games/HallOfFame";
+import ProfileAvatar from "@/components/profile/ProfileAvatar";
+import { useUserMap } from "@/hooks/useUserMap";
+import { useChampionTitles } from "@/hooks/useChampionTitles";
 
 // ── Sound Engine (Web Audio API) ──────────────────────────────────────────────
 function createAudioCtx() {
@@ -75,6 +78,8 @@ function getLocalDateStr() {
 function Leaderboard() {
   const [primaryTab, setPrimaryTab] = useState("live");
   const [subTab, setSubTab] = useState("season");
+  const userMap = useUserMap();
+  const { getChampionCount } = useChampionTitles();
 
   const { data: scores = [] } = useQuery({
     queryKey: ["tapScores"],
@@ -159,11 +164,11 @@ function Leaderboard() {
                   <div className="w-8 flex items-center justify-center flex-shrink-0">
                     <RankBadge rank={i + 1} />
                   </div>
-                  <div className="flex-1 min-w-0 flex items-center gap-1 pr-2">
+                  <div className="flex-1 min-w-0 flex items-center gap-2 pr-2">
+                    <ProfileAvatar user={userMap[s.user_id] || { id: s.user_id, full_name: s.user_name }} size="sm" showCrown championCount={getChampionCount(s.user_id)} />
                     <span className="text-sm font-semibold text-foreground dark:text-white/90 truncate" style={{ wordBreak: "break-word" }}>
                       {s.user_name}
                     </span>
-                    {isChamp && <span className="text-base flex-shrink-0 drop-shadow-[0_0_5px_#ffd700]" title="Defending Champ — Prize Cooldown">👑</span>}
                   </div>
                   <span className="flex flex-col items-center justify-center text-pink-600 dark:text-[#ff00ea] flex-shrink-0 bg-pink-500/10 dark:bg-[#ff00ea]/10 px-2.5 py-1 rounded-lg border border-pink-500/30 dark:border-[#ff00ea]/30 leading-tight">
                     <span className="text-sm font-black tracking-wider tabular-nums">{score} TAPS</span>

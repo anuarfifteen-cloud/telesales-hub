@@ -36,6 +36,9 @@ import DailySpinWheel from "@/components/booking/DailySpinWheel";
 import TokenVoucher from "@/components/booking/MysteryBoxModal";
 import ThemeShop from "@/components/profile/ThemeShop";
 import AvatarInitialsEditor from "@/components/profile/AvatarInitialsEditor";
+import AvatarPhotoEditor from "@/components/profile/AvatarPhotoEditor";
+import ProfileAvatar from "@/components/profile/ProfileAvatar";
+import { useChampionTitles } from "@/hooks/useChampionTitles";
 import InboxView from "@/components/inbox/InboxView";
 import TapVaultCard from "@/components/tokens/TapVaultCard";
 import { toast } from "sonner";
@@ -84,6 +87,7 @@ export default function Home() {
   const [activePopup, setActivePopup] = useState(null);
   const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
   const [ninjaEnabled, setNinjaEnabled] = useState(true);
+  const { getChampionCount } = useChampionTitles();
 
   // Preload AppSettings once at session start so the Tokens tab's Ninja Slice
   // sub-tab is already resolved (present/absent) by the time the user switches.
@@ -1153,9 +1157,7 @@ useEffect(() => {
 
               {/* Avatar + Name — wrapped in a card for legibility over themed backgrounds */}
               <div className="flex flex-col items-center gap-3 bg-card rounded-2xl border border-border shadow-sm p-6">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/70 to-primary flex items-center justify-center shadow-lg ring-4 ring-primary/20">
-                  <span className="text-2xl font-bold text-primary-foreground">{initials}</span>
-                </div>
+                <ProfileAvatar user={user} size="lg" showCrown championCount={getChampionCount(user?.id)} />
                 <div className="text-center">
                   <h2 className="text-lg font-bold text-foreground leading-tight">
                     {user?.full_name || "My Profile"}
@@ -1241,6 +1243,9 @@ useEffect(() => {
 
                   {/* Display Initials */}
                   <AvatarInitialsEditor user={user} onUserUpdate={refreshUser} />
+
+                  {/* Profile Photo */}
+                  <AvatarPhotoEditor user={user} onUserUpdate={refreshUser} />
                 </div>
               </div>
 

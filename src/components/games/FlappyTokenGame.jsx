@@ -2,6 +2,9 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Trophy } from "lucide-react";
 import HallOfFame, { PrimaryTabs, SubTabs } from "@/components/games/HallOfFame";
+import ProfileAvatar from "@/components/profile/ProfileAvatar";
+import { useUserMap } from "@/hooks/useUserMap";
+import { useChampionTitles } from "@/hooks/useChampionTitles";
 
 const W = 360;
 const H = 500;
@@ -204,6 +207,8 @@ function LiveLeaderboard({ currentUserId }) {
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [champUserIds, setChampUserIds] = useState(new Set());
+  const userMap = useUserMap();
+  const { getChampionCount } = useChampionTitles();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -295,10 +300,10 @@ function LiveLeaderboard({ currentUserId }) {
                     }
                   </div>
                   <div className="flex-1 min-w-0 flex items-center gap-2">
-                    <span className="text-sm font-bold text-foreground dark:text-white leading-tight" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                    <ProfileAvatar user={userMap[s.user_id] || { id: s.user_id, full_name: s.user_name }} size="sm" showCrown championCount={getChampionCount(s.user_id)} />
+                    <span className="text-sm font-bold text-foreground dark:text-white leading-tight truncate" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
                       {s.user_name}
                     </span>
-                    {isChamp && <span className="text-base flex-shrink-0 drop-shadow-[0_0_5px_#ffd700]" title="Defending Champ — Prize Cooldown">👑</span>}
                   </div>
                   <span className="text-sm font-black text-pink-600 dark:text-[#ff00c8] tracking-widest tabular-nums flex-shrink-0 bg-pink-500/10 dark:bg-[#ff00c8]/10 px-3 py-1.5 rounded-lg border border-pink-500/30 dark:border-[#ff00c8]/30 dark:shadow-[0_0_10px_rgba(255,0,200,0.2)]">
                     {subTab === "season" ? s.score : (s.daily_score ?? 0)} PTS

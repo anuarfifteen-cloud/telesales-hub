@@ -15,6 +15,14 @@
       "default": 0,
       "description": "Number of early access tokens the user has"
     },
+    "avatar_photo_url": {
+      "type": "string",
+      "description": "Public URL of the user's uploaded profile photo (shown on profile & leaderboards)"
+    },
+    "avatar_initials": {
+      "type": "string",
+      "description": "Up to 2 custom letters shown inside the avatar when no photo is set"
+    },
     "last_spin_date": {
       "type": "string",
       "description": "Date of last daily spin (YYYY-MM-DD, Brunei timezone)"

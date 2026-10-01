@@ -3,6 +3,9 @@ import { base44 } from "@/api/base44Client";
 import { Loader2, Trophy, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import NinjaSliceMysteryMode from "@/components/games/NinjaSliceMysteryMode";
+import ProfileAvatar from "@/components/profile/ProfileAvatar";
+import { useUserMap } from "@/hooks/useUserMap";
+import { useChampionTitles } from "@/hooks/useChampionTitles";
 
 // Emoji-capable font stack — makes canvas paint full-color opaque emoji
 // (serif fallback renders ghosted outline glyphs on many browsers)
@@ -124,6 +127,8 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
   const [resetting, setResetting] = useState(false);
   const [tokenSplash, setTokenSplash] = useState(false);
   const [champIds, setChampIds] = useState(() => new Set());
+  const userMap = useUserMap();
+  const { getChampionCount } = useChampionTitles();
   const [hideLeaderboard, setHideLeaderboard] = useState(false);
   const splashTimerRef = useRef(null);
 
@@ -1048,13 +1053,13 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
               return (
                 <div key={l.id} className={`flex items-center gap-3 px-4 py-2 ${isChamp ? "opacity-60" : ""}`}>
                   <span className="w-6 text-center text-base text-[#3a2a1a] font-bold">{i < 3 ? medals[i] : `${i + 1}`}</span>
+                  <ProfileAvatar user={userMap[l.user_id] || { id: l.user_id, full_name: l.user_name }} size="sm" showCrown championCount={getChampionCount(l.user_id)} />
                   <div className="flex-1 min-w-0 flex flex-col">
                     <span
                       className="text-sm font-bold text-[#3a2a1a] truncate flex items-center gap-1"
                       style={{ wordBreak: "break-word" }}
                     >
                       {l.user_name}
-                      {isChamp && <span className="text-base flex-shrink-0">👑</span>}
                     </span>
                     {isChamp && (
                       <span className="text-[9px] uppercase tracking-widest text-[#7a3b00] font-bold">

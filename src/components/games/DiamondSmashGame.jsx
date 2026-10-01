@@ -29,6 +29,9 @@ import {
   computePass,
   flattenPieces,
 } from "@/hooks/useMatch3";
+import ProfileAvatar from "@/components/profile/ProfileAvatar";
+import { useUserMap } from "@/hooks/useUserMap";
+import { useChampionTitles } from "@/hooks/useChampionTitles";
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
@@ -41,6 +44,8 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
   const [hof, setHof] = useState([]);
   const [hofLoading, setHofLoading] = useState(true);
   const medals = ["🥇", "🥈", "🥉"];
+  const userMap = useUserMap();
+  const { getChampionCount } = useChampionTitles();
 
   const [champIds, setChampIds] = useState(() => new Set());
   const loadChamps = useCallback(async () => {
@@ -147,9 +152,9 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
                       </span>
                     )}
                   </div>
-                  <span className="flex-1 min-w-0 text-sm font-bold text-foreground dark:text-white leading-tight flex items-center gap-1.5" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
-                    <span>{s.user_name}</span>
-                    {champIds.has(s.user_id) && <span className="text-base flex-shrink-0">👑</span>}
+                  <ProfileAvatar user={userMap[s.user_id] || { id: s.user_id, full_name: s.user_name }} size="sm" showCrown championCount={getChampionCount(s.user_id)} />
+                  <span className="flex-1 min-w-0 text-sm font-bold text-foreground dark:text-white leading-tight" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                    {s.user_name}
                   </span>
                   <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
                     <span className="text-sm font-black text-amber-600 dark:text-amber-400 tracking-widest tabular-nums bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/30 dark:shadow-[0_0_10px_rgba(255,215,0,0.2)]">

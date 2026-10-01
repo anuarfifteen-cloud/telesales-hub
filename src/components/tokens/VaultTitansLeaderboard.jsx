@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Trophy, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { getVaultTier, VAULT_TIERS } from "@/lib/vaultTiers";
+import ProfileAvatar from "@/components/profile/ProfileAvatar";
+import { useChampionTitles } from "@/hooks/useChampionTitles";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -16,6 +18,7 @@ export default function VaultTitansLeaderboard({ currentUser }) {
   const [users, setUsers] = useState([]);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { getChampionCount } = useChampionTitles();
 
   useEffect(() => {
     const load = async () => {
@@ -88,6 +91,7 @@ export default function VaultTitansLeaderboard({ currentUser }) {
                 <span className={`w-6 text-center text-sm font-black tabular-nums ${rs ? rs.text : "text-muted-foreground"}`}>
                   {rs ? rs.badge : i + 1}
                 </span>
+                <ProfileAvatar user={u} size="sm" showCrown championCount={getChampionCount(u.id)} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-foreground truncate">
                     {u.full_name || u.email || "Anonymous"}
