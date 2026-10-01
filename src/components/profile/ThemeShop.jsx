@@ -64,7 +64,7 @@ const THEMES = [
     badge: "Dark",
     price: 2,
     currency: "diamond",
-    exclusive: false,
+    exclusive: true,
   },
 ];
 
@@ -339,7 +339,10 @@ export default function ThemeShop({ user, onUserUpdate }) {
               const owned = unlocked.includes(theme.id);
               const isActive = active === theme.id;
               const isBusy = busy === theme.id;
-              const isLockedExclusive = !owned;
+              const isDiamond = theme.currency === "diamond";
+              const isLockedExclusive = !owned && !isDiamond;
+              const diamondBalance = user?.diamonds ?? 0;
+              const canAffordDiamond = diamondBalance >= theme.price;
               return (
                 <div
                   key={theme.id}
@@ -363,6 +366,11 @@ export default function ThemeShop({ user, onUserUpdate }) {
                       <span className="text-sm font-bold text-foreground">{theme.name}</span>
                       {isLockedExclusive ? (
                         <span className="text-[10px] font-black text-amber-500 dark:text-amber-400 uppercase tracking-wide">👑 Locked</span>
+                      ) : isDiamond && !owned ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <DiamondIcon className="w-3 h-3" />
+                          <span className="text-[10px] font-bold text-cyan-500 dark:text-cyan-400">{theme.price}</span>
+                        </span>
                       ) : (
                         <span className="text-[10px] font-black text-amber-500 dark:text-amber-400 uppercase tracking-wide">👑 Unlocked</span>
                       )}
@@ -371,6 +379,10 @@ export default function ThemeShop({ user, onUserUpdate }) {
                     {isLockedExclusive ? (
                       <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-500 dark:text-amber-400 mt-1">
                         👑 Win Ninja Slice to unlock
+                      </span>
+                    ) : isDiamond && !owned ? (
+                      <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-muted-foreground mt-1">
+                        💎 Diamond Exclusive
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-muted-foreground mt-1">
@@ -383,6 +395,24 @@ export default function ThemeShop({ user, onUserUpdate }) {
                         className="mt-2 w-full text-xs font-bold rounded-lg py-1.5 flex items-center justify-center gap-1 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                       >
                         <Lock className="w-3 h-3" /> Exclusive
+                      </button>
+                    ) : isDiamond && !owned ? (
+                      <button
+                        onClick={() => handlePurchase(theme)}
+                        disabled={isBusy || !canAffordDiamond}
+                        className={`mt-2 w-full text-xs font-bold rounded-lg py-1.5 flex items-center justify-center gap-1 transition-colors disabled:opacity-50 ${
+                          canAffordDiamond
+                            ? "bg-cyan-500 text-white hover:bg-cyan-600"
+                            : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                        }`}
+                      >
+                        {isBusy ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : canAffordDiamond ? (
+                          <><Lock className="w-3 h-3" /> Buy</>
+                        ) : (
+                          <>Not enough 💎</>
+                        )}
                       </button>
                     ) : (
                       <button
