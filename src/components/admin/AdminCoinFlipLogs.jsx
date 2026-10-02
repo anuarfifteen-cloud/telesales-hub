@@ -28,8 +28,10 @@ export default function AdminCoinFlipLogs() {
   const totalFlips = filtered.length;
   const wins = filtered.filter((r) => r.result === "win");
   const losses = filtered.filter((r) => r.result === "loss");
-  const totalWon = wins.reduce((sum, r) => sum + (r.wager || 0), 0);
-  const totalLost = losses.reduce((sum, r) => sum + (r.wager || 0), 0);
+  // Token totals use tokens_delta (tokens) — works for both coin flip (token bet)
+  // and blackjack (chip bet → token payout), since tokens_delta is always in tokens.
+  const totalWon = wins.reduce((sum, r) => sum + (r.tokens_delta || 0), 0);
+  const totalLost = losses.reduce((sum, r) => sum + Math.abs(r.tokens_delta || 0), 0);
 
   const clearFilters = () => {
     setDateFilter("");
@@ -119,9 +121,18 @@ export default function AdminCoinFlipLogs() {
                 }`}
               >
                 <div className="flex flex-col gap-1 min-w-0 flex-1">
-                  <span className="font-bold text-foreground truncate">{playerName}</span>
+                  <span className="font-bold text-foreground truncate">
+                    {playerName}
+                    {flip.game_type === "blackjack" && (
+                      <span className="ml-1.5 text-[9px] font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800/40 rounded px-1 py-0.5">
+                        BJ21
+                      </span>
+                    )}
+                  </span>
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                    Chose {flip.choice} · Landed {flip.outcome} · Wager {flip.wager}
+                    {flip.game_type === "blackjack"
+                      ? `${flip.detail || "Blackjack"} · Bet ${flip.wager} chips`
+                      : `Chose ${flip.choice} · Landed ${flip.outcome} · Wager ${flip.wager}`}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">

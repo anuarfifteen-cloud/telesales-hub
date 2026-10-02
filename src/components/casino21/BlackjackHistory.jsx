@@ -35,22 +35,26 @@ export default function BlackjackHistory({ userId }) {
           }`}
         >
           <div className="flex items-center gap-2">
-            <img src={TOKEN_IMG} alt="" className="w-3.5 h-3.5 object-contain" />
+            <span className="w-3.5 h-3.5 rounded-full bg-cyan-500 border border-white/40" title="chips bet" />
             <span className="text-foreground/80">
-              Bet <strong className="text-foreground">{r.wager}</strong>
+              Bet <strong className="text-foreground">{r.wager}</strong> chips
             </span>
             {r.detail && <span className="text-muted-foreground">· {r.detail}</span>}
           </div>
           <span
-            className={`font-bold text-sm tabular-nums ${
-              r.tokens_delta > 0
+            className={`font-bold text-sm tabular-nums flex items-center gap-1 ${
+              r.result === "win"
                 ? "text-emerald-600 dark:text-emerald-400"
-                : r.tokens_delta < 0
+                : r.result === "loss"
                 ? "text-red-600 dark:text-red-400"
                 : "text-slate-500"
             }`}
           >
-            {r.tokens_delta > 0 ? `+${r.tokens_delta}` : r.tokens_delta < 0 ? `${r.tokens_delta}` : "0"}
+            {r.result === "win"
+              ? <>+{r.tokens_delta}<img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain" /></>
+              : r.result === "loss"
+              ? <>−{r.wager}<span className="text-[9px] uppercase font-black">chips</span></>
+              : <>Refund<span className="w-3 h-3 rounded-full bg-cyan-500 border border-white/40 inline-block" /></>}
           </span>
         </div>
       ))}

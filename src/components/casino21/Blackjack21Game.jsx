@@ -15,15 +15,20 @@ import {
 import PlayingCard from "./PlayingCard";
 import BlackjackStats from "./BlackjackStats";
 import BlackjackHistory from "./BlackjackHistory";
+import ChipCashierModal from "./ChipCashierModal";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 const GAME_TYPE = "blackjack";
 
 export default function Blackjack21Game({ user, onUserUpdate }) {
   const tokens = Number(user?.earlyAccessTokens) || 0;
+  const chips = Number(user?.casinoChips) || 0;
   const tokensRef = useRef(tokens);
+  const chipsRef = useRef(chips);
   useEffect(() => { tokensRef.current = tokens; }, [tokens]);
+  useEffect(() => { chipsRef.current = chips; }, [chips]);
   const [bet, setBet] = useState(5);
+  const [showCashier, setShowCashier] = useState(false);
   const [deck, setDeck] = useState([]);
   const [player, setPlayer] = useState([]);
   const [dealer, setDealer] = useState([]);
@@ -34,38 +39,45 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const [view, setView] = useState("game");
   const queryClient = useQueryClient();
 
-  const maxBet = Math.max(1, tokens);
+  const maxBet = Math.max(1, chips);
   const userName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
   const draw = (d) => d.pop();
 
-  // ── Round settlement ──────────────────────────────────────────────────
-  const settle = async (type, detail, delta, net) => {
-    setResult({ type, detail, delta, net });
+  // ── Round settlement (dual-currency: chips bet, tokens paid out) ──────
+  // tokenPayout = tokens credited to earlyAccessTokens on a win/blackjack (0 otherwise)
+  // chipRefund  = chips returned to casinoChips on a push (0 otherwise; loss keeps debited chips)
+  const settle = async (type, detail, tokenPayout, chipRefund) => {
+    setResult({ type, detail, tokenPayout, chipRefund, bet });
     setPhase("resolve");
     playClick();
     try {
-      await base44.auth.updateMe({ earlyAccessTokens: tokensRef.current + delta });
+      const updates = {};
+      if (tokenPayout > 0) updates.earlyAccessTokens = tokensRef.current + tokenPayout;
+      if (chipRefund > 0) updates.casinoChips = chipsRef.current + chipRefund;
+      if (Object.keys(updates).length) await base44.auth.updateMe(updates);
       await base44.entities.CoinFlipGame.create({
         user_id: user.id,
         user_email: user.email,
         game_type: GAME_TYPE,
         wager: bet,
         result: type === "push" ? "push" : type === "win" ? "win" : "loss",
-        tokens_delta: net,
+        tokens_delta: tokenPayout,
         detail,
       });
-      await base44.entities.TokenTransaction.create({
-        user_id: user.id,
-        user_name: userName,
-        amount: net,
-        source: `Casino 21 — ${detail} (wagered ${bet})`,
-        timestamp: new Date().toISOString(),
-      });
+      if (tokenPayout > 0) {
+        await base44.entities.TokenTransaction.create({
+          user_id: user.id,
+          user_name: userName,
+          amount: tokenPayout,
+          source: `Casino 21 — ${detail} (bet ${bet} chips → +${tokenPayout} tokens)`,
+          timestamp: new Date().toISOString(),
+        });
+      }
       await onUserUpdate?.();
       queryClient.invalidateQueries({ queryKey: ["blackjack-history", user?.id] });
-      if (net > 0) playWin();
-      else if (net < 0) playLoss();
+      if (tokenPayout > 0) playWin();
+      else if (type === "loss") playLoss();
     } catch {
       toast.error("Couldn't save your round. Balance may be out of sync.");
     }
@@ -75,12 +87,12 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const handleDeal = async () => {
     if (busy) return;
     const b = Math.min(Math.max(Math.floor(bet), 1), maxBet);
-    if (tokens < 1) { toast.error("Not enough tokens."); return; }
-    if (b > tokens) { toast.error("Not enough tokens for that bet."); return; }
+    if (chips < 1) { return; }
+    if (b > chips) { toast.error("Not enough chips for that bet."); return; }
     setBusy(true);
     playClick();
-    // Debit the bet immediately.
-    await base44.auth.updateMe({ earlyAccessTokens: tokens - b });
+    // Debit the bet from chips immediately.
+    await base44.auth.updateMe({ casinoChips: chips - b });
     await onUserUpdate?.();
 
     const d = shuffle(createDeck());
@@ -102,9 +114,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       // Reveal and settle immediately.
       setTimeout(async () => {
         setRevealHole(true);
-        if (playerBJ && dealerBJ) await settle("push", "Push — both Blackjack", b, 0);
-        else if (playerBJ) await settle("win", "Blackjack!", b + Math.round(b * 1.5), Math.round(b * 1.5));
-        else await settle("loss", "Dealer Blackjack", 0, -b);
+        if (playerBJ && dealerBJ) await settle("push", "Push — both Blackjack", 0, b);
+        else if (playerBJ) await settle("win", "Blackjack!", Math.round(b * 2.5), 0);
+        else await settle("loss", "Dealer Blackjack", 0, 0);
       }, 650);
     }
   };
@@ -121,7 +133,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     if (isBust(p)) {
       setTimeout(async () => {
         setRevealHole(true);
-        await settle("loss", "Player bust", 0, -bet);
+        await settle("loss", "Player bust", 0, 0);
       }, 500);
     }
   };
@@ -148,10 +160,10 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     const finish = async (dlFinal) => {
       const pv = handValue(player);
       const dv = handValue(dlFinal);
-      if (isBust(dlFinal)) await settle("win", "Dealer bust", bet * 2, bet);
-      else if (dv > pv) await settle("loss", "Dealer wins", 0, -bet);
-      else if (dv < pv) await settle("win", "You win", bet * 2, bet);
-      else await settle("push", "Push", bet, 0);
+      if (isBust(dlFinal)) await settle("win", "Dealer bust", bet * 2, 0);
+      else if (dv > pv) await settle("loss", "Dealer wins", 0, 0);
+      else if (dv < pv) await settle("win", "You win", bet * 2, 0);
+      else await settle("push", "Push", 0, bet);
     };
     step();
   };
@@ -200,12 +212,23 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
               "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)",
           }}
         >
-          {/* Balance strip */}
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-widest font-bold text-emerald-100/70">Balance</span>
-            <div className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30">
-              <img src={TOKEN_IMG} alt="token" className="w-3.5 h-3.5 object-contain" />
-              <span className="text-amber-300 font-bold text-sm tabular-nums">{tokens}</span>
+          {/* Balance strip — Cashier + chips (bet) + tokens (payout) */}
+          <div className="flex items-center justify-between gap-2">
+            <button
+              onClick={() => setShowCashier(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-200 text-[11px] font-black uppercase tracking-widest hover:bg-amber-400/25 transition"
+            >
+              🎰 Cashier
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-cyan-400/30" title="Casino chips — betting currency">
+                <span className="w-3.5 h-3.5 rounded-full bg-cyan-400 border border-white/40" />
+                <span className="text-cyan-200 font-bold text-sm tabular-nums">{chips}</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30" title="Tokens — payout currency">
+                <img src={TOKEN_IMG} alt="token" className="w-3.5 h-3.5 object-contain" />
+                <span className="text-amber-300 font-bold text-sm tabular-nums">{tokens}</span>
+              </div>
             </div>
           </div>
 
@@ -236,9 +259,14 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
                 }`}
               >
                 <p className="text-lg font-black uppercase tracking-widest">{result.detail}</p>
-                <p className="text-sm font-bold tabular-nums">
-                  {result.type === "win" ? `+${result.delta}` : result.net < 0 ? `${result.net}` : "Refunded"}{" "}
-                  <img src={TOKEN_IMG} alt="" className="inline w-3 h-3 object-contain align-middle" />
+                <p className="text-sm font-bold tabular-nums flex items-center justify-center gap-1">
+                  {result.type === "win" ? (
+                    <>+{result.tokenPayout} <img src={TOKEN_IMG} alt="" className="inline w-3 h-3 object-contain align-middle" /></>
+                  ) : result.type === "push" ? (
+                    <>Refunded {result.bet} <span className="inline-block w-3 h-3 rounded-full bg-cyan-400 border border-white/40 align-middle" /></>
+                  ) : (
+                    <>−{result.bet} <span className="inline-block w-3 h-3 rounded-full bg-cyan-400 border border-white/40 align-middle" /></>
+                  )}
                 </p>
                 <button
                   onClick={newRound}
@@ -253,14 +281,22 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           {/* Bet + controls */}
           {phase === "bet" && (
             <>
-              <BetBar bet={bet} maxBet={maxBet} onSet={setBet} onAdjust={adjustBet} tokens={tokens} />
+              <BetBar bet={bet} maxBet={maxBet} onSet={setBet} onAdjust={adjustBet} chips={chips} />
               <button
                 onClick={handleDeal}
-                disabled={busy || tokens < 1}
+                disabled={busy || chips < 1}
                 className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm bg-emerald-700/60 text-emerald-100 border border-emerald-400/30 disabled:opacity-40 hover:bg-emerald-600/70 transition"
               >
                 <Play className="inline mr-1 w-4 h-4" /> Deal
               </button>
+              {chips < 1 && (
+                <button
+                  onClick={() => setShowCashier(true)}
+                  className="w-full text-center text-[11px] font-bold uppercase tracking-widest text-amber-300/80 hover:text-amber-200 transition"
+                >
+                  Open the Cashier to buy chips →
+                </button>
+              )}
             </>
           )}
 
@@ -289,6 +325,13 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
       {view === "stats" && <BlackjackStats userId={user?.id} />}
       {view === "history" && <BlackjackHistory userId={user?.id} />}
+
+      <ChipCashierModal
+        user={user}
+        open={showCashier}
+        onClose={() => setShowCashier(false)}
+        onUserUpdate={onUserUpdate}
+      />
     </div>
   );
 }
@@ -325,14 +368,14 @@ function HandPanel({ title, value, cards, revealHole = true }) {
 }
 
 // ── Bet slider with arrows + MAX ───────────────────────────────────────
-function BetBar({ bet, maxBet, onSet, onAdjust, tokens }) {
+function BetBar({ bet, maxBet, onSet, onAdjust, chips }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <button
           onClick={() => onAdjust(-1)}
-          disabled={bet <= 1 || tokens < 1}
-          className="w-9 h-9 rounded-full bg-emerald-950/40 border border-amber-400/30 text-amber-300 font-black disabled:opacity-30"
+          disabled={bet <= 1 || chips < 1}
+          className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
         >
           ‹
         </button>
@@ -343,25 +386,25 @@ function BetBar({ bet, maxBet, onSet, onAdjust, tokens }) {
           step={1}
           value={Math.min(bet, maxBet)}
           onChange={(e) => onSet(Number(e.target.value))}
-          disabled={tokens < 1}
-          className="flex-1 accent-amber-400"
+          disabled={chips < 1}
+          className="flex-1 accent-cyan-400"
         />
         <button
           onClick={() => onAdjust(1)}
-          disabled={bet >= maxBet || tokens < 1}
-          className="w-9 h-9 rounded-full bg-emerald-950/40 border border-amber-400/30 text-amber-300 font-black disabled:opacity-30"
+          disabled={bet >= maxBet || chips < 1}
+          className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
         >
           ›
         </button>
       </div>
       <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1 text-amber-300 font-black text-sm tabular-nums">
-          <img src={TOKEN_IMG} alt="" className="w-3.5 h-3.5 object-contain" />
-          {bet} TOKENS
+        <span className="flex items-center gap-1 text-cyan-200 font-black text-sm tabular-nums">
+          <span className="w-3.5 h-3.5 rounded-full bg-cyan-400 border border-white/40" />
+          {bet} CHIPS
         </span>
         <button
           onClick={() => onSet(maxBet)}
-          disabled={tokens < 1}
+          disabled={chips < 1}
           className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest text-emerald-950 disabled:opacity-30"
           style={{ background: "#d4af37" }}
         >
