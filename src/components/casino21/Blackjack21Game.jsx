@@ -237,7 +237,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
               >
                 <p className="text-lg font-black uppercase tracking-widest">{result.detail}</p>
                 <p className="text-sm font-bold tabular-nums">
-                  {result.net > 0 ? `+${result.net}` : result.net < 0 ? `${result.net}` : "Refunded"}{" "}
+                  {result.type === "win" ? `+${result.delta}` : result.net < 0 ? `${result.net}` : "Refunded"}{" "}
                   <img src={TOKEN_IMG} alt="" className="inline w-3 h-3 object-contain align-middle" />
                 </p>
                 <button
