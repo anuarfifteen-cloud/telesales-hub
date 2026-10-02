@@ -11,16 +11,6 @@ function CardBack() {
       }}
     >
       <div className="absolute inset-1 rounded border border-white/25" />
-      <span
-        className="absolute inset-0 flex items-center justify-center font-black leading-none select-none"
-        style={{
-          color: "rgba(255,244,200,0.85)",
-          fontSize: "1.6rem",
-          textShadow: "0 1px 3px rgba(0,0,0,0.6)",
-        }}
-      >
-        ?
-      </span>
     </div>
   );
 }
@@ -44,7 +34,21 @@ function CardFace({ card }) {
   );
 }
 
-export default function PlayingCard({ card, faceDown = false, delay = 0, isNew = false }) {
+export default function PlayingCard({ card, faceDown = false, backOnly = false, delay = 0, isNew = false }) {
+  // Back-only mode: render ONLY the card back. The face value is never mounted
+  // in the DOM, so nothing can flash through during the deal-in animation.
+  if (backOnly) {
+    return (
+      <motion.div
+        initial={isNew ? { opacity: 0, y: -28, rotate: -8, scale: 0.85 } : false}
+        animate={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 260, damping: 20, delay }}
+        className="relative h-20 w-14 sm:h-24 sm:w-16 flex-shrink-0"
+      >
+        <CardBack />
+      </motion.div>
+    );
+  }
   return (
     <motion.div
       initial={isNew ? { opacity: 0, y: -28, rotate: -8, scale: 0.85 } : false}
