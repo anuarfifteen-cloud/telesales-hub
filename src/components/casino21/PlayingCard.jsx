@@ -11,6 +11,16 @@ function CardBack() {
       }}
     >
       <div className="absolute inset-1 rounded border border-white/25" />
+      <span
+        className="absolute inset-0 flex items-center justify-center font-black leading-none select-none"
+        style={{
+          color: "rgba(255,244,200,0.85)",
+          fontSize: "1.6rem",
+          textShadow: "0 1px 3px rgba(0,0,0,0.6)",
+        }}
+      >
+        ?
+      </span>
     </div>
   );
 }

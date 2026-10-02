@@ -398,7 +398,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           {/* Bet + controls */}
           {phase === "bet" && (
             <>
-              <ChipStack bet={bet} />
               <BetBar bet={bet} maxBet={maxBet} onSet={setBet} onAdjust={adjustBet} chips={chips} />
               <button
                 onClick={handleDeal}
