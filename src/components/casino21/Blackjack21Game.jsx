@@ -40,8 +40,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const draw = (d) => d.pop();
 
   // ── Round settlement ──────────────────────────────────────────────────
-  const settle = async (type, detail, delta) => {
-    setResult({ type, detail, delta });
+  const settle = async (type, detail, delta, net) => {
+    setResult({ type, detail, delta, net });
     setPhase("resolve");
     playClick();
     try {
@@ -52,20 +52,20 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         game_type: GAME_TYPE,
         wager: bet,
         result: type === "push" ? "push" : type === "win" ? "win" : "loss",
-        tokens_delta: delta,
+        tokens_delta: net,
         detail,
       });
       await base44.entities.TokenTransaction.create({
         user_id: user.id,
         user_name: userName,
-        amount: delta,
+        amount: net,
         source: `Casino 21 — ${detail} (wagered ${bet})`,
         timestamp: new Date().toISOString(),
       });
       await onUserUpdate?.();
       queryClient.invalidateQueries({ queryKey: ["blackjack-history", user?.id] });
-      if (delta > 0) playWin();
-      else if (delta < 0) playLoss();
+      if (net > 0) playWin();
+      else if (net < 0) playLoss();
     } catch {
       toast.error("Couldn't save your round. Balance may be out of sync.");
     }
@@ -102,9 +102,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       // Reveal and settle immediately.
       setTimeout(async () => {
         setRevealHole(true);
-        if (playerBJ && dealerBJ) await settle("push", "Push — both Blackjack", b);
-        else if (playerBJ) await settle("win", "Blackjack!", b + Math.round(b * 1.5));
-        else await settle("loss", "Dealer Blackjack", 0);
+        if (playerBJ && dealerBJ) await settle("push", "Push — both Blackjack", b, 0);
+        else if (playerBJ) await settle("win", "Blackjack!", b + Math.round(b * 1.5), Math.round(b * 1.5));
+        else await settle("loss", "Dealer Blackjack", 0, -b);
       }, 650);
     }
   };
@@ -121,7 +121,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     if (isBust(p)) {
       setTimeout(async () => {
         setRevealHole(true);
-        await settle("loss", "Player bust", 0);
+        await settle("loss", "Player bust", 0, -bet);
       }, 500);
     }
   };
@@ -148,10 +148,10 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     const finish = async (dlFinal) => {
       const pv = handValue(player);
       const dv = handValue(dlFinal);
-      if (isBust(dlFinal)) await settle("win", "Dealer bust", bet * 2);
-      else if (dv > pv) await settle("loss", "Dealer wins", 0);
-      else if (dv < pv) await settle("win", "You win", bet * 2);
-      else await settle("push", "Push", bet);
+      if (isBust(dlFinal)) await settle("win", "Dealer bust", bet * 2, bet);
+      else if (dv > pv) await settle("loss", "Dealer wins", 0, -bet);
+      else if (dv < pv) await settle("win", "You win", bet * 2, bet);
+      else await settle("push", "Push", bet, 0);
     };
     step();
   };
@@ -237,7 +237,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
               >
                 <p className="text-lg font-black uppercase tracking-widest">{result.detail}</p>
                 <p className="text-sm font-bold tabular-nums">
-                  {result.delta > 0 ? `+${result.delta}` : result.delta < 0 ? `${result.delta}` : "Refunded"}{" "}
+                  {result.net > 0 ? `+${result.net}` : result.net < 0 ? `${result.net}` : "Refunded"}{" "}
                   <img src={TOKEN_IMG} alt="" className="inline w-3 h-3 object-contain align-middle" />
                 </p>
                 <button

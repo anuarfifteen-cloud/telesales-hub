@@ -26,7 +26,7 @@ export default function PlayingCard({ card, faceDown = false, delay = 0, isNew =
           </div>
         </div>
       ) : (
-        <div className="h-full w-full rounded-lg bg-white border border-slate-300 shadow-lg flex flex-col justify-between p-1 sm:p-1.5">
+        <div className="h-full w-full rounded-lg bg-white border border-slate-300 shadow-lg flex flex-col justify-between p-1.5 sm:p-2 overflow-hidden">
           <div className={`text-left leading-none ${isRed ? "text-red-600" : "text-slate-900"}`}>
             <span className="block text-xs sm:text-sm font-black">{card.rank}</span>
             <span className="block text-[10px] sm:text-xs">{card.suit}</span>
