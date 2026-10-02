@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-// Navy grid-pattern card back (criss-cross lines, no diamond) + 3D flip reveal.
+// Navy grid-pattern card back (criss-cross lines, no glyph).
 function CardBack() {
   return (
     <div
@@ -11,16 +11,6 @@ function CardBack() {
       }}
     >
       <div className="absolute inset-1 rounded border border-white/25" />
-      <span
-        className="absolute inset-0 flex items-center justify-center font-black leading-none select-none"
-        style={{
-          color: "rgba(255,244,200,0.85)",
-          fontSize: "1.6rem",
-          textShadow: "0 1px 3px rgba(0,0,0,0.6)",
-        }}
-      >
-        ?
-      </span>
     </div>
   );
 }
@@ -44,27 +34,30 @@ function CardFace({ card }) {
   );
 }
 
+// Single preserve-3d container with two backface-hidden layers.
+// The back is pre-rotated 180°, so animating the parent's rotateY physically
+// hides the face until the flip crosses 90° — no mid-flip face flash.
 export default function PlayingCard({ card, faceDown = false, delay = 0, isNew = false }) {
   return (
-    <motion.div
-      initial={isNew ? { opacity: 0, y: -28, rotate: -8, scale: 0.85 } : false}
-      animate={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
-      transition={{ type: "spring", stiffness: 260, damping: 20, delay }}
+    <div
       className="relative h-20 w-14 sm:h-24 sm:w-16 flex-shrink-0"
-      style={{ perspective: 800 }}
+      style={{ perspective: 1000 }}
     >
       <motion.div
         className="relative h-full w-full"
         style={{ transformStyle: "preserve-3d" }}
-        animate={{ rotateY: faceDown ? 180 : 0 }}
-        transition={{ duration: 0.5, ease: "easeInOut" }}
+        initial={isNew ? { opacity: 0, y: -28, scale: 0.85, rotateY: faceDown ? 180 : 0 } : false}
+        animate={{ opacity: 1, y: 0, scale: 1, rotateY: faceDown ? 180 : 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 20, delay }}
       >
+        {/* Face — front, visible at rotateY 0 */}
         <div
           className="absolute inset-0"
           style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
         >
           <CardFace card={card} />
         </div>
+        {/* Back — pre-rotated 180°, visible only when parent flips past 90° */}
         <div
           className="absolute inset-0"
           style={{
@@ -76,6 +69,6 @@ export default function PlayingCard({ card, faceDown = false, delay = 0, isNew =
           <CardBack />
         </div>
       </motion.div>
-    </motion.div>
+    </div>
   );
 }
