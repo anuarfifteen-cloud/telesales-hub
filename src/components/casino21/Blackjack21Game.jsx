@@ -25,7 +25,6 @@ import BlackjackStats from "./BlackjackStats";
 import BlackjackHistory from "./BlackjackHistory";
 import ChipCashierModal from "./ChipCashierModal";
 import MiniChipIcon from "./MiniChipIcon";
-import ChipStack from "./ChipStack";
 import OdometerNumber from "@/components/OdometerNumber";
 
 const TOKEN_IMG =
@@ -326,17 +325,17 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           {/* Felt plaque */}
           <div className="relative text-center">
             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-300/70">
-              Pays 3 to 2 · Dealer Stands on 17
+              Winning chips will convert to tokens directly
             </span>
           </div>
 
-          {/* Committed pot on the felt during play */}
+          {/* Committed pot on the felt during play — single chip + total win return */}
           {inPlay && committedBet > 0 && (
             <div className="relative flex justify-center -mt-1 -mb-1">
-              <div className="flex flex-col items-center">
-                <ChipStack bet={committedBet} />
-                <span className="flex items-center gap-1 text-amber-200 font-black text-xs tabular-nums mt-0.5">
-                  <MiniChipIcon size={12} /> {committedBet}
+              <div className="flex items-center gap-1.5">
+                <MiniChipIcon size={22} />
+                <span className="flex items-center gap-1 text-amber-200 font-black text-sm tabular-nums">
+                  {committedBet * 2}
                 </span>
               </div>
             </div>
