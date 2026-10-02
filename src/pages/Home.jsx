@@ -41,6 +41,7 @@ import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import { useChampionTitles } from "@/hooks/useChampionTitles";
 import InboxView from "@/components/inbox/InboxView";
 import TapVaultCard from "@/components/tokens/TapVaultCard";
+import OdometerNumber from "@/components/casino21/OdometerNumber";
 import { toast } from "sonner";
 
 const EMPLOYEES = [
@@ -647,7 +648,7 @@ useEffect(() => {
               onClick={() => setActiveTab("tokens")}
               className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-2.5 py-1 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors">
               <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="Token" className="w-4 h-4" />
-              <span className="text-xs font-bold text-amber-700 dark:text-amber-300">{user?.earlyAccessTokens ?? 0}</span>
+              <OdometerNumber value={user?.earlyAccessTokens ?? 0} className="text-xs font-bold text-amber-700 dark:text-amber-300" />
             </button>
             {/* Diamond balance pill */}
             <button
