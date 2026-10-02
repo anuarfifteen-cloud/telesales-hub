@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
@@ -21,6 +21,8 @@ const GAME_TYPE = "blackjack";
 
 export default function Blackjack21Game({ user, onUserUpdate }) {
   const tokens = Number(user?.earlyAccessTokens) || 0;
+  const tokensRef = useRef(tokens);
+  useEffect(() => { tokensRef.current = tokens; }, [tokens]);
   const [bet, setBet] = useState(5);
   const [deck, setDeck] = useState([]);
   const [player, setPlayer] = useState([]);
@@ -43,7 +45,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setPhase("resolve");
     playClick();
     try {
-      await base44.auth.updateMe({ earlyAccessTokens: tokens + delta });
+      await base44.auth.updateMe({ earlyAccessTokens: tokensRef.current + delta });
       await base44.entities.CoinFlipGame.create({
         user_id: user.id,
         user_email: user.email,
@@ -100,9 +102,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       // Reveal and settle immediately.
       setTimeout(async () => {
         setRevealHole(true);
-        if (playerBJ && dealerBJ) await settle("push", "Push — both Blackjack", 0);
-        else if (playerBJ) await settle("win", "Blackjack!", Math.round(b * 1.5));
-        else await settle("loss", "Dealer Blackjack", -b);
+        if (playerBJ && dealerBJ) await settle("push", "Push — both Blackjack", b);
+        else if (playerBJ) await settle("win", "Blackjack!", b + Math.round(b * 1.5));
+        else await settle("loss", "Dealer Blackjack", 0);
       }, 650);
     }
   };
@@ -119,7 +121,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     if (isBust(p)) {
       setTimeout(async () => {
         setRevealHole(true);
-        await settle("loss", "Player bust", -bet);
+        await settle("loss", "Player bust", 0);
       }, 500);
     }
   };
@@ -146,10 +148,10 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     const finish = async (dlFinal) => {
       const pv = handValue(player);
       const dv = handValue(dlFinal);
-      if (isBust(dlFinal)) await settle("win", "Dealer bust", bet);
-      else if (dv > pv) await settle("loss", "Dealer wins", -bet);
-      else if (dv < pv) await settle("win", "You win", bet);
-      else await settle("push", "Push", 0);
+      if (isBust(dlFinal)) await settle("win", "Dealer bust", bet * 2);
+      else if (dv > pv) await settle("loss", "Dealer wins", 0);
+      else if (dv < pv) await settle("win", "You win", bet * 2);
+      else await settle("push", "Push", bet);
     };
     step();
   };
@@ -304,7 +306,7 @@ function HandPanel({ title, value, cards, revealHole = true }) {
           {value !== undefined && value !== null ? `${value}${title === "DEALER" && !revealHole ? "?" : ""}` : "—"}
         </span>
       </div>
-      <div className="flex gap-2 min-h-[5.5rem]">
+      <div className="flex gap-2 items-start min-h-[5.5rem]">
         <AnimatePresence>
           {cards.map((c, i) => (
             <PlayingCard

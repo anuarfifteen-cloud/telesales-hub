@@ -7,7 +7,6 @@ export default function PlayingCard({ card, faceDown = false, delay = 0, isNew =
 
   return (
     <motion.div
-      layout
       initial={isNew ? { opacity: 0, y: -28, rotate: -8, scale: 0.85 } : false}
       animate={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 260, damping: 20, delay }}
