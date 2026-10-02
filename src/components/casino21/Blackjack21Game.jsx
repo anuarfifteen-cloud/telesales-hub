@@ -4,10 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { Play, Plus, Shield } from "lucide-react";
-import confetti from "canvas-confetti";
-import { playClick, playWin, playLoss, playClink, playWinFanfare, playPush } from "@/lib/sounds";
-import OdometerNumber from "./OdometerNumber";
-import ChipStack from "./ChipStack";
+import { playClick, playWin, playLoss } from "@/lib/sounds";
 import {
   createDeck,
   shuffle,
@@ -23,26 +20,6 @@ import MiniChipIcon from "./MiniChipIcon";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 const GAME_TYPE = "blackjack";
-
-// Gold + emerald confetti burst from a DOM element's center (player hand panel).
-const fireConfetti = (el) => {
-  try {
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const x = (r.left + r.width / 2) / window.innerWidth;
-    const y = (r.top + r.height / 2) / window.innerHeight;
-    confetti({
-      particleCount: 70,
-      spread: 65,
-      startVelocity: 38,
-      origin: { x, y },
-      colors: ["#d4af37", "#f5e6b8", "#10b981", "#34d399", "#ffffff"],
-      scalar: 0.9,
-      ticks: 110,
-      disableForReducedMotion: true,
-    });
-  } catch {}
-};
 
 export default function Blackjack21Game({ user, onUserUpdate }) {
   const tokens = Number(user?.earlyAccessTokens) || 0;
@@ -61,10 +38,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const [result, setResult] = useState(null); // { type, detail, delta }
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState("game");
-  const [winGlow, setWinGlow] = useState(false);
-  const [lossFlash, setLossFlash] = useState(false);
-  const [toss, setToss] = useState(null);
-  const playerPanelRef = useRef(null);
   const queryClient = useQueryClient();
 
   const maxBet = Math.max(1, chips);
@@ -104,18 +77,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       }
       await onUserUpdate?.();
       queryClient.invalidateQueries({ queryKey: ["blackjack-history", user?.id] });
-      if (type === "win") {
-        playWinFanfare();
-        setWinGlow(true);
-        setTimeout(() => setWinGlow(false), 1200);
-        fireConfetti(playerPanelRef.current);
-      } else if (type === "loss") {
-        playLoss();
-        setLossFlash(true);
-        setTimeout(() => setLossFlash(false), 700);
-      } else {
-        playPush();
-      }
+      if (tokenPayout > 0) playWin();
+      else if (type === "loss") playLoss();
     } catch {
       toast.error("Couldn't save your round. Balance may be out of sync.");
     }
@@ -128,8 +91,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     if (chips < 1) { return; }
     if (b > chips) { toast.error("Not enough chips for that bet."); return; }
     setBusy(true);
-    playClink();
-    setToss({ k: Date.now() });
+    playClick();
     // Debit the bet from chips immediately.
     await base44.auth.updateMe({ casinoChips: chips - b });
     await onUserUpdate?.();
@@ -217,7 +179,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setPhase("bet");
   };
 
-  const adjustBet = (dir) => { playClink(); setBet((b) => Math.min(Math.max(b + dir, 1), maxBet)); };
+  const adjustBet = (dir) => setBet((b) => Math.min(Math.max(b + dir, 1), maxBet));
   const inPlay = phase === "player" || phase === "dealer";
 
   return (
@@ -245,30 +207,12 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
       {view === "game" && (
         <div
-          className="relative rounded-b-2xl border border-t-0 border-border p-4 flex flex-col gap-4"
+          className="rounded-b-2xl border border-t-0 border-border p-4 flex flex-col gap-4"
           style={{
             background:
               "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)",
-            boxShadow: "inset 0 0 0 1.5px rgba(212,175,55,0.35)",
           }}
         >
-          {/* Chip toss animation — flies from the chip balance pill to the felt */}
-          <AnimatePresence>
-            {toss && (
-              <motion.div
-                key={toss.k}
-                className="pointer-events-none absolute z-20"
-                style={{ right: 14, top: 10 }}
-                initial={{ x: 0, y: 0, opacity: 0, scale: 0.5 }}
-                animate={{ x: -90, y: 130, opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.6 }}
-                transition={{ type: "spring", stiffness: 180, damping: 11 }}
-                onAnimationComplete={() => setToss(null)}
-              >
-                <MiniChipIcon size={30} />
-              </motion.div>
-            )}
-          </AnimatePresence>
           {/* Balance strip — Cashier + chips (bet) + tokens (payout) */}
           <div className="flex items-center justify-between gap-2">
             <button
@@ -284,14 +228,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
               </div>
               <div className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30" title="Tokens — payout currency">
                 <img src={TOKEN_IMG} alt="token" className="w-3.5 h-3.5 object-contain" />
-                <OdometerNumber value={tokens} className="text-amber-300 font-bold text-sm tabular-nums" />
+                <span className="text-amber-300 font-bold text-sm tabular-nums">{tokens}</span>
               </div>
             </div>
-          </div>
-
-          {/* Rules plaque */}
-          <div className="mx-auto -mt-1 mb-1 px-3 py-1 rounded-full border border-amber-400/40 bg-emerald-950/40 text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.18em] text-amber-300/80 text-center">
-            Blackjack Pays 3 to 2 · Dealer Stands on 17
           </div>
 
           {/* Dealer hand */}
@@ -303,13 +242,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           />
 
           {/* Player hand */}
-          <HandPanel
-            panelRef={playerPanelRef}
-            title="PLAYER"
-            value={handValue(player)}
-            cards={player}
-            glow={winGlow ? "win" : lossFlash ? "loss" : null}
-          />
+          <HandPanel title="PLAYER" value={handValue(player)} cards={player} />
 
           {/* Result overlay */}
           <AnimatePresence>
@@ -349,7 +282,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           {/* Bet + controls */}
           {phase === "bet" && (
             <>
-              <ChipStack bet={bet} />
               <BetBar bet={bet} maxBet={maxBet} onSet={setBet} onAdjust={adjustBet} chips={chips} />
               <button
                 onClick={handleDeal}
@@ -406,18 +338,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 }
 
 // ── Glassmorphism hand panel ───────────────────────────────────────────
-function HandPanel({ title, value, cards, revealHole = true, panelRef, glow = null }) {
-  const glowShadow =
-    glow === "win"
-      ? "0 0 0 2px rgba(16,185,129,0.7), 0 0 22px rgba(16,185,129,0.45)"
-      : glow === "loss"
-      ? "0 0 0 2px rgba(244,63,94,0.6), 0 0 18px rgba(244,63,94,0.35)"
-      : "0 0 0 0 transparent";
+function HandPanel({ title, value, cards, revealHole = true }) {
   return (
-    <motion.div
-      ref={panelRef}
-      animate={{ boxShadow: glowShadow }}
-      transition={{ duration: 0.3 }}
+    <div
       className="rounded-2xl p-3 border border-white/15"
       style={{ background: "rgba(255,255,255,0.08)", backdropFilter: "blur(10px)" }}
     >
@@ -433,7 +356,7 @@ function HandPanel({ title, value, cards, revealHole = true, panelRef, glow = nu
             <PlayingCard
               key={`${title}-${i}-${c.rank}${c.suit}`}
               card={c}
-              delay={i * 0.15}
+              delay={i * 0.08}
               isNew
               faceDown={title === "DEALER" && i === 1 && !revealHole}
             />
@@ -441,7 +364,7 @@ function HandPanel({ title, value, cards, revealHole = true, panelRef, glow = nu
         </AnimatePresence>
         {cards.length === 0 && <span className="text-emerald-100/30 text-xs self-center">—</span>}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -481,7 +404,7 @@ function BetBar({ bet, maxBet, onSet, onAdjust, chips }) {
           {bet} CHIPS
         </span>
         <button
-          onClick={() => { playClink(); onSet(maxBet); }}
+          onClick={() => onSet(maxBet)}
           disabled={chips < 1}
           className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest text-emerald-950 disabled:opacity-30"
           style={{ background: "#d4af37" }}
