@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { X, Loader2 } from "lucide-react";
+import MiniChipIcon from "./MiniChipIcon";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 
@@ -127,9 +128,9 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
 
             {/* Balance row */}
             <div className="flex items-center justify-center gap-3 px-5 pb-3">
-              <div className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-cyan-400/30">
-                <span className="w-3 h-3 rounded-full bg-cyan-400 border border-white/40" />
-                <span className="text-cyan-200 font-bold text-xs tabular-nums">{chips} chips</span>
+              <div className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30">
+                <MiniChipIcon size={12} />
+                <span className="text-amber-200 font-bold text-xs tabular-nums">{chips} chips</span>
               </div>
               <div className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30">
                 <img src={TOKEN_IMG} alt="token" className="w-3 h-3 object-contain" />
@@ -198,8 +199,8 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
               <div className="flex items-center justify-between mb-3 text-xs">
                 <span className="text-emerald-100/70 uppercase tracking-widest font-bold">Total</span>
                 <span className="flex items-center gap-1.5">
-                  <span className="flex items-center gap-1 text-cyan-200 font-black tabular-nums">
-                    <span className="w-3 h-3 rounded-full bg-cyan-400 border border-white/40" />
+                  <span className="flex items-center gap-1 text-amber-200 font-black tabular-nums">
+                    <MiniChipIcon size={12} />
                     {totalChips}
                   </span>
                   <span className="text-emerald-100/40">for</span>

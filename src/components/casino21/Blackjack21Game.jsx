@@ -16,6 +16,7 @@ import PlayingCard from "./PlayingCard";
 import BlackjackStats from "./BlackjackStats";
 import BlackjackHistory from "./BlackjackHistory";
 import ChipCashierModal from "./ChipCashierModal";
+import MiniChipIcon from "./MiniChipIcon";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 const GAME_TYPE = "blackjack";
@@ -216,14 +217,14 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           <div className="flex items-center justify-between gap-2">
             <button
               onClick={() => setShowCashier(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-200 text-[11px] font-black uppercase tracking-widest hover:bg-amber-400/25 transition"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-400 border border-amber-300 text-emerald-950 text-[11px] font-black uppercase tracking-widest shadow-[0_2px_8px_rgba(212,175,55,0.4)] hover:brightness-105 transition"
             >
-              🎰 Cashier
+              <MiniChipIcon size={14} /> Buy Chips
             </button>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-cyan-400/30" title="Casino chips — betting currency">
-                <span className="w-3.5 h-3.5 rounded-full bg-cyan-400 border border-white/40" />
-                <span className="text-cyan-200 font-bold text-sm tabular-nums">{chips}</span>
+              <div className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30" title="Casino chips — betting currency">
+                <MiniChipIcon size={14} />
+                <span className="text-amber-200 font-bold text-sm tabular-nums">{chips}</span>
               </div>
               <div className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30" title="Tokens — payout currency">
                 <img src={TOKEN_IMG} alt="token" className="w-3.5 h-3.5 object-contain" />
@@ -263,9 +264,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
                   {result.type === "win" ? (
                     <>+{result.tokenPayout} <img src={TOKEN_IMG} alt="" className="inline w-3 h-3 object-contain align-middle" /></>
                   ) : result.type === "push" ? (
-                    <>Refunded {result.bet} <span className="inline-block w-3 h-3 rounded-full bg-cyan-400 border border-white/40 align-middle" /></>
+                    <>Refunded {result.bet} <MiniChipIcon size={12} /></>
                   ) : (
-                    <>−{result.bet} <span className="inline-block w-3 h-3 rounded-full bg-cyan-400 border border-white/40 align-middle" /></>
+                    <>−{result.bet} <MiniChipIcon size={12} /></>
                   )}
                 </p>
                 <button
@@ -398,8 +399,8 @@ function BetBar({ bet, maxBet, onSet, onAdjust, chips }) {
         </button>
       </div>
       <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1 text-cyan-200 font-black text-sm tabular-nums">
-          <span className="w-3.5 h-3.5 rounded-full bg-cyan-400 border border-white/40" />
+        <span className="flex items-center gap-1 text-amber-200 font-black text-sm tabular-nums">
+          <MiniChipIcon size={14} />
           {bet} CHIPS
         </span>
         <button
