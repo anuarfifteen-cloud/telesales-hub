@@ -10,13 +10,22 @@
       "type": "string",
       "description": "Email of the user"
     },
+    "game_type": {
+      "type": "string",
+      "enum": [
+        "coin_flip",
+        "blackjack"
+      ],
+      "description": "Which game this record belongs to. coin_flip = Double or Nothing coin flip, blackjack = Casino 21. Missing/legacy records are treated as coin_flip.",
+      "default": "coin_flip"
+    },
     "choice": {
       "type": "string",
       "enum": [
         "heads",
         "tails"
       ],
-      "description": "What the user chose"
+      "description": "What the user chose (coin flip only). Omitted for blackjack records."
     },
     "outcome": {
       "type": "string",
@@ -24,7 +33,7 @@
         "heads",
         "tails"
       ],
-      "description": "Actual flip result"
+      "description": "Actual flip result (coin flip only). Omitted for blackjack records."
     },
     "wager": {
       "type": "number",
@@ -34,19 +43,22 @@
       "type": "string",
       "enum": [
         "win",
-        "loss"
+        "loss",
+        "push"
       ],
-      "description": "Win or loss"
+      "description": "Win, loss, or push (tie). push only applies to blackjack."
     },
     "tokens_delta": {
       "type": "number",
-      "description": "Token change (positive = won, negative = lost)"
+      "description": "Token change (positive = won, negative = lost, 0 = push/refund)"
+    },
+    "detail": {
+      "type": "string",
+      "description": "Optional human-readable outcome detail, e.g. 'Blackjack!', 'Player bust', 'Dealer bust', 'Push'. Used by blackjack records."
     }
   },
   "required": [
     "user_id",
-    "choice",
-    "outcome",
     "wager",
     "result"
   ]

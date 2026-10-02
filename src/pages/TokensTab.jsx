@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
-import CoinFlipStreak from "@/components/coinflip/CoinFlipStreak";
+import CoinFlipSubTab from "@/components/coinflip/CoinFlipSubTab";
 import PerfectTen from "@/components/coinflip/PerfectTen";
 import VipActivityFeed from "@/components/coinflip/VipActivityFeed";
 import NinjaTokenGame from "@/components/games/NinjaTokenGame";
@@ -170,9 +170,9 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         <PerfectTen user={user} onUserUpdate={onUserUpdate} isAdmin={isAdmin} />
       )}
 
-      {/* Coin Flip */}
+      {/* Coin Flip / Casino 21 */}
       {innerTab === "coinflip" && (
-        <CoinFlipStreak user={user} onUserUpdate={onUserUpdate} />
+        <CoinFlipSubTab user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {/* Ninja Slice (only when enabled) */}
