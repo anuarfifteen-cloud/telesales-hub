@@ -16,6 +16,7 @@ import {
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
+  AlertDialogOverlay,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -1024,7 +1025,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       </div>
 
       <AlertDialog open={showRestartConfirm} onOpenChange={setShowRestartConfirm}>
-        <AlertDialogContent className="max-w-xs">
+        <AlertDialogOverlay className="z-[70]" />
+        <AlertDialogContent className="max-w-xs z-[70]">
           <AlertDialogHeader>
             <AlertDialogTitle>Restart run?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1039,7 +1041,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       </AlertDialog>
 
       <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
-        <AlertDialogContent className="max-w-xs">
+        <AlertDialogOverlay className="z-[70]" />
+        <AlertDialogContent className="max-w-xs z-[70]">
           <AlertDialogHeader>
             <AlertDialogTitle>Exit Diamond Smash?</AlertDialogTitle>
             <AlertDialogDescription>
