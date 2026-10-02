@@ -145,3 +145,84 @@ export function playP10Miss() {
     osc.stop(ac.currentTime + 0.35);
   } catch {}
 }
+
+// Casino 21 — ceramic chip clink
+export function playClink() {
+  try {
+    const ac = ctx();
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(1400, ac.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(900, ac.currentTime + 0.06);
+    gain.gain.setValueAtTime(0.15, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.08);
+    osc.start(ac.currentTime);
+    osc.stop(ac.currentTime + 0.08);
+  } catch {}
+}
+
+// Casino 21 — soft card slide / deal swish (filtered noise burst)
+export function playCardSlide() {
+  try {
+    const ac = ctx();
+    const buffer = ac.createBuffer(1, ac.sampleRate * 0.12, ac.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
+    }
+    const src = ac.createBufferSource();
+    src.buffer = buffer;
+    const filter = ac.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 2500;
+    const gain = ac.createGain();
+    gain.gain.value = 0.12;
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ac.destination);
+    src.start();
+  } catch {}
+}
+
+// Casino 21 — win fanfare (5-note ascending arpeggio)
+export function playWinFanfare() {
+  try {
+    const ac = ctx();
+    [523, 659, 784, 988, 1175].forEach((freq, i) => {
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      osc.type = "sine";
+      const t = ac.currentTime + i * 0.09;
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.28, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      osc.start(t);
+      osc.stop(t + 0.22);
+    });
+  } catch {}
+}
+
+// Casino 21 — push chime (two soft neutral tones)
+export function playPush() {
+  try {
+    const ac = ctx();
+    [440, 440].forEach((freq, i) => {
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      osc.type = "sine";
+      const t = ac.currentTime + i * 0.18;
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.18, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+      osc.start(t);
+      osc.stop(t + 0.16);
+    });
+  } catch {}
+}
