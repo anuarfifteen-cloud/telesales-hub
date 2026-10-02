@@ -308,15 +308,17 @@ function HandPanel({ title, value, cards, revealHole = true }) {
       </div>
       <div className="flex gap-2 items-start min-h-[5.5rem]">
         <AnimatePresence>
-          {cards.map((c, i) => (
-            <PlayingCard
-              key={`${title}-${i}-${c.rank}${c.suit}`}
-              card={c}
-              faceDown={title === "DEALER" && i === 1 && !revealHole}
-              delay={i * 0.08}
-              isNew
-            />
-          ))}
+          {cards.map((c, i) => {
+            if (title === "DEALER" && i === 1 && !revealHole) return null;
+            return (
+              <PlayingCard
+                key={`${title}-${i}-${c.rank}${c.suit}`}
+                card={c}
+                delay={i * 0.08}
+                isNew
+              />
+            );
+          })}
         </AnimatePresence>
         {cards.length === 0 && <span className="text-emerald-100/30 text-xs self-center">—</span>}
       </div>

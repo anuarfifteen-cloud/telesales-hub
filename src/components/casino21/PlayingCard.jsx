@@ -26,15 +26,15 @@ export default function PlayingCard({ card, faceDown = false, delay = 0, isNew =
           </div>
         </div>
       ) : (
-        <div className="h-full w-full rounded-lg bg-white border border-slate-300 shadow-lg flex flex-col justify-between p-1.5 sm:p-2 overflow-hidden">
-          <div className={`text-left leading-none ${isRed ? "text-red-600" : "text-slate-900"}`}>
+        <div className="h-full w-full rounded-lg bg-white border border-slate-300 shadow-lg relative overflow-hidden">
+          <div className={`absolute top-1 left-1.5 leading-none ${isRed ? "text-red-600" : "text-slate-900"}`}>
             <span className="block text-xs sm:text-sm font-black">{card.rank}</span>
             <span className="block text-[10px] sm:text-xs">{card.suit}</span>
           </div>
-          <div className={`text-center text-xl sm:text-2xl ${isRed ? "text-red-600" : "text-slate-900"}`}>
+          <div className={`absolute inset-0 flex items-center justify-center text-xl sm:text-2xl ${isRed ? "text-red-600" : "text-slate-900"}`}>
             {card.suit}
           </div>
-          <div className={`text-right leading-none rotate-180 ${isRed ? "text-red-600" : "text-slate-900"}`}>
+          <div className={`absolute bottom-1 right-1.5 leading-none rotate-180 ${isRed ? "text-red-600" : "text-slate-900"}`}>
             <span className="block text-xs sm:text-sm font-black">{card.rank}</span>
             <span className="block text-[10px] sm:text-xs">{card.suit}</span>
           </div>
