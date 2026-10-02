@@ -297,36 +297,10 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
             )}
           </AnimatePresence>
 
-          {/* Balance strip — Cashier + chips (bet) + tokens (payout) */}
-          <div className="relative flex items-center justify-between gap-2">
-            <button
-              onClick={() => setShowCashier(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-400 border border-amber-300 text-emerald-950 text-[11px] font-black uppercase tracking-widest shadow-[0_2px_8px_rgba(212,175,55,0.4)] hover:brightness-105 transition"
-            >
-              <MiniChipIcon size={14} /> Buy Chips
-            </button>
-            <div className="flex items-center gap-2">
-              <div
-                className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30"
-                title="Casino chips — betting currency"
-              >
-                <MiniChipIcon size={14} />
-                <span className="text-amber-200 font-bold text-sm tabular-nums">{chips}</span>
-              </div>
-              <div
-                className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30"
-                title="Tokens — payout currency"
-              >
-                <img src={TOKEN_IMG} alt="token" className="w-3.5 h-3.5 object-contain" />
-                <OdometerNumber value={tokens} className="text-amber-300 font-bold text-sm" />
-              </div>
-            </div>
-          </div>
-
           {/* Felt plaque */}
           <div className="relative text-center">
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-300/70">
-              Pays 3 to 2 · Dealer Stands on 17
+            <span className="text-[9px] font-medium uppercase tracking-[0.25em] text-amber-300/70" style={{ fontFamily: "'Cinzel', serif", letterSpacing: "0.18em" }}>
+              Winnings Directly Converted to Tokens
             </span>
           </div>
 
