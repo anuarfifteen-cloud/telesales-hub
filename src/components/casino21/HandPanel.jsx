@@ -1,15 +1,20 @@
 import { AnimatePresence } from "framer-motion";
 import PlayingCard from "./PlayingCard";
 
-// Light fanned overlap (px) shared by every seat so all corner values stay
+// Light fanned overlap (px) shared by You / Player 2 so all corner values stay
 // readable. Cards wrap to rows of up to 3 — the panel grows downward to fit.
 const OVERLAP = 8;
+// Dealer seat uses a much tighter pack so a 6+ card hand stays safely inside the
+// panel (cards show mostly just the left edge).
+const DEALER_OVERLAP = 40;
 
 // Glassmorphism seat panel. `revealHole` hides the dealer's cards until the
 // reveal; `tag` renders a small badge (e.g. "AI"); `compact` shrinks the panel
-// for the player/AI seats so two fit side-by-side on the mobile felt.
-export default function HandPanel({ title, value, cards, revealHole = true, tag, compact = false, hidden = false }) {
+// for the player/AI seats so two fit side-by-side on the mobile felt. `overlap`
+// overrides the negative horizontal card spacing (Dealer uses the tight value).
+export default function HandPanel({ title, value, cards, revealHole = true, tag, compact = false, hidden = false, overlap }) {
   const isHidden = hidden || (title === "DEALER" && !revealHole);
+  const gap = overlap !== undefined && overlap !== null ? overlap : OVERLAP;
   return (
     <div
       className={`rounded-2xl border border-white/15 ${compact ? "p-2" : "p-3"}`}
@@ -32,13 +37,13 @@ export default function HandPanel({ title, value, cards, revealHole = true, tag,
       </div>
       <div
         className="flex flex-wrap items-start"
-        style={{ minHeight: compact ? "4rem" : "5.5rem", paddingRight: OVERLAP }}
+        style={{ minHeight: compact ? "4rem" : "5.5rem", paddingRight: gap }}
       >
         <AnimatePresence>
           {cards.map((c, i) => (
             <div
               key={isHidden ? `${title}-${i}-back` : `${title}-${i}-${c.rank}${c.suit}`}
-              style={{ marginRight: -OVERLAP, position: "relative", zIndex: i + 1 }}
+              style={{ marginRight: -gap, position: "relative", zIndex: i + 1 }}
             >
               <PlayingCard
                 card={c}

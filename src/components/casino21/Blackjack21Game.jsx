@@ -28,6 +28,70 @@ import MiniChipIcon from "./MiniChipIcon";
 
 const GAME_TYPE = "blackjack";
 
+// ── Winner-Takes-All resolution ─────────────────────────────────────
+// Compares the final hands of You, Player 2 (AI), and the Dealer. Among all
+// non-busted hands, the single highest score (≤21) is the sole winner.
+//   • You bust        → loss (someone else is named the table winner)
+//   • You sole highest → win (natural Blackjack pays 2.5×, else 2×)
+//   • You tie for top  → push (refund the bet)
+//   • Someone else strictly higher → loss (they are named the winner)
+function resolveRound(playerHand, aiHand, dealerHand, bet) {
+  const pVal = handValue(playerHand);
+  const aVal = handValue(aiHand);
+  const dVal = handValue(dealerHand);
+  const pBust = pVal > 21;
+  const aBust = aVal > 21;
+  const dBust = dVal > 21;
+
+  const valid = [];
+  if (!pBust) valid.push({ who: "you", val: pVal });
+  if (!aBust) valid.push({ who: "ai", val: aVal });
+  if (!dBust) valid.push({ who: "dealer", val: dVal });
+
+  const maxVal = valid.length ? Math.max(...valid.map((v) => v.val)) : -1;
+  const topHands = valid.filter((v) => v.val === maxVal);
+
+  const winnerLabel = (hands) =>
+    hands.map((h) => (h.who === "ai" ? "PLAYER 2" : "DEALER")).join(" & ");
+
+  let type, detail, chipPayout;
+
+  if (pBust) {
+    type = "loss";
+    chipPayout = 0;
+    if (topHands.length === 0) detail = "ALL BUST";
+    else if (topHands.length > 1) detail = `${winnerLabel(topHands)} TIE`;
+    else if (topHands[0].who === "ai") detail = "PLAYER 2 WINS";
+    else detail = "DEALER WINS";
+  } else if (pVal === maxVal && topHands.length === 1) {
+    type = "win";
+    const natural = isBlackjack(playerHand);
+    chipPayout = natural ? Math.round(bet * 2.5) : bet * 2;
+    detail = natural ? "BLACKJACK! YOU WIN" : "YOU WIN";
+  } else if (pVal === maxVal && topHands.length > 1) {
+    type = "push";
+    chipPayout = bet;
+    const others = topHands.filter((h) => h.who !== "you");
+    detail = `PUSH — TIED WITH ${winnerLabel(others)}`;
+  } else {
+    type = "loss";
+    chipPayout = 0;
+    if (topHands.length > 1) detail = `${winnerLabel(topHands)} TIE`;
+    else if (topHands[0].who === "ai") detail = "PLAYER 2 WINS";
+    else detail = "DEALER WINS";
+  }
+
+  // Player 2 display-only result line.
+  let aiRes;
+  if (aBust) aiRes = { type: "loss", detail: "Bust" };
+  else if (aVal === maxVal && topHands.length === 1 && topHands[0].who === "ai")
+    aiRes = { type: "win", detail: "Won the table" };
+  else if (aVal === maxVal) aiRes = { type: "push", detail: "Tied for top" };
+  else aiRes = { type: "loss", detail: "Lost the table" };
+
+  return { type, detail, chipPayout, aiRes };
+}
+
 export default function Blackjack21Game({ user, onUserUpdate }) {
   const chips = Number(user?.casinoChips) || 0;
   const chipsRef = useRef(chips);
@@ -148,18 +212,18 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     [0, 120, 240, 360, 480, 600].forEach((t) => setTimeout(playCardSlide, t));
 
     // Naturals: player blackjack, or dealer ace/ten up showing blackjack.
+    // Resolve early by comparing the three dealt hands — no further drawing.
     const playerBJ = isBlackjack(p);
     const upIsTenish = dl[0].value === 11 || dl[0].value === 10;
     const dealerBJ = isBlackjack(dl);
     if (playerBJ || (upIsTenish && dealerBJ)) {
       setTimeout(async () => {
         setRevealHole(true);
+        setAiRevealed(true);
         playCardSlide();
-        // AI plays out for display even on a natural resolve.
-        await playAI(d);
-        if (playerBJ && dealerBJ) await settle("push", "Push — both Blackjack", b);
-        else if (playerBJ) await settle("win", "Blackjack!", Math.round(b * 2.5));
-        else await settle("loss", "Dealer Blackjack", 0);
+        const res = resolveRound(p, a, dl, b);
+        setAiResult(res.aiRes);
+        await settle(res.type, res.detail, res.chipPayout);
       }, 800);
     }
   };
@@ -176,10 +240,24 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setBusy(false);
     if (isBust(p)) {
       setTimeout(async () => {
+        setPhase("dealer");
         setRevealHole(true);
-        // AI still plays out for display, then settle the user's bust.
-        await playAI(d);
-        await settle("loss", "Player bust", 0);
+        playCardSlide();
+        let dd = [...d];
+        let dl = [...dealer];
+        // Play out Player 2 + Dealer so the table winner is named correctly.
+        const aiFinal = await playAI(dd);
+        while (handValue(dl) < 17) {
+          await new Promise((r) => setTimeout(r, 420));
+          dl = [...dl, draw(dd)];
+          dd = [...dd];
+          setDealer(dl);
+          setDeck(dd);
+          playCardSlide();
+        }
+        const res = resolveRound(p, aiFinal, dl, committedBet);
+        setAiResult(res.aiRes);
+        await settle(res.type, res.detail, res.chipPayout);
       }, 500);
     }
   };
@@ -207,7 +285,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     let d = [...deck];
     let dl = [...dealer];
 
-    // AI plays out first (display only).
+    // AI plays out first.
     const aiFinal = await playAI(d);
 
     // Dealer stands on all 17s.
@@ -220,39 +298,10 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       playCardSlide();
     }
 
-    // User result vs dealer.
-    const pv = handValue(player);
-    const dv = handValue(dl);
-    let userType, userDetail, chipPayout;
-    if (isBust(dl)) {
-      userType = "win";
-      userDetail = "Dealer bust";
-      chipPayout = committedBet * 2;
-    } else if (dv > pv) {
-      userType = "loss";
-      userDetail = "Dealer wins";
-      chipPayout = 0;
-    } else if (dv < pv) {
-      userType = "win";
-      userDetail = "You win";
-      chipPayout = committedBet * 2;
-    } else {
-      userType = "push";
-      userDetail = "Push";
-      chipPayout = committedBet;
-    }
-
-    // AI result (display only).
-    const av = handValue(aiFinal);
-    let aiRes;
-    if (isBust(aiFinal)) aiRes = { type: "loss", detail: "AI bust" };
-    else if (isBust(dl)) aiRes = { type: "win", detail: "AI beat dealer" };
-    else if (av > dv) aiRes = { type: "win", detail: "AI beat dealer" };
-    else if (av < dv) aiRes = { type: "loss", detail: "AI lost to dealer" };
-    else aiRes = { type: "push", detail: "AI push" };
-    setAiResult(aiRes);
-
-    await settle(userType, userDetail, chipPayout);
+    // Winner-takes-all: compare You, Player 2, and Dealer.
+    const res = resolveRound(player, aiFinal, dl, committedBet);
+    setAiResult(res.aiRes);
+    await settle(res.type, res.detail, res.chipPayout);
   };
 
   const newRound = () => {
@@ -367,12 +416,13 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
             </div>
           )}
 
-          {/* Dealer seat — full width on top (cards hidden until reveal) */}
+          {/* Dealer seat — full width on top, cards tightly packed (hidden until reveal) */}
           <HandPanel
             title="DEALER"
             value={revealHole || phase === "resolve" ? handValue(dealer) : "?"}
             cards={dealer}
             revealHole={revealHole}
+            overlap={40}
           />
 
           {/* You (left) + Player 2 (AI, right) — side-by-side, fanned cards */}
