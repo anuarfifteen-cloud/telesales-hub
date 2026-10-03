@@ -4,7 +4,8 @@ import PlayingCard from "./PlayingCard";
 // Glassmorphism seat panel. `revealHole` hides the dealer's cards until the
 // reveal; `tag` renders a small badge (e.g. "AI"); `compact` shrinks the panel
 // for the dealer/AI seats so three fit on the mobile felt.
-export default function HandPanel({ title, value, cards, revealHole = true, tag, compact = false }) {
+export default function HandPanel({ title, value, cards, revealHole = true, tag, compact = false, hidden = false }) {
+  const isHidden = hidden || (title === "DEALER" && !revealHole);
   return (
     <div
       className={`rounded-2xl border border-white/15 ${compact ? "p-2" : "p-3"}`}
@@ -22,24 +23,22 @@ export default function HandPanel({ title, value, cards, revealHole = true, tag,
           )}
         </span>
         <span className="text-sm font-black text-amber-300 tabular-nums">
-          {value !== undefined && value !== null ? value : "—"}
+          {isHidden ? "?" : value !== undefined && value !== null ? value : "—"}
         </span>
       </div>
-      <div className={`flex items-start ${compact ? "min-h-[4rem] -space-x-4 sm:-space-x-5" : "min-h-[5.5rem] gap-2"}`}>
+      <div className={`flex items-start ${compact ? "min-h-[4rem] -space-x-12" : "min-h-[5.5rem] gap-2"}`}>
         <AnimatePresence>
-          {cards.map((c, i) => {
-            const isDealerHidden = title === "DEALER" && !revealHole;
-            return (
-              <PlayingCard
-                key={isDealerHidden ? `${title}-${i}-back` : `${title}-${i}-${c.rank}${c.suit}`}
-                card={c}
-                delay={i * 0.15}
-                isNew
-                backOnly={isDealerHidden}
-                faceDown={false}
-              />
-            );
-          })}
+          {cards.map((c, i) => (
+            <PlayingCard
+              key={isHidden ? `${title}-${i}-back` : `${title}-${i}-${c.rank}${c.suit}`}
+              card={c}
+              delay={i * 0.15}
+              isNew
+              backOnly={isHidden}
+              faceDown={false}
+              zIndex={i + 1}
+            />
+          ))}
         </AnimatePresence>
         {cards.length === 0 && <span className="text-emerald-100/30 text-xs self-center">—</span>}
       </div>

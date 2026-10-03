@@ -45,6 +45,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const [phase, setPhase] = useState("bet"); // bet | player | dealer | resolve
   const [result, setResult] = useState(null); // { type, detail, chipPayout, bet }
   const [aiResult, setAiResult] = useState(null); // { type, detail } — display only
+  const [aiRevealed, setAiRevealed] = useState(false); // AI cards stay face-down until its turn ends
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState("game");
   const [flash, setFlash] = useState(null);
@@ -136,6 +137,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setRevealHole(false);
     setResult(null);
     setAiResult(null);
+    setAiRevealed(false);
     setPhase("player");
     setBusy(false);
 
@@ -188,6 +190,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       setDeck([...d]);
       playCardSlide();
     }
+    setAiRevealed(true);
     return a;
   };
 
@@ -256,6 +259,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setRevealHole(false);
     setResult(null);
     setAiResult(null);
+    setAiRevealed(false);
     setCommittedBet(0);
     setPhase("bet");
   };
@@ -375,6 +379,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
               value={ai.length ? handValue(ai) : "—"}
               cards={ai}
               compact
+              hidden={!aiRevealed}
             />
             <HandPanel title="YOU" value={handValue(player)} cards={player} compact />
           </div>

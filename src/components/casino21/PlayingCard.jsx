@@ -34,7 +34,7 @@ function CardFace({ card }) {
   );
 }
 
-export default function PlayingCard({ card, faceDown = false, backOnly = false, delay = 0, isNew = false }) {
+export default function PlayingCard({ card, faceDown = false, backOnly = false, delay = 0, isNew = false, zIndex = 0 }) {
   // Back-only mode: render ONLY the card back. The face value is never mounted
   // in the DOM, so nothing can flash through during the deal-in animation.
   if (backOnly) {
@@ -44,6 +44,7 @@ export default function PlayingCard({ card, faceDown = false, backOnly = false, 
         animate={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 20, delay }}
         className="relative h-20 w-14 sm:h-24 sm:w-16 flex-shrink-0"
+        style={{ zIndex }}
       >
         <CardBack />
       </motion.div>
@@ -55,7 +56,7 @@ export default function PlayingCard({ card, faceDown = false, backOnly = false, 
       animate={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 260, damping: 20, delay }}
       className="relative h-20 w-14 sm:h-24 sm:w-16 flex-shrink-0"
-      style={{ perspective: 800 }}
+      style={{ perspective: 800, zIndex }}
     >
       <motion.div
         className="relative h-full w-full"
