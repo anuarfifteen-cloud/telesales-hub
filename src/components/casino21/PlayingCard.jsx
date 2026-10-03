@@ -35,7 +35,7 @@ function CardFace({ card }) {
 }
 
 export default function PlayingCard({ card, faceDown = false, backOnly = false, delay = 0, isNew = false, zIndex = 0, small = false }) {
-  const sizeClass = small ? "h-16 w-11" : "h-20 w-14 sm:h-24 sm:w-16";
+  const sizeClass = small ? "h-20 w-14" : "h-20 w-14 sm:h-24 sm:w-16";
   // Back-only mode: render ONLY the card back. The face value is never mounted
   // in the DOM, so nothing can flash through during the deal-in animation.
   if (backOnly) {
