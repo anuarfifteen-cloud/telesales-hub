@@ -1,0 +1,78 @@
+{
+  "name": "CasinoChipLog",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user whose casinoChips changed"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the user"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "bet",
+        "win",
+        "push",
+        "loss",
+        "cashier_buy",
+        "cashier_cashout",
+        "admin_add",
+        "admin_deduct",
+        "admin_set"
+      ],
+      "description": "What kind of chip movement this entry records. bet = Blackjack 21 bet deducted at deal; win/push/loss = round settlement (loss logs 0 since the bet was already deducted); cashier_buy = chips purchased with tokens; cashier_cashout = chips converted to tokens (service fee noted in detail); admin_add/admin_deduct/admin_set = manual admin adjustment."
+    },
+    "amount": {
+      "type": "number",
+      "description": "Signed net chip change for this entry (+/-). A loss round logs 0."
+    },
+    "balance_after": {
+      "type": "number",
+      "description": "Snapshot of the user's casinoChips immediately after this movement"
+    },
+    "detail": {
+      "type": "string",
+      "description": "Human-readable description, e.g. 'Blackjack 21 bet 5', 'Win \u2014 You win', 'Cash out 50 chips \u2192 40 tokens, fee 10'"
+    },
+    "admin_id": {
+      "type": "string",
+      "description": "User ID of the admin who made an admin_* adjustment, if applicable"
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO timestamp of when the movement occurred"
+    }
+  },
+  "required": [
+    "user_id",
+    "action_type",
+    "amount",
+    "balance_after",
+    "timestamp"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

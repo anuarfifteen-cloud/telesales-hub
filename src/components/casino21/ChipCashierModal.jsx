@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { X, Loader2 } from "lucide-react";
 import MiniChipIcon from "./MiniChipIcon";
+import { logChipMovement } from "@/lib/chipLog";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 const SERVICE_FEE_PCT = 0.2;
@@ -84,6 +85,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
         casinoChips: chips + totalChips,
       });
       await onUserUpdate?.();
+      logChipMovement({ user, action_type: "cashier_buy", amount: totalChips, balance_after: chips + totalChips, detail: `Cashier buy ${totalChips} chips for ${totalTokens} tokens` });
       toast.success(`Bought ${totalChips} chips for ${totalTokens} tokens!`);
       setQty(1);
       onClose();
@@ -114,6 +116,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
         timestamp: new Date().toISOString(),
       });
       await onUserUpdate?.();
+      logChipMovement({ user, action_type: "cashier_cashout", amount: -cashChips, balance_after: chips - cashChips, detail: `Cash out ${cashChips} chips → ${receive} tokens, fee ${fee}` });
       toast.success(`Cashed out ${receive} tokens · ${fee} chip service fee.`);
       setCashAmount(0);
       onClose();

@@ -20,6 +20,7 @@ import {
   isBust,
 } from "./blackjackDeck";
 import HandPanel from "./HandPanel";
+import { logChipMovement } from "@/lib/chipLog";
 import BlackjackStats from "./BlackjackStats";
 import BlackjackHistory from "./BlackjackHistory";
 import ChipCashierModal from "./ChipCashierModal";
@@ -93,6 +94,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         detail,
       });
       await onUserUpdate?.();
+      const balAfter = chipPayout > 0 ? chipsRef.current + chipPayout : chipsRef.current;
+      logChipMovement({ user, action_type: type, amount: chipPayout > 0 ? chipPayout : 0, balance_after: balAfter, detail: `Blackjack 21 — ${detail}` });
       queryClient.invalidateQueries({ queryKey: ["blackjack-history", user?.id] });
       if (type === "win") {
         playWinFanfare();
@@ -125,6 +128,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setCommittedBet(b);
     await base44.auth.updateMe({ casinoChips: chips - b });
     await onUserUpdate?.();
+    logChipMovement({ user, action_type: "bet", amount: -b, balance_after: chips - b, detail: `Blackjack 21 bet ${b}` });
 
     const d = shuffle(createDeck());
     const p = [draw(d), draw(d)];
