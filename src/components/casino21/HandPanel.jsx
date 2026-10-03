@@ -1,9 +1,13 @@
 import { AnimatePresence } from "framer-motion";
 import PlayingCard from "./PlayingCard";
 
+// Light fanned overlap (px) shared by every seat so all corner values stay
+// readable. Cards wrap to rows of up to 3 — the panel grows downward to fit.
+const OVERLAP = 8;
+
 // Glassmorphism seat panel. `revealHole` hides the dealer's cards until the
 // reveal; `tag` renders a small badge (e.g. "AI"); `compact` shrinks the panel
-// for the dealer/AI seats so three fit on the mobile felt.
+// for the player/AI seats so two fit side-by-side on the mobile felt.
 export default function HandPanel({ title, value, cards, revealHole = true, tag, compact = false, hidden = false }) {
   const isHidden = hidden || (title === "DEALER" && !revealHole);
   return (
@@ -26,19 +30,26 @@ export default function HandPanel({ title, value, cards, revealHole = true, tag,
           {isHidden ? "?" : value !== undefined && value !== null ? value : "—"}
         </span>
       </div>
-      <div className={`flex items-start ${compact ? "min-h-[4rem] -space-x-6" : "min-h-[5.5rem] gap-2"}`}>
+      <div
+        className="flex flex-wrap items-start"
+        style={{ minHeight: compact ? "4rem" : "5.5rem", paddingRight: OVERLAP }}
+      >
         <AnimatePresence>
           {cards.map((c, i) => (
-            <PlayingCard
+            <div
               key={isHidden ? `${title}-${i}-back` : `${title}-${i}-${c.rank}${c.suit}`}
-              card={c}
-              delay={i * 0.15}
-              isNew
-              small={compact}
-              backOnly={isHidden}
-              faceDown={false}
-              zIndex={i + 1}
-            />
+              style={{ marginRight: -OVERLAP, position: "relative", zIndex: i + 1 }}
+            >
+              <PlayingCard
+                card={c}
+                delay={i * 0.15}
+                isNew
+                small={compact}
+                backOnly={isHidden}
+                faceDown={false}
+                zIndex={i + 1}
+              />
+            </div>
           ))}
         </AnimatePresence>
         {cards.length === 0 && <span className="text-emerald-100/30 text-xs self-center">—</span>}
