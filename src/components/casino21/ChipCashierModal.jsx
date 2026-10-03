@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -8,6 +8,12 @@ import { logChipMovement } from "@/lib/chipLog";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 const SERVICE_FEE_PCT = 0.2;
+const DAILY_CASHOUT_LIMIT = 5000;
+
+// Brunei-calendar YYYY-MM-DD for "today" — used to match cash-out logs.
+function getBruneiToday() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" });
+}
 
 // ── Chip bundles: chips for tokens (one-way purchase, discounted) ──
 const BUNDLES = [
@@ -56,6 +62,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
   const [qty, setQty] = useState(1);
   const [cashAmount, setCashAmount] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [usedToday, setUsedToday] = useState(0);
 
   const tokens = Number(user?.earlyAccessTokens) || 0;
   const chips = Number(user?.casinoChips) || 0;
@@ -66,11 +73,40 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
   const totalChips = bundle.chips * qty;
   const canAfford = tokens >= totalTokens;
 
-  // Cash-out amounts (convert chips → tokens at 80%, 20% service fee).
-  const cashChips = Math.min(Math.max(Math.floor(cashAmount), 0), chips);
+  // Daily cash-out cap (Brunei day) — sum chips already converted today from logs.
+  const remaining = Math.max(0, DAILY_CASHOUT_LIMIT - usedToday);
+  const cashMax = Math.max(0, Math.min(chips, remaining));
+
+  const refreshUsedToday = async () => {
+    if (!user?.id) return;
+    try {
+      const rows = await base44.entities.CasinoChipLog.filter(
+        { user_id: user.id, action_type: "cashier_cashout" },
+        "-timestamp",
+        50
+      );
+      const today = getBruneiToday();
+      const sum = (rows || []).reduce((acc, r) => {
+        const d = r.timestamp ? new Date(r.timestamp).toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" }) : "";
+        return d === today ? acc + Math.abs(Number(r.amount) || 0) : acc;
+      }, 0);
+      setUsedToday(sum);
+    } catch (e) {
+      // Non-fatal: allow cash-out, just without the tracker.
+    }
+  };
+
+  useEffect(() => {
+    if (open) refreshUsedToday();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, user?.id]);
+
+  // Cash-out amounts (convert chips → tokens at 80%, 20% service fee), capped by daily limit.
+  const cashChips = Math.min(Math.max(Math.floor(cashAmount), 0), cashMax);
   const fee = Math.floor(cashChips * SERVICE_FEE_PCT);
   const receive = cashChips - fee;
-  const canCashOut = cashChips >= 1;
+  const limitReached = remaining <= 0;
+  const canCashOut = cashChips >= 1 && !limitReached;
 
   const handleBuy = async () => {
     if (busy) return;
@@ -119,6 +155,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
       logChipMovement({ user, action_type: "cashier_cashout", amount: -cashChips, balance_after: chips - cashChips, detail: `Cash out ${cashChips} chips → ${receive} tokens, fee ${fee}` });
       toast.success(`Cashed out ${receive} tokens · ${fee} chip service fee.`);
       setCashAmount(0);
+      await refreshUsedToday();
       onClose();
     } catch (e) {
       toast.error("Cash out failed. Please try again.");
@@ -300,12 +337,24 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                   Convert chips to tokens · 20% service fee
                 </p>
 
+                {/* Daily limit tracker */}
+                <div className="mx-5 mb-3 rounded-2xl px-4 py-2.5 bg-emerald-950/40 border border-cyan-400/20 flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-200/80">
+                    Daily Limit
+                  </span>
+                  <span className="flex items-center gap-1 text-xs font-black tabular-nums">
+                    <span className="text-amber-200">{usedToday.toLocaleString()}</span>
+                    <span className="text-emerald-100/40">/ {DAILY_CASHOUT_LIMIT.toLocaleString()}</span>
+                    <MiniChipIcon size={12} />
+                  </span>
+                </div>
+
                 {/* Amount slider */}
                 <div className="px-5 pb-3">
                   <div className="flex items-center gap-2 mb-2">
                     <button
                       onClick={() => setCashAmount((a) => Math.max(a - 5, 0))}
-                      disabled={chips < 1}
+                      disabled={chips < 1 || limitReached}
                       className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
                     >
                       ‹
@@ -313,16 +362,16 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                     <input
                       type="range"
                       min={0}
-                      max={Math.max(chips, 1)}
+                      max={Math.max(cashMax, 1)}
                       step={1}
-                      value={Math.min(cashAmount, chips)}
+                      value={Math.min(cashAmount, cashMax)}
                       onChange={(e) => setCashAmount(Number(e.target.value))}
-                      disabled={chips < 1}
+                      disabled={chips < 1 || limitReached}
                       className="flex-1 accent-cyan-400"
                     />
                     <button
-                      onClick={() => setCashAmount((a) => Math.min(a + 5, chips))}
-                      disabled={chips < 1}
+                      onClick={() => setCashAmount((a) => Math.min(a + 5, cashMax))}
+                      disabled={chips < 1 || limitReached}
                       className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
                     >
                       ›
@@ -334,8 +383,8 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                       {cashChips} CHIPS
                     </span>
                     <button
-                      onClick={() => setCashAmount(chips)}
-                      disabled={chips < 1}
+                      onClick={() => setCashAmount(cashMax)}
+                      disabled={chips < 1 || limitReached}
                       className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest text-emerald-950 disabled:opacity-30"
                       style={{ background: "#d4af37" }}
                     >
@@ -382,6 +431,11 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                   {chips < 1 && (
                     <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
                       No chips to cash out
+                    </p>
+                  )}
+                  {limitReached && chips >= 1 && (
+                    <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
+                      Daily limit reached — come back tomorrow
                     </p>
                   )}
                 </div>
