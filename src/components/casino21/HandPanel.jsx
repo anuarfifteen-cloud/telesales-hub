@@ -26,7 +26,7 @@ export default function HandPanel({ title, value, cards, revealHole = true, tag,
           {isHidden ? "?" : value !== undefined && value !== null ? value : "—"}
         </span>
       </div>
-      <div className={`flex items-start ${compact ? "min-h-[4rem] -space-x-12" : "min-h-[5.5rem] gap-2"}`}>
+      <div className={`flex items-start ${compact ? "min-h-[4rem] -space-x-6" : "min-h-[5.5rem] gap-2"}`}>
         <AnimatePresence>
           {cards.map((c, i) => (
             <PlayingCard
@@ -34,6 +34,7 @@ export default function HandPanel({ title, value, cards, revealHole = true, tag,
               card={c}
               delay={i * 0.15}
               isNew
+              small={compact}
               backOnly={isHidden}
               faceDown={false}
               zIndex={i + 1}

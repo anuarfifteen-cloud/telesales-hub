@@ -371,8 +371,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
             revealHole={revealHole}
           />
 
-          {/* Player 2 (AI, left) + You (right) — side-by-side, fanned cards */}
+          {/* You (left) + Player 2 (AI, right) — side-by-side, fanned cards */}
           <div className="grid grid-cols-2 gap-3">
+            <HandPanel title="YOU" value={handValue(player)} cards={player} compact />
             <HandPanel
               title="PLAYER 2"
               tag="AI"
@@ -381,7 +382,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
               compact
               hidden={!aiRevealed}
             />
-            <HandPanel title="YOU" value={handValue(player)} cards={player} compact />
           </div>
 
           {/* Result overlay */}
