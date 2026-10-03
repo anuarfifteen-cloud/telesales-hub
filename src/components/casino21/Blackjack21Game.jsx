@@ -359,26 +359,25 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
             </div>
           )}
 
-          {/* Dealer seat (cards hidden until reveal) */}
+          {/* Dealer seat — full width on top (cards hidden until reveal) */}
           <HandPanel
             title="DEALER"
             value={revealHole || phase === "resolve" ? handValue(dealer) : "?"}
             cards={dealer}
             revealHole={revealHole}
-            compact
           />
 
-          {/* AI seat (cards face up, auto-played) */}
-          <HandPanel
-            title="PLAYER 2"
-            tag="AI"
-            value={ai.length ? handValue(ai) : "—"}
-            cards={ai}
-            compact
-          />
-
-          {/* Your seat */}
-          <HandPanel title="YOU" value={handValue(player)} cards={player} />
+          {/* Player 2 (AI, left) + You (right) — side-by-side, fanned cards */}
+          <div className="grid grid-cols-2 gap-3">
+            <HandPanel
+              title="PLAYER 2"
+              tag="AI"
+              value={ai.length ? handValue(ai) : "—"}
+              cards={ai}
+              compact
+            />
+            <HandPanel title="YOU" value={handValue(player)} cards={player} compact />
+          </div>
 
           {/* Result overlay */}
           <AnimatePresence>

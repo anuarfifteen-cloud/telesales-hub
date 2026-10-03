@@ -25,7 +25,7 @@ export default function HandPanel({ title, value, cards, revealHole = true, tag,
           {value !== undefined && value !== null ? value : "—"}
         </span>
       </div>
-      <div className={`flex gap-2 items-start ${compact ? "min-h-[4rem]" : "min-h-[5.5rem]"}`}>
+      <div className={`flex items-start ${compact ? "min-h-[4rem] -space-x-4 sm:-space-x-5" : "min-h-[5.5rem] gap-2"}`}>
         <AnimatePresence>
           {cards.map((c, i) => {
             const isDealerHidden = title === "DEALER" && !revealHole;
