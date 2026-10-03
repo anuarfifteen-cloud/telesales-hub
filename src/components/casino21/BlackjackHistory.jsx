@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import MiniChipIcon from "./MiniChipIcon";
 
-const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
-
-// Mode-scoped history for Casino 21 records only.
+// Mode-scoped history for Blackjack 21 records only (chip-based rounds).
 export default function BlackjackHistory({ userId }) {
   const { data: history = [] } = useQuery({
     queryKey: ["blackjack-history", userId],
@@ -23,41 +22,51 @@ export default function BlackjackHistory({ userId }) {
 
   return (
     <div className="space-y-2 max-h-80 overflow-y-auto pr-1 p-1">
-      {history.map((r) => (
-        <div
-          key={r.id}
-          className={`flex items-center justify-between rounded-xl px-4 py-3 text-xs border ${
-            r.result === "win"
-              ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/40"
-              : r.result === "push"
-              ? "bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700"
-              : "bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/40"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-full bg-cyan-500 border border-white/40" title="chips bet" />
-            <span className="text-foreground/80">
-              Bet <strong className="text-foreground">{r.wager}</strong> chips
-            </span>
-            {r.detail && <span className="text-muted-foreground">· {r.detail}</span>}
-          </div>
-          <span
-            className={`font-bold text-sm tabular-nums flex items-center gap-1 ${
+      {history.map((r) => {
+        const winChips =
+          r.result === "win"
+            ? r.detail === "Blackjack!"
+              ? Math.round((r.wager || 0) * 2.5)
+              : (r.wager || 0) * 2
+            : 0;
+        return (
+          <div
+            key={r.id}
+            className={`flex items-center justify-between rounded-xl px-4 py-3 text-xs border ${
               r.result === "win"
-                ? "text-emerald-600 dark:text-emerald-400"
-                : r.result === "loss"
-                ? "text-red-600 dark:text-red-400"
-                : "text-slate-500"
+                ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/40"
+                : r.result === "push"
+                ? "bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700"
+                : "bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/40"
             }`}
           >
-            {r.result === "win"
-              ? <>+{r.tokens_delta}<img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain" /></>
-              : r.result === "loss"
-              ? <>−{r.wager}<span className="text-[9px] uppercase font-black">chips</span></>
-              : <>Refund<span className="w-3 h-3 rounded-full bg-cyan-500 border border-white/40 inline-block" /></>}
-          </span>
-        </div>
-      ))}
+            <div className="flex items-center gap-2">
+              <MiniChipIcon size={14} />
+              <span className="text-foreground/80">
+                Bet <strong className="text-foreground">{r.wager}</strong> chips
+              </span>
+              {r.detail && <span className="text-muted-foreground">· {r.detail}</span>}
+            </div>
+            <span
+              className={`font-bold text-sm tabular-nums flex items-center gap-1 ${
+                r.result === "win"
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : r.result === "loss"
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-slate-500"
+              }`}
+            >
+              {r.result === "win" ? (
+                <>+{winChips} <MiniChipIcon size={12} /></>
+              ) : r.result === "loss" ? (
+                <>−{r.wager} <MiniChipIcon size={12} /></>
+              ) : (
+                <>Refunded {r.wager} <MiniChipIcon size={12} /></>
+              )}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

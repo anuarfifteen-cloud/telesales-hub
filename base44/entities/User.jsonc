@@ -18,12 +18,7 @@
     "casinoChips": {
       "type": "number",
       "default": 0,
-      "description": "21 Game chips \u2014 a secondary currency used exclusively for 21 betting. Purchased with tokens via the Chip Cashier; one-way (cannot be converted back). Winnings collect in game21Balance."
-    },
-    "game21Balance": {
-      "type": "number",
-      "default": 0,
-      "description": "21 Game wallet \u2014 winnings from the 21 game accumulate here instead of going directly to earlyAccessTokens. Players transfer this balance to early-access tokens anytime (min 10) with a 20% burned service fee."
+      "description": "Blackjack 21 chips \u2014 a secondary currency used exclusively for Blackjack 21 betting. Purchased with tokens via the Chip Cashier; wins pay back in chips. Chips can be cashed out to tokens in the Cashier with a 20% service fee."
     },
     "avatar_photo_url": {
       "type": "string",

@@ -6,12 +6,11 @@ import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import { Play, Plus, Shield } from "lucide-react";
 import {
-  playWin,
-  playLoss,
   playClink,
   playCardSlide,
   playWinFanfare,
   playPush,
+  playLoss,
 } from "@/lib/sounds";
 import {
   createDeck,
@@ -20,46 +19,38 @@ import {
   isBlackjack,
   isBust,
 } from "./blackjackDeck";
-import PlayingCard from "./PlayingCard";
+import HandPanel from "./HandPanel";
 import BlackjackStats from "./BlackjackStats";
 import BlackjackHistory from "./BlackjackHistory";
 import ChipCashierModal from "./ChipCashierModal";
-import Game21CashOutModal from "./Game21CashOutModal";
 import MiniChipIcon from "./MiniChipIcon";
-import OdometerNumber from "@/components/OdometerNumber";
 
-const TOKEN_IMG =
-  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 const GAME_TYPE = "blackjack";
 
 export default function Blackjack21Game({ user, onUserUpdate }) {
-  const game21Balance = Number(user?.game21Balance) || 0;
   const chips = Number(user?.casinoChips) || 0;
-  const game21Ref = useRef(game21Balance);
   const chipsRef = useRef(chips);
-  useEffect(() => {
-    game21Ref.current = game21Balance;
-  }, [game21Balance]);
   useEffect(() => {
     chipsRef.current = chips;
   }, [chips]);
+
   const [bet, setBet] = useState(5);
   const [committedBet, setCommittedBet] = useState(0);
   const [showCashier, setShowCashier] = useState(false);
-  const [showCashOut, setShowCashOut] = useState(false);
   const [deck, setDeck] = useState([]);
   const [player, setPlayer] = useState([]);
+  const [ai, setAi] = useState([]);
   const [dealer, setDealer] = useState([]);
   const [revealHole, setRevealHole] = useState(false);
   const [phase, setPhase] = useState("bet"); // bet | player | dealer | resolve
-  const [result, setResult] = useState(null); // { type, detail, tokenPayout, chipRefund, bet }
+  const [result, setResult] = useState(null); // { type, detail, chipPayout, bet }
+  const [aiResult, setAiResult] = useState(null); // { type, detail } — display only
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState("game");
-  const [flash, setFlash] = useState(null); // 'win' | 'loss' | null
+  const [flash, setFlash] = useState(null);
   const queryClient = useQueryClient();
 
   const maxBet = Math.max(1, chips);
-
   const draw = (d) => d.pop();
 
   const burstConfetti = () => {
@@ -83,27 +74,26 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     } catch {}
   };
 
-  // ── Round settlement (dual-currency: chips bet, tokens paid out) ──────
-  const settle = async (type, detail, tokenPayout, chipRefund) => {
-    setResult({ type, detail, tokenPayout, chipRefund, bet });
+  // ── Round settlement (chip-based; no token movement on settle) ──────
+  const settle = async (type, detail, chipPayout) => {
+    setResult({ type, detail, chipPayout, bet: committedBet });
     setPhase("resolve");
     try {
       const updates = {};
-      if (tokenPayout > 0) updates.game21Balance = game21Ref.current + tokenPayout;
-      if (chipRefund > 0) updates.casinoChips = chipsRef.current + chipRefund;
+      if (chipPayout > 0) updates.casinoChips = chipsRef.current + chipPayout;
       if (Object.keys(updates).length) await base44.auth.updateMe(updates);
       await base44.entities.CoinFlipGame.create({
         user_id: user.id,
         user_email: user.email,
         game_type: GAME_TYPE,
-        wager: bet,
+        wager: committedBet,
         result: type === "push" ? "push" : type === "win" ? "win" : "loss",
-        tokens_delta: tokenPayout,
+        tokens_delta: 0,
         detail,
       });
       await onUserUpdate?.();
       queryClient.invalidateQueries({ queryKey: ["blackjack-history", user?.id] });
-      if (tokenPayout > 0) {
+      if (type === "win") {
         playWinFanfare();
         setFlash("win");
         burstConfetti();
@@ -120,7 +110,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     }
   };
 
-  // ── Deal a fresh hand ─────────────────────────────────────────────────
+  // ── Deal a fresh hand (player + AI + dealer) ────────────────────────
   const handleDeal = async () => {
     if (busy) return;
     const b = Math.min(Math.max(Math.floor(bet), 1), maxBet);
@@ -132,25 +122,26 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setBusy(true);
     playClink();
     setCommittedBet(b);
-    // Debit the bet from chips immediately.
     await base44.auth.updateMe({ casinoChips: chips - b });
     await onUserUpdate?.();
 
     const d = shuffle(createDeck());
     const p = [draw(d), draw(d)];
+    const a = [draw(d), draw(d)];
     const dl = [draw(d), draw(d)];
     setDeck(d);
     setPlayer(p);
+    setAi(a);
     setDealer(dl);
     setRevealHole(false);
     setResult(null);
+    setAiResult(null);
     setPhase("player");
     setBusy(false);
 
-    // Staggered deal swishes (4 cards).
-    [0, 150, 300, 450].forEach((t) => setTimeout(playCardSlide, t));
+    [0, 120, 240, 360, 480, 600].forEach((t) => setTimeout(playCardSlide, t));
 
-    // Check naturals: player blackjack, or dealer ace/ten up showing blackjack.
+    // Naturals: player blackjack, or dealer ace/ten up showing blackjack.
     const playerBJ = isBlackjack(p);
     const upIsTenish = dl[0].value === 11 || dl[0].value === 10;
     const dealerBJ = isBlackjack(dl);
@@ -158,14 +149,16 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       setTimeout(async () => {
         setRevealHole(true);
         playCardSlide();
-        if (playerBJ && dealerBJ) await settle("push", "Push — both Blackjack", 0, b);
-        else if (playerBJ) await settle("win", "Blackjack!", Math.round(b * 2.5), 0);
-        else await settle("loss", "Dealer Blackjack", 0, 0);
+        // AI plays out for display even on a natural resolve.
+        await playAI(d);
+        if (playerBJ && dealerBJ) await settle("push", "Push — both Blackjack", b);
+        else if (playerBJ) await settle("win", "Blackjack!", Math.round(b * 2.5));
+        else await settle("loss", "Dealer Blackjack", 0);
       }, 800);
     }
   };
 
-  // ── Hit ───────────────────────────────────────────────────────────────
+  // ── Hit (user only) ─────────────────────────────────────────────────
   const handleHit = () => {
     if (busy || phase !== "player") return;
     setBusy(true);
@@ -178,12 +171,27 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     if (isBust(p)) {
       setTimeout(async () => {
         setRevealHole(true);
-        await settle("loss", "Player bust", 0, 0);
+        // AI still plays out for display, then settle the user's bust.
+        await playAI(d);
+        await settle("loss", "Player bust", 0);
       }, 500);
     }
   };
 
-  // ── Stand → dealer plays out ───────────────────────────────────────────
+  // ── AI auto-play: hit below 17, stand on 17+ (display only) ─────────
+  const playAI = async (d) => {
+    let a = [...ai];
+    while (handValue(a) < 17) {
+      await new Promise((r) => setTimeout(r, 380));
+      a = [...a, draw(d)];
+      setAi(a);
+      setDeck([...d]);
+      playCardSlide();
+    }
+    return a;
+  };
+
+  // ── Stand → AI plays, then dealer plays, then settle ────────────────
   const handleStand = async () => {
     if (busy || phase !== "player") return;
     setPhase("dealer");
@@ -191,36 +199,63 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     playCardSlide();
     let d = [...deck];
     let dl = [...dealer];
-    // Dealer stands on all 17s (including soft 17).
-    const step = async () => {
-      while (handValue(dl) < 17) {
-        await new Promise((r) => setTimeout(r, 420));
-        dl = [...dl, draw(d)];
-        d = [...d];
-        setDealer(dl);
-        setDeck(d);
-        playCardSlide();
-      }
-      finish(dl);
-    };
-    const finish = async (dlFinal) => {
-      const pv = handValue(player);
-      const dv = handValue(dlFinal);
-      if (isBust(dlFinal)) await settle("win", "Dealer bust", bet * 2, 0);
-      else if (dv > pv) await settle("loss", "Dealer wins", 0, 0);
-      else if (dv < pv) await settle("win", "You win", bet * 2, 0);
-      else await settle("push", "Push", 0, bet);
-    };
-    step();
+
+    // AI plays out first (display only).
+    const aiFinal = await playAI(d);
+
+    // Dealer stands on all 17s.
+    while (handValue(dl) < 17) {
+      await new Promise((r) => setTimeout(r, 420));
+      dl = [...dl, draw(d)];
+      d = [...d];
+      setDealer(dl);
+      setDeck(d);
+      playCardSlide();
+    }
+
+    // User result vs dealer.
+    const pv = handValue(player);
+    const dv = handValue(dl);
+    let userType, userDetail, chipPayout;
+    if (isBust(dl)) {
+      userType = "win";
+      userDetail = "Dealer bust";
+      chipPayout = committedBet * 2;
+    } else if (dv > pv) {
+      userType = "loss";
+      userDetail = "Dealer wins";
+      chipPayout = 0;
+    } else if (dv < pv) {
+      userType = "win";
+      userDetail = "You win";
+      chipPayout = committedBet * 2;
+    } else {
+      userType = "push";
+      userDetail = "Push";
+      chipPayout = committedBet;
+    }
+
+    // AI result (display only).
+    const av = handValue(aiFinal);
+    let aiRes;
+    if (isBust(aiFinal)) aiRes = { type: "loss", detail: "AI bust" };
+    else if (isBust(dl)) aiRes = { type: "win", detail: "AI beat dealer" };
+    else if (av > dv) aiRes = { type: "win", detail: "AI beat dealer" };
+    else if (av < dv) aiRes = { type: "loss", detail: "AI lost to dealer" };
+    else aiRes = { type: "push", detail: "AI push" };
+    setAiResult(aiRes);
+
+    await settle(userType, userDetail, chipPayout);
   };
 
-  // ── New round ──────────────────────────────────────────────────────────
   const newRound = () => {
     setPlayer([]);
+    setAi([]);
     setDealer([]);
     setDeck([]);
     setRevealHole(false);
     setResult(null);
+    setAiResult(null);
     setCommittedBet(0);
     setPhase("bet");
   };
@@ -256,7 +291,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
       {view === "game" && (
         <div
-          className="relative rounded-b-2xl border border-t-0 border-border p-4 flex flex-col gap-4 overflow-hidden"
+          className="relative rounded-b-2xl border border-t-0 border-border p-4 flex flex-col gap-3 overflow-hidden"
           style={{
             background:
               "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)",
@@ -288,52 +323,31 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
             )}
           </AnimatePresence>
 
-          {/* Balance strip — Cashier + chips (bet) + tokens (payout) */}
+          {/* Balance strip — Cashier + chips */}
           <div className="relative flex items-center justify-between gap-2">
             <button
               onClick={() => setShowCashier(true)}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-400 border border-amber-300 text-emerald-950 text-[11px] font-black uppercase tracking-widest shadow-[0_2px_8px_rgba(212,175,55,0.4)] hover:brightness-105 transition"
             >
-              <MiniChipIcon size={14} /> Buy Chips
+              <MiniChipIcon size={14} /> Cashier
             </button>
-            <div className="flex items-center gap-2">
-              <div
-                className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30"
-                title="Casino chips — betting currency"
-              >
-                <MiniChipIcon size={14} />
-                <span className="text-amber-200 font-bold text-sm tabular-nums">{chips}</span>
-              </div>
-              <div
-                className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30"
-                title="21 Wallet — winnings collect here"
-              >
-                <img src={TOKEN_IMG} alt="token" className="w-3.5 h-3.5 object-contain" />
-                <OdometerNumber value={game21Balance} className="text-amber-300 font-bold text-sm" />
-              </div>
+            <div
+              className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30"
+              title="Blackjack 21 chips — betting currency & winnings"
+            >
+              <MiniChipIcon size={14} />
+              <span className="text-amber-200 font-bold text-sm tabular-nums">{chips}</span>
             </div>
           </div>
 
           {/* Felt plaque */}
-          <div className="relative text-center">
+          <div className="relative text-center -mt-1">
             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-300/70">
-              Wins collect in 21 Wallet · cash out to tokens (−20%)
+              Win pays 2× chips · cash out in the Cashier
             </span>
           </div>
 
-          {/* Cash out the 21 Wallet to tokens (20% fee, min 10) */}
-          {game21Balance >= 1 && (
-            <button
-              onClick={() => setShowCashOut(true)}
-              disabled={game21Balance < 10}
-              className="relative flex items-center justify-center gap-1.5 w-full py-1.5 rounded-full bg-amber-400/10 border border-amber-400/40 text-amber-200 text-[10px] font-black uppercase tracking-widest disabled:opacity-40 hover:border-amber-400/70 transition"
-            >
-              <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain" />
-              Cash Out {game21Balance} <span className="text-amber-300/60 normal-case">· −20% fee</span>
-            </button>
-          )}
-
-          {/* Committed pot on the felt during play — single chip + total win return */}
+          {/* Committed pot during play — single chip + total win return */}
           {inPlay && committedBet > 0 && (
             <div className="relative flex justify-center -mt-1 -mb-1">
               <div className="flex items-center gap-1.5">
@@ -345,16 +359,26 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
             </div>
           )}
 
-          {/* Dealer hand */}
+          {/* Dealer seat (cards hidden until reveal) */}
           <HandPanel
             title="DEALER"
             value={revealHole || phase === "resolve" ? handValue(dealer) : "?"}
             cards={dealer}
             revealHole={revealHole}
+            compact
           />
 
-          {/* Player hand */}
-          <HandPanel title="PLAYER" value={handValue(player)} cards={player} />
+          {/* AI seat (cards face up, auto-played) */}
+          <HandPanel
+            title="PLAYER 2"
+            tag="AI"
+            value={ai.length ? handValue(ai) : "—"}
+            cards={ai}
+            compact
+          />
+
+          {/* Your seat */}
+          <HandPanel title="YOU" value={handValue(player)} cards={player} />
 
           {/* Result overlay */}
           <AnimatePresence>
@@ -375,9 +399,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
                 <p className="text-sm font-bold tabular-nums flex items-center justify-center gap-1">
                   {result.type === "win" ? (
                     <>
-                      +{result.tokenPayout}
-                      <img src={TOKEN_IMG} alt="" className="inline w-3 h-3 object-contain align-middle" />
-                      <span className="ml-1 text-[10px] font-bold uppercase tracking-widest text-amber-300/70">→ 21 Wallet</span>
+                      +{result.chipPayout} <MiniChipIcon size={12} />
                     </>
                   ) : result.type === "push" ? (
                     <>
@@ -389,6 +411,11 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
                     </>
                   )}
                 </p>
+                {aiResult && (
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">
+                    AI · {aiResult.detail}
+                  </p>
+                )}
                 <button
                   onClick={newRound}
                   className="mt-2 px-4 py-1.5 rounded-full bg-amber-400 text-emerald-950 text-xs font-black uppercase tracking-widest"
@@ -453,49 +480,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         onClose={() => setShowCashier(false)}
         onUserUpdate={onUserUpdate}
       />
-      <Game21CashOutModal
-        user={user}
-        open={showCashOut}
-        onClose={() => setShowCashOut(false)}
-        onUserUpdate={onUserUpdate}
-      />
-    </div>
-  );
-}
-
-// ── Glassmorphism hand panel ───────────────────────────────────────────
-function HandPanel({ title, value, cards, revealHole = true }) {
-  return (
-    <div
-      className="rounded-2xl p-3 border border-white/15"
-      style={{ background: "rgba(255,255,255,0.08)", backdropFilter: "blur(10px)" }}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-100/80">
-          {title}
-        </span>
-        <span className="text-sm font-black text-amber-300 tabular-nums">
-          {value !== undefined && value !== null ? value : "—"}
-        </span>
-      </div>
-      <div className="flex gap-2 items-start min-h-[5.5rem]">
-        <AnimatePresence>
-          {cards.map((c, i) => {
-            const isDealerHidden = title === "DEALER" && !revealHole;
-            return (
-              <PlayingCard
-                key={isDealerHidden ? `${title}-${i}-back` : `${title}-${i}-${c.rank}${c.suit}`}
-                card={c}
-                delay={i * 0.15}
-                isNew
-                backOnly={isDealerHidden}
-                faceDown={false}
-              />
-            );
-          })}
-        </AnimatePresence>
-        {cards.length === 0 && <span className="text-emerald-100/30 text-xs self-center">—</span>}
-      </div>
     </div>
   );
 }

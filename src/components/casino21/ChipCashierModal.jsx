@@ -6,6 +6,7 @@ import { X, Loader2 } from "lucide-react";
 import MiniChipIcon from "./MiniChipIcon";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
+const SERVICE_FEE_PCT = 0.2;
 
 // ── Chip bundles: chips for tokens (one-way purchase, discounted) ──
 const BUNDLES = [
@@ -28,17 +29,14 @@ function ChipIcon({ bundle, size = 56 }) {
         boxShadow: "0 3px 10px rgba(0,0,0,0.45), inset 0 0 6px rgba(0,0,0,0.35)",
       }}
     >
-      {/* outer dashed ring */}
       <div
         className="absolute inset-1 rounded-full border-2 border-dashed"
         style={{ borderColor: accent }}
       />
-      {/* concentric ring */}
       <div
         className="absolute inset-[10px] rounded-full border-2"
         style={{ borderColor: gold ? "#d4af37" : "rgba(255,255,255,0.3)" }}
       />
-      {/* center emblem */}
       <div className="absolute inset-0 flex items-center justify-center">
         <span
           className="text-[13px] font-black leading-none"
@@ -52,19 +50,28 @@ function ChipIcon({ bundle, size = 56 }) {
 }
 
 export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) {
+  const [mode, setMode] = useState("buy"); // buy | cashout
   const [selected, setSelected] = useState(BUNDLES[0].id);
   const [qty, setQty] = useState(1);
+  const [cashAmount, setCashAmount] = useState(0);
   const [busy, setBusy] = useState(false);
 
   const tokens = Number(user?.earlyAccessTokens) || 0;
   const chips = Number(user?.casinoChips) || 0;
+  const userName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
   const bundle = BUNDLES.find((b) => b.id === selected);
   const totalTokens = bundle.tokens * qty;
   const totalChips = bundle.chips * qty;
   const canAfford = tokens >= totalTokens;
 
-  const handleConfirm = async () => {
+  // Cash-out amounts (convert chips → tokens at 80%, 20% service fee).
+  const cashChips = Math.min(Math.max(Math.floor(cashAmount), 0), chips);
+  const fee = Math.floor(cashChips * SERVICE_FEE_PCT);
+  const receive = cashChips - fee;
+  const canCashOut = cashChips >= 1;
+
+  const handleBuy = async () => {
     if (busy) return;
     if (!canAfford) {
       toast.error("Not enough tokens for that bundle.");
@@ -82,6 +89,36 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
       onClose();
     } catch (e) {
       toast.error("Purchase failed. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCashOut = async () => {
+    if (busy) return;
+    if (!canCashOut) {
+      toast.error("Enter at least 1 chip to cash out.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await base44.auth.updateMe({
+        casinoChips: chips - cashChips,
+        earlyAccessTokens: tokens + receive,
+      });
+      await base44.entities.TokenTransaction.create({
+        user_id: user.id,
+        user_name: userName,
+        amount: receive,
+        source: `Blackjack 21 — Cash Out (${cashChips} chips → ${receive} tokens, 20% service fee)`,
+        timestamp: new Date().toISOString(),
+      });
+      await onUserUpdate?.();
+      toast.success(`Cashed out ${receive} tokens · ${fee} chip service fee.`);
+      setCashAmount(0);
+      onClose();
+    } catch (e) {
+      toast.error("Cash out failed. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -115,7 +152,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
               <div className="flex items-center gap-2">
                 <span className="text-xl">🎰</span>
                 <h3 className="font-black uppercase tracking-widest text-amber-300 text-sm">
-                  Chip Cashier
+                  Blackjack 21 · Cashier
                 </h3>
               </div>
               <button
@@ -124,6 +161,32 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
               >
                 <X className="w-4 h-4 mx-auto" />
               </button>
+            </div>
+
+            {/* Mode toggle */}
+            <div className="px-5 pb-3">
+              <div className="grid grid-cols-2 gap-2 p-1 bg-emerald-950/40 rounded-2xl border border-emerald-400/20">
+                <button
+                  onClick={() => setMode("buy")}
+                  className={`py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition ${
+                    mode === "buy"
+                      ? "bg-amber-400 text-emerald-950"
+                      : "text-emerald-100/70 hover:text-emerald-100"
+                  }`}
+                >
+                  Buy Chips
+                </button>
+                <button
+                  onClick={() => setMode("cashout")}
+                  className={`py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition ${
+                    mode === "cashout"
+                      ? "bg-amber-400 text-emerald-950"
+                      : "text-emerald-100/70 hover:text-emerald-100"
+                  }`}
+                >
+                  Cash Out
+                </button>
+              </div>
             </div>
 
             {/* Balance row */}
@@ -138,91 +201,189 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
               </div>
             </div>
 
-            <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-100/60 text-center px-5 pb-2">
-              Buy chips with tokens — chips bet in 21 only
-            </p>
-
-            {/* Bundle selection */}
-            <div className="px-5 space-y-2.5">
-              {BUNDLES.map((b) => {
-                const isActive = selected === b.id;
-                return (
-                  <button
-                    key={b.id}
-                    onClick={() => setSelected(b.id)}
-                    className={`w-full flex items-center gap-3 rounded-2xl p-3 border transition-all ${
-                      isActive
-                        ? "border-amber-400 bg-amber-400/10 shadow-[0_0_12px_rgba(212,175,55,0.25)]"
-                        : "border-emerald-400/20 bg-emerald-950/30 hover:border-emerald-400/40"
-                    }`}
-                  >
-                    <ChipIcon bundle={b} size={52} />
-                    <div className="flex-1 text-left">
-                      <p className="font-black text-amber-200 text-sm uppercase tracking-wider">
-                        {b.chips} Chips
-                      </p>
-                      <p className="flex items-center gap-1 text-emerald-100/70 text-xs">
-                        for <span className="font-bold text-amber-300">{b.tokens}</span>
-                        <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain inline" />
-                      </p>
-                    </div>
-                    {isActive && (
-                      <span className="text-amber-300 text-xs font-black uppercase tracking-widest">✓</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Quantity selector */}
-            <div className="px-5 pt-4 pb-2">
-              <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-100/60 mb-2">Quantity</p>
-              <div className="grid grid-cols-3 gap-2">
-                {[1, 2, 3].map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => setQty(q)}
-                    className={`py-2.5 rounded-xl font-black text-sm uppercase tracking-widest border transition ${
-                      qty === q
-                        ? "bg-amber-400 text-emerald-950 border-amber-300"
-                        : "bg-emerald-950/40 text-emerald-100/70 border-emerald-400/20 hover:border-emerald-400/40"
-                    }`}
-                  >
-                    ×{q}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Total + confirm */}
-            <div className="px-5 pb-5 pt-3">
-              <div className="flex items-center justify-between mb-3 text-xs">
-                <span className="text-emerald-100/70 uppercase tracking-widest font-bold">Total</span>
-                <span className="flex items-center gap-1.5">
-                  <span className="flex items-center gap-1 text-amber-200 font-black tabular-nums">
-                    <MiniChipIcon size={12} />
-                    {totalChips}
-                  </span>
-                  <span className="text-emerald-100/40">for</span>
-                  <span className="flex items-center gap-1 text-amber-300 font-black tabular-nums">
-                    {totalTokens}
-                    <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain" />
-                  </span>
-                </span>
-              </div>
-              <button
-                onClick={handleConfirm}
-                disabled={busy || !canAfford}
-                className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm bg-amber-400 text-emerald-950 border border-amber-300 disabled:opacity-40 hover:brightness-105 transition flex items-center justify-center gap-2"
-              >
-                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Purchase"}
-              </button>
-              {!canAfford && (
-                <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
-                  Not enough tokens
+            {mode === "buy" && (
+              <>
+                <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-100/60 text-center px-5 pb-2">
+                  Buy chips with tokens — chips bet in Blackjack 21 only
                 </p>
-              )}
-            </div>
+
+                {/* Bundle selection */}
+                <div className="px-5 space-y-2.5">
+                  {BUNDLES.map((b) => {
+                    const isActive = selected === b.id;
+                    return (
+                      <button
+                        key={b.id}
+                        onClick={() => setSelected(b.id)}
+                        className={`w-full flex items-center gap-3 rounded-2xl p-3 border transition-all ${
+                          isActive
+                            ? "border-amber-400 bg-amber-400/10 shadow-[0_0_12px_rgba(212,175,55,0.25)]"
+                            : "border-emerald-400/20 bg-emerald-950/30 hover:border-emerald-400/40"
+                        }`}
+                      >
+                        <ChipIcon bundle={b} size={52} />
+                        <div className="flex-1 text-left">
+                          <p className="font-black text-amber-200 text-sm uppercase tracking-wider">
+                            {b.chips} Chips
+                          </p>
+                          <p className="flex items-center gap-1 text-emerald-100/70 text-xs">
+                            for <span className="font-bold text-amber-300">{b.tokens}</span>
+                            <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain inline" />
+                          </p>
+                        </div>
+                        {isActive && (
+                          <span className="text-amber-300 text-xs font-black uppercase tracking-widest">✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Quantity selector */}
+                <div className="px-5 pt-4 pb-2">
+                  <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-100/60 mb-2">Quantity</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[1, 2, 3].map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => setQty(q)}
+                        className={`py-2.5 rounded-xl font-black text-sm uppercase tracking-widest border transition ${
+                          qty === q
+                            ? "bg-amber-400 text-emerald-950 border-amber-300"
+                            : "bg-emerald-950/40 text-emerald-100/70 border-emerald-400/20 hover:border-emerald-400/40"
+                        }`}
+                      >
+                        ×{q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Total + confirm */}
+                <div className="px-5 pb-5 pt-3">
+                  <div className="flex items-center justify-between mb-3 text-xs">
+                    <span className="text-emerald-100/70 uppercase tracking-widest font-bold">Total</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-1 text-amber-200 font-black tabular-nums">
+                        <MiniChipIcon size={12} />
+                        {totalChips}
+                      </span>
+                      <span className="text-emerald-100/40">for</span>
+                      <span className="flex items-center gap-1 text-amber-300 font-black tabular-nums">
+                        {totalTokens}
+                        <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain" />
+                      </span>
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleBuy}
+                    disabled={busy || !canAfford}
+                    className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm bg-amber-400 text-emerald-950 border border-amber-300 disabled:opacity-40 hover:brightness-105 transition flex items-center justify-center gap-2"
+                  >
+                    {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Purchase"}
+                  </button>
+                  {!canAfford && (
+                    <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
+                      Not enough tokens
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {mode === "cashout" && (
+              <>
+                <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-100/60 text-center px-5 pb-3">
+                  Convert chips to tokens · 20% service fee
+                </p>
+
+                {/* Amount slider */}
+                <div className="px-5 pb-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <button
+                      onClick={() => setCashAmount((a) => Math.max(a - 5, 0))}
+                      disabled={chips < 1}
+                      className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
+                    >
+                      ‹
+                    </button>
+                    <input
+                      type="range"
+                      min={0}
+                      max={Math.max(chips, 1)}
+                      step={1}
+                      value={Math.min(cashAmount, chips)}
+                      onChange={(e) => setCashAmount(Number(e.target.value))}
+                      disabled={chips < 1}
+                      className="flex-1 accent-cyan-400"
+                    />
+                    <button
+                      onClick={() => setCashAmount((a) => Math.min(a + 5, chips))}
+                      disabled={chips < 1}
+                      className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
+                    >
+                      ›
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-amber-200 font-black text-sm tabular-nums">
+                      <MiniChipIcon size={14} />
+                      {cashChips} CHIPS
+                    </span>
+                    <button
+                      onClick={() => setCashAmount(chips)}
+                      disabled={chips < 1}
+                      className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest text-emerald-950 disabled:opacity-30"
+                      style={{ background: "#d4af37" }}
+                    >
+                      MAX
+                    </button>
+                  </div>
+                </div>
+
+                {/* Breakdown */}
+                <div className="px-5 space-y-2 pb-3">
+                  <div className="flex items-center justify-between rounded-2xl px-4 py-2.5 bg-rose-950/30 border border-rose-400/20">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-rose-200/80">
+                      Service fee (20%)
+                    </span>
+                    <span className="flex items-center gap-1 text-rose-300 font-black text-sm tabular-nums">
+                      −{fee} <MiniChipIcon size={12} />
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl px-4 py-2.5 bg-amber-400/10 border border-amber-400/40">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-amber-200/90">
+                      You receive
+                    </span>
+                    <span className="flex items-center gap-1 text-amber-300 font-black text-base tabular-nums">
+                      +{receive}
+                      <img src={TOKEN_IMG} alt="" className="w-3.5 h-3.5 object-contain" />
+                    </span>
+                  </div>
+                </div>
+
+                {/* Confirm */}
+                <div className="px-5 pb-5">
+                  <button
+                    onClick={handleCashOut}
+                    disabled={busy || !canCashOut}
+                    className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm bg-amber-400 text-emerald-950 border border-amber-300 disabled:opacity-40 hover:brightness-105 transition flex items-center justify-center gap-2"
+                  >
+                    {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : `Cash Out ${receive} Tokens`}
+                  </button>
+                  {!canCashOut && chips >= 1 && (
+                    <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
+                      Choose at least 1 chip
+                    </p>
+                  )}
+                  {chips < 1 && (
+                    <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
+                      No chips to cash out
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
           </motion.div>
         </motion.div>
       )}
