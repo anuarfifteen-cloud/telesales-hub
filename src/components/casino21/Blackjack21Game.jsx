@@ -24,6 +24,7 @@ import PlayingCard from "./PlayingCard";
 import BlackjackStats from "./BlackjackStats";
 import BlackjackHistory from "./BlackjackHistory";
 import ChipCashierModal from "./ChipCashierModal";
+import Game21CashOutModal from "./Game21CashOutModal";
 import MiniChipIcon from "./MiniChipIcon";
 import OdometerNumber from "@/components/OdometerNumber";
 
@@ -32,19 +33,20 @@ const TOKEN_IMG =
 const GAME_TYPE = "blackjack";
 
 export default function Blackjack21Game({ user, onUserUpdate }) {
-  const tokens = Number(user?.earlyAccessTokens) || 0;
+  const game21Balance = Number(user?.game21Balance) || 0;
   const chips = Number(user?.casinoChips) || 0;
-  const tokensRef = useRef(tokens);
+  const game21Ref = useRef(game21Balance);
   const chipsRef = useRef(chips);
   useEffect(() => {
-    tokensRef.current = tokens;
-  }, [tokens]);
+    game21Ref.current = game21Balance;
+  }, [game21Balance]);
   useEffect(() => {
     chipsRef.current = chips;
   }, [chips]);
   const [bet, setBet] = useState(5);
   const [committedBet, setCommittedBet] = useState(0);
   const [showCashier, setShowCashier] = useState(false);
+  const [showCashOut, setShowCashOut] = useState(false);
   const [deck, setDeck] = useState([]);
   const [player, setPlayer] = useState([]);
   const [dealer, setDealer] = useState([]);
@@ -57,7 +59,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const queryClient = useQueryClient();
 
   const maxBet = Math.max(1, chips);
-  const userName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
   const draw = (d) => d.pop();
 
@@ -88,7 +89,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setPhase("resolve");
     try {
       const updates = {};
-      if (tokenPayout > 0) updates.earlyAccessTokens = tokensRef.current + tokenPayout;
+      if (tokenPayout > 0) updates.game21Balance = game21Ref.current + tokenPayout;
       if (chipRefund > 0) updates.casinoChips = chipsRef.current + chipRefund;
       if (Object.keys(updates).length) await base44.auth.updateMe(updates);
       await base44.entities.CoinFlipGame.create({
@@ -100,15 +101,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         tokens_delta: tokenPayout,
         detail,
       });
-      if (tokenPayout > 0) {
-        await base44.entities.TokenTransaction.create({
-          user_id: user.id,
-          user_name: userName,
-          amount: tokenPayout,
-          source: `Casino 21 — ${detail} (bet ${bet} chips → +${tokenPayout} tokens)`,
-          timestamp: new Date().toISOString(),
-        });
-      }
       await onUserUpdate?.();
       queryClient.invalidateQueries({ queryKey: ["blackjack-history", user?.id] });
       if (tokenPayout > 0) {
@@ -314,10 +306,10 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
               </div>
               <div
                 className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30"
-                title="Tokens — payout currency"
+                title="21 Wallet — winnings collect here"
               >
                 <img src={TOKEN_IMG} alt="token" className="w-3.5 h-3.5 object-contain" />
-                <OdometerNumber value={tokens} className="text-amber-300 font-bold text-sm" />
+                <OdometerNumber value={game21Balance} className="text-amber-300 font-bold text-sm" />
               </div>
             </div>
           </div>
@@ -325,9 +317,21 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           {/* Felt plaque */}
           <div className="relative text-center">
             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-300/70">
-              Winning chips will convert to tokens directly
+              Wins collect in 21 Wallet · cash out to tokens (−20%)
             </span>
           </div>
+
+          {/* Cash out the 21 Wallet to tokens (20% fee, min 10) */}
+          {game21Balance >= 1 && (
+            <button
+              onClick={() => setShowCashOut(true)}
+              disabled={game21Balance < 10}
+              className="relative flex items-center justify-center gap-1.5 w-full py-1.5 rounded-full bg-amber-400/10 border border-amber-400/40 text-amber-200 text-[10px] font-black uppercase tracking-widest disabled:opacity-40 hover:border-amber-400/70 transition"
+            >
+              <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain" />
+              Cash Out {game21Balance} <span className="text-amber-300/60 normal-case">· −20% fee</span>
+            </button>
+          )}
 
           {/* Committed pot on the felt during play — single chip + total win return */}
           {inPlay && committedBet > 0 && (
@@ -344,7 +348,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           {/* Dealer hand */}
           <HandPanel
             title="DEALER"
-            value={revealHole || phase === "resolve" ? handValue(dealer) : dealer[0]?.value}
+            value={revealHole || phase === "resolve" ? handValue(dealer) : "?"}
             cards={dealer}
             revealHole={revealHole}
           />
@@ -373,6 +377,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
                     <>
                       +{result.tokenPayout}
                       <img src={TOKEN_IMG} alt="" className="inline w-3 h-3 object-contain align-middle" />
+                      <span className="ml-1 text-[10px] font-bold uppercase tracking-widest text-amber-300/70">→ 21 Wallet</span>
                     </>
                   ) : result.type === "push" ? (
                     <>
@@ -448,6 +453,12 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         onClose={() => setShowCashier(false)}
         onUserUpdate={onUserUpdate}
       />
+      <Game21CashOutModal
+        user={user}
+        open={showCashOut}
+        onClose={() => setShowCashOut(false)}
+        onUserUpdate={onUserUpdate}
+      />
     </div>
   );
 }
@@ -464,22 +475,20 @@ function HandPanel({ title, value, cards, revealHole = true }) {
           {title}
         </span>
         <span className="text-sm font-black text-amber-300 tabular-nums">
-          {value !== undefined && value !== null
-            ? `${value}${title === "DEALER" && !revealHole ? "?" : ""}`
-            : "—"}
+          {value !== undefined && value !== null ? value : "—"}
         </span>
       </div>
       <div className="flex gap-2 items-start min-h-[5.5rem]">
         <AnimatePresence>
           {cards.map((c, i) => {
-            const isHole = title === "DEALER" && i === 1 && !revealHole;
+            const isDealerHidden = title === "DEALER" && !revealHole;
             return (
               <PlayingCard
-                key={isHole ? `${title}-${i}-hole` : `${title}-${i}-${c.rank}${c.suit}`}
+                key={isDealerHidden ? `${title}-${i}-back` : `${title}-${i}-${c.rank}${c.suit}`}
                 card={c}
                 delay={i * 0.15}
                 isNew
-                backOnly={isHole}
+                backOnly={isDealerHidden}
                 faceDown={false}
               />
             );

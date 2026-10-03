@@ -31,7 +31,7 @@ export default function CoinFlipSubTab({ user, onUserUpdate }) {
           }`}
           style={mode === "casino21" ? { background: "#d4af37" } : undefined}
         >
-          ♠️ Casino 21
+          ♠️ 21
         </button>
       </div>
 

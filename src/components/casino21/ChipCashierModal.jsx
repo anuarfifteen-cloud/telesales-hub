@@ -139,7 +139,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
             </div>
 
             <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-100/60 text-center px-5 pb-2">
-              Buy chips with tokens — chips bet in Casino 21 only
+              Buy chips with tokens — chips bet in 21 only
             </p>
 
             {/* Bundle selection */}
