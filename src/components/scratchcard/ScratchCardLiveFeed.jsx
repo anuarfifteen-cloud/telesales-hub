@@ -5,14 +5,6 @@ import BlackChipIcon from "@/components/casino21/BlackChipIcon";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 
-const FOMO_LINES = [
-  "just scratched a winner!",
-  "just hit three in a row!",
-  "just scored big!",
-  "just cashed in!",
-  "got lucky!",
-];
-
 function timeAgo(isoString) {
   const diff = Math.floor((Date.now() - new Date(isoString)) / 1000);
   if (diff < 60) return `${diff}s ago`;
@@ -65,16 +57,12 @@ export default function ScratchCardLiveFeed() {
             const isTheme = ticket.prize_type === "theme";
             const name = ticket.user_name?.split(" ")[0] || "Someone";
 
-            const fomo = isDiamond
-              ? "just hit the diamond jackpot! 💎"
-              : isTheme
-              ? "just unlocked an exclusive theme! 🎨"
-              : FOMO_LINES[i % FOMO_LINES.length];
-
+            // Spell out exactly what the ticket paid — 10 tokens, 1 diamond,
+            // the Lilac Bloom theme, and so on.
             const prizeText = isDiamond
-              ? "1 💎 Diamond"
+              ? "1 💎 diamond"
               : isTheme
-              ? ticket.prize_label || "An exclusive theme"
+              ? `the ${ticket.prize_label || "exclusive theme"}`
               : `${amount} ${isChips ? `chip${amount !== 1 ? "s" : ""}` : `token${amount !== 1 ? "s" : ""}`}`;
 
             return (
@@ -95,10 +83,10 @@ export default function ScratchCardLiveFeed() {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 truncate">
-                    <span className="font-black">{name}</span> {fomo}
+                    <span className="font-black">{name}</span> just won {prizeText}!
                   </p>
                   <p className="text-[10px] text-amber-700 dark:text-amber-500 font-medium">
-                    Won <span className="font-black">{prizeText}</span> · {timeAgo(ticket.updated_date || ticket.timestamp)}
+                    Scratched {timeAgo(ticket.updated_date || ticket.timestamp)}
                   </p>
                 </div>
                 <span className="flex-shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200 dark:bg-amber-900 text-amber-800 dark:text-amber-200">

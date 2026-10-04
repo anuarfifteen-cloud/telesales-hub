@@ -1,9 +1,9 @@
 // ── Premium Scratch Card rules ────────────────────────────────────────────────
-// Every ticket costs ENTRY_COST tokens. 80% of tickets win a prize and 20% are a
-// house win (no match at all). The weights below are the prize's share of ALL
-// tickets, so they add up to 100: 25% five chips, 18.75% ten chips, 18.75% five
-// tokens, 20% twenty chips, 11.25% ten tokens, 3.25% Royal Batik, 2% Lilac Bloom
-// and 1% a diamond. A theme the player already owns pays tokens instead.
+// Every ticket costs ENTRY_COST tokens: 5% of tickets are a house win (no match at
+// all) and the other 95% pay one of the prizes below, whose weights add up to 95
+// and are each that prize's chance of ALL tickets — 30% five chips, 22% ten chips,
+// 14.3% five tokens, 15.3% twenty chips, 9.6% ten tokens, 2% Royal Batik, 1% Lilac
+// Bloom and 0.8% a diamond. A theme the player already owns pays tokens instead.
 
 export const ENTRY_COST = 5;
 
@@ -20,24 +20,24 @@ export const SYMBOLS = [
   { id: "diamond", emoji: "💎", label: "1 DIAMOND", ring: "#38bdf8" },
 ];
 
-// Prize table (weights sum to 100 — each one is that prize's chance of showing up
-// on any given ticket).
+// Prize table (weights sum to 95, so each weight is that prize's exact chance of
+// showing up on any given ticket — the missing 5% is the house win).
 export const SUCCESS_TABLE = [
-  { weight: 25, type: "chips", amount: 5, symbol: "chips5" },
-  { weight: 18.75, type: "chips", amount: 10, symbol: "chips10" },
-  { weight: 18.75, type: "tokens", amount: 5, symbol: "tokens5" },
-  { weight: 20, type: "chips", amount: 20, symbol: "chips20" },
-  { weight: 11.25, type: "tokens", amount: 10, symbol: "tokens10" },
-  { weight: 3.25, type: "theme", themeId: "royal_batik", themeName: "Royal Batik", fallbackTokens: 10, symbol: "royal" },
-  { weight: 2, type: "theme", themeId: "lilac_bloom", themeName: "Lilac Bloom", fallbackTokens: 10, symbol: "lilac" },
-  { weight: 1, type: "diamond", amount: 1, symbol: "diamond" },
+  { weight: 30, type: "chips", amount: 5, symbol: "chips5" },
+  { weight: 22, type: "chips", amount: 10, symbol: "chips10" },
+  { weight: 14.3, type: "tokens", amount: 5, symbol: "tokens5" },
+  { weight: 15.3, type: "chips", amount: 20, symbol: "chips20" },
+  { weight: 9.6, type: "tokens", amount: 10, symbol: "tokens10" },
+  { weight: 2, type: "theme", themeId: "royal_batik", themeName: "Royal Batik", fallbackTokens: 10, symbol: "royal" },
+  { weight: 1, type: "theme", themeId: "lilac_bloom", themeName: "Lilac Bloom", fallbackTokens: 10, symbol: "lilac" },
+  { weight: 0.8, type: "diamond", amount: 1, symbol: "diamond" },
 ];
 
-/** Rolls one ticket: the 20% house win first, then a weighted prize. */
+/** Rolls one ticket: the 5% house win first, then a weighted prize. */
 export function rollScratchOutcome() {
-  if (Math.random() < 0.2) return { win: false, prize: null };
+  if (Math.random() < 0.05) return { win: false, prize: null };
 
-  const roll = Math.random() * 100;
+  const roll = Math.random() * 95;
   let acc = 0;
   for (const prize of SUCCESS_TABLE) {
     acc += prize.weight;
