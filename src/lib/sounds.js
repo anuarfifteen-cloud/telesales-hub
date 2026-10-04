@@ -1,4 +1,15 @@
-const ctx = () => new (window.AudioContext || window.webkitAudioContext)();
+// One shared AudioContext for the whole app. Creating a fresh context per
+// sound is expensive and browsers cap how many can be live at once, which
+// caused audio lag and dropped sounds. Reuse a single one (and resume it if
+// the browser suspended it) instead.
+let sharedCtx = null;
+const ctx = () => {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) throw new Error("Web Audio unsupported");
+  if (!sharedCtx) sharedCtx = new AC();
+  if (sharedCtx.state === "suspended") sharedCtx.resume();
+  return sharedCtx;
+};
 
 export function playClick() {
   try {

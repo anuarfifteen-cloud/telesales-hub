@@ -1,7 +1,31 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
+import { playCardSlide } from "@/lib/sounds";
 
-// Navy grid-pattern card back (criss-cross lines, no diamond) + 3D flip reveal.
-function CardBack() {
+// The active theme is set as data-theme on <html>. Royal Batik gets gold cards.
+function isRoyalBatik() {
+  return (
+    typeof document !== "undefined" &&
+    document.documentElement.getAttribute("data-theme") === "royal_batik"
+  );
+}
+
+// Gold metallic fill + fine grain, shared by the face and the back in Royal Batik.
+const GOLD_FILL =
+  "repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(120,90,20,0.14) 0 1px, transparent 1px 3px), linear-gradient(135deg, #8B6914 0%, #D4AF37 25%, #FEF1C9 50%, #D4AF37 75%, #8B6914 100%)";
+
+// Card back: gold in Royal Batik, navy criss-cross grid everywhere else.
+function CardBack({ gold = false }) {
+  if (gold) {
+    return (
+      <div
+        className="absolute inset-0 rounded-none border-[3px] border-black overflow-hidden shadow-lg"
+        style={{ backgroundImage: GOLD_FILL }}
+      >
+        <div className="absolute inset-1 rounded-none border border-white/40" />
+      </div>
+    );
+  }
   return (
     <div
       className="absolute inset-0 rounded-none border-[3px] border-black bg-blue-900 overflow-hidden shadow-lg"
@@ -15,18 +39,30 @@ function CardBack() {
   );
 }
 
-function CardFace({ card }) {
+// Card face: gold in Royal Batik (red suits deep red, black suits dark ink),
+// white elsewhere. Suit/rank colors are inline styles so the Royal Batik global
+// white-text override can never wash a spade or club out against the card.
+function CardFace({ card, gold = false }) {
   const isRed = card?.color === "red";
+  const suitColor = gold ? (isRed ? "#8B0000" : "#1a1a1a") : isRed ? "#dc2626" : "#0f172a";
   return (
-    <div className="absolute inset-0 rounded-none bg-white border-[3px] border-black shadow-lg overflow-hidden">
-      <div className={`absolute top-1 left-1.5 leading-none ${isRed ? "text-red-600" : "text-slate-900"}`}>
+    <div
+      className={`absolute inset-0 rounded-none border-[3px] border-black shadow-lg overflow-hidden ${
+        gold ? "" : "bg-white"
+      }`}
+      style={gold ? { backgroundImage: GOLD_FILL } : undefined}
+    >
+      <div className="absolute top-1 left-1.5 leading-none" style={{ color: suitColor }}>
         <span className="block text-xs sm:text-sm font-black">{card.rank}</span>
         <span className="block text-[10px] sm:text-xs">{card.suit}</span>
       </div>
-      <div className={`absolute inset-0 flex items-center justify-center text-xl sm:text-2xl ${isRed ? "text-red-600" : "text-slate-900"}`}>
+      <div
+        className="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl"
+        style={{ color: suitColor }}
+      >
         {card.suit}
       </div>
-      <div className={`absolute bottom-1 right-1.5 leading-none rotate-180 ${isRed ? "text-red-600" : "text-slate-900"}`}>
+      <div className="absolute bottom-1 right-1.5 leading-none rotate-180" style={{ color: suitColor }}>
         <span className="block text-xs sm:text-sm font-black">{card.rank}</span>
         <span className="block text-[10px] sm:text-xs">{card.suit}</span>
       </div>
@@ -34,28 +70,46 @@ function CardFace({ card }) {
   );
 }
 
-export default function PlayingCard({ card, faceDown = false, backOnly = false, delay = 0, isNew = false, zIndex = 0, small = false }) {
+export default function PlayingCard({
+  card,
+  faceDown = false,
+  backOnly = false,
+  delay = 0,
+  isNew = false,
+  zIndex = 0,
+  small = false,
+}) {
   const sizeClass = small ? "h-16 w-11" : "h-20 w-14 sm:h-24 sm:w-16";
+  const gold = isRoyalBatik();
+
+  // A newly dealt card fires its slide sound exactly as it lands (after the
+  // animation delay), so audio and visuals stay in sync — one click per card.
+  useEffect(() => {
+    if (!isNew) return;
+    const t = setTimeout(playCardSlide, Math.max(0, delay) * 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const landing = {
+    initial: isNew ? { opacity: 0, y: -28, rotate: -8, scale: 0.85 } : false,
+    animate: { opacity: 1, y: 0, rotate: 0, scale: 1 },
+    transition: { type: "spring", stiffness: 260, damping: 20, delay },
+  };
+
   // Back-only mode: render ONLY the card back. The face value is never mounted
   // in the DOM, so nothing can flash through during the deal-in animation.
   if (backOnly) {
     return (
-      <motion.div
-        initial={isNew ? { opacity: 0, y: -28, rotate: -8, scale: 0.85 } : false}
-        animate={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
-        transition={{ type: "spring", stiffness: 260, damping: 20, delay }}
-        className={`relative ${sizeClass} flex-shrink-0`}
-        style={{ zIndex }}
-      >
-        <CardBack />
+      <motion.div {...landing} className={`relative ${sizeClass} flex-shrink-0`} style={{ zIndex }}>
+        <CardBack gold={gold} />
       </motion.div>
     );
   }
+
   return (
     <motion.div
-      initial={isNew ? { opacity: 0, y: -28, rotate: -8, scale: 0.85 } : false}
-      animate={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
-      transition={{ type: "spring", stiffness: 260, damping: 20, delay }}
+      {...landing}
       className={`relative ${sizeClass} flex-shrink-0`}
       style={{ perspective: 800, zIndex }}
     >
@@ -69,7 +123,7 @@ export default function PlayingCard({ card, faceDown = false, backOnly = false, 
           className="absolute inset-0"
           style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
         >
-          <CardFace card={card} />
+          <CardFace card={card} gold={gold} />
         </div>
         <div
           className="absolute inset-0"
@@ -79,7 +133,7 @@ export default function PlayingCard({ card, faceDown = false, backOnly = false, 
             transform: "rotateY(180deg)",
           }}
         >
-          <CardBack />
+          <CardBack gold={gold} />
         </div>
       </motion.div>
     </motion.div>

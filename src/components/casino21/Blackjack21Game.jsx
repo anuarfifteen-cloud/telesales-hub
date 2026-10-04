@@ -5,13 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import { Play, Plus, Shield } from "lucide-react";
-import {
-  playClink,
-  playCardSlide,
-  playWinFanfare,
-  playPush,
-  playLoss,
-} from "@/lib/sounds";
+import { playClink, playWinFanfare, playPush, playLoss } from "@/lib/sounds";
 import {
   createDeck,
   shuffle,
@@ -250,26 +244,40 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     logChipMovement({ user, action_type: "bet", amount: -b, balance_after: chips - b, detail: `Blackjack 21 bet ${b}` });
 
     const d = shuffle(createDeck());
-    const p = [draw(d), draw(d)];
-    const dl = [draw(d), draw(d)];
-    // On Very Easy there is no Player 2 — skip dealing AI cards entirely.
-    const a = difficulty === "very_easy" ? [] : [draw(d), draw(d)];
-    setDeck(d);
-    setPlayer(p);
-    setAi(a);
-    setDealer(dl);
+    const p = [];
+    const a = [];
+    const dl = [];
+    setDeck([]);
+    setPlayer([]);
+    setAi([]);
+    setDealer([]);
     setRevealHole(false);
     setResult(null);
     setAiResult(null);
     setAiRevealed(false);
     setPhase("player");
-    setBusy(false);
 
-    // Play a deal sound per card (4 for very_easy, 6 otherwise).
-    const dealCardCount = a.length ? 6 : 4;
-    Array.from({ length: dealCardCount }, (_, i) => i * 120).forEach((t) =>
-      setTimeout(playCardSlide, t)
-    );
+    // Deal ONE card at a time across the table. Each card mounts on its own, so
+    // its slide sound fires exactly when it lands — no burst, no mismatch.
+    // On Very Easy there is no Player 2 — skip dealing AI cards entirely.
+    const dealOrder =
+      difficulty === "very_easy" ? ["p", "d", "p", "d"] : ["p", "d", "a", "p", "d", "a"];
+    for (const seat of dealOrder) {
+      await new Promise((r) => setTimeout(r, 200));
+      const card = draw(d);
+      if (seat === "p") {
+        p.push(card);
+        setPlayer([...p]);
+      } else if (seat === "d") {
+        dl.push(card);
+        setDealer([...dl]);
+      } else {
+        a.push(card);
+        setAi([...a]);
+      }
+    }
+    setDeck([...d]);
+    setBusy(false);
 
     // Naturals: player blackjack, or dealer ace/ten up showing blackjack.
     // Resolve early by comparing the dealt hands — no further drawing.
@@ -280,7 +288,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       setTimeout(async () => {
         setRevealHole(true);
         setAiRevealed(true);
-        playCardSlide();
         const res = resolveRound(p, a, dl, b, difficulty);
         setAiResult(res.aiRes);
         await settle(res.type, res.detail, res.chipPayout);
@@ -292,7 +299,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const handleHit = () => {
     if (busy || phase !== "player") return;
     setBusy(true);
-    playCardSlide();
     const d = [...deck];
     const p = [...player, draw(d)];
     setDeck(d);
@@ -302,7 +308,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       setTimeout(async () => {
         setPhase("dealer");
         setRevealHole(true);
-        playCardSlide();
         let dd = [...d];
         let dl = [...dealer];
         // Play out Player 2 + Dealer so the table winner is named correctly.
@@ -313,7 +318,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           dd = [...dd];
           setDealer(dl);
           setDeck(dd);
-          playCardSlide();
         }
         const res = resolveRound(p, aiFinal, dl, committedBet, difficulty);
         setAiResult(res.aiRes);
@@ -331,7 +335,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       a = [...a, draw(d)];
       setAi(a);
       setDeck([...d]);
-      playCardSlide();
     }
     setAiRevealed(true);
     return a;
@@ -342,7 +345,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     if (busy || phase !== "player") return;
     setPhase("dealer");
     setRevealHole(true);
-    playCardSlide();
     let d = [...deck];
     let dl = [...dealer];
 
@@ -356,7 +358,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       d = [...d];
       setDealer(dl);
       setDeck(d);
-      playCardSlide();
     }
 
     // Winner-takes-all: compare You, Player 2, and Dealer.

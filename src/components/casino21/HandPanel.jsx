@@ -42,12 +42,14 @@ export default function HandPanel({ title, value, cards, revealHole = true, tag,
         <AnimatePresence>
           {cards.map((c, i) => (
             <div
-              key={isHidden ? `${title}-${i}-back` : `${title}-${i}-${c.rank}${c.suit}`}
+              // Stable key per seat position so revealing a card (back→face)
+              // never remounts it — only genuinely new cards mount and click.
+              key={`${title}-${i}`}
               style={{ marginRight: -gap, position: "relative", zIndex: i + 1 }}
             >
               <PlayingCard
                 card={c}
-                delay={i * 0.15}
+                delay={0}
                 isNew
                 small={compact}
                 backOnly={isHidden}
