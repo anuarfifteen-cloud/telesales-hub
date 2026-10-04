@@ -120,11 +120,12 @@
     "blackjack_difficulty": {
       "type": "string",
       "enum": [
+        "very_easy",
         "easy",
         "normal",
         "hard"
       ],
-      "description": "Blackjack 21 difficulty. Controls Player 2 (AI) hit/stand strategy and the Dealer stand threshold. Payout stays identical (2\u00d7 win, 2.5\u00d7 natural Blackjack) on every level. easy = AI stands on 15+, Dealer stands on all 16+; normal = AI hits below 17, Dealer stands on all 17; hard = AI plays to beat the player's visible hand, Dealer hits soft 17.",
+      "description": "Blackjack 21 difficulty. Controls Player 2 (AI) hit/stand strategy, the Dealer stand threshold, and whether the AI competes for the pot. Payout stays identical (2\u00d7 win, 2.5\u00d7 natural Blackjack) on every level. very_easy = AI is dealt for display only and is EXCLUDED from settlement (you compete against the Dealer only), Dealer stands on all 15+; easy = AI stands on 13+, Dealer stands on all 15+ (3-way winner-takes-all); normal = AI hits below 17, Dealer stands on all 17; hard = AI plays to beat the player's visible hand, Dealer hits soft 17.",
       "default": "normal"
     }
   },

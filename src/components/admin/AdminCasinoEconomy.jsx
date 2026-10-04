@@ -318,11 +318,13 @@ function EditChipsModal({ user, admin, onClose, onSaved }) {
   );
 }
 
-// ── Blackjack 21 difficulty selector (Easy / Normal / Hard) ──────────
+// ── Blackjack 21 difficulty selector (Very Easy / Easy / Normal / Hard) ──
 // Writes AppSettings.blackjack_difficulty. Payout is identical on every level;
-// the preset only changes the Player 2 AI strategy and the Dealer stand rule.
+// the preset changes the Player 2 AI strategy, the Dealer stand rule, and on
+// Very Easy removes the AI from the win/loss settlement entirely.
 const DIFFICULTY_OPTIONS = [
-  { id: "easy", label: "Easy", hint: "AI stands on 15+ · Dealer stands on 16+" },
+  { id: "very_easy", label: "Very Easy", hint: "AI excluded from win/loss · You vs Dealer only · Dealer stands on 15+" },
+  { id: "easy", label: "Easy", hint: "AI stands on 13+ · Dealer stands on 15+ (3-way winner-takes-all)" },
   { id: "normal", label: "Normal", hint: "AI hits below 17 · Dealer stands on 17" },
   { id: "hard", label: "Hard", hint: "AI chases your hand · Dealer hits soft 17" },
 ];
@@ -372,7 +374,7 @@ function DifficultyCard() {
       <p className="text-sm text-muted-foreground mb-3">
         Controls how Player 2 (AI) and the Dealer play. Payout stays the same on every level.
       </p>
-      <div className="grid grid-cols-3 gap-2 p-1 bg-muted/60 rounded-2xl border border-border">
+      <div className="grid grid-cols-2 gap-2 p-1 bg-muted/60 rounded-2xl border border-border sm:grid-cols-4">
         {DIFFICULTY_OPTIONS.map((opt) => (
           <button
             key={opt.id}

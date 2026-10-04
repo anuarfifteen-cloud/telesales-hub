@@ -23,12 +23,15 @@ import {
 
 // ── Difficulty-driven hit/stand rules ───────────────────────────────
 // Payout is never affected — these only change how hard the table plays.
-//   easy   → AI stands on 15+, Dealer stands on all 16+
-//   normal → AI hits below 17, Dealer stands on all 17 (classic rules)
-//   hard   → AI plays to beat the player's visible hand, Dealer hits soft 17
+//   very_easy → AI stands on 13+ (display only; it's excluded from settlement),
+//               Dealer stands on all 15+
+//   easy     → AI stands on 13+, Dealer stands on all 15+ (3-way winner-takes-all)
+//   normal   → AI hits below 17, Dealer stands on all 17 (classic rules)
+//   hard     → AI plays to beat the player's visible hand, Dealer hits soft 17
 function aiShouldHit(hand, difficulty, playerVal) {
   const v = handValue(hand);
-  if (difficulty === "easy") return v < 15;
+  if (difficulty === "very_easy") return v < 13; // display only — excluded from settlement
+  if (difficulty === "easy") return v < 13;
   if (difficulty === "hard") {
     if (playerVal > 21) return v < 17; // player busted → AI plays safe, no need to chase
     return v < 17 && v < playerVal;   // chase until 17 or a tie/beat of the player
@@ -38,7 +41,8 @@ function aiShouldHit(hand, difficulty, playerVal) {
 
 function dealerShouldHit(hand, difficulty) {
   const v = handValue(hand);
-  if (difficulty === "easy") return v < 16;
+  if (difficulty === "very_easy") return v < 15;
+  if (difficulty === "easy") return v < 15;
   if (difficulty === "hard") return v < 17 || (v === 17 && isSoft(hand)); // hit soft 17
   return v < 17; // normal
 }
@@ -58,7 +62,10 @@ const GAME_TYPE = "blackjack";
 //   • You sole highest → win (natural Blackjack pays 2.5×, else 2×)
 //   • You tie for top  → push (refund the bet)
 //   • Someone else strictly higher → loss (they are named the winner)
-function resolveRound(playerHand, aiHand, dealerHand, bet) {
+//
+// On `very_easy` the AI is dealt for display only and is EXCLUDED from the
+// settlement — the comparison is You vs the Dealer only (classic Blackjack).
+function resolveRound(playerHand, aiHand, dealerHand, bet, difficulty) {
   const pVal = handValue(playerHand);
   const aVal = handValue(aiHand);
   const dVal = handValue(dealerHand);
@@ -66,9 +73,11 @@ function resolveRound(playerHand, aiHand, dealerHand, bet) {
   const aBust = aVal > 21;
   const dBust = dVal > 21;
 
+  const aiCompetes = difficulty !== "very_easy";
+
   const valid = [];
   if (!pBust) valid.push({ who: "you", val: pVal });
-  if (!aBust) valid.push({ who: "ai", val: aVal });
+  if (aiCompetes && !aBust) valid.push({ who: "ai", val: aVal });
   if (!dBust) valid.push({ who: "dealer", val: dVal });
 
   const maxVal = valid.length ? Math.max(...valid.map((v) => v.val)) : -1;
@@ -104,13 +113,22 @@ function resolveRound(playerHand, aiHand, dealerHand, bet) {
     else detail = "DEALER WINS";
   }
 
-  // Player 2 display-only result line.
+  // Player 2 display-only result line. On Very Easy it never competes for the
+  // pot, so it just reports its own hand neutrally.
   let aiRes;
-  if (aBust) aiRes = { type: "loss", detail: "Bust" };
-  else if (aVal === maxVal && topHands.length === 1 && topHands[0].who === "ai")
+  if (!aiCompetes) {
+    aiRes = aBust
+      ? { type: "loss", detail: "Bust (display only)" }
+      : { type: "push", detail: "Display only" };
+  } else if (aBust) {
+    aiRes = { type: "loss", detail: "Bust" };
+  } else if (aVal === maxVal && topHands.length === 1 && topHands[0].who === "ai") {
     aiRes = { type: "win", detail: "Won the table" };
-  else if (aVal === maxVal) aiRes = { type: "push", detail: "Tied for top" };
-  else aiRes = { type: "loss", detail: "Lost the table" };
+  } else if (aVal === maxVal) {
+    aiRes = { type: "push", detail: "Tied for top" };
+  } else {
+    aiRes = { type: "loss", detail: "Lost the table" };
+  }
 
   return { type, detail, chipPayout, aiRes };
 }
@@ -258,7 +276,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         setRevealHole(true);
         setAiRevealed(true);
         playCardSlide();
-        const res = resolveRound(p, a, dl, b);
+        const res = resolveRound(p, a, dl, b, difficulty);
         setAiResult(res.aiRes);
         await settle(res.type, res.detail, res.chipPayout);
       }, 800);
@@ -292,7 +310,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           setDeck(dd);
           playCardSlide();
         }
-        const res = resolveRound(p, aiFinal, dl, committedBet);
+        const res = resolveRound(p, aiFinal, dl, committedBet, difficulty);
         setAiResult(res.aiRes);
         await settle(res.type, res.detail, res.chipPayout);
       }, 500);
@@ -337,7 +355,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     }
 
     // Winner-takes-all: compare You, Player 2, and Dealer.
-    const res = resolveRound(player, aiFinal, dl, committedBet);
+    const res = resolveRound(player, aiFinal, dl, committedBet, difficulty);
     setAiResult(res.aiRes);
     await settle(res.type, res.detail, res.chipPayout);
   };
