@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { logChipMovement } from "@/lib/chipLog";
 import { logScratchTicket, updateScratchTicket } from "@/lib/scratchLog";
-import { audioReady, playP10Jackpot, playWin, playWinFanfare } from "@/lib/sounds";
+import { audioReady, playP10Jackpot, playTicketFlourish, playWin, playWinFanfare } from "@/lib/sounds";
 import ScratchCardTicket from "./ScratchCardTicket";
 import ScratchCardLiveFeed from "./ScratchCardLiveFeed";
 import ScratchResultModal from "./ScratchResultModal";
@@ -131,6 +131,7 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
     setCells(buildGrid(roll.prize?.symbol || null));
     setTicketKey((k) => k + 1);
     setPhase("playing");
+    if (audioReady()) playTicketFlourish();
     setBusy(false);
   };
 
@@ -214,9 +215,21 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
         <div className="p-4">
           {cells ? (
             <>
+              <style>{`
+                @keyframes scratchTicketDeal {
+                  0% { opacity: 0; transform: translateY(34px); filter: brightness(1.55); }
+                  55% { opacity: 1; transform: translateY(-6px); filter: brightness(1.18); }
+                  100% { opacity: 1; transform: translateY(0); filter: brightness(1); }
+                }
+              `}</style>
               <div
+                key={ticketKey}
                 className="rounded-2xl p-1"
-                style={{ background: "linear-gradient(160deg,#fff6cf,#e8bf55)", border: "2px solid #a9761c" }}
+                style={{
+                  background: "linear-gradient(160deg,#fff6cf,#e8bf55)",
+                  border: "2px solid #a9761c",
+                  animation: "scratchTicketDeal 0.62s cubic-bezier(0.22,1,0.36,1)",
+                }}
               >
                 <ScratchCardTicket
                   cells={cells}

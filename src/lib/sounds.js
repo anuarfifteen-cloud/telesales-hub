@@ -188,6 +188,41 @@ export function playClink() {
   } catch {}
 }
 
+// Premium Scratch Card — ticket deal flourish: two ceramic chip clinks, then a
+// quick rising sparkle as the fresh ticket lands.
+export function playTicketFlourish() {
+  try {
+    const ac = ctx();
+    [0, 0.07].forEach((delay) => {
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      osc.type = "triangle";
+      const t = ac.currentTime + delay;
+      osc.frequency.setValueAtTime(1500, t);
+      osc.frequency.exponentialRampToValueAtTime(950, t + 0.06);
+      gain.gain.setValueAtTime(0.14, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      osc.start(t);
+      osc.stop(t + 0.08);
+    });
+    [880, 1175, 1568].forEach((freq, i) => {
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      osc.type = "sine";
+      const t = ac.currentTime + 0.08 + i * 0.06;
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.22, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.26);
+      osc.start(t);
+      osc.stop(t + 0.26);
+    });
+  } catch {}
+}
+
 // Casino 21 — soft card slide / deal swish (filtered noise burst)
 export function playCardSlide() {
   try {

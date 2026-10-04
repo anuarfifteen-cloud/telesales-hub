@@ -11,13 +11,18 @@ export const ENTRY_COST = 5;
 // symbols, the balance header, the win celebration, the result card and the feed.
 export const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
 
+// Black-and-gold casino chip used for every chip visual on the Scratch Card —
+// the chip symbols on the ticket, the win celebration, the result card and the
+// live activity feed. Cropped to a circle so its square backdrop disappears.
+export const CHIP_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/5d8530cab_Screenshot2026-10-05004629.png";
+
 // Symbols printed on the ticket. The winning prize's symbol is the one that
 // appears three times, so the grid always tells the truth about the payout.
 export const SYMBOLS = [
-  { id: "chips5", emoji: "🍀", label: "5 CHIPS", ring: "#22c55e" },
-  { id: "chips10", emoji: "🔔", label: "10 CHIPS", ring: "#06b6d4" },
+  { id: "chips5", emoji: "🍀", src: CHIP_IMG, round: true, label: "5 CHIPS", ring: "#22c55e" },
+  { id: "chips10", emoji: "🔔", src: CHIP_IMG, round: true, label: "10 CHIPS", ring: "#06b6d4" },
   { id: "tokens5", emoji: "🪙", src: TOKEN_IMG, label: "5 TOKENS", ring: "#f59e0b" },
-  { id: "chips20", emoji: "⭐", label: "20 CHIPS", ring: "#8b5cf6" },
+  { id: "chips20", emoji: "⭐", src: CHIP_IMG, round: true, label: "20 CHIPS", ring: "#8b5cf6" },
   { id: "tokens10", emoji: "💰", src: TOKEN_IMG, label: "10 TOKENS", ring: "#eab308" },
   { id: "royal", emoji: "👑", label: "ROYAL BATIK", ring: "#d4af37" },
   { id: "lilac", emoji: "🌸", label: "LILAC BLOOM", ring: "#ec4899" },

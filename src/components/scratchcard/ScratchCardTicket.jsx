@@ -296,7 +296,12 @@ export default function ScratchCardTicket({ cells, active, ticketKey, onScratche
                 <img
                   src={sym.src}
                   alt={sym.label}
-                  style={{ width: 30, height: 30, objectFit: "contain" }}
+                  style={{
+                    width: 30,
+                    height: 30,
+                    objectFit: sym.round ? "cover" : "contain",
+                    borderRadius: sym.round ? "50%" : undefined,
+                  }}
                 />
               ) : (
                 <span style={{ fontSize: 30, lineHeight: 1 }}>{sym?.emoji}</span>

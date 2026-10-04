@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
-import BlackChipIcon from "@/components/casino21/BlackChipIcon";
-import { TOKEN_IMG } from "./scratchPrizes";
+import { CHIP_IMG, TOKEN_IMG } from "./scratchPrizes";
 
 function timeAgo(isoString) {
   const diff = Math.floor((Date.now() - new Date(isoString)) / 1000);
@@ -74,7 +73,7 @@ export default function ScratchCardLiveFeed() {
                 className="flex items-center gap-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2"
               >
                 {isChips ? (
-                  <BlackChipIcon size={20} className="flex-shrink-0" />
+                  <img src={CHIP_IMG} alt="chip" className="w-5 h-5 flex-shrink-0 object-cover rounded-full" />
                 ) : isTokens ? (
                   <img src={TOKEN_IMG} alt="token" className="w-5 h-5 flex-shrink-0 object-contain" />
                 ) : (
