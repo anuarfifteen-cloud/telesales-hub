@@ -11,10 +11,11 @@ import DiamondSmashGame from "@/components/games/DiamondSmashGame";
 import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
 import TapVaultCard from "@/components/tokens/TapVaultCard";
 import Blackjack21Game from "@/components/casino21/Blackjack21Game";
+import ClawMachineGame from "@/components/clawmachine/ClawMachineGame";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true }) {
   const [innerTab, setInnerTab] = useState("milestones");
-  // tabs: milestones | vip | ninja | coinflip | perfect10 | supertap | blindvoucher | flappy | blackjack21 | diamondsmash
+  // tabs: milestones | vip | ninja | coinflip | perfect10 | supertap | blindvoucher | flappy | blackjack21 | clawmachine | diamondsmash
   const tokens = user?.earlyAccessTokens ?? 0;
 
   // ninjaEnabled is preloaded by Home (via AppSettings subscription) so the tab
@@ -150,9 +151,18 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
             💎 Diamond Smash
           </button>
         </div>
-        {/* Row 4 — Blackjack 21 sits directly below Flappy Token */}
+        {/* Row 4 — Claw Machine sits beside Blackjack 21, below Flappy Token */}
         <div className="grid grid-cols-3 gap-1">
-          <div />
+          <button
+            onClick={() => setInnerTab("clawmachine")}
+            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              innerTab === "clawmachine"
+                ? "bg-rose-600 text-white shadow"
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            🕹️ Claw Machine
+          </button>
           <button
             onClick={() => setInnerTab("blackjack21")}
             className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
@@ -196,6 +206,13 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
       {/* Blackjack 21 */}
       {innerTab === "blackjack21" && (
         <Blackjack21Game user={user} onUserUpdate={onUserUpdate} />
+      )}
+
+      {/* Claw Machine */}
+      {innerTab === "clawmachine" && (
+        <div className="w-full max-w-md mx-auto">
+          <ClawMachineGame user={user} onUserUpdate={onUserUpdate} />
+        </div>
       )}
 
       {/* Ninja Slice (only when enabled) */}
