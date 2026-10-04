@@ -1,12 +1,18 @@
 import BlackChipIcon from "@/components/casino21/BlackChipIcon";
-import { describeGrant } from "./clawPrizes";
+import { describeGrant } from "./scratchPrizes";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 
-// Celebration modal shown after a successful pull. Styles are inline so the
-// cabinet reads the same in every app theme.
-export default function ClawPrizeModal({ granted, onClose }) {
-  const { headline, subtitle } = describeGrant(granted);
+// Result card shown once all nine squares are scratched. Styles are inline so the
+// ticket reads the same in every app theme.
+export default function ScratchResultModal({ granted, onClose }) {
+  const isWin = !!granted;
+  const { headline, subtitle } = isWin
+    ? describeGrant(granted)
+    : {
+        headline: "No Match",
+        subtitle: "No three in a row on this ticket — buy another and try again.",
+      };
 
   return (
     <div
@@ -14,7 +20,7 @@ export default function ClawPrizeModal({ granted, onClose }) {
       style={{ background: "rgba(6,2,20,0.82)", backdropFilter: "blur(4px)" }}
     >
       <style>{`
-        @keyframes clawPop {
+        @keyframes scratchPop {
           0% { transform: scale(0.6); opacity: 0; }
           70% { transform: scale(1.05); opacity: 1; }
           100% { transform: scale(1); opacity: 1; }
@@ -29,29 +35,23 @@ export default function ClawPrizeModal({ granted, onClose }) {
           textAlign: "center",
           borderRadius: 26,
           background: "linear-gradient(165deg,#241448 0%,#160c2e 100%)",
-          border: "3px solid #f0a92b",
+          border: `3px solid ${isWin ? "#f0a92b" : "#64748b"}`,
           boxShadow: "0 24px 60px rgba(0,0,0,0.6), inset 0 0 30px rgba(255,209,102,0.12)",
-          animation: "clawPop 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards",
+          animation: "scratchPop 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards",
         }}
       >
-        <p
-          style={{
-            margin: 0,
-            fontSize: 12,
-            fontWeight: 900,
-            letterSpacing: 4,
-            color: "#ffd76a",
-          }}
-        >
-          🏆 WINNER
+        <p style={{ margin: 0, fontSize: 12, fontWeight: 900, letterSpacing: 4, color: isWin ? "#ffd76a" : "#cbd5e1" }}>
+          {isWin ? "🏆 WINNER" : "🎫 NO WIN"}
         </p>
 
         <div style={{ display: "flex", justifyContent: "center", margin: "16px 0 12px" }}>
-          {granted?.type === "chips" ? (
+          {!isWin ? (
+            <span style={{ fontSize: 56, lineHeight: 1 }}>🎫</span>
+          ) : granted.type === "chips" ? (
             <BlackChipIcon size={60} />
-          ) : granted?.type === "tokens" ? (
+          ) : granted.type === "tokens" ? (
             <img src={TOKEN_IMG} alt="token" style={{ width: 60, height: 60, objectFit: "contain" }} />
-          ) : granted?.type === "diamond" ? (
+          ) : granted.type === "diamond" ? (
             <span style={{ fontSize: 56, lineHeight: 1 }}>💎</span>
           ) : (
             <span style={{ fontSize: 56, lineHeight: 1 }}>🎨</span>
@@ -81,7 +81,7 @@ export default function ClawPrizeModal({ granted, onClose }) {
             cursor: "pointer",
           }}
         >
-          COLLECT
+          {isWin ? "COLLECT" : "CLOSE"}
         </button>
       </div>
     </div>
