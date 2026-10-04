@@ -292,7 +292,15 @@ export default function ScratchCardTicket({ cells, active, ticketKey, onScratche
                   : undefined,
               }}
             >
-              <span style={{ fontSize: 30, lineHeight: 1 }}>{sym?.emoji}</span>
+              {sym?.src ? (
+                <img
+                  src={sym.src}
+                  alt={sym.label}
+                  style={{ width: 30, height: 30, objectFit: "contain" }}
+                />
+              ) : (
+                <span style={{ fontSize: 30, lineHeight: 1 }}>{sym?.emoji}</span>
+              )}
               <span
                 className="font-black tracking-wider"
                 style={{ marginTop: 7, fontSize: 8, color: "#8a6413" }}

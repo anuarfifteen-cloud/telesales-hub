@@ -8,9 +8,7 @@ import ScratchCardTicket from "./ScratchCardTicket";
 import ScratchCardLiveFeed from "./ScratchCardLiveFeed";
 import ScratchResultModal from "./ScratchResultModal";
 import ScratchCelebration from "./ScratchCelebration";
-import { ENTRY_COST, buildGrid, prizeTier, rollScratchOutcome } from "./scratchPrizes";
-
-const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
+import { ENTRY_COST, TOKEN_IMG, buildGrid, prizeTier, rollScratchOutcome } from "./scratchPrizes";
 
 /** Human-readable prize label for the admin history. */
 function prizeLabel(prize) {

@@ -1,6 +1,5 @@
 import BlackChipIcon from "@/components/casino21/BlackChipIcon";
-
-const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
+import { TOKEN_IMG } from "./scratchPrizes";
 
 // The one icon used for a scratch prize, shared by the celebration and the
 // result card so both always show the same thing for the same win.

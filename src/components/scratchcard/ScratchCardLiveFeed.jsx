@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
 import BlackChipIcon from "@/components/casino21/BlackChipIcon";
-
-const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
+import { TOKEN_IMG } from "./scratchPrizes";
 
 function timeAgo(isoString) {
   const diff = Math.floor((Date.now() - new Date(isoString)) / 1000);
