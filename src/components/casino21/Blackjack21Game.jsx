@@ -122,6 +122,10 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     chipsRef.current = chips;
   }, [chips]);
 
+  const [bet, setBet] = useState(5);
+  const [committedBet, setCommittedBet] = useState(0);
+  const [showCashier, setShowCashier] = useState(false);
+
   // Admin-controlled difficulty (AppSettings.blackjack_difficulty). Falls back
   // to "normal" when missing. Re-fetched when the Cashier opens so a mid-session
   // admin change is picked up without reloading the page.
@@ -135,10 +139,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       })
       .catch(() => {});
   }, [showCashier]);
-
-  const [bet, setBet] = useState(5);
-  const [committedBet, setCommittedBet] = useState(0);
-  const [showCashier, setShowCashier] = useState(false);
   const [deck, setDeck] = useState([]);
   const [player, setPlayer] = useState([]);
   const [ai, setAi] = useState([]);
