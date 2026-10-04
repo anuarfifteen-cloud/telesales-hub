@@ -8,8 +8,9 @@ import { logChipMovement } from "@/lib/chipLog";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 const SERVICE_FEE_PCT = 0.2;
+// Fallback ceilings, used when an admin hasn't saved a value in AppSettings
+// (Admin Dashboard → Casino Economy → Cashier Limits).
 const DAILY_CASHOUT_LIMIT = 5000;
-// Monthly ceiling on the tokens a single player may convert into chips.
 const MONTHLY_CONVERSION_CAP = 1000000;
 
 // Brunei-calendar YYYY-MM-DD for "today" — used to match cash-out logs.
@@ -71,6 +72,9 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
   const [busy, setBusy] = useState(false);
   const [usedToday, setUsedToday] = useState(0);
   const [usedThisMonth, setUsedThisMonth] = useState(0);
+  // Admin-set ceilings, refreshed each time the Cashier opens.
+  const [monthlyCap, setMonthlyCap] = useState(MONTHLY_CONVERSION_CAP);
+  const [dailyCap, setDailyCap] = useState(DAILY_CASHOUT_LIMIT);
 
   const tokens = Number(user?.earlyAccessTokens) || 0;
   const chips = Number(user?.casinoChips) || 0;
@@ -82,12 +86,12 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
   const canAfford = tokens >= totalTokens;
 
   // Daily cash-out cap (Brunei day) — sum chips already converted today from logs.
-  const remaining = Math.max(0, DAILY_CASHOUT_LIMIT - usedToday);
+  const remaining = Math.max(0, dailyCap - usedToday);
   const cashMax = Math.max(0, Math.min(chips, remaining));
 
   // Monthly conversion tracker (Brunei calendar month): tokens spent buying chips.
-  const monthRemaining = Math.max(0, MONTHLY_CONVERSION_CAP - usedThisMonth);
-  const monthLimitReached = usedThisMonth >= MONTHLY_CONVERSION_CAP;
+  const monthRemaining = Math.max(0, monthlyCap - usedThisMonth);
+  const monthLimitReached = usedThisMonth >= monthlyCap;
   const exceedsMonthRemaining = totalTokens > monthRemaining;
 
   const refreshUsedToday = async () => {
@@ -136,6 +140,16 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
     if (open) {
       refreshUsedToday();
       refreshMonthlyUsage();
+      // Re-read the admin-set ceilings on every open so a change applies
+      // immediately; unset values fall back to the constants above.
+      base44.entities.AppSettings
+        .list()
+        .then((rows) => {
+          const s = rows[0];
+          if (Number(s?.monthly_conversion_cap) > 0) setMonthlyCap(Number(s.monthly_conversion_cap));
+          if (Number(s?.daily_cashout_cap) > 0) setDailyCap(Number(s.daily_cashout_cap));
+        })
+        .catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, user?.id]);
@@ -302,7 +316,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                   </span>
                   <span className="flex items-center gap-1 text-xs font-black tabular-nums">
                     <span className="text-amber-200">{usedThisMonth.toLocaleString()}</span>
-                    <span className="text-emerald-100/40">/ {MONTHLY_CONVERSION_CAP.toLocaleString()}</span>
+                    <span className="text-emerald-100/40">/ {monthlyCap.toLocaleString()}</span>
                     <MiniChipIcon size={12} />
                   </span>
                 </div>
@@ -315,7 +329,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                       <button
                         key={b.id}
                         onClick={() => setSelected(b.id)}
-                        className={`w-full flex items-center gap-3 rounded-2xl p-3 border transition-all ${
+                        className={`w-full flex items-center gap-3 rounded-2xl p-3 border transition-all text-amber-200 ${
                           isActive
                             ? "border-amber-400 bg-amber-400/10 shadow-[0_0_12px_rgba(212,175,55,0.25)]"
                             : "border-emerald-400/20 bg-emerald-950/30 hover:border-emerald-400/40"
@@ -413,7 +427,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                   </span>
                   <span className="flex items-center gap-1 text-xs font-black tabular-nums">
                     <span className="text-amber-200">{usedToday.toLocaleString()}</span>
-                    <span className="text-emerald-100/40">/ {DAILY_CASHOUT_LIMIT.toLocaleString()}</span>
+                    <span className="text-emerald-100/40">/ {dailyCap.toLocaleString()}</span>
                     <MiniChipIcon size={12} />
                   </span>
                 </div>

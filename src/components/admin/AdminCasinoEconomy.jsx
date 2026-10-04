@@ -5,6 +5,7 @@ import { logChipMovement } from "@/lib/chipLog";
 import { Loader2, Search, RefreshCw, X, Coins } from "lucide-react";
 import { toast } from "sonner";
 import MiniChipIcon from "@/components/casino21/MiniChipIcon";
+import CashierLimitsCard from "@/components/admin/CashierLimitsCard";
 
 const ACTION_LABELS = {
   bet: "Bet",
@@ -59,6 +60,7 @@ export default function AdminCasinoEconomy() {
   return (
     <div className="flex flex-col gap-4">
       <DifficultyCard />
+      <CashierLimitsCard />
       {/* View toggle */}
       <div className="grid grid-cols-2 gap-2 p-1 bg-muted/60 rounded-2xl border border-border">
         <button

@@ -127,6 +127,16 @@
       ],
       "description": "Blackjack 21 difficulty. Controls Player 2 (AI) hit/stand strategy, the Dealer stand threshold, and whether the AI competes for the pot. Payout stays identical (2\u00d7 win, 2.5\u00d7 natural Blackjack) on every level. very_easy = AI is dealt for display only and is EXCLUDED from settlement (you compete against the Dealer only), Dealer stands on all 15+; easy = AI stands on 13+, Dealer stands on all 15+ (3-way winner-takes-all); normal = AI hits below 17, Dealer stands on all 17; hard = AI plays to beat the player's visible hand, Dealer hits soft 17.",
       "default": "normal"
+    },
+    "monthly_conversion_cap": {
+      "type": "number",
+      "description": "Admin-set ceiling on the tokens a single player may convert into casino chips per Brunei calendar month. Drives the Cashier's Monthly Limit pill and blocks further purchases once reached. Falls back to 1000000 when unset.",
+      "default": 1000000
+    },
+    "daily_cashout_cap": {
+      "type": "number",
+      "description": "Admin-set ceiling on the chips a single player may cash back into tokens per Brunei day. Drives the Cashier's Daily Limit pill and blocks further cash-outs once reached. Falls back to 5000 when unset.",
+      "default": 5000
     }
   },
   "required": []
