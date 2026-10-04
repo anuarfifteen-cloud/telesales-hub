@@ -251,8 +251,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
     const d = shuffle(createDeck());
     const p = [draw(d), draw(d)];
-    const a = [draw(d), draw(d)];
     const dl = [draw(d), draw(d)];
+    // On Very Easy there is no Player 2 — skip dealing AI cards entirely.
+    const a = difficulty === "very_easy" ? [] : [draw(d), draw(d)];
     setDeck(d);
     setPlayer(p);
     setAi(a);
@@ -264,10 +265,14 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setPhase("player");
     setBusy(false);
 
-    [0, 120, 240, 360, 480, 600].forEach((t) => setTimeout(playCardSlide, t));
+    // Play a deal sound per card (4 for very_easy, 6 otherwise).
+    const dealCardCount = a.length ? 6 : 4;
+    Array.from({ length: dealCardCount }, (_, i) => i * 120).forEach((t) =>
+      setTimeout(playCardSlide, t)
+    );
 
     // Naturals: player blackjack, or dealer ace/ten up showing blackjack.
-    // Resolve early by comparing the three dealt hands — no further drawing.
+    // Resolve early by comparing the dealt hands — no further drawing.
     const playerBJ = isBlackjack(p);
     const upIsTenish = dl[0].value === 11 || dl[0].value === 10;
     const dealerBJ = isBlackjack(dl);
@@ -481,18 +486,23 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
             overlap={40}
           />
 
-          {/* You (left) + Player 2 (AI, right) — side-by-side, fanned cards */}
-          <div className="grid grid-cols-2 gap-3">
-            <HandPanel title="YOU" value={handValue(player)} cards={player} compact />
-            <HandPanel
-              title="PLAYER 2"
-              tag="AI"
-              value={ai.length ? handValue(ai) : "—"}
-              cards={ai}
-              compact
-              hidden={!aiRevealed}
-            />
-          </div>
+          {/* You + Player 2 (AI). On Very Easy the AI is removed entirely and
+              YOU renders full-width to match the Dealer panel size. */}
+          {difficulty === "very_easy" ? (
+            <HandPanel title="YOU" value={handValue(player)} cards={player} />
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <HandPanel title="YOU" value={handValue(player)} cards={player} compact />
+              <HandPanel
+                title="PLAYER 2"
+                tag="AI"
+                value={ai.length ? handValue(ai) : "—"}
+                cards={ai}
+                compact
+                hidden={!aiRevealed}
+              />
+            </div>
+          )}
 
           {/* Result overlay */}
           <AnimatePresence>
@@ -525,7 +535,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
                     </>
                   )}
                 </p>
-                {aiResult && (
+                {aiResult && difficulty !== "very_easy" && (
                   <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">
                     AI · {aiResult.detail}
                   </p>
