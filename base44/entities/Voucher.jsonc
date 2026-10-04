@@ -14,9 +14,22 @@
       "type": "string",
       "description": "Unique voucher code e.g. BV-XXXX-XXXX"
     },
+    "reward_type": {
+      "type": "string",
+      "enum": [
+        "tokens",
+        "chips",
+        "diamond"
+      ],
+      "description": "Which currency this voucher pays out when redeemed. Vouchers created before this field existed fall back to 'tokens', or 'diamond' when reward_tokens is the 999 sentinel."
+    },
+    "reward_amount": {
+      "type": "number",
+      "description": "Amount of reward_type paid out \u2014 tokens or Blackjack 21 chips. Diamond vouchers always pay 1."
+    },
     "reward_tokens": {
       "type": "number",
-      "description": "Number of tokens this voucher pays out when redeemed (1-5)"
+      "description": "Legacy token amount, kept for older records and admin displays. Tokens = the token amount (1-5), diamond = the 999 sentinel, chips = 0 (chips are not tokens)."
     },
     "status": {
       "type": "string",

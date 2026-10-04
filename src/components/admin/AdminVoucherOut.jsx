@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Search, Ticket, Gem, Send, CheckCircle2, Clock } from "lucide-react";
+import { resolveVoucherReward, voucherRewardText } from "@/lib/voucherReward";
 
 function timeAgo(iso) {
   if (!iso) return "—";
@@ -112,7 +113,7 @@ export default function AdminVoucherOut() {
       ) : (
         <div className="flex flex-col gap-2">
           {filtered.map((v) => {
-            const isDiamond = v.reward_tokens === 999;
+            const isDiamond = resolveVoucherReward(v).type === "diamond";
             const isRedeemed = v.status === "redeemed";
             const issuerName = users[v.created_by_id] || "—";
             return (
@@ -134,7 +135,7 @@ export default function AdminVoucherOut() {
                   <div className="flex-1 min-w-0">
                     <span className="font-mono text-sm font-black text-foreground tracking-wider">{v.code}</span>
                     <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {isDiamond ? "💎 Diamond reward" : `+${v.reward_tokens ?? 0} tokens`} · Issued {fmtDate(v.created_at)}
+                      +{voucherRewardText(v)} · Issued {fmtDate(v.created_at)}
                     </p>
                   </div>
                   <span

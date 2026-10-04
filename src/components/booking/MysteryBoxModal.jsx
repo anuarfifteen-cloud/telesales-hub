@@ -4,6 +4,8 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Copy, Check } from "lucide-react";
+import { resolveVoucherReward } from "@/lib/voucherReward";
+import { logChipMovement } from "@/lib/chipLog";
 
 const VOUCHER_MONTHLY_CAP = 50;
 const BRUNEI_TZ = "Asia/Brunei";
@@ -136,19 +138,13 @@ export default function TokenVoucher({ user, onUserUpdate }) {
           return toast.error("This code is not yours.");
         }
 
-        const reward = Number(voucher.reward_tokens);
-
-        // Safety guard — reject invalid reward values
-        if (isNaN(reward)) {
-          setVoucherStatus({ text: "Invalid voucher reward. Contact admin.", color: "text-red-600 dark:text-red-400" });
-          setLoading(false);
-          return toast.error("Invalid voucher reward. Please contact admin.");
-        }
+        const { type: rewardType, amount: rewardAmount } = resolveVoucherReward(voucher);
 
         const freshUser = await base44.auth.me();
         const freshTokens = freshUser?.earlyAccessTokens ?? 0;
+        const freshChips = Number(freshUser?.casinoChips) || 0;
 
-        if (reward === 999) {
+        if (rewardType === "diamond") {
           // Diamond path
           const currentDiamonds = freshUser?.diamonds ?? 0;
           await Promise.all([
@@ -170,26 +166,54 @@ export default function TokenVoucher({ user, onUserUpdate }) {
           await onUserUpdate();
           toast.success("💎 JACKPOT! You won a VIP Diamond!");
           return;
-        } else if (reward >= 1 && reward <= 5) {
-          // Token path — only allow valid 1–5 range
+        } else if (rewardType === "chips") {
+          // Chips path — deposits straight into the Blackjack 21 chip balance
           await Promise.all([
-            base44.auth.updateMe({ earlyAccessTokens: freshTokens + reward }),
+            base44.auth.updateMe({ casinoChips: freshChips + rewardAmount }),
+            base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+            logChipMovement({
+              user,
+              action_type: "win",
+              amount: rewardAmount,
+              balance_after: freshChips + rewardAmount,
+              detail: `Blind Voucher redemption (${voucher.code}) — ${rewardAmount} chips`,
+            }),
+            base44.entities.TokenTransaction.create({
+              user_id: user.id,
+              user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
+              amount: 0,
+              source: `Blind Voucher Redemption — CHIPS (${voucher.code})`,
+              timestamp: new Date().toISOString(),
+            }),
+          ]);
+          setVoucherStatus({
+            text: `Success! +${rewardAmount} ${rewardAmount === 1 ? "Chip" : "Chips"} Added`,
+            color: "text-cyan-600 dark:text-cyan-400"
+          });
+          setClaimCode("");
+          await onUserUpdate();
+          toast.success(`Success! Added +${rewardAmount} casino chips to your balance.`);
+          return;
+        } else if (rewardType === "tokens") {
+          // Token path
+          await Promise.all([
+            base44.auth.updateMe({ earlyAccessTokens: freshTokens + rewardAmount }),
             base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
             base44.entities.TokenTransaction.create({
               user_id: user.id,
               user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
-              amount: reward,
+              amount: rewardAmount,
               source: `Blind Voucher Redemption (${voucher.code})`,
               timestamp: new Date().toISOString(),
             }),
           ]);
           setVoucherStatus({
-            text: `Success! +${reward} ${reward === 1 ? 'Token' : 'Tokens'} Added`,
+            text: `Success! +${rewardAmount} ${rewardAmount === 1 ? 'Token' : 'Tokens'} Added`,
             color: "text-emerald-600 dark:text-emerald-400"
           });
           setClaimCode("");
           await onUserUpdate();
-          toast.success(`Success! Added +${reward} tokens to your balance.`);
+          toast.success(`Success! Added +${rewardAmount} tokens to your balance.`);
           return;
         } else {
           // Catch-all safety — reject anything outside valid ranges

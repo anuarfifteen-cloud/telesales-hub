@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Search, Ticket, Gem } from "lucide-react";
+import { resolveVoucherReward, voucherRewardText } from "@/lib/voucherReward";
 import AdminVoucherOut from "./AdminVoucherOut";
 import AdminTokenTransferAudit from "./AdminTokenTransferAudit";
 
@@ -142,7 +143,7 @@ export default function AdminVoucherLog() {
           ) : (
             <div className="flex flex-col gap-2">
               {filtered.map((v) => {
-                const isDiamond = v.reward_tokens === 999;
+                const isDiamond = resolveVoucherReward(v).type === "diamond";
                 return (
                   <div
                     key={v.id}
@@ -168,10 +169,7 @@ export default function AdminVoucherLog() {
                         </span>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {isDiamond
-                          ? "💎 Diamond reward"
-                          : `+${v.reward_tokens ?? 0} tokens`}{" "}
-                        · Purchased {fmtDate(v.created_at)}
+                        +{voucherRewardText(v)} · Purchased {fmtDate(v.created_at)}
                       </p>
                     </div>
 

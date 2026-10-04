@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
+import { resolveVoucherReward } from "@/lib/voucherReward";
 
 const REWARD_EMOJI = { 1: "🎟️", 2: "✨", 3: "💰", 4: "🔥", 5: "👑" };
 const FOMO_LINES = [
@@ -49,9 +50,14 @@ export default function VoucherActivityFeed() {
       <div className="flex flex-col gap-1.5">
         <AnimatePresence initial={false}>
           {redeemed.map((v, i) => {
-            const tokens = v.reward_tokens ?? 1;
-            const isDiamond = tokens === 999;
-            const fomo = isDiamond ? "just claimed a VIP Diamond! 💎" : FOMO_LINES[i % FOMO_LINES.length];
+            const { type, amount } = resolveVoucherReward(v);
+            const isDiamond = type === "diamond";
+            const isChips = type === "chips";
+            const fomo = isDiamond
+              ? "just claimed a VIP Diamond! 💎"
+              : isChips
+              ? "just claimed casino chips! 🎰"
+              : FOMO_LINES[i % FOMO_LINES.length];
             const name = v.user_name?.split(" ")[0] || "Someone";
             return (
               <motion.div
@@ -62,23 +68,23 @@ export default function VoucherActivityFeed() {
                 transition={{ delay: i * 0.05 }}
                 className="flex items-center gap-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-2"
               >
-                <span className="text-lg flex-shrink-0">{isDiamond ? "💎" : (REWARD_EMOJI[tokens] ?? "🎟️")}</span>
+                <span className="text-lg flex-shrink-0">{isDiamond ? "💎" : isChips ? "🎰" : (REWARD_EMOJI[amount] ?? "🎟️")}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 truncate">
                     <span className="font-black">{name}</span> {fomo}
                   </p>
                   <p className="text-[10px] text-emerald-600 dark:text-emerald-500 font-medium">
-                    {isDiamond
-                      ? <>Won <span className="font-black">1 💎 Diamond</span> · {timeAgo(v.updated_date || v.created_at)}</>
-                      : <>Won <span className="font-black">{tokens} token{tokens !== 1 ? "s" : ""}</span> · {timeAgo(v.updated_date || v.created_at)}</>}
+                    Won <span className="font-black">{isDiamond ? "1 💎 Diamond" : `${amount} ${isChips ? `chip${amount !== 1 ? "s" : ""}` : `token${amount !== 1 ? "s" : ""}`}`}</span> · {timeAgo(v.updated_date || v.created_at)}
                   </p>
                 </div>
                 <span className={`flex-shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full ${
                   isDiamond
                     ? "bg-cyan-200 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200"
+                    : isChips
+                    ? "bg-violet-200 dark:bg-violet-900 text-violet-800 dark:text-violet-200"
                     : "bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200"
                 }`}>
-                  {isDiamond ? "+1 💎" : `+${tokens}`}
+                  {isDiamond ? "+1 💎" : `+${amount}`}
                 </span>
               </motion.div>
             );

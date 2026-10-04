@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { logChipMovement } from "@/lib/chipLog";
 
 const TZ = "Asia/Brunei";
 
@@ -15,20 +16,24 @@ function getBruneiToday() {
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 
 const PRIZES = [
-  { label: "No Luck! 😢",     tokens: 0, isWinner: false, emoji: "😢", lockDate: true,  wheelColor: "#c0392b", textColor: "#fff",     dotColor: "bg-red-600"    },
-  { label: "1 Token! 🪙",    tokens: 1, isWinner: true,  emoji: "🪙", lockDate: true,  wheelColor: "#1d4ed8", textColor: "#fff",     dotColor: "bg-blue-700",   useTokenImg: true },
-  { label: "Spin Again! 🔄", tokens: 0, isWinner: false, emoji: "🔄", lockDate: false, wheelColor: "#d97706", textColor: "#1e293b",  dotColor: "bg-amber-600"  },
-  { label: "Lucky Two! 🌟",  tokens: 2, isWinner: true,  emoji: "🌟", lockDate: true,  wheelColor: "#15803d", textColor: "#fff",     dotColor: "bg-green-700"  },
-  { label: "JACKPOT! 🏆",    tokens: 3, isWinner: true,  emoji: "🏆", lockDate: true,  wheelColor: "#b45309", textColor: "#fff",     dotColor: "bg-yellow-700", useTokenImg: true },
+  { label: "No Luck! 😢",     kind: "none",  tokens: 0, chips: 0,  isWinner: false, emoji: "😢", lockDate: true,  wheelColor: "#c0392b", textColor: "#fff",     dotColor: "bg-red-600"    },
+  { label: "1 Token! 🪙",    kind: "token", tokens: 1, chips: 0,  isWinner: true,  emoji: "🪙", lockDate: true,  wheelColor: "#1d4ed8", textColor: "#fff",     dotColor: "bg-blue-700",   useTokenImg: true },
+  { label: "Spin Again! 🔄", kind: "none",  tokens: 0, chips: 0,  isWinner: false, emoji: "🔄", lockDate: false, wheelColor: "#d97706", textColor: "#1e293b",  dotColor: "bg-amber-600"  },
+  { label: "Lucky Two! 🌟",  kind: "token", tokens: 2, chips: 0,  isWinner: true,  emoji: "🌟", lockDate: true,  wheelColor: "#15803d", textColor: "#fff",     dotColor: "bg-green-700"  },
+  { label: "5 Chips! 🎰",    kind: "chip",  tokens: 0, chips: 5,  isWinner: true,  emoji: "🎰", lockDate: true,  wheelColor: "#0e7490", textColor: "#fff",     dotColor: "bg-cyan-700"   },
+  { label: "10 Chips! 🎰",   kind: "chip",  tokens: 0, chips: 10, isWinner: true,  emoji: "🎰", lockDate: true,  wheelColor: "#7c3aed", textColor: "#fff",     dotColor: "bg-violet-700" },
+  { label: "JACKPOT! 🏆",    kind: "token", tokens: 3, chips: 0,  isWinner: true,  emoji: "🏆", lockDate: true,  wheelColor: "#b45309", textColor: "#fff",     dotColor: "bg-yellow-700", useTokenImg: true },
 ];
 
 function rollPrizeIndex() {
   const roll = Math.random() * 100;
-  if (roll < 30) return 0;   // No Luck (30% chance: 0 to 29.9)
-  if (roll < 60) return 1;   // 1 Token (30% chance: 30 to 59.9)
-  if (roll < 80) return 3;   // 2 Tokens (20% chance: 60 to 79.9)
-  if (roll < 95) return 2;   // Spin Again (15% chance: 80 to 94.9)
-  return 4;                  // Jackpot (5% chance: 95 to 100)
+  if (roll < 25) return 0;   // No Luck (25%)
+  if (roll < 50) return 1;   // 1 Token (25%)
+  if (roll < 65) return 3;   // 2 Tokens (15%)
+  if (roll < 80) return 4;   // 5 Chips (15%)
+  if (roll < 90) return 2;   // Spin Again (10%)
+  if (roll < 97) return 5;   // 10 Chips (7%)
+  return 6;                  // Jackpot (3%)
 }
 
 // ── Conic gradient wheel ──────────────────────────────────────────────────────
@@ -159,9 +164,10 @@ function WheelModal({ onClose, onClaim, user, today }) {
   const handleSpin = () => {
     if (spinning || result) return;
     const prizeIndex = rollPrizeIndex();
-    
+
+    const sliceAngle = 360 / PRIZES.length;
     const baseRotation = Math.ceil(spinCountRef.current / 360) * 360;
-    const totalRotation = baseRotation + (360 * 5) - (prizeIndex * 72) - 36;
+    const totalRotation = baseRotation + (360 * 5) - (prizeIndex * sliceAngle) - sliceAngle / 2;
     spinCountRef.current = totalRotation;
     setRotation(totalRotation);
     setSpinning(true);
@@ -175,21 +181,33 @@ function WheelModal({ onClose, onClaim, user, today }) {
     if (!result) return;
     setClaiming(true);
 
+    const freshUser = await base44.auth.me();
+    const currentChips = Number(freshUser?.casinoChips) || 0;
+
     const updates = {};
     if (result.lockDate) updates.last_spin_date = today;
-    if (result.tokens > 0) {
-      const freshUser = await base44.auth.me();
+    if (result.kind === "token") {
       updates.earlyAccessTokens = (freshUser?.earlyAccessTokens ?? 0) + result.tokens;
+    } else if (result.kind === "chip") {
+      updates.casinoChips = currentChips + result.chips;
     }
     if (Object.keys(updates).length > 0) await base44.auth.updateMe(updates);
 
-    if (result.tokens > 0) {
+    if (result.kind === "token") {
       await base44.entities.TokenTransaction.create({
         user_id: user.id,
         user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
         amount: result.tokens,
         source: "Daily Spin",
         timestamp: new Date().toISOString(),
+      });
+    } else if (result.kind === "chip") {
+      await logChipMovement({
+        user,
+        action_type: "win",
+        amount: result.chips,
+        balance_after: currentChips + result.chips,
+        detail: `Daily Spin reward — ${result.chips} chips`,
       });
     }
 
@@ -202,8 +220,10 @@ function WheelModal({ onClose, onClaim, user, today }) {
       created_at: new Date().toISOString(),
     });
 
-    if (result.tokens > 0) {
+    if (result.kind === "token") {
       toast.success(`+${result.tokens} token${result.tokens > 1 ? "s" : ""} added! 🎉`);
+    } else if (result.kind === "chip") {
+      toast.success(`+${result.chips} casino chips added! 🎰`);
     } else if (result.lockDate) {
       toast.info("Better luck tomorrow!");
     }
@@ -237,7 +257,7 @@ function WheelModal({ onClose, onClaim, user, today }) {
                 {p.useTokenImg
                   ? <img src={TOKEN_IMG} alt="token" className="w-3.5 h-3.5 object-contain" />
                   : <span>{p.emoji}</span>}
-                {p.label.replace(/[😢🪙🔄🌟🏆]/g, "").trim()}
+                {p.label.replace(/[😢🪙🔄🌟🏆🎰]/g, "").trim()}
               </span>
             </div>
           ))}
@@ -257,9 +277,14 @@ function WheelModal({ onClose, onClaim, user, today }) {
           <div className="w-full flex flex-col items-center gap-3">
             <div className="text-5xl">{result.emoji}</div>
             <h3 className="text-xl font-black text-foreground text-center">{result.label}</h3>
-            {result.tokens > 0 && (
+            {result.kind === "token" && (
               <p className="text-sm text-muted-foreground text-center">
                 +{result.tokens} token{result.tokens > 1 ? "s" : ""} will be added to your balance!
+              </p>
+            )}
+            {result.kind === "chip" && (
+              <p className="text-sm text-muted-foreground text-center">
+                +{result.chips} casino chips will be added to your Blackjack 21 chip balance!
               </p>
             )}
             {!result.lockDate && (

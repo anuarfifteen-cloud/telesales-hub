@@ -2,6 +2,8 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { resolveVoucherReward } from "@/lib/voucherReward";
+import { logChipMovement } from "@/lib/chipLog";
 
 export default function VoucherRedeem({ user, onUserUpdate }) {
   const [code, setCode] = useState("");
@@ -35,36 +37,58 @@ export default function VoucherRedeem({ user, onUserUpdate }) {
     }
 
     const freshUser = await base44.auth.me();
-    const reward = Number(voucher.reward_tokens) || 1;
+    const { type: rewardType, amount: rewardAmount } = resolveVoucherReward(voucher);
+    const userName = user.full_name || user.email?.split("@")[0] || "Unknown";
 
-    if (reward === 999) {
+    if (rewardType === "diamond") {
       const currentDiamonds = freshUser?.diamonds ?? 0;
       await Promise.all([
         base44.auth.updateMe({ diamonds: currentDiamonds + 1 }),
         base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
         base44.entities.TokenTransaction.create({
           user_id: user.id,
-          user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
+          user_name: userName,
           amount: 0,
           source: `Blind Voucher Redemption — DIAMOND (${voucher.code})`,
           timestamp: new Date().toISOString(),
         }),
       ]);
       setSuccessMsg("💎 JACKPOT! You won a VIP Diamond!");
+    } else if (rewardType === "chips") {
+      const currentChips = Number(freshUser?.casinoChips) || 0;
+      await Promise.all([
+        base44.auth.updateMe({ casinoChips: currentChips + rewardAmount }),
+        base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+        logChipMovement({
+          user,
+          action_type: "win",
+          amount: rewardAmount,
+          balance_after: currentChips + rewardAmount,
+          detail: `Blind Voucher redemption (${voucher.code}) — ${rewardAmount} chips`,
+        }),
+        base44.entities.TokenTransaction.create({
+          user_id: user.id,
+          user_name: userName,
+          amount: 0,
+          source: `Blind Voucher Redemption — CHIPS (${voucher.code})`,
+          timestamp: new Date().toISOString(),
+        }),
+      ]);
+      setSuccessMsg(`🎰 Voucher redeemed! You received ${rewardAmount} casino chip${rewardAmount !== 1 ? "s" : ""}.`);
     } else {
       const currentTokens = freshUser?.earlyAccessTokens ?? 0;
       await Promise.all([
-        base44.auth.updateMe({ earlyAccessTokens: currentTokens + reward }),
+        base44.auth.updateMe({ earlyAccessTokens: currentTokens + rewardAmount }),
         base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
         base44.entities.TokenTransaction.create({
           user_id: user.id,
-          user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
-          amount: reward,
+          user_name: userName,
+          amount: rewardAmount,
           source: `Blind Voucher Redemption (${voucher.code})`,
           timestamp: new Date().toISOString(),
         }),
       ]);
-      setSuccessMsg(`🎉 Voucher redeemed! You received ${reward} token${reward !== 1 ? "s" : ""}.`);
+      setSuccessMsg(`🎉 Voucher redeemed! You received ${rewardAmount} token${rewardAmount !== 1 ? "s" : ""}.`);
     }
 
     setCode("");

@@ -10,14 +10,19 @@ function generateCode() {
   const chunk = () => Math.random().toString(36).substring(2, 6).toUpperCase();
   return `BV-${chunk()}-${chunk()}`;
 }
+// ── Weighted reward table (checked in order, totals 100%) ─────────────────────
+// 1 token 35% · 2 tokens 25% · 5 chips 15% · 3 tokens 12%
+// 4 tokens 6% · 10 chips 4% · 5 tokens 2% · VIP Diamond 1%
 function randomReward() {
   const roll = Math.random() * 100;
-  if (roll < 1) return 999;   // 1% — VIP Diamond (secret value)
-  if (roll < 41) return 1;    // 40%
-  if (roll < 71) return 2;    // 30%
-  if (roll < 86) return 3;    // 15%
-  if (roll < 96) return 4;    // 10%
-  return 5;                  // 4%
+  if (roll < 1) return { type: "diamond", amount: 1 };   // 1% — VIP Diamond
+  if (roll < 36) return { type: "tokens", amount: 1 };   // 35%
+  if (roll < 61) return { type: "tokens", amount: 2 };   // 25%
+  if (roll < 76) return { type: "chips", amount: 5 };    // 15%
+  if (roll < 88) return { type: "tokens", amount: 3 };   // 12%
+  if (roll < 94) return { type: "tokens", amount: 4 };   // 6%
+  if (roll < 98) return { type: "chips", amount: 10 };   // 4%
+  return { type: "tokens", amount: 5 };                  // 2%
 }
 
 function playChime() {
@@ -245,7 +250,10 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
       user_id: user.id,
       user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
       code,
-      reward_tokens: reward,
+      reward_type: reward.type,
+      reward_amount: reward.amount,
+      // Legacy field: chips store 0 so they can never read back as tokens.
+      reward_tokens: reward.type === "diamond" ? 999 : reward.type === "tokens" ? reward.amount : 0,
       status: "active",
       created_at: new Date().toISOString(),
     });
