@@ -229,7 +229,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
             exit={{ scale: 0.92, y: 16 }}
             transition={{ type: "spring", stiffness: 260, damping: 24 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-3xl border border-emerald-400/30 overflow-hidden"
+            className="cashier-panel w-full max-w-sm rounded-3xl border border-emerald-400/30 overflow-hidden"
             style={{
               background:
                 "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)",

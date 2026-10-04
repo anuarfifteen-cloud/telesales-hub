@@ -472,6 +472,21 @@
     background: transparent !important;
   }
 
+  /* ── Gamer/Retro: keep the Blackjack Cashier's dark felt panels dark ──
+     The blanket card rule above repaints every bordered rounded div white.
+     Inside the Cashier that hits the mode toggle strip, the monthly/daily
+     limit pills and the cash-out breakdown rows — whose labels are pale mint,
+     cyan and rose tones made for a dark fill — leaving near-white text on a
+     white panel (the inactive CASH OUT tab was unreadable). Scoped to the
+     Cashier modal only, restore the designed translucent emerald felt. */
+  [data-theme="gamer"] .cashier-panel div.rounded-2xl.border,
+  [data-theme="retro"] .cashier-panel div.rounded-2xl.border,
+  [data-theme="gamer"] .cashier-panel div.rounded-xl.border,
+  [data-theme="retro"] .cashier-panel div.rounded-xl.border {
+    background: rgba(2, 44, 34, 0.4);
+    box-shadow: none;
+  }
+
   /* ── Gamer/Retro: Blackjack 21 result card ──
      The theme repaints this rounded card white, but its outcome/refund text
      keeps the light win/push/loss colors → white-on-white. Force every text
