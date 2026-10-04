@@ -42,6 +42,10 @@ export default function VaultTitansLeaderboard({ currentUser }) {
 
   const filterInactive = settings?.filterInactiveFromLeaderboard === true;
 
+  // Online dot: green when the user has already registered activity today
+  // (lastActiveDate is written in Brunei time), grey otherwise.
+  const bruneiToday = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" });
+
   const ranked = users
     .map((u) => ({
       ...u,
@@ -72,15 +76,18 @@ export default function VaultTitansLeaderboard({ currentUser }) {
           No visible vault holders yet. Deposit tokens to claim the throne!
         </p>
       ) : (
-        <ol className="space-y-1.5">
+        <ol className="space-y-1.5 overflow-visible">
           {top.map((u, i) => {
             const tier = getVaultTier(u.vault);
+            const platinum = tier?.title === "Platinum";
             const rs = RANK_STYLE[i] || null;
             const isMe = currentUser && u.id === currentUser.id;
             return (
               <li
                 key={u.id}
-                className={`flex items-center gap-2.5 rounded-xl px-3 py-2 border ${
+                className={`overflow-visible flex items-center gap-2.5 rounded-xl py-2 border ${
+                  platinum ? "relative z-50 pl-8 pr-3" : "px-3"
+                } ${
                   isMe
                     ? "border-primary ring-2 ring-primary/30 bg-primary/5"
                     : rs
@@ -91,7 +98,14 @@ export default function VaultTitansLeaderboard({ currentUser }) {
                 <span className={`w-6 text-center text-sm font-black tabular-nums ${rs ? rs.text : "text-muted-foreground"}`}>
                   {rs ? rs.badge : i + 1}
                 </span>
-                <ProfileAvatar user={u} size="sm" showCrown championCount={getChampionCount(u.id)} />
+                <ProfileAvatar
+                  user={u}
+                  size="sm"
+                  showCrown
+                  championCount={getChampionCount(u.id)}
+                  tierFrame
+                  online={u.lastActiveDate === bruneiToday}
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-foreground truncate">
                     {u.full_name || u.email || "Anonymous"}
