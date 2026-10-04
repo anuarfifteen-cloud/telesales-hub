@@ -88,7 +88,6 @@ export default function Home() {
   const [activePopup, setActivePopup] = useState(null);
   const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
   const [ninjaEnabled, setNinjaEnabled] = useState(true);
-  const [villageEnabled, setVillageEnabled] = useState(false);
   const { getChampionCount } = useChampionTitles();
 
   // Preload AppSettings once at session start so the Tokens tab's Ninja Slice
@@ -99,7 +98,6 @@ export default function Home() {
       base44.entities.AppSettings.list().then((rows) => {
         if (!mounted) return;
         setNinjaEnabled(rows[0]?.ninja_enabled !== false);
-        setVillageEnabled(rows[0]?.village_enabled === true);
       }).catch(() => {});
     load();
     const unsub = base44.entities.AppSettings.subscribe(load);
@@ -1075,7 +1073,7 @@ useEffect(() => {
 
         {/* ── TOKENS TAB ── */}
         {activeTab === "tokens" && (
-          <TokensTab user={user} onUserUpdate={refreshUser} totalBookingCount={totalBookingCount} isAdmin={isAdmin} ninjaEnabled={ninjaEnabled} villageEnabled={villageEnabled} />
+          <TokensTab user={user} onUserUpdate={refreshUser} totalBookingCount={totalBookingCount} isAdmin={isAdmin} ninjaEnabled={ninjaEnabled} />
         )}
 
         {/* ── ADMIN TAB ── */}

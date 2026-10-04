@@ -7,12 +7,11 @@ import NinjaTokenGame from "@/components/games/NinjaTokenGame";
 import SuperTapGame from "@/components/supertap/SuperTapGame";
 import BlindVoucherShop from "@/components/tokens/BlindVoucherShop";
 import FlappyTokenGame from "@/components/games/FlappyTokenGame";
-import VillageBuilder from "@/components/village/VillageBuilder";
 import DiamondSmashGame from "@/components/games/DiamondSmashGame";
 import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
 import TapVaultCard from "@/components/tokens/TapVaultCard";
 
-export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, villageEnabled = false }) {
+export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true }) {
   const [innerTab, setInnerTab] = useState("milestones");
   // tabs: milestones | vip | duo | perfect10 | coinflip
   const tokens = user?.earlyAccessTokens ?? 0;
@@ -23,15 +22,6 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
   useEffect(() => {
     if (!ninjaEnabled && innerTab === "ninja") setInnerTab("milestones");
   }, [ninjaEnabled, innerTab]);
-
-  // Village Builder: hidden from players until an admin switches it on in the
-  // Admin Dashboard. A PIN-unlocked admin always sees it.
-  const showVillage = villageEnabled || isAdmin;
-
-  // Avoid lingering on the Village tab if it gets hidden later
-  useEffect(() => {
-    if (!showVillage && innerTab === "village") setInnerTab("milestones");
-  }, [showVillage, innerTab]);
 
   return (
     <div className="flex flex-col gap-4 pb-4">
@@ -159,21 +149,6 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
             💎 Diamond Smash
           </button>
         </div>
-        {/* Row 4: Village Builder (sits below Flappy Token) */}
-        {showVillage && (
-          <div className="grid grid-cols-1 gap-1">
-            <button
-              onClick={() => setInnerTab("village")}
-              className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-                innerTab === "village"
-                  ? "bg-lime-600 text-white shadow"
-                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-              }`}
-            >
-              🏘️ Village
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Milestones */}
@@ -218,16 +193,6 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
       {/* Flappy Token */}
       {innerTab === "flappy" && (
         <FlappyTokenGame user={user} onUserUpdate={onUserUpdate} />
-      )}
-
-      {/* Village Builder (admin preview, then toggle-on for everyone) */}
-      {showVillage && innerTab === "village" && (
-        <VillageBuilder
-          user={user}
-          onUserUpdate={onUserUpdate}
-          isAdmin={isAdmin}
-          villageEnabled={villageEnabled}
-        />
       )}
 
       {/* Diamond Smash */}
