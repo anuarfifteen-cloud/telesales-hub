@@ -1,0 +1,59 @@
+{
+  "name": "ScratchCardLog",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the player who bought the ticket"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the player"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the player"
+    },
+    "cost": {
+      "type": "number",
+      "description": "Tokens paid for this ticket",
+      "default": 5
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "win",
+        "loss"
+      ],
+      "description": "win = three matching symbols on the ticket, loss = no match"
+    },
+    "prize_type": {
+      "type": "string",
+      "description": "What the ticket pays: chips, tokens, diamond or theme. 'none' for a losing ticket."
+    },
+    "prize_label": {
+      "type": "string",
+      "description": "Human-readable prize for the admin history, e.g. '+10 Chips' or 'Royal Batik Theme'"
+    },
+    "prize_amount": {
+      "type": "number",
+      "description": "Quantity won (chips, tokens or diamonds). 0 for a theme prize or a loss.",
+      "default": 0
+    },
+    "collected": {
+      "type": "boolean",
+      "description": "Whether the player finished scratching the ticket and the prize was granted",
+      "default": false
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO timestamp of when the ticket was bought"
+    }
+  },
+  "required": [
+    "user_id",
+    "cost",
+    "outcome",
+    "timestamp"
+  ]
+}

@@ -1,12 +1,21 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { logChipMovement } from "@/lib/chipLog";
+import { logScratchTicket, updateScratchTicket } from "@/lib/scratchLog";
 import ScratchCardTicket from "./ScratchCardTicket";
 import ScratchResultModal from "./ScratchResultModal";
 import { ENTRY_COST, buildGrid, rollScratchOutcome } from "./scratchPrizes";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
+
+/** Human-readable prize label for the admin history. */
+function prizeLabel(prize) {
+  if (prize.type === "chips") return `+${prize.amount} Chips`;
+  if (prize.type === "tokens") return `+${prize.amount} Tokens`;
+  if (prize.type === "diamond") return "+1 VIP Diamond";
+  return `${prize.themeName} Theme`;
+}
 
 export default function ScratchCardGame({ user, onUserUpdate }) {
   const [phase, setPhase] = useState("idle"); // idle | playing | result
@@ -16,6 +25,7 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
   const [scratched, setScratched] = useState(0);
   const [ticketKey, setTicketKey] = useState(0);
   const [busy, setBusy] = useState(false);
+  const logIdRef = useRef(null);
 
   const tokens = user?.earlyAccessTokens ?? 0;
   const canAfford = tokens >= ENTRY_COST;
@@ -98,6 +108,14 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
     await onUserUpdate?.();
 
     const roll = rollScratchOutcome();
+    logIdRef.current = await logScratchTicket({
+      user,
+      cost: ENTRY_COST,
+      outcome: roll.prize ? "win" : "loss",
+      prize_type: roll.prize ? roll.prize.type : "none",
+      prize_amount: roll.prize?.amount ?? 0,
+      prize_label: roll.prize ? prizeLabel(roll.prize) : "No match",
+    });
     setPrize(roll.prize);
     setGranted(null);
     setScratched(0);
@@ -111,11 +129,25 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
     if (phase !== "playing") return;
     if (!prize) {
       setGranted(null);
+      await updateScratchTicket(logIdRef.current, {
+        collected: true,
+        outcome: "loss",
+        prize_type: "none",
+        prize_amount: 0,
+        prize_label: "No match",
+      });
       setPhase("result");
       return;
     }
     const result = await grantPrize(prize);
     setGranted(result);
+    await updateScratchTicket(logIdRef.current, {
+      collected: true,
+      outcome: "win",
+      prize_type: result.type,
+      prize_amount: result.amount ?? 0,
+      prize_label: prizeLabel(result),
+    });
     await onUserUpdate?.();
     setPhase("result");
   };

@@ -88,16 +88,18 @@ export default function Home() {
   const [activePopup, setActivePopup] = useState(null);
   const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
   const [ninjaEnabled, setNinjaEnabled] = useState(true);
+  const [scratchCardEnabled, setScratchCardEnabled] = useState(true);
   const { getChampionCount } = useChampionTitles();
 
   // Preload AppSettings once at session start so the Tokens tab's Ninja Slice
-  // sub-tab is already resolved (present/absent) by the time the user switches.
+  // and Scratch Card sub-tabs are already resolved by the time the user switches.
   useEffect(() => {
     let mounted = true;
     const load = () =>
       base44.entities.AppSettings.list().then((rows) => {
         if (!mounted) return;
         setNinjaEnabled(rows[0]?.ninja_enabled !== false);
+        setScratchCardEnabled(rows[0]?.scratch_card_enabled !== false);
       }).catch(() => {});
     load();
     const unsub = base44.entities.AppSettings.subscribe(load);
@@ -1073,7 +1075,15 @@ useEffect(() => {
 
         {/* ── TOKENS TAB ── */}
         {activeTab === "tokens" && (
-          <TokensTab user={user} onUserUpdate={refreshUser} totalBookingCount={totalBookingCount} isAdmin={isAdmin} ninjaEnabled={ninjaEnabled} />
+          <TokensTab
+            user={user}
+            onUserUpdate={refreshUser}
+            totalBookingCount={totalBookingCount}
+            isAdmin={isAdmin}
+            ninjaEnabled={ninjaEnabled}
+            scratchCardEnabled={scratchCardEnabled}
+            onUnlockAdmin={() => setShowPinModal(true)}
+          />
         )}
 
         {/* ── ADMIN TAB ── */}

@@ -37,6 +37,11 @@
       "description": "Whether the Ninja Slice arcade game is visible to players. When false, the Ninja Slice sub-tab button and game panel are completely hidden.",
       "default": true
     },
+    "scratch_card_enabled": {
+      "type": "boolean",
+      "description": "Whether the Premium Scratch Card sub-tab is available to players. When false, players see a 'Coming Soon' placeholder instead of the game; admins can still open it after entering the admin PIN.",
+      "default": true
+    },
     "voucher_feed_enabled": {
       "type": "boolean",
       "description": "Whether the live voucher activity feed is shown in the Blind Voucher shop",
@@ -135,7 +140,7 @@
     },
     "daily_cashout_cap": {
       "type": "number",
-      "description": "Admin-set ceiling on the chips a single player may cash back into tokens per Brunei day. Drives the Cashier's Daily Limit pill and blocks further cash-outs once reached. Falls back to 5000 when unset.",
+      "description": "Admin-set ceiling on the chips a player may cash back into tokens per Brunei day. Drives the Cashier's Daily Limit pill and blocks further cash-outs once reached. Falls back to 5000 when unset.",
       "default": 5000
     }
   },
