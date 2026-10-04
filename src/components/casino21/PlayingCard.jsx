@@ -4,13 +4,13 @@ import { motion } from "framer-motion";
 function CardBack() {
   return (
     <div
-      className="absolute inset-0 rounded-lg border border-slate-300 bg-blue-900 overflow-hidden shadow-lg"
+      className="absolute inset-0 rounded-none border-[3px] border-black bg-blue-900 overflow-hidden shadow-lg"
       style={{
         backgroundImage:
           "repeating-linear-gradient(45deg, rgba(255,255,255,0.12) 0 6px, transparent 6px 12px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.12) 0 6px, transparent 6px 12px)",
       }}
     >
-      <div className="absolute inset-1 rounded border border-white/25" />
+      <div className="absolute inset-1 rounded-none border border-white/25" />
     </div>
   );
 }
@@ -18,7 +18,7 @@ function CardBack() {
 function CardFace({ card }) {
   const isRed = card?.color === "red";
   return (
-    <div className="absolute inset-0 rounded-lg bg-white border border-slate-300 shadow-lg overflow-hidden">
+    <div className="absolute inset-0 rounded-none bg-white border-[3px] border-black shadow-lg overflow-hidden">
       <div className={`absolute top-1 left-1.5 leading-none ${isRed ? "text-red-600" : "text-slate-900"}`}>
         <span className="block text-xs sm:text-sm font-black">{card.rank}</span>
         <span className="block text-[10px] sm:text-xs">{card.suit}</span>
