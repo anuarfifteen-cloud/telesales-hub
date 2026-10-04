@@ -300,7 +300,7 @@ function LiveLeaderboard({ currentUserId }) {
                     }
                   </div>
                   <div className="flex-1 min-w-0 flex items-center gap-2">
-                    <ProfileAvatar user={userMap[s.user_id] || { id: s.user_id, full_name: s.user_name }} size="sm" showCrown championCount={getChampionCount(s.user_id)} />
+                    <ProfileAvatar user={userMap[s.user_id] || { id: s.user_id, full_name: s.user_name }} size="sm" showCrown leaderboard championCount={getChampionCount(s.user_id)} />
                     <span className="text-sm font-bold text-foreground dark:text-white leading-tight truncate" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
                       {s.user_name}
                     </span>

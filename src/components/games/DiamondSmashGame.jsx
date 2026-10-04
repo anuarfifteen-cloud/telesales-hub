@@ -153,7 +153,7 @@ function Leaderboard({ scores, loading, isAdmin, onClear, clearing, currentUserI
                       </span>
                     )}
                   </div>
-                  <ProfileAvatar user={userMap[s.user_id] || { id: s.user_id, full_name: s.user_name }} size="sm" showCrown championCount={getChampionCount(s.user_id)} />
+                  <ProfileAvatar user={userMap[s.user_id] || { id: s.user_id, full_name: s.user_name }} size="sm" showCrown leaderboard championCount={getChampionCount(s.user_id)} />
                   <span className="flex-1 min-w-0 text-sm font-bold text-foreground dark:text-white leading-tight" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
                     {s.user_name}
                   </span>

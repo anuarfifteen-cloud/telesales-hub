@@ -1053,7 +1053,7 @@ export default function NinjaTokenGame({ user /* , onUserUpdate */ }) {
               return (
                 <div key={l.id} className={`flex items-center gap-3 px-4 py-2 ${isChamp ? "opacity-60" : ""}`}>
                   <span className="w-6 text-center text-base text-[#3a2a1a] font-bold">{i < 3 ? medals[i] : `${i + 1}`}</span>
-                  <ProfileAvatar user={userMap[l.user_id] || { id: l.user_id, full_name: l.user_name }} size="sm" showCrown championCount={getChampionCount(l.user_id)} />
+                  <ProfileAvatar user={userMap[l.user_id] || { id: l.user_id, full_name: l.user_name }} size="sm" showCrown leaderboard championCount={getChampionCount(l.user_id)} />
                   <div className="flex-1 min-w-0 flex flex-col">
                     <span
                       className="text-sm font-bold text-[#3a2a1a] truncate flex items-center gap-1"
