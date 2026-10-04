@@ -11,6 +11,19 @@ const ctx = () => {
   return sharedCtx;
 };
 
+// True only when a sound would actually be heard right now: Web Audio has to be
+// usable (a suspended or unavailable context means the browser is holding audio
+// back) and the tab has to be in the foreground. Callers use this to skip audio
+// on a muted device and let the visual moment carry on by itself.
+export function audioReady() {
+  try {
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") return false;
+    return !!ctx();
+  } catch {
+    return false;
+  }
+}
+
 export function playClick() {
   try {
     const ac = ctx();

@@ -1,7 +1,5 @@
-import BlackChipIcon from "@/components/casino21/BlackChipIcon";
+import ScratchPrizeIcon from "./ScratchPrizeIcon";
 import { describeGrant } from "./scratchPrizes";
-
-const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 
 // Result card shown once all nine squares are scratched. Styles are inline so the
 // ticket reads the same in every app theme.
@@ -45,17 +43,7 @@ export default function ScratchResultModal({ granted, onClose }) {
         </p>
 
         <div style={{ display: "flex", justifyContent: "center", margin: "16px 0 12px" }}>
-          {!isWin ? (
-            <span style={{ fontSize: 56, lineHeight: 1 }}>🎫</span>
-          ) : granted.type === "chips" ? (
-            <BlackChipIcon size={60} />
-          ) : granted.type === "tokens" ? (
-            <img src={TOKEN_IMG} alt="token" style={{ width: 60, height: 60, objectFit: "contain" }} />
-          ) : granted.type === "diamond" ? (
-            <span style={{ fontSize: 56, lineHeight: 1 }}>💎</span>
-          ) : (
-            <span style={{ fontSize: 56, lineHeight: 1 }}>🎨</span>
-          )}
+          <ScratchPrizeIcon granted={granted} size={60} />
         </div>
 
         <h2 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "#ffffff", lineHeight: 1.15 }}>

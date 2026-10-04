@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SYMBOLS } from "./scratchPrizes";
 
 const BRUSH = 24; // scratch radius in px
@@ -7,13 +7,24 @@ const SAMPLES = 8; // 8x8 sample points per cell drive the coverage maths
 
 const symbolById = (id) => SYMBOLS.find((s) => s.id === id);
 
+// The order the nine squares pop in, reshuffled for every ticket.
+function shuffleCells() {
+  const order = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+  for (let i = order.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
+
 /**
  * A gold scratch ticket: the 3x3 symbols sit in the DOM and an HTML5 canvas is
  * layered on top. Pointer strokes erase the canvas (destination-out) and are
  * tracked against a per-cell sample mask, so a cell counts as revealed once
- * roughly half of it is gone. All nine revealed -> onComplete().
+ * roughly half of it is gone. All nine revealed -> onScratched(), then the
+ * shuffled reveal ceremony runs and onRevealComplete() closes the ticket out.
  */
-export default function ScratchCardTicket({ cells, active, ticketKey, onComplete, onProgress }) {
+export default function ScratchCardTicket({ cells, active, ticketKey, onScratched, onRevealComplete, onProgress }) {
   const canvasRef = useRef(null);
   const cellRefs = useRef([]);
   const rectsRef = useRef([]);
@@ -22,10 +33,17 @@ export default function ScratchCardTicket({ cells, active, ticketKey, onComplete
   const drawingRef = useRef(false);
   const lastRef = useRef(null);
   const doneRef = useRef(false);
+  const orderRef = useRef([]); // shuffled order the squares pop in
+  const stepOfRef = useRef([]); // cell index -> its position in that order
+  const [ceremony, setCeremony] = useState(false);
+  const [revealStep, setRevealStep] = useState(0);
+  const [foilGone, setFoilGone] = useState(false);
 
-  const onCompleteRef = useRef(onComplete);
+  const onScratchedRef = useRef(onScratched);
+  const onRevealCompleteRef = useRef(onRevealComplete);
   const onProgressRef = useRef(onProgress);
-  onCompleteRef.current = onComplete;
+  onScratchedRef.current = onScratched;
+  onRevealCompleteRef.current = onRevealComplete;
   onProgressRef.current = onProgress;
 
   const measureRects = useCallback(() => {
@@ -102,6 +120,37 @@ export default function ScratchCardTicket({ cells, active, ticketKey, onComplete
     return () => window.removeEventListener("resize", onResize);
   }, [paintOverlay]);
 
+  // A fresh shuffled reveal order for every ticket.
+  useEffect(() => {
+    setCeremony(false);
+    setRevealStep(0);
+    setFoilGone(false);
+    const order = shuffleCells();
+    orderRef.current = order;
+    const stepOf = new Array(9).fill(0);
+    order.forEach((cellIndex, step) => {
+      stepOf[cellIndex] = step;
+    });
+    stepOfRef.current = stepOf;
+  }, [ticketKey]);
+
+  // Reveal ceremony: the leftover foil fades, then the squares pop one at a time
+  // in the shuffled order — holding a longer beat before the final square — and
+  // the ticket is settled only once that last square has landed.
+  useEffect(() => {
+    if (!ceremony) return undefined;
+    const timers = [];
+    const order = orderRef.current;
+    setFoilGone(true);
+    let t = 320;
+    order.forEach((_, step) => {
+      timers.push(setTimeout(() => setRevealStep(step + 1), t));
+      t += step === order.length - 2 ? 620 : 140;
+    });
+    timers.push(setTimeout(() => onRevealCompleteRef.current?.(), t + 550));
+    return () => timers.forEach(clearTimeout);
+  }, [ceremony]);
+
   const pointFromEvent = (e) => {
     const r = canvasRef.current.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
@@ -176,7 +225,8 @@ export default function ScratchCardTicket({ cells, active, ticketKey, onComplete
 
     if (revealedRef.current.size === 9 && !doneRef.current) {
       doneRef.current = true;
-      onCompleteRef.current?.();
+      onScratchedRef.current?.();
+      setCeremony(true);
     }
   };
 
@@ -210,9 +260,22 @@ export default function ScratchCardTicket({ cells, active, ticketKey, onComplete
 
   return (
     <div className="relative">
+      <style>{`
+        @keyframes scratchCellPop {
+          0% { transform: scale(0.84); }
+          55% { transform: scale(1.09); }
+          100% { transform: scale(1); }
+        }
+        @keyframes scratchCellGlow {
+          0% { box-shadow: 0 0 0 0 rgba(255,215,106,0.9), 0 0 26px rgba(255,215,106,0.75); }
+          100% { box-shadow: 0 0 0 4px rgba(255,215,106,0), 0 0 0 rgba(255,215,106,0); }
+        }
+      `}</style>
+
       <div className="grid grid-cols-3 gap-2 p-2">
         {cells.map((id, i) => {
           const sym = symbolById(id);
+          const shown = revealStep > (stepOfRef.current[i] ?? 0);
           return (
             <div
               key={i}
@@ -224,6 +287,9 @@ export default function ScratchCardTicket({ cells, active, ticketKey, onComplete
                 aspectRatio: "1 / 1",
                 background: "#fffdf4",
                 border: `2px solid ${sym?.ring || "#e2e8f0"}`,
+                animation: shown
+                  ? "scratchCellPop 0.4s cubic-bezier(0.34,1.56,0.64,1), scratchCellGlow 0.85s ease-out forwards"
+                  : undefined,
               }}
             >
               <span style={{ fontSize: 30, lineHeight: 1 }}>{sym?.emoji}</span>
@@ -245,6 +311,8 @@ export default function ScratchCardTicket({ cells, active, ticketKey, onComplete
           touchAction: "none",
           cursor: active ? "crosshair" : "default",
           pointerEvents: active ? "auto" : "none",
+          opacity: foilGone ? 0 : 1,
+          transition: "opacity 0.4s ease",
         }}
         onPointerDown={handleDown}
         onPointerMove={handleMove}

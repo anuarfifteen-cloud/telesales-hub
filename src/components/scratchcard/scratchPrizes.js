@@ -3,7 +3,7 @@
 // all) and the other 95% pay one of the prizes below, whose weights add up to 95
 // and are each that prize's chance of ALL tickets — 30% five chips, 22% ten chips,
 // 14.3% five tokens, 15.3% twenty chips, 9.6% ten tokens, 2% Royal Batik, 1% Lilac
-// Bloom and 0.8% a diamond. A theme the player already owns pays tokens instead.
+// Bloom and 0.8% a diamond. A theme the player already owns pays 1 diamond instead.
 
 export const ENTRY_COST = 5;
 
@@ -28,8 +28,8 @@ export const SUCCESS_TABLE = [
   { weight: 14.3, type: "tokens", amount: 5, symbol: "tokens5" },
   { weight: 15.3, type: "chips", amount: 20, symbol: "chips20" },
   { weight: 9.6, type: "tokens", amount: 10, symbol: "tokens10" },
-  { weight: 2, type: "theme", themeId: "royal_batik", themeName: "Royal Batik", fallbackTokens: 10, symbol: "royal" },
-  { weight: 1, type: "theme", themeId: "lilac_bloom", themeName: "Lilac Bloom", fallbackTokens: 10, symbol: "lilac" },
+  { weight: 2, type: "theme", themeId: "royal_batik", themeName: "Royal Batik", symbol: "royal" },
+  { weight: 1, type: "theme", themeId: "lilac_bloom", themeName: "Lilac Bloom", symbol: "lilac" },
   { weight: 0.8, type: "diamond", amount: 1, symbol: "diamond" },
 ];
 
@@ -100,14 +100,14 @@ export function describeGrant(granted) {
     case "tokens":
       return {
         headline: `+${granted.amount} Tokens`,
-        subtitle: granted.duplicateTheme
-          ? `You already own ${granted.themeName} — converted to ${granted.amount} tokens.`
-          : "Added to your token balance.",
+        subtitle: "Added to your token balance.",
       };
     case "diamond":
       return {
         headline: "+1 VIP Diamond",
-        subtitle: "Jackpot! A diamond has been added to your balance.",
+        subtitle: granted.duplicateTheme
+          ? `You already own ${granted.themeName}, so this win paid out as 1 diamond.`
+          : "Jackpot! A diamond has been added to your balance.",
       };
     case "theme":
       return {
@@ -117,4 +117,13 @@ export function describeGrant(granted) {
     default:
       return { headline: "Winner!", subtitle: "" };
   }
+}
+
+/** How loud a granted prize's celebration should be. */
+export function prizeTier(granted) {
+  if (!granted) return "none";
+  if (granted.type === "diamond" || granted.type === "theme") return "big";
+  if (granted.type === "chips" && granted.amount >= 20) return "medium";
+  if (granted.type === "tokens" && granted.amount >= 10) return "medium";
+  return "small";
 }
