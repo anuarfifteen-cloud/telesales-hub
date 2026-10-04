@@ -512,7 +512,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                className={`relative text-center rounded-xl py-3 border ${
+                className={`blackjack-result-card relative text-center rounded-xl py-3 border ${
                   result.type === "win"
                     ? "bg-amber-500/20 border-amber-400/50 text-amber-200"
                     : result.type === "push"

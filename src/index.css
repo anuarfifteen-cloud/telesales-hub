@@ -472,6 +472,17 @@
     background: transparent !important;
   }
 
+  /* ── Gamer/Retro: Blackjack 21 result card ──
+     The theme repaints this rounded card white, but its outcome/refund text
+     keeps the light win/push/loss colors → white-on-white. Force every text
+     element in the result card to ink black so the outcome stays readable. */
+  [data-theme="gamer"] .blackjack-result-card,
+  [data-theme="retro"] .blackjack-result-card,
+  [data-theme="gamer"] .blackjack-result-card *,
+  [data-theme="retro"] .blackjack-result-card * {
+    color: #1a1a1a !important;
+  }
+
   /* ── Gamer/Retro: light-background text contrast fixes ── */
 
   /* 8. Default all text inside cards to ink black */
