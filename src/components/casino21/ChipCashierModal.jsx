@@ -9,10 +9,17 @@ import { logChipMovement } from "@/lib/chipLog";
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 const SERVICE_FEE_PCT = 0.2;
 const DAILY_CASHOUT_LIMIT = 5000;
+// Monthly ceiling on the tokens a single player may convert into chips.
+const MONTHLY_CONVERSION_CAP = 1000000;
 
 // Brunei-calendar YYYY-MM-DD for "today" — used to match cash-out logs.
 function getBruneiToday() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" });
+}
+
+// Brunei-calendar YYYY-MM for "this month" — used to total chip conversions.
+function getBruneiMonth() {
+  return getBruneiToday().slice(0, 7);
 }
 
 // ── Chip bundles: chips for tokens (one-way purchase, discounted) ──
@@ -63,6 +70,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
   const [cashAmount, setCashAmount] = useState(0);
   const [busy, setBusy] = useState(false);
   const [usedToday, setUsedToday] = useState(0);
+  const [usedThisMonth, setUsedThisMonth] = useState(0);
 
   const tokens = Number(user?.earlyAccessTokens) || 0;
   const chips = Number(user?.casinoChips) || 0;
@@ -76,6 +84,11 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
   // Daily cash-out cap (Brunei day) — sum chips already converted today from logs.
   const remaining = Math.max(0, DAILY_CASHOUT_LIMIT - usedToday);
   const cashMax = Math.max(0, Math.min(chips, remaining));
+
+  // Monthly conversion tracker (Brunei calendar month): tokens spent buying chips.
+  const monthRemaining = Math.max(0, MONTHLY_CONVERSION_CAP - usedThisMonth);
+  const monthLimitReached = usedThisMonth >= MONTHLY_CONVERSION_CAP;
+  const exceedsMonthRemaining = totalTokens > monthRemaining;
 
   const refreshUsedToday = async () => {
     if (!user?.id) return;
@@ -96,8 +109,34 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
     }
   };
 
+  // Total this Brunei month's chip purchases from the player's own buy logs.
+  // Entries written before tokens_spent existed read as 0, so they never block.
+  const refreshMonthlyUsage = async () => {
+    if (!user?.id) return;
+    try {
+      const rows = await base44.entities.CasinoChipLog.filter(
+        { user_id: user.id, action_type: "cashier_buy" },
+        "-timestamp",
+        200
+      );
+      const month = getBruneiMonth();
+      const sum = (rows || []).reduce((acc, r) => {
+        const d = r.timestamp
+          ? new Date(r.timestamp).toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" }).slice(0, 7)
+          : "";
+        return d === month ? acc + Math.max(0, Number(r.tokens_spent) || 0) : acc;
+      }, 0);
+      setUsedThisMonth(sum);
+    } catch (e) {
+      // Non-fatal: allow purchases, just without the monthly tracker.
+    }
+  };
+
   useEffect(() => {
-    if (open) refreshUsedToday();
+    if (open) {
+      refreshUsedToday();
+      refreshMonthlyUsage();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, user?.id]);
 
@@ -114,6 +153,14 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
       toast.error("Not enough tokens for that bundle.");
       return;
     }
+    if (monthLimitReached) {
+      toast.error("Monthly chip conversion limit reached — resets next month.");
+      return;
+    }
+    if (exceedsMonthRemaining) {
+      toast.error(`Only ${monthRemaining.toLocaleString()} tokens left in this month's chip allowance.`);
+      return;
+    }
     setBusy(true);
     try {
       await base44.auth.updateMe({
@@ -121,8 +168,9 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
         casinoChips: chips + totalChips,
       });
       await onUserUpdate?.();
-      logChipMovement({ user, action_type: "cashier_buy", amount: totalChips, balance_after: chips + totalChips, detail: `Cashier buy ${totalChips} chips for ${totalTokens} tokens` });
+      logChipMovement({ user, action_type: "cashier_buy", amount: totalChips, tokens_spent: totalTokens, balance_after: chips + totalChips, detail: `Cashier buy ${totalChips} chips for ${totalTokens} tokens` });
       toast.success(`Bought ${totalChips} chips for ${totalTokens} tokens!`);
+      setUsedThisMonth((v) => v + totalTokens);
       setQty(1);
       onClose();
     } catch (e) {
@@ -247,6 +295,18 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                   Buy chips with tokens — chips bet in Blackjack 21 only
                 </p>
 
+                {/* Monthly conversion tracker */}
+                <div className="mx-5 mb-3 rounded-2xl px-4 py-2.5 bg-emerald-950/40 border border-cyan-400/20 flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-200/80">
+                    Monthly Limit
+                  </span>
+                  <span className="flex items-center gap-1 text-xs font-black tabular-nums">
+                    <span className="text-amber-200">{usedThisMonth.toLocaleString()}</span>
+                    <span className="text-emerald-100/40">/ {MONTHLY_CONVERSION_CAP.toLocaleString()}</span>
+                    <MiniChipIcon size={12} />
+                  </span>
+                </div>
+
                 {/* Bundle selection */}
                 <div className="px-5 space-y-2.5">
                   {BUNDLES.map((b) => {
@@ -317,11 +377,20 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                   </div>
                   <button
                     onClick={handleBuy}
-                    disabled={busy || !canAfford}
+                    disabled={busy || !canAfford || monthLimitReached}
                     className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm bg-amber-400 text-emerald-950 border border-amber-300 disabled:opacity-40 hover:brightness-105 transition flex items-center justify-center gap-2"
                   >
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Purchase"}
                   </button>
+                  {monthLimitReached ? (
+                    <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
+                      Monthly limit reached — resets next month
+                    </p>
+                  ) : exceedsMonthRemaining ? (
+                    <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
+                      Only {monthRemaining.toLocaleString()} tokens left this month
+                    </p>
+                  ) : null}
                   {!canAfford && (
                     <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
                       Not enough tokens

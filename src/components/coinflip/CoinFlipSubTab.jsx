@@ -18,7 +18,7 @@ export default function CoinFlipSubTab({ user, onUserUpdate }) {
               ? "text-white border-transparent shadow"
               : "text-muted-foreground border-border bg-muted hover:bg-muted/60"
           }`}
-          style={mode === "coinflip" ? { background: "#1a237e" } : undefined}
+          style={mode === "coinflip" ? { background: "#059669" } : undefined}
         >
           🪙 Coin Flip
         </button>

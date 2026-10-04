@@ -37,6 +37,10 @@
       "type": "number",
       "description": "Snapshot of the user's casinoChips immediately after this movement"
     },
+    "tokens_spent": {
+      "type": "number",
+      "description": "Tokens paid for this movement. Only recorded on cashier_buy entries, where it drives the player's monthly chip conversion cap. Older entries without it are treated as 0."
+    },
     "detail": {
       "type": "string",
       "description": "Human-readable description, e.g. 'Blackjack 21 bet 5', 'Win \u2014 You win', 'Cash out 50 chips \u2192 40 tokens, fee 10'"
