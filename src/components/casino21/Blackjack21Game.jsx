@@ -18,7 +18,30 @@ import {
   handValue,
   isBlackjack,
   isBust,
+  isSoft,
 } from "./blackjackDeck";
+
+// ── Difficulty-driven hit/stand rules ───────────────────────────────
+// Payout is never affected — these only change how hard the table plays.
+//   easy   → AI stands on 15+, Dealer stands on all 16+
+//   normal → AI hits below 17, Dealer stands on all 17 (classic rules)
+//   hard   → AI plays to beat the player's visible hand, Dealer hits soft 17
+function aiShouldHit(hand, difficulty, playerVal) {
+  const v = handValue(hand);
+  if (difficulty === "easy") return v < 15;
+  if (difficulty === "hard") {
+    if (playerVal > 21) return v < 17; // player busted → AI plays safe, no need to chase
+    return v < 17 && v < playerVal;   // chase until 17 or a tie/beat of the player
+  }
+  return v < 17; // normal
+}
+
+function dealerShouldHit(hand, difficulty) {
+  const v = handValue(hand);
+  if (difficulty === "easy") return v < 16;
+  if (difficulty === "hard") return v < 17 || (v === 17 && isSoft(hand)); // hit soft 17
+  return v < 17; // normal
+}
 import HandPanel from "./HandPanel";
 import { logChipMovement } from "@/lib/chipLog";
 import BlackjackStats from "./BlackjackStats";
@@ -98,6 +121,20 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   useEffect(() => {
     chipsRef.current = chips;
   }, [chips]);
+
+  // Admin-controlled difficulty (AppSettings.blackjack_difficulty). Falls back
+  // to "normal" when missing. Re-fetched when the Cashier opens so a mid-session
+  // admin change is picked up without reloading the page.
+  const [difficulty, setDifficulty] = useState("normal");
+  useEffect(() => {
+    base44.entities.AppSettings
+      .list()
+      .then((rows) => {
+        const s = rows[0];
+        if (s?.blackjack_difficulty) setDifficulty(s.blackjack_difficulty);
+      })
+      .catch(() => {});
+  }, [showCashier]);
 
   const [bet, setBet] = useState(5);
   const [committedBet, setCommittedBet] = useState(0);
@@ -247,7 +284,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         let dl = [...dealer];
         // Play out Player 2 + Dealer so the table winner is named correctly.
         const aiFinal = await playAI(dd);
-        while (handValue(dl) < 17) {
+        while (dealerShouldHit(dl, difficulty)) {
           await new Promise((r) => setTimeout(r, 420));
           dl = [...dl, draw(dd)];
           dd = [...dd];
@@ -265,7 +302,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   // ── AI auto-play: hit below 17, stand on 17+ (display only) ─────────
   const playAI = async (d) => {
     let a = [...ai];
-    while (handValue(a) < 17) {
+    const pVal = handValue(player);
+    while (aiShouldHit(a, difficulty, pVal)) {
       await new Promise((r) => setTimeout(r, 380));
       a = [...a, draw(d)];
       setAi(a);
@@ -288,8 +326,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     // AI plays out first.
     const aiFinal = await playAI(d);
 
-    // Dealer stands on all 17s.
-    while (handValue(dl) < 17) {
+    // Dealer plays by the difficulty's stand threshold.
+    while (dealerShouldHit(dl, difficulty)) {
       await new Promise((r) => setTimeout(r, 420));
       dl = [...dl, draw(d)];
       d = [...d];

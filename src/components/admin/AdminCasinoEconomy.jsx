@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { logChipMovement } from "@/lib/chipLog";
@@ -58,6 +58,7 @@ export default function AdminCasinoEconomy() {
 
   return (
     <div className="flex flex-col gap-4">
+      <DifficultyCard />
       {/* View toggle */}
       <div className="grid grid-cols-2 gap-2 p-1 bg-muted/60 rounded-2xl border border-border">
         <button
@@ -313,6 +314,81 @@ function EditChipsModal({ user, admin, onClose, onSaved }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Blackjack 21 difficulty selector (Easy / Normal / Hard) ──────────
+// Writes AppSettings.blackjack_difficulty. Payout is identical on every level;
+// the preset only changes the Player 2 AI strategy and the Dealer stand rule.
+const DIFFICULTY_OPTIONS = [
+  { id: "easy", label: "Easy", hint: "AI stands on 15+ · Dealer stands on 16+" },
+  { id: "normal", label: "Normal", hint: "AI hits below 17 · Dealer stands on 17" },
+  { id: "hard", label: "Hard", hint: "AI chases your hand · Dealer hits soft 17" },
+];
+
+function DifficultyCard() {
+  const [settingsId, setSettingsId] = useState(null);
+  const [difficulty, setDifficulty] = useState("normal");
+  const [busy, setBusy] = useState(false);
+
+  // Load the current setting on mount.
+  useEffect(() => {
+    base44.entities.AppSettings.list().then((rows) => {
+      const s = rows[0];
+      if (s) {
+        setSettingsId(s.id);
+        if (s.blackjack_difficulty) setDifficulty(s.blackjack_difficulty);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const handleSelect = async (val) => {
+    if (busy || val === difficulty) return;
+    setDifficulty(val);
+    setBusy(true);
+    try {
+      const payload = { blackjack_difficulty: val };
+      if (settingsId) {
+        await base44.entities.AppSettings.update(settingsId, payload);
+      } else {
+        const created = await base44.entities.AppSettings.create(payload);
+        setSettingsId(created.id);
+      }
+      toast.success(`Blackjack 21 difficulty set to ${val.toUpperCase()}.`);
+    } catch (e) {
+      toast.error("Couldn't save difficulty: " + (e?.message || "Unknown error"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-5" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-base">🎮</span>
+        <h3 className="font-bold text-foreground text-base">Blackjack 21 Difficulty</h3>
+      </div>
+      <p className="text-sm text-muted-foreground mb-3">
+        Controls how Player 2 (AI) and the Dealer play. Payout stays the same on every level.
+      </p>
+      <div className="grid grid-cols-3 gap-2 p-1 bg-muted/60 rounded-2xl border border-border">
+        {DIFFICULTY_OPTIONS.map((opt) => (
+          <button
+            key={opt.id}
+            onClick={() => handleSelect(opt.id)}
+            disabled={busy}
+            className={`py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition disabled:opacity-50 ${
+              difficulty === opt.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      <p className="text-[11px] text-muted-foreground mt-2.5">
+        {DIFFICULTY_OPTIONS.find((o) => o.id === difficulty)?.hint}
+      </p>
     </div>
   );
 }
