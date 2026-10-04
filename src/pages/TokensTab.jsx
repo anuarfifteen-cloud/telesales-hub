@@ -13,7 +13,7 @@ import TapVaultCard from "@/components/tokens/TapVaultCard";
 import Blackjack21Game from "@/components/casino21/Blackjack21Game";
 import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
 
-export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true, onUnlockAdmin }) {
+export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true }) {
   const [innerTab, setInnerTab] = useState("milestones");
   // tabs: milestones | vip | ninja | coinflip | perfect10 | supertap | blindvoucher | flappy | blackjack21 | scratchcard | diamondsmash
   const tokens = user?.earlyAccessTokens ?? 0;
@@ -25,14 +25,10 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
     if (!ninjaEnabled && innerTab === "ninja") setInnerTab("milestones");
   }, [ninjaEnabled, innerTab]);
 
-  // Scratch Card is hidden from players while the admin keeps it switched off.
-  // It shows as "Coming Soon" — clicking asks for the admin PIN, and once the
-  // admin is unlocked the game opens as usual.
+  // Scratch Card is completely hidden from players while the admin keeps it
+  // switched off — no button and no placeholder. An unlocked admin still sees
+  // the tab and can open the game as usual.
   const scratchAccess = scratchCardEnabled || isAdmin;
-  const openScratchCard = () => {
-    if (scratchAccess) setInnerTab("scratchcard");
-    else onUnlockAdmin?.();
-  };
 
   useEffect(() => {
     if (!scratchAccess && innerTab === "scratchcard") setInnerTab("milestones");
@@ -166,16 +162,20 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         </div>
         {/* Row 4 — Scratch Card sits beside Blackjack 21, below Flappy Token */}
         <div className="grid grid-cols-3 gap-1">
-          <button
-            onClick={openScratchCard}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "scratchcard"
-                ? "bg-amber-600 text-white shadow"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            {scratchAccess ? "🎫 Scratch Card" : "Coming Soon 👀"}
-          </button>
+          {scratchAccess ? (
+            <button
+              onClick={() => setInnerTab("scratchcard")}
+              className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                innerTab === "scratchcard"
+                  ? "bg-amber-600 text-white shadow"
+                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
+            >
+              🎫 Scratch Card
+            </button>
+          ) : (
+            <div />
+          )}
           <button
             onClick={() => setInnerTab("blackjack21")}
             className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${

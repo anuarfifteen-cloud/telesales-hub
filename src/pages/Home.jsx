@@ -1082,7 +1082,6 @@ useEffect(() => {
             isAdmin={isAdmin}
             ninjaEnabled={ninjaEnabled}
             scratchCardEnabled={scratchCardEnabled}
-            onUnlockAdmin={() => setShowPinModal(true)}
           />
         )}
 
