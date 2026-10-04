@@ -826,3 +826,60 @@
   80% { transform: translate(3px, 2px); }
 }
 .match-shake { animation: match-shake 0.3s ease-in-out; }
+
+/* ── Daily Spin: Retro/Gamer control readability ──
+   The Retro/Gamer blanket rules repaint every descendant of .bg-white ink-black,
+   which left the SPIN!, Claim & Close and Spin Again labels dark-on-dark. Pin
+   explicit colours for the wheel's controls only. */
+[data-theme="gamer"] .daily-spin-spin-btn,
+[data-theme="retro"] .daily-spin-spin-btn {
+  background: linear-gradient(90deg, #8b5cf6 0%, #d946ef 100%) !important;
+  color: #ffffff !important;
+  border: 2px solid #2b2b2b !important;
+  box-shadow: 3px 3px 0px #2b2b2b !important;
+}
+[data-theme="gamer"] .daily-spin-spin-btn *,
+[data-theme="retro"] .daily-spin-spin-btn * {
+  color: #ffffff !important;
+}
+
+[data-theme="gamer"] .daily-spin-again-btn,
+[data-theme="retro"] .daily-spin-again-btn {
+  background: linear-gradient(90deg, #0ea5e9 0%, #2563eb 100%) !important;
+  color: #ffffff !important;
+  border: 2px solid #2b2b2b !important;
+  box-shadow: 3px 3px 0px #2b2b2b !important;
+}
+[data-theme="gamer"] .daily-spin-again-btn *,
+[data-theme="retro"] .daily-spin-again-btn * {
+  color: #ffffff !important;
+}
+
+[data-theme="gamer"] .daily-spin-claim-btn,
+[data-theme="retro"] .daily-spin-claim-btn {
+  background: #2b2b2b !important;
+  color: #ffffff !important;
+  border: 2px solid #2b2b2b !important;
+  box-shadow: 3px 3px 0px #2b2b2b !important;
+}
+[data-theme="gamer"] .daily-spin-claim-btn *,
+[data-theme="retro"] .daily-spin-claim-btn * {
+  color: #ffffff !important;
+}
+
+[data-theme="gamer"] .daily-spin-close-btn,
+[data-theme="retro"] .daily-spin-close-btn {
+  background: #ffffff !important;
+  color: #2b2b2b !important;
+  border: 2px solid #2b2b2b !important;
+  box-shadow: 2px 2px 0px #2b2b2b !important;
+}
+[data-theme="gamer"] .daily-spin-close-btn *,
+[data-theme="retro"] .daily-spin-close-btn * {
+  color: #2b2b2b !important;
+}
+
+[data-theme="gamer"] .daily-spin-closetext,
+[data-theme="retro"] .daily-spin-closetext {
+  color: #2b2b2b !important;
+}

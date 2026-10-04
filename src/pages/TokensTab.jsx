@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
-import CoinFlipSubTab from "@/components/coinflip/CoinFlipSubTab";
+import CoinFlipStreak from "@/components/coinflip/CoinFlipStreak";
 import PerfectTen from "@/components/coinflip/PerfectTen";
 import VipActivityFeed from "@/components/coinflip/VipActivityFeed";
 import NinjaTokenGame from "@/components/games/NinjaTokenGame";
@@ -10,10 +10,11 @@ import FlappyTokenGame from "@/components/games/FlappyTokenGame";
 import DiamondSmashGame from "@/components/games/DiamondSmashGame";
 import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
 import TapVaultCard from "@/components/tokens/TapVaultCard";
+import Blackjack21Game from "@/components/casino21/Blackjack21Game";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true }) {
   const [innerTab, setInnerTab] = useState("milestones");
-  // tabs: milestones | vip | duo | perfect10 | coinflip
+  // tabs: milestones | vip | ninja | coinflip | perfect10 | supertap | blindvoucher | flappy | blackjack21 | diamondsmash
   const tokens = user?.earlyAccessTokens ?? 0;
 
   // ninjaEnabled is preloaded by Home (via AppSettings subscription) so the tab
@@ -149,6 +150,21 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
             💎 Diamond Smash
           </button>
         </div>
+        {/* Row 4 — Blackjack 21 sits directly below Flappy Token */}
+        <div className="grid grid-cols-3 gap-1">
+          <div />
+          <button
+            onClick={() => setInnerTab("blackjack21")}
+            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              innerTab === "blackjack21"
+                ? "bg-emerald-700 text-white shadow"
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            ♠️ Blackjack 21
+          </button>
+          <div />
+        </div>
       </div>
 
       {/* Milestones */}
@@ -170,9 +186,16 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         <PerfectTen user={user} onUserUpdate={onUserUpdate} isAdmin={isAdmin} />
       )}
 
-      {/* Coin Flip / Casino 21 */}
+      {/* Coin Flip */}
       {innerTab === "coinflip" && (
-        <CoinFlipSubTab user={user} onUserUpdate={onUserUpdate} />
+        <div className="flex flex-col gap-3 w-full max-w-sm mx-auto">
+          <CoinFlipStreak user={user} onUserUpdate={onUserUpdate} />
+        </div>
+      )}
+
+      {/* Blackjack 21 */}
+      {innerTab === "blackjack21" && (
+        <Blackjack21Game user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {/* Ninja Slice (only when enabled) */}

@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { logChipMovement } from "@/lib/chipLog";
+import BlackChipIcon from "@/components/casino21/BlackChipIcon";
 
 const TZ = "Asia/Brunei";
 
@@ -20,8 +21,8 @@ const PRIZES = [
   { label: "1 Token! 🪙",    kind: "token", tokens: 1, chips: 0,  isWinner: true,  emoji: "🪙", lockDate: true,  wheelColor: "#1d4ed8", textColor: "#fff",     dotColor: "bg-blue-700",   useTokenImg: true },
   { label: "Spin Again! 🔄", kind: "none",  tokens: 0, chips: 0,  isWinner: false, emoji: "🔄", lockDate: false, wheelColor: "#d97706", textColor: "#1e293b",  dotColor: "bg-amber-600"  },
   { label: "Lucky Two! 🌟",  kind: "token", tokens: 2, chips: 0,  isWinner: true,  emoji: "🌟", lockDate: true,  wheelColor: "#15803d", textColor: "#fff",     dotColor: "bg-green-700"  },
-  { label: "5 Chips! 🎰",    kind: "chip",  tokens: 0, chips: 5,  isWinner: true,  emoji: "🎰", lockDate: true,  wheelColor: "#0e7490", textColor: "#fff",     dotColor: "bg-cyan-700"   },
-  { label: "10 Chips! 🎰",   kind: "chip",  tokens: 0, chips: 10, isWinner: true,  emoji: "🎰", lockDate: true,  wheelColor: "#7c3aed", textColor: "#fff",     dotColor: "bg-violet-700" },
+  { label: "5 Chips!",       kind: "chip",  tokens: 0, chips: 5,  isWinner: true,  emoji: "",   lockDate: true,  wheelColor: "#0e7490", textColor: "#fff",     dotColor: "bg-cyan-700"   },
+  { label: "10 Chips!",      kind: "chip",  tokens: 0, chips: 10, isWinner: true,  emoji: "",   lockDate: true,  wheelColor: "#7c3aed", textColor: "#fff",     dotColor: "bg-violet-700" },
   { label: "JACKPOT! 🏆",    kind: "token", tokens: 3, chips: 0,  isWinner: true,  emoji: "🏆", lockDate: true,  wheelColor: "#b45309", textColor: "#fff",     dotColor: "bg-yellow-700", useTokenImg: true },
 ];
 
@@ -127,7 +128,7 @@ function WheelGraphic({ rotation }) {
                   filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))",
                 }}
               >
-                {p.emoji}
+                {p.kind === "chip" ? <BlackChipIcon size={26} /> : p.emoji}
               </div>
             );
           })}
@@ -223,7 +224,7 @@ function WheelModal({ onClose, onClaim, user, today }) {
     if (result.kind === "token") {
       toast.success(`+${result.tokens} token${result.tokens > 1 ? "s" : ""} added! 🎉`);
     } else if (result.kind === "chip") {
-      toast.success(`+${result.chips} casino chips added! 🎰`);
+      toast.success(`+${result.chips} casino chips added!`);
     } else if (result.lockDate) {
       toast.info("Better luck tomorrow!");
     }
@@ -243,7 +244,13 @@ function WheelModal({ onClose, onClaim, user, today }) {
         <div className="w-full flex items-center justify-between">
           <h2 className="text-lg font-black text-foreground">🎡 Daily Spin Wheel</h2>
           {!spinning && !result && (
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl font-bold leading-none">×</button>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="daily-spin-close-btn text-muted-foreground hover:text-foreground text-xl font-bold leading-none w-8 h-8 rounded-full flex items-center justify-center"
+            >
+              ×
+            </button>
           )}
         </div>
 
@@ -256,6 +263,8 @@ function WheelModal({ onClose, onClaim, user, today }) {
               <span className="text-xs font-bold text-gray-700 dark:text-gray-200 whitespace-nowrap flex items-center gap-1">
                 {p.useTokenImg
                   ? <img src={TOKEN_IMG} alt="token" className="w-3.5 h-3.5 object-contain" />
+                  : p.kind === "chip"
+                  ? <BlackChipIcon size={14} />
                   : <span>{p.emoji}</span>}
                 {p.label.replace(/[😢🪙🔄🌟🏆🎰]/g, "").trim()}
               </span>
@@ -267,7 +276,7 @@ function WheelModal({ onClose, onClaim, user, today }) {
           <Button
             onClick={handleSpin}
             disabled={spinning}
-            className="w-full h-12 text-base font-black bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white rounded-2xl shadow-lg shadow-violet-200/40"
+            className="daily-spin-spin-btn w-full h-12 text-base font-black bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white rounded-2xl shadow-lg shadow-violet-200/40"
           >
             {spinning ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Spinning…</> : "SPIN!"}
           </Button>
@@ -275,7 +284,9 @@ function WheelModal({ onClose, onClaim, user, today }) {
 
         {result && (
           <div className="w-full flex flex-col items-center gap-3">
-            <div className="text-5xl">{result.emoji}</div>
+            {result.kind === "chip"
+              ? <BlackChipIcon size={52} />
+              : <div className="text-5xl">{result.emoji}</div>}
             <h3 className="text-xl font-black text-foreground text-center">{result.label}</h3>
             {result.kind === "token" && (
               <p className="text-sm text-muted-foreground text-center">
@@ -295,7 +306,7 @@ function WheelModal({ onClose, onClaim, user, today }) {
               <Button
                 onClick={handleClaim}
                 disabled={claiming}
-                className="w-full font-black bg-slate-800 hover:bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-2xl"
+                className="daily-spin-claim-btn w-full font-black bg-slate-800 hover:bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-2xl"
               >
                 {claiming ? <Loader2 className="w-4 h-4 animate-spin" /> : "Claim & Close"}
               </Button>
@@ -303,11 +314,11 @@ function WheelModal({ onClose, onClaim, user, today }) {
               <div className="flex flex-col gap-2 w-full">
                 <Button
                   onClick={handleSpinAgain}
-                  className="w-full font-black bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 text-white rounded-2xl"
+                  className="daily-spin-again-btn w-full font-black bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 text-white rounded-2xl"
                 >
                   Spin Again! 🔄
                 </Button>
-                <button onClick={onClose} className="text-xs text-muted-foreground underline text-center">
+                <button onClick={onClose} className="daily-spin-closetext text-xs text-muted-foreground underline text-center">
                   Close without spinning
                 </button>
               </div>

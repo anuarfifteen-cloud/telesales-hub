@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
 import { resolveVoucherReward } from "@/lib/voucherReward";
+import BlackChipIcon from "@/components/casino21/BlackChipIcon";
 
 const REWARD_EMOJI = { 1: "🎟️", 2: "✨", 3: "💰", 4: "🔥", 5: "👑" };
 const FOMO_LINES = [
@@ -56,7 +57,7 @@ export default function VoucherActivityFeed() {
             const fomo = isDiamond
               ? "just claimed a VIP Diamond! 💎"
               : isChips
-              ? "just claimed casino chips! 🎰"
+              ? "just claimed casino chips!"
               : FOMO_LINES[i % FOMO_LINES.length];
             const name = v.user_name?.split(" ")[0] || "Someone";
             return (
@@ -68,7 +69,11 @@ export default function VoucherActivityFeed() {
                 transition={{ delay: i * 0.05 }}
                 className="flex items-center gap-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-2"
               >
-                <span className="text-lg flex-shrink-0">{isDiamond ? "💎" : isChips ? "🎰" : (REWARD_EMOJI[amount] ?? "🎟️")}</span>
+                {isChips ? (
+                  <BlackChipIcon size={20} className="flex-shrink-0" />
+                ) : (
+                  <span className="text-lg flex-shrink-0">{isDiamond ? "💎" : (REWARD_EMOJI[amount] ?? "🎟️")}</span>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 truncate">
                     <span className="font-black">{name}</span> {fomo}
