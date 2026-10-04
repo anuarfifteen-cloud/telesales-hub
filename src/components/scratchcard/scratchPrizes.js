@@ -1,7 +1,9 @@
 // ── Premium Scratch Card rules ────────────────────────────────────────────────
-// Every ticket costs ENTRY_COST tokens and rolls the same outcome table the Claw
-// Machine used: 20% of tickets are house wins (no match at all), otherwise one of
-// the eight prizes is drawn from the weights below, which add up to 80.
+// Every ticket costs ENTRY_COST tokens. 80% of tickets win a prize and 20% are a
+// house win (no match at all). The weights below are the prize's share of ALL
+// tickets, so they add up to 100: 25% five chips, 18.75% ten chips, 18.75% five
+// tokens, 20% twenty chips, 11.25% ten tokens, 3.25% Royal Batik, 2% Lilac Bloom
+// and 1% a diamond. A theme the player already owns pays tokens instead.
 
 export const ENTRY_COST = 5;
 
@@ -18,14 +20,15 @@ export const SYMBOLS = [
   { id: "diamond", emoji: "💎", label: "1 DIAMOND", ring: "#38bdf8" },
 ];
 
-// Prize table (weights sum to 80) — unchanged from the Claw Machine.
+// Prize table (weights sum to 100 — each one is that prize's chance of showing up
+// on any given ticket).
 export const SUCCESS_TABLE = [
-  { weight: 20, type: "chips", amount: 5, symbol: "chips5" },
-  { weight: 15, type: "chips", amount: 10, symbol: "chips10" },
-  { weight: 15, type: "tokens", amount: 5, symbol: "tokens5" },
-  { weight: 12, type: "chips", amount: 20, symbol: "chips20" },
-  { weight: 9, type: "tokens", amount: 10, symbol: "tokens10" },
-  { weight: 6, type: "theme", themeId: "royal_batik", themeName: "Royal Batik", fallbackTokens: 10, symbol: "royal" },
+  { weight: 25, type: "chips", amount: 5, symbol: "chips5" },
+  { weight: 18.75, type: "chips", amount: 10, symbol: "chips10" },
+  { weight: 18.75, type: "tokens", amount: 5, symbol: "tokens5" },
+  { weight: 20, type: "chips", amount: 20, symbol: "chips20" },
+  { weight: 11.25, type: "tokens", amount: 10, symbol: "tokens10" },
+  { weight: 3.25, type: "theme", themeId: "royal_batik", themeName: "Royal Batik", fallbackTokens: 10, symbol: "royal" },
   { weight: 2, type: "theme", themeId: "lilac_bloom", themeName: "Lilac Bloom", fallbackTokens: 10, symbol: "lilac" },
   { weight: 1, type: "diamond", amount: 1, symbol: "diamond" },
 ];
@@ -34,7 +37,7 @@ export const SUCCESS_TABLE = [
 export function rollScratchOutcome() {
   if (Math.random() < 0.2) return { win: false, prize: null };
 
-  const roll = Math.random() * 80;
+  const roll = Math.random() * 100;
   let acc = 0;
   for (const prize of SUCCESS_TABLE) {
     acc += prize.weight;

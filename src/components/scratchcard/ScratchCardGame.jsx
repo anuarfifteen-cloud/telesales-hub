@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { logChipMovement } from "@/lib/chipLog";
 import { logScratchTicket, updateScratchTicket } from "@/lib/scratchLog";
 import ScratchCardTicket from "./ScratchCardTicket";
+import ScratchCardLiveFeed from "./ScratchCardLiveFeed";
 import ScratchResultModal from "./ScratchResultModal";
 import { ENTRY_COST, buildGrid, rollScratchOutcome } from "./scratchPrizes";
 
@@ -259,6 +260,8 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
           )}
         </div>
       </div>
+
+      <ScratchCardLiveFeed />
 
       {phase === "result" && <ScratchResultModal granted={granted} onClose={reset} />}
     </>
