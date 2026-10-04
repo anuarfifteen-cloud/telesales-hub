@@ -37,6 +37,11 @@
       "description": "Whether the Ninja Slice arcade game is visible to players. When false, the Ninja Slice sub-tab button and game panel are completely hidden.",
       "default": true
     },
+    "village_enabled": {
+      "type": "boolean",
+      "description": "Whether the Village Builder game is visible to all players. When false, the Village sub-tab only appears for an admin who has unlocked Admin Mode with the PIN.",
+      "default": false
+    },
     "voucher_feed_enabled": {
       "type": "boolean",
       "description": "Whether the live voucher activity feed is shown in the Blind Voucher shop",

@@ -1,0 +1,86 @@
+{
+  "name": "VillageSave",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user who owns this village"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the village owner"
+    },
+    "gold": {
+      "type": "number",
+      "description": "Current gold in the village treasury",
+      "default": 60
+    },
+    "wood": {
+      "type": "number",
+      "description": "Current wood stored in the village",
+      "default": 60
+    },
+    "food": {
+      "type": "number",
+      "description": "Current food stored in the village",
+      "default": 60
+    },
+    "population": {
+      "type": "number",
+      "description": "Villagers housed (derived from houses and taverns)",
+      "default": 0
+    },
+    "buildings": {
+      "type": "array",
+      "description": "Placed buildings \u2014 one entry per tile (type + grid coordinates)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "farm",
+              "lumber",
+              "house",
+              "mine",
+              "tavern"
+            ]
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "type",
+          "x",
+          "y"
+        ]
+      }
+    },
+    "quest_index": {
+      "type": "number",
+      "description": "Index of the player's current quest in the quest chain",
+      "default": 0
+    },
+    "quests_done": {
+      "type": "number",
+      "description": "Total quests completed (drives the leaderboard score)",
+      "default": 0
+    },
+    "day": {
+      "type": "number",
+      "description": "In-game day counter for the Day / Season clock",
+      "default": 1
+    },
+    "last_tick": {
+      "type": "string",
+      "description": "ISO timestamp of the last processed production tick \u2014 used to calculate offline progress"
+    }
+  },
+  "required": [
+    "user_id"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "name": "VillageLeaderboard",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the user"
+    },
+    "score": {
+      "type": "number",
+      "description": "Village score \u2014 quests completed \u00d7 100, plus buildings owned as a tiebreak",
+      "default": 0
+    },
+    "quests_done": {
+      "type": "number",
+      "description": "Quests completed in this village",
+      "default": 0
+    },
+    "buildings_count": {
+      "type": "number",
+      "description": "Number of buildings standing in the village",
+      "default": 0
+    },
+    "updated_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last score update"
+    }
+  },
+  "required": [
+    "user_id",
+    "user_name",
+    "score"
+  ]
+}
