@@ -1,9 +1,12 @@
 import ScratchPrizeIcon from "./ScratchPrizeIcon";
 import { describeGrant } from "./scratchPrizes";
 
-// Result card shown once all nine squares are scratched. Styles are inline so the
-// ticket reads the same in every app theme.
-export default function ScratchResultModal({ granted, onClose }) {
+// Result card shown once all nine squares are scratched — the ticket's single
+// reveal, scaled up for the bigger prizes. Styles are inline so the ticket reads
+// the same in every app theme.
+const ICON_SIZE = { none: 60, small: 60, medium: 68, big: 78 };
+
+export default function ScratchResultModal({ granted, tier = "small", onClose }) {
   const isWin = !!granted;
   const { headline, subtitle } = isWin
     ? describeGrant(granted)
@@ -42,8 +45,15 @@ export default function ScratchResultModal({ granted, onClose }) {
           {isWin ? "🏆 WINNER" : "🎫 NO WIN"}
         </p>
 
-        <div style={{ display: "flex", justifyContent: "center", margin: "16px 0 12px" }}>
-          <ScratchPrizeIcon granted={granted} size={60} />
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            margin: "16px 0 12px",
+            filter: tier === "big" ? "drop-shadow(0 0 18px rgba(255,215,106,0.85))" : undefined,
+          }}
+        >
+          <ScratchPrizeIcon granted={granted} size={ICON_SIZE[tier] || 60} />
         </div>
 
         <h2 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "#ffffff", lineHeight: 1.15 }}>

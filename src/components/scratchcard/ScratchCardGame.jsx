@@ -7,7 +7,6 @@ import { audioReady, playP10Jackpot, playTicketFlourish, playWin, playWinFanfare
 import ScratchCardTicket from "./ScratchCardTicket";
 import ScratchCardLiveFeed from "./ScratchCardLiveFeed";
 import ScratchResultModal from "./ScratchResultModal";
-import ScratchCelebration from "./ScratchCelebration";
 import { ENTRY_COST, TOKEN_IMG, buildGrid, prizeTier, rollScratchOutcome } from "./scratchPrizes";
 
 /** Human-readable prize label for the admin history. */
@@ -18,12 +17,9 @@ function prizeLabel(prize) {
   return `${prize.themeName} Theme`;
 }
 
-// How long the celebration beat lasts before the result card appears, per prize.
-const CELEBRATION_MS = { none: 1000, small: 1300, medium: 1700, big: 2400 };
-
 // Win sound scaled to the prize size. Skipped when the device cannot play audio
-// right now (muted output, backgrounded tab, no Web Audio support) — the visual
-// celebration still runs.
+// right now (muted output, backgrounded tab, no Web Audio support) — the result
+// card still appears either way.
 function playWinSound(tier) {
   if (!audioReady()) return;
   if (tier === "big") playP10Jackpot();
@@ -32,13 +28,15 @@ function playWinSound(tier) {
 }
 
 export default function ScratchCardGame({ user, onUserUpdate }) {
-  const [phase, setPhase] = useState("idle"); // idle | playing | revealing | celebrating | result
+  const [phase, setPhase] = useState("idle"); // idle | playing | revealing | result
   const [cells, setCells] = useState(null);
   const [prize, setPrize] = useState(null);
   const [granted, setGranted] = useState(null);
   const [scratched, setScratched] = useState(0);
   const [ticketKey, setTicketKey] = useState(0);
   const [busy, setBusy] = useState(false);
+  // True while a settled ticket's balances and logs are still being written.
+  const [settling, setSettling] = useState(false);
   const logIdRef = useRef(null);
   const settledRef = useRef(false);
 
@@ -46,51 +44,58 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
   const canAfford = tokens >= ENTRY_COST;
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
-  const grantPrize = async (won) => {
-    const fresh = await base44.auth.me();
+  /** What the ticket actually pays, decided against the freshly-read user record. */
+  const resolveGrant = (won, fresh) => {
+    if (!won) return null;
+    if (won.type === "theme") {
+      const owned = Array.isArray(fresh?.unlockedThemes) ? fresh.unlockedThemes : [];
+      // A theme the player already owns pays 1 diamond instead.
+      if (owned.includes(won.themeId)) {
+        return { type: "diamond", amount: 1, duplicateTheme: true, themeName: won.themeName };
+      }
+      return { type: "theme", themeId: won.themeId, themeName: won.themeName };
+    }
+    return { type: won.type, amount: won.amount };
+  };
 
-    if (won.type === "chips") {
+  /** Writes every balance and log entry a settled prize needs. */
+  const persistGrant = async (result, fresh) => {
+    if (!result) return;
+
+    if (result.type === "chips") {
       const chips = Number(fresh?.casinoChips) || 0;
-      await base44.auth.updateMe({ casinoChips: chips + won.amount });
+      await base44.auth.updateMe({ casinoChips: chips + result.amount });
       await logChipMovement({
         user,
         action_type: "win",
-        amount: won.amount,
-        balance_after: chips + won.amount,
-        detail: `Premium Scratch Card prize — ${won.amount} chips`,
+        amount: result.amount,
+        balance_after: chips + result.amount,
+        detail: `Premium Scratch Card prize — ${result.amount} chips`,
       });
-      return { type: "chips", amount: won.amount };
+      return;
     }
 
-    if (won.type === "tokens") {
+    if (result.type === "tokens") {
       const balance = Number(fresh?.earlyAccessTokens) || 0;
-      await base44.auth.updateMe({ earlyAccessTokens: balance + won.amount });
+      await base44.auth.updateMe({ earlyAccessTokens: balance + result.amount });
       await base44.entities.TokenTransaction.create({
         user_id: user.id,
         user_name: displayName,
-        amount: won.amount,
+        amount: result.amount,
         source: "Premium Scratch Card Prize",
         timestamp: new Date().toISOString(),
       });
-      return { type: "tokens", amount: won.amount };
+      return;
     }
 
-    if (won.type === "diamond") {
+    if (result.type === "diamond") {
       const diamonds = Number(fresh?.diamonds) || 0;
-      await base44.auth.updateMe({ diamonds: diamonds + won.amount });
-      return { type: "diamond", amount: won.amount };
+      await base44.auth.updateMe({ diamonds: diamonds + result.amount });
+      return;
     }
 
-    // Exclusive theme win — a theme the player already owns pays 1 diamond instead.
     const owned = Array.isArray(fresh?.unlockedThemes) ? fresh.unlockedThemes : [];
-    if (owned.includes(won.themeId)) {
-      const diamonds = Number(fresh?.diamonds) || 0;
-      await base44.auth.updateMe({ diamonds: diamonds + 1 });
-      return { type: "diamond", amount: 1, duplicateTheme: true, themeName: won.themeName };
-    }
-
-    await base44.auth.updateMe({ unlockedThemes: [...new Set([...owned, won.themeId])] });
-    return { type: "theme", themeId: won.themeId, themeName: won.themeName };
+    await base44.auth.updateMe({ unlockedThemes: [...new Set([...owned, result.themeId])] });
   };
 
   const buyTicket = async () => {
@@ -106,24 +111,10 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
     }
 
     await base44.auth.updateMe({ earlyAccessTokens: balance - ENTRY_COST });
-    await base44.entities.TokenTransaction.create({
-      user_id: user.id,
-      user_name: displayName,
-      amount: -ENTRY_COST,
-      source: "Premium Scratch Card Ticket",
-      timestamp: new Date().toISOString(),
-    });
-    await onUserUpdate?.();
 
+    // The ticket is dealt the moment the tokens are taken; the transaction and
+    // ticket records are written while the player is scratching.
     const roll = rollScratchOutcome();
-    logIdRef.current = await logScratchTicket({
-      user,
-      cost: ENTRY_COST,
-      outcome: roll.prize ? "win" : "loss",
-      prize_type: roll.prize ? roll.prize.type : "none",
-      prize_amount: roll.prize?.amount ?? 0,
-      prize_label: roll.prize ? prizeLabel(roll.prize) : "No match",
-    });
     settledRef.current = false;
     setPrize(roll.prize);
     setGranted(null);
@@ -133,44 +124,57 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
     setPhase("playing");
     if (audioReady()) playTicketFlourish();
     setBusy(false);
+
+    await Promise.all([
+      base44.entities.TokenTransaction.create({
+        user_id: user.id,
+        user_name: displayName,
+        amount: -ENTRY_COST,
+        source: "Premium Scratch Card Ticket",
+        timestamp: new Date().toISOString(),
+      }),
+      logScratchTicket({
+        user,
+        cost: ENTRY_COST,
+        outcome: roll.prize ? "win" : "loss",
+        prize_type: roll.prize ? roll.prize.type : "none",
+        prize_amount: roll.prize?.amount ?? 0,
+        prize_label: roll.prize ? prizeLabel(roll.prize) : "No match",
+      }).then((id) => {
+        logIdRef.current = id;
+      }),
+      onUserUpdate?.(),
+    ]);
   };
 
-  // All nine squares are scratched — hand over to the shuffled reveal ceremony.
+  // All nine squares are scratched — hand over to the foil fade and the reveal.
   const handleScratched = () => setPhase("revealing");
 
-  // The final square has landed: settle this ticket exactly once, celebrate the
-  // prize, then show the result card.
+  // The final square has landed: settle this ticket exactly once and show the
+  // single result card right away — the balances, logs and ticket record are
+  // written behind the card instead of holding it back.
   const handleRevealComplete = async () => {
     if (settledRef.current) return;
     settledRef.current = true;
-    const startedAt = Date.now();
-    let result = null;
+    const won = prize;
 
-    if (prize) {
-      result = await grantPrize(prize);
-      await updateScratchTicket(logIdRef.current, {
-        collected: true,
-        outcome: "win",
-        prize_type: result.type,
-        prize_amount: result.amount ?? 0,
-        prize_label: prizeLabel(result),
-      });
-      await onUserUpdate?.();
-    } else {
-      await updateScratchTicket(logIdRef.current, {
-        collected: true,
-        outcome: "loss",
-        prize_type: "none",
-        prize_amount: 0,
-        prize_label: "No match",
-      });
-    }
-
-    const tier = prizeTier(result);
+    const fresh = await base44.auth.me();
+    const result = resolveGrant(won, fresh);
     setGranted(result);
-    playWinSound(tier);
-    setPhase("celebrating");
-    setTimeout(() => setPhase("result"), Math.max(400, CELEBRATION_MS[tier] - (Date.now() - startedAt)));
+    playWinSound(prizeTier(result));
+    setPhase("result");
+
+    setSettling(true);
+    await persistGrant(result, fresh);
+    await updateScratchTicket(logIdRef.current, {
+      collected: true,
+      outcome: result ? "win" : "loss",
+      prize_type: result ? result.type : "none",
+      prize_amount: result?.amount ?? 0,
+      prize_label: result ? prizeLabel(result) : "No match",
+    });
+    await onUserUpdate?.();
+    setSettling(false);
   };
 
   const reset = () => {
@@ -266,7 +270,7 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
           {(phase === "idle" || phase === "result") && (
             <button
               onClick={buyTicket}
-              disabled={!canAfford || busy}
+              disabled={!canAfford || busy || settling}
               style={{
                 marginTop: 14,
                 width: "100%",
@@ -279,8 +283,8 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
                 background: "linear-gradient(180deg,#ffd76a,#f0a92b)",
                 border: "3px solid #7c4a06",
                 boxShadow: "0 6px 0 #7c4a06",
-                cursor: !canAfford || busy ? "not-allowed" : "pointer",
-                opacity: !canAfford || busy ? 0.5 : 1,
+                cursor: !canAfford || busy || settling ? "not-allowed" : "pointer",
+                opacity: !canAfford || busy || settling ? 0.5 : 1,
               }}
             >
               {phase === "result" ? "NEW TICKET" : "BUY TICKET"}
@@ -297,9 +301,9 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
 
       <ScratchCardLiveFeed />
 
-      {phase === "celebrating" && <ScratchCelebration granted={granted} />}
-
-      {phase === "result" && <ScratchResultModal granted={granted} onClose={reset} />}
+      {phase === "result" && (
+        <ScratchResultModal granted={granted} tier={prizeTier(granted)} onClose={reset} />
+      )}
     </>
   );
 }
