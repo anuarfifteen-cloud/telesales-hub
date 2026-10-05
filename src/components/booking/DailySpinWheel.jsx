@@ -21,8 +21,8 @@ const PRIZES = [
   { label: "1 Token! 🪙",    kind: "token", tokens: 1, chips: 0,  isWinner: true,  emoji: "🪙", lockDate: true,  wheelColor: "#1d4ed8", textColor: "#fff",     dotColor: "bg-blue-700",   useTokenImg: true },
   { label: "Spin Again! 🔄", kind: "none",  tokens: 0, chips: 0,  isWinner: false, emoji: "🔄", lockDate: false, wheelColor: "#d97706", textColor: "#1e293b",  dotColor: "bg-amber-600"  },
   { label: "Lucky Two! 🌟",  kind: "token", tokens: 2, chips: 0,  isWinner: true,  emoji: "🌟", lockDate: true,  wheelColor: "#15803d", textColor: "#fff",     dotColor: "bg-green-700"  },
-  { label: "5 Chips!",       kind: "chip",  tokens: 0, chips: 5,  isWinner: true,  emoji: "",   lockDate: true,  wheelColor: "#0e7490", textColor: "#fff",     dotColor: "bg-cyan-700"   },
-  { label: "10 Chips!",      kind: "chip",  tokens: 0, chips: 10, isWinner: true,  emoji: "",   lockDate: true,  wheelColor: "#7c3aed", textColor: "#fff",     dotColor: "bg-violet-700" },
+  { label: "50 Chips!",      kind: "chip",  tokens: 0, chips: 50, isWinner: true,  emoji: "",   lockDate: true,  wheelColor: "#0e7490", textColor: "#fff",     dotColor: "bg-cyan-700"   },
+  { label: "100 Chips!",     kind: "chip",  tokens: 0, chips: 100,isWinner: true,  emoji: "",   lockDate: true,  wheelColor: "#7c3aed", textColor: "#fff",     dotColor: "bg-violet-700" },
   { label: "JACKPOT! 🏆",    kind: "token", tokens: 3, chips: 0,  isWinner: true,  emoji: "🏆", lockDate: true,  wheelColor: "#b45309", textColor: "#fff",     dotColor: "bg-yellow-700", useTokenImg: true },
 ];
 
@@ -31,9 +31,9 @@ function rollPrizeIndex() {
   if (roll < 25) return 0;   // No Luck (25%)
   if (roll < 50) return 1;   // 1 Token (25%)
   if (roll < 65) return 3;   // 2 Tokens (15%)
-  if (roll < 80) return 4;   // 5 Chips (15%)
+  if (roll < 80) return 4;   // 50 Chips (15%)
   if (roll < 90) return 2;   // Spin Again (10%)
-  if (roll < 97) return 5;   // 10 Chips (7%)
+  if (roll < 97) return 5;   // 100 Chips (7%)
   return 6;                  // Jackpot (3%)
 }
 

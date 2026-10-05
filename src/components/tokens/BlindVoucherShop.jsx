@@ -11,17 +11,18 @@ function generateCode() {
   return `BV-${chunk()}-${chunk()}`;
 }
 // ── Weighted reward table (checked in order, totals 100%) ─────────────────────
-// 1 token 35% · 2 tokens 25% · 5 chips 15% · 3 tokens 12%
-// 4 tokens 6% · 10 chips 4% · 5 tokens 2% · VIP Diamond 1%
+// Chip payouts are ×10 the classic amounts so they match the casino's
+// 10 chips = 1 token rate: 1 token 35% · 2 tokens 25% · 50 chips 15% · 3 tokens 12%
+// 4 tokens 6% · 100 chips 4% · 5 tokens 2% · VIP Diamond 1%
 function randomReward() {
   const roll = Math.random() * 100;
   if (roll < 1) return { type: "diamond", amount: 1 };   // 1% — VIP Diamond
   if (roll < 36) return { type: "tokens", amount: 1 };   // 35%
   if (roll < 61) return { type: "tokens", amount: 2 };   // 25%
-  if (roll < 76) return { type: "chips", amount: 5 };    // 15%
+  if (roll < 76) return { type: "chips", amount: 50 };   // 15%
   if (roll < 88) return { type: "tokens", amount: 3 };   // 12%
   if (roll < 94) return { type: "tokens", amount: 4 };   // 6%
-  if (roll < 98) return { type: "chips", amount: 10 };   // 4%
+  if (roll < 98) return { type: "chips", amount: 100 };  // 4%
   return { type: "tokens", amount: 5 };                  // 2%
 }
 

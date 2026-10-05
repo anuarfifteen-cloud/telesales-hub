@@ -7,22 +7,12 @@ const SAMPLES = 8; // 8x8 sample points per cell drive the coverage maths
 
 const symbolById = (id) => SYMBOLS.find((s) => s.id === id);
 
-// The order the nine squares pop in, reshuffled for every ticket.
-function shuffleCells() {
-  const order = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-  for (let i = order.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [order[i], order[j]] = [order[j], order[i]];
-  }
-  return order;
-}
-
 /**
  * A gold scratch ticket: the 3x3 symbols sit in the DOM and an HTML5 canvas is
  * layered on top. Pointer strokes erase the canvas (destination-out) and are
  * tracked against a per-cell sample mask, so a cell counts as revealed once
- * roughly half of it is gone. All nine revealed -> onScratched(), then the
- * shuffled reveal ceremony runs and onRevealComplete() closes the ticket out.
+ * roughly half of it is gone. All nine revealed -> onScratched(), the leftover
+ * foil fades and onRevealComplete() closes the ticket out.
  */
 export default function ScratchCardTicket({ cells, active, ticketKey, onScratched, onRevealComplete, onProgress }) {
   const canvasRef = useRef(null);
@@ -33,10 +23,7 @@ export default function ScratchCardTicket({ cells, active, ticketKey, onScratche
   const drawingRef = useRef(false);
   const lastRef = useRef(null);
   const doneRef = useRef(false);
-  const orderRef = useRef([]); // shuffled order the squares pop in
-  const stepOfRef = useRef([]); // cell index -> its position in that order
-  const [ceremony, setCeremony] = useState(false);
-  const [revealStep, setRevealStep] = useState(0);
+  const finishTimerRef = useRef(null);
   const [foilGone, setFoilGone] = useState(false);
 
   const onScratchedRef = useRef(onScratched);
@@ -120,36 +107,19 @@ export default function ScratchCardTicket({ cells, active, ticketKey, onScratche
     return () => window.removeEventListener("resize", onResize);
   }, [paintOverlay]);
 
-  // A fresh shuffled reveal order for every ticket.
+  // Every ticket starts with its foil intact.
   useEffect(() => {
-    setCeremony(false);
-    setRevealStep(0);
     setFoilGone(false);
-    const order = shuffleCells();
-    orderRef.current = order;
-    const stepOf = new Array(9).fill(0);
-    order.forEach((cellIndex, step) => {
-      stepOf[cellIndex] = step;
-    });
-    stepOfRef.current = stepOf;
   }, [ticketKey]);
 
-  // Reveal ceremony: the leftover foil fades, then the squares pop one at a time
-  // in the shuffled order — holding a longer beat before the final square — and
-  // the ticket is settled only once that last square has landed.
-  useEffect(() => {
-    if (!ceremony) return undefined;
-    const timers = [];
-    const order = orderRef.current;
+  useEffect(() => () => clearTimeout(finishTimerRef.current), []);
+
+  // Ninth square scratched: the leftover foil fades, the nine symbols land
+  // together and the ticket settles — no staged reveal sequence.
+  const finishTicket = useCallback(() => {
     setFoilGone(true);
-    let t = 320;
-    order.forEach((_, step) => {
-      timers.push(setTimeout(() => setRevealStep(step + 1), t));
-      t += step === order.length - 2 ? 620 : 140;
-    });
-    timers.push(setTimeout(() => onRevealCompleteRef.current?.(), t + 550));
-    return () => timers.forEach(clearTimeout);
-  }, [ceremony]);
+    finishTimerRef.current = setTimeout(() => onRevealCompleteRef.current?.(), 420);
+  }, []);
 
   const pointFromEvent = (e) => {
     const r = canvasRef.current.getBoundingClientRect();
@@ -226,7 +196,7 @@ export default function ScratchCardTicket({ cells, active, ticketKey, onScratche
     if (revealedRef.current.size === 9 && !doneRef.current) {
       doneRef.current = true;
       onScratchedRef.current?.();
-      setCeremony(true);
+      finishTicket();
     }
   };
 
@@ -275,7 +245,7 @@ export default function ScratchCardTicket({ cells, active, ticketKey, onScratche
       <div className="grid grid-cols-3 gap-2 p-2">
         {cells.map((id, i) => {
           const sym = symbolById(id);
-          const shown = revealStep > (stepOfRef.current[i] ?? 0);
+          const shown = foilGone;
           return (
             <div
               key={i}
