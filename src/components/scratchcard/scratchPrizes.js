@@ -1,11 +1,10 @@
 // ── Premium Scratch Card rules ────────────────────────────────────────────────
 // Every ticket costs ENTRY_COST tokens: 5% of tickets are a house win (no match at
 // all) and the other 95% pay one of the prizes below, whose weights add up to 95
-// and are each that prize's chance of ALL tickets — 30% fifty chips, 22% a hundred
-// chips, 14.3% five tokens, 15.3% two hundred chips, 9.6% ten tokens, 2% Royal
-// Batik, 1% Lilac Bloom and 0.8% a diamond. Chip prizes are the classic amounts ×10
-// to match the casino's 10 chips = 1 token rate. A theme the player already owns
-// pays 1 diamond instead.
+// and are each that prize's chance of ALL tickets — 35% twenty-five chips, 22%
+// fifty chips, 14.3% five tokens, 10.3% a hundred chips, 9.6% ten tokens, 2% Royal
+// Batik, 1% Lilac Bloom and 0.8% a diamond. A theme the player already owns pays
+// 1 diamond instead.
 
 export const ENTRY_COST = 5;
 
@@ -21,10 +20,10 @@ export const CHIP_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b7
 // Symbols printed on the ticket. The winning prize's symbol is the one that
 // appears three times, so the grid always tells the truth about the payout.
 export const SYMBOLS = [
-  { id: "chips5", emoji: "🍀", src: CHIP_IMG, round: true, label: "50 CHIPS", ring: "#22c55e" },
-  { id: "chips10", emoji: "🔔", src: CHIP_IMG, round: true, label: "100 CHIPS", ring: "#06b6d4" },
+  { id: "chips25", emoji: "🍀", src: CHIP_IMG, round: true, label: "25 CHIPS", ring: "#22c55e" },
+  { id: "chips50", emoji: "🔔", src: CHIP_IMG, round: true, label: "50 CHIPS", ring: "#06b6d4" },
   { id: "tokens5", emoji: "🪙", src: TOKEN_IMG, label: "5 TOKENS", ring: "#f59e0b" },
-  { id: "chips20", emoji: "⭐", src: CHIP_IMG, round: true, label: "200 CHIPS", ring: "#8b5cf6" },
+  { id: "chips100", emoji: "⭐", src: CHIP_IMG, round: true, label: "100 CHIPS", ring: "#8b5cf6" },
   { id: "tokens10", emoji: "💰", src: TOKEN_IMG, label: "10 TOKENS", ring: "#eab308" },
   { id: "royal", emoji: "👑", label: "ROYAL BATIK", ring: "#d4af37" },
   { id: "lilac", emoji: "🌸", label: "LILAC BLOOM", ring: "#ec4899" },
@@ -34,10 +33,10 @@ export const SYMBOLS = [
 // Prize table (weights sum to 95, so each weight is that prize's exact chance of
 // showing up on any given ticket — the missing 5% is the house win).
 export const SUCCESS_TABLE = [
-  { weight: 30, type: "chips", amount: 50, symbol: "chips5" },
-  { weight: 22, type: "chips", amount: 100, symbol: "chips10" },
+  { weight: 35, type: "chips", amount: 25, symbol: "chips25" },
+  { weight: 22, type: "chips", amount: 50, symbol: "chips50" },
   { weight: 14.3, type: "tokens", amount: 5, symbol: "tokens5" },
-  { weight: 15.3, type: "chips", amount: 200, symbol: "chips20" },
+  { weight: 10.3, type: "chips", amount: 100, symbol: "chips100" },
   { weight: 9.6, type: "tokens", amount: 10, symbol: "tokens10" },
   { weight: 2, type: "theme", themeId: "royal_batik", themeName: "Royal Batik", symbol: "royal" },
   { weight: 1, type: "theme", themeId: "lilac_bloom", themeName: "Lilac Bloom", symbol: "lilac" },

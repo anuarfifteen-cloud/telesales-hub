@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Copy, Check } from "lucide-react";
-import { resolveVoucherReward } from "@/lib/voucherReward";
+import { rewardForRedemption, voucherRewardFields } from "@/lib/voucherReward";
 import { logChipMovement } from "@/lib/chipLog";
 
 const VOUCHER_MONTHLY_CAP = 50;
@@ -138,7 +138,11 @@ export default function TokenVoucher({ user, onUserUpdate }) {
           return toast.error("This code is not yours.");
         }
 
-        const { type: rewardType, amount: rewardAmount } = resolveVoucherReward(voucher);
+        // The reward is rolled from the current allocation at claim time, including
+        // for vouchers bought under the previous table.
+        const reward = rewardForRedemption(voucher);
+        const { type: rewardType, amount: rewardAmount } = reward;
+        const redemptionPatch = { status: "redeemed", ...voucherRewardFields(reward) };
 
         const freshUser = await base44.auth.me();
         const freshTokens = freshUser?.earlyAccessTokens ?? 0;
@@ -149,7 +153,7 @@ export default function TokenVoucher({ user, onUserUpdate }) {
           const currentDiamonds = freshUser?.diamonds ?? 0;
           await Promise.all([
             base44.auth.updateMe({ diamonds: currentDiamonds + 1 }),
-            base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+            base44.entities.Voucher.update(voucher.id, redemptionPatch),
             base44.entities.TokenTransaction.create({
               user_id: user.id,
               user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
@@ -170,7 +174,7 @@ export default function TokenVoucher({ user, onUserUpdate }) {
           // Chips path — deposits straight into the Blackjack 21 chip balance
           await Promise.all([
             base44.auth.updateMe({ casinoChips: freshChips + rewardAmount }),
-            base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+            base44.entities.Voucher.update(voucher.id, redemptionPatch),
             logChipMovement({
               user,
               action_type: "win",
@@ -198,7 +202,7 @@ export default function TokenVoucher({ user, onUserUpdate }) {
           // Token path
           await Promise.all([
             base44.auth.updateMe({ earlyAccessTokens: freshTokens + rewardAmount }),
-            base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+            base44.entities.Voucher.update(voucher.id, redemptionPatch),
             base44.entities.TokenTransaction.create({
               user_id: user.id,
               user_name: user.full_name || user.email?.split("@")[0] || "Unknown",

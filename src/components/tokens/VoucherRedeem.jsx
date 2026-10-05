@@ -2,7 +2,7 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { resolveVoucherReward } from "@/lib/voucherReward";
+import { rewardForRedemption, voucherRewardFields } from "@/lib/voucherReward";
 import { logChipMovement } from "@/lib/chipLog";
 
 export default function VoucherRedeem({ user, onUserUpdate }) {
@@ -37,14 +37,18 @@ export default function VoucherRedeem({ user, onUserUpdate }) {
     }
 
     const freshUser = await base44.auth.me();
-    const { type: rewardType, amount: rewardAmount } = resolveVoucherReward(voucher);
+    // The reward is rolled from the current allocation at claim time, including
+    // for vouchers bought under the previous table.
+    const reward = rewardForRedemption(voucher);
+    const { type: rewardType, amount: rewardAmount } = reward;
+    const redemptionPatch = { status: "redeemed", ...voucherRewardFields(reward) };
     const userName = user.full_name || user.email?.split("@")[0] || "Unknown";
 
     if (rewardType === "diamond") {
       const currentDiamonds = freshUser?.diamonds ?? 0;
       await Promise.all([
         base44.auth.updateMe({ diamonds: currentDiamonds + 1 }),
-        base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+        base44.entities.Voucher.update(voucher.id, redemptionPatch),
         base44.entities.TokenTransaction.create({
           user_id: user.id,
           user_name: userName,
@@ -58,7 +62,7 @@ export default function VoucherRedeem({ user, onUserUpdate }) {
       const currentChips = Number(freshUser?.casinoChips) || 0;
       await Promise.all([
         base44.auth.updateMe({ casinoChips: currentChips + rewardAmount }),
-        base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+        base44.entities.Voucher.update(voucher.id, redemptionPatch),
         logChipMovement({
           user,
           action_type: "win",
@@ -79,7 +83,7 @@ export default function VoucherRedeem({ user, onUserUpdate }) {
       const currentTokens = freshUser?.earlyAccessTokens ?? 0;
       await Promise.all([
         base44.auth.updateMe({ earlyAccessTokens: currentTokens + rewardAmount }),
-        base44.entities.Voucher.update(voucher.id, { status: "redeemed" }),
+        base44.entities.Voucher.update(voucher.id, redemptionPatch),
         base44.entities.TokenTransaction.create({
           user_id: user.id,
           user_name: userName,
