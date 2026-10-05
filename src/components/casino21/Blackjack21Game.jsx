@@ -45,7 +45,9 @@ import { logChipMovement } from "@/lib/chipLog";
 import BlackjackStats from "./BlackjackStats";
 import BlackjackHistory from "./BlackjackHistory";
 import ChipCashierModal from "./ChipCashierModal";
+import DailyChipGiftModal from "./DailyChipGiftModal";
 import MiniChipIcon from "./MiniChipIcon";
+import { bruneiToday } from "@/lib/bruneiDay";
 
 const GAME_TYPE = "blackjack";
 
@@ -136,9 +138,26 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
   const [bet, setBet] = useState(5);
   const [committedBet, setCommittedBet] = useState(0);
-  // The Cashier opens with the game so players can top up chips before betting;
-  // the visible Close button (and the backdrop) lets them skip it.
-  const [showCashier, setShowCashier] = useState(true);
+  // The Cashier no longer opens with the game — players open it from the
+  // balance strip or the bet screen whenever they want to top up.
+  const [showCashier, setShowCashier] = useState(false);
+
+  // Daily free gift: offered once per Brunei day, per user. The claim date is
+  // stored on the user record (same mechanic as the Daily Spin), so a claim on
+  // one device stops the popup showing on every other device until 00:00.
+  const [showGift, setShowGift] = useState(false);
+  useEffect(() => {
+    let active = true;
+    base44.auth
+      .me()
+      .then((fresh) => {
+        if (active && fresh && fresh.last_chip_gift_date !== bruneiToday()) setShowGift(true);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Admin-controlled difficulty (AppSettings.blackjack_difficulty). Falls back
   // to "normal" when missing. Re-fetched when the Cashier opens so a mid-session
@@ -606,6 +625,13 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         open={showCashier}
         onClose={() => setShowCashier(false)}
         onUserUpdate={onUserUpdate}
+      />
+
+      <DailyChipGiftModal
+        user={user}
+        open={showGift}
+        onClose={() => setShowGift(false)}
+        onClaimed={onUserUpdate}
       />
     </div>
   );

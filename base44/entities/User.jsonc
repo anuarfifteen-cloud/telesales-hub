@@ -32,6 +32,10 @@
       "type": "string",
       "description": "Date of last daily spin (YYYY-MM-DD, Brunei timezone)"
     },
+    "last_chip_gift_date": {
+      "type": "string",
+      "description": "Date the daily free 5-chip Blackjack 21 gift was claimed (YYYY-MM-DD, Brunei timezone). One claim per user per Brunei day, shared across devices; the gift popup is skipped for the rest of the day once set."
+    },
     "is_defending_champ": {
       "type": "boolean",
       "default": false,
