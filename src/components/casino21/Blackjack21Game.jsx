@@ -136,7 +136,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
   const [bet, setBet] = useState(5);
   const [committedBet, setCommittedBet] = useState(0);
-  const [showCashier, setShowCashier] = useState(false);
+  // The Cashier opens with the game so players can top up chips before betting;
+  // the visible Close button (and the backdrop) lets them skip it.
+  const [showCashier, setShowCashier] = useState(true);
 
   // Admin-controlled difficulty (AppSettings.blackjack_difficulty). Falls back
   // to "normal" when missing. Re-fetched when the Cashier opens so a mid-session

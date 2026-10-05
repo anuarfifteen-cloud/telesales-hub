@@ -487,6 +487,28 @@
     box-shadow: none;
   }
 
+  /* ── Gamer/Retro: Cashier bundle cards & custom token field ──
+     The theme rules repaint controls inside the Cashier's dark felt modal
+     (ink-black text inheritance and white input backgrounds), which left the
+     bundle labels and the typed token amount unreadable. Pin the designed
+     light-on-felt colours for these controls only. */
+  [data-theme="gamer"] .cashier-panel .cashier-bundle,
+  [data-theme="retro"] .cashier-panel .cashier-bundle,
+  [data-theme="gamer"] .cashier-panel .cashier-bundle *,
+  [data-theme="retro"] .cashier-panel .cashier-bundle * {
+    color: #fde68a !important;
+  }
+  [data-theme="gamer"] .cashier-panel .cashier-bundle .cashier-bonus,
+  [data-theme="retro"] .cashier-panel .cashier-bundle .cashier-bonus {
+    color: #ffffff !important;
+  }
+  [data-theme="gamer"] .cashier-panel input,
+  [data-theme="retro"] .cashier-panel input {
+    background: rgba(2, 44, 34, 0.4) !important;
+    color: #fde68a !important;
+    box-shadow: none;
+  }
+
   /* ── Gamer/Retro: Blackjack 21 result card ──
      The theme repaints this rounded card white, but its outcome/refund text
      keeps the light win/push/loss colors → white-on-white. Force every text

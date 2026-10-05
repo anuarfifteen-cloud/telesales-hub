@@ -7,7 +7,8 @@ import MiniChipIcon from "./MiniChipIcon";
 import { logChipMovement } from "@/lib/chipLog";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
-const SERVICE_FEE_PCT = 0.2;
+// Cash-out conversion is strict: 10 chips = 1 token, no service fee.
+const CHIPS_PER_TOKEN = 10;
 // Fallback ceilings, used when an admin hasn't saved a value in AppSettings
 // (Admin Dashboard → Casino Economy → Cashier Limits).
 const DAILY_CASHOUT_LIMIT = 5000;
@@ -23,11 +24,12 @@ function getBruneiMonth() {
   return getBruneiToday().slice(0, 7);
 }
 
-// ── Chip bundles: chips for tokens (one-way purchase, discounted) ──
+// ── Chip bundles: chips for tokens ──
+// Standard rate is 1 token = 10 chips; the two larger tiers pay bonus chips.
 const BUNDLES = [
-  { id: "red", chips: 10, tokens: 8, color: "#dc2626", accent: "rgba(255,255,255,0.55)", label: "Red" },
-  { id: "blue", chips: 50, tokens: 35, color: "#2563eb", accent: "rgba(255,255,255,0.55)", label: "Blue" },
-  { id: "black", chips: 100, tokens: 80, color: "#1a1a1a", accent: "#d4af37", label: "Black / Gold", gold: true },
+  { id: "red", chips: 10, tokens: 1, color: "#dc2626", accent: "rgba(255,255,255,0.55)", label: "Red" },
+  { id: "blue", chips: 110, tokens: 10, bonus: 10, color: "#2563eb", accent: "rgba(255,255,255,0.55)", label: "Blue" },
+  { id: "black", chips: 525, tokens: 50, bonus: 25, color: "#1a1a1a", accent: "#d4af37", label: "Black / Gold", gold: true },
 ];
 
 // ── Pure-CSS casino chip ──
@@ -66,8 +68,7 @@ function ChipIcon({ bundle, size = 56 }) {
 
 export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) {
   const [mode, setMode] = useState("buy"); // buy | cashout
-  const [selected, setSelected] = useState(BUNDLES[0].id);
-  const [qty, setQty] = useState(1);
+  const [buyTokens, setBuyTokens] = useState(BUNDLES[0].tokens);
   const [cashAmount, setCashAmount] = useState(0);
   const [busy, setBusy] = useState(false);
   const [usedToday, setUsedToday] = useState(0);
@@ -80,9 +81,12 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
   const chips = Number(user?.casinoChips) || 0;
   const userName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
-  const bundle = BUNDLES.find((b) => b.id === selected);
-  const totalTokens = bundle.tokens * qty;
-  const totalChips = bundle.chips * qty;
+  // The typed token amount drives the purchase: an exact bundle amount pays that
+  // bundle's bonus chips, any other amount pays the standard 1 token = 10 chips.
+  const totalTokens = Math.max(0, Math.floor(Number(buyTokens) || 0));
+  const matchedBundle = BUNDLES.find((b) => b.tokens === totalTokens);
+  const totalChips = matchedBundle ? matchedBundle.chips : totalTokens * CHIPS_PER_TOKEN;
+  const bonusChips = matchedBundle?.bonus || 0;
   const canAfford = tokens >= totalTokens;
 
   // Daily cash-out cap (Brunei day) — sum chips already converted today from logs.
@@ -154,17 +158,18 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, user?.id]);
 
-  // Cash-out amounts (convert chips → tokens at 80%, 20% service fee), capped by daily limit.
+  // Cash-out amounts, capped by the daily limit. Only whole blocks of 10 chips
+  // convert, so the payout is exactly 1 token per 10 chips.
   const cashChips = Math.min(Math.max(Math.floor(cashAmount), 0), cashMax);
-  const fee = Math.floor(cashChips * SERVICE_FEE_PCT);
-  const receive = cashChips - fee;
+  const chipsUsed = Math.floor(cashChips / CHIPS_PER_TOKEN) * CHIPS_PER_TOKEN;
+  const receive = chipsUsed / CHIPS_PER_TOKEN;
   const limitReached = remaining <= 0;
-  const canCashOut = cashChips >= 1 && !limitReached;
+  const canCashOut = chipsUsed >= CHIPS_PER_TOKEN && !limitReached;
 
   const handleBuy = async () => {
     if (busy) return;
     if (!canAfford) {
-      toast.error("Not enough tokens for that bundle.");
+      toast.error("Not enough tokens.");
       return;
     }
     if (monthLimitReached) {
@@ -185,7 +190,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
       logChipMovement({ user, action_type: "cashier_buy", amount: totalChips, tokens_spent: totalTokens, balance_after: chips + totalChips, detail: `Cashier buy ${totalChips} chips for ${totalTokens} tokens` });
       toast.success(`Bought ${totalChips} chips for ${totalTokens} tokens!`);
       setUsedThisMonth((v) => v + totalTokens);
-      setQty(1);
+      setBuyTokens(BUNDLES[0].tokens);
       onClose();
     } catch (e) {
       toast.error("Purchase failed. Please try again.");
@@ -197,25 +202,25 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
   const handleCashOut = async () => {
     if (busy) return;
     if (!canCashOut) {
-      toast.error("Enter at least 1 chip to cash out.");
+      toast.error(`Enter at least ${CHIPS_PER_TOKEN} chips to cash out.`);
       return;
     }
     setBusy(true);
     try {
       await base44.auth.updateMe({
-        casinoChips: chips - cashChips,
+        casinoChips: chips - chipsUsed,
         earlyAccessTokens: tokens + receive,
       });
       await base44.entities.TokenTransaction.create({
         user_id: user.id,
         user_name: userName,
         amount: receive,
-        source: `Blackjack 21 — Cash Out (${cashChips} chips → ${receive} tokens, 20% service fee)`,
+        source: `Blackjack 21 — Cash Out (${chipsUsed} chips → ${receive} tokens, 10 chips = 1 token)`,
         timestamp: new Date().toISOString(),
       });
       await onUserUpdate?.();
-      logChipMovement({ user, action_type: "cashier_cashout", amount: -cashChips, balance_after: chips - cashChips, detail: `Cash out ${cashChips} chips → ${receive} tokens, fee ${fee}` });
-      toast.success(`Cashed out ${receive} tokens · ${fee} chip service fee.`);
+      logChipMovement({ user, action_type: "cashier_cashout", amount: -chipsUsed, balance_after: chips - chipsUsed, detail: `Cash out ${chipsUsed} chips → ${receive} tokens, 10 chips = 1 token` });
+      toast.success(`Cashed out ${chipsUsed} chips for ${receive} tokens.`);
       setCashAmount(0);
       await refreshUsedToday();
       onClose();
@@ -237,13 +242,16 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
           style={{ background: "rgba(0,0,0,0.75)" }}
           onClick={onClose}
         >
+          <div
+            className="flex w-full max-w-sm max-h-full flex-col items-center gap-3 overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
           <motion.div
             initial={{ scale: 0.92, y: 16 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.92, y: 16 }}
             transition={{ type: "spring", stiffness: 260, damping: 24 }}
-            onClick={(e) => e.stopPropagation()}
-            className="cashier-panel w-full max-w-sm rounded-3xl border border-emerald-400/30 overflow-hidden"
+            className="cashier-panel w-full rounded-3xl border border-emerald-400/30 overflow-hidden"
             style={{
               background:
                 "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)",
@@ -321,15 +329,15 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                   </span>
                 </div>
 
-                {/* Bundle selection */}
+                {/* Bundle selection — tapping a card fills the token field */}
                 <div className="px-5 space-y-2.5">
                   {BUNDLES.map((b) => {
-                    const isActive = selected === b.id;
+                    const isActive = totalTokens === b.tokens;
                     return (
                       <button
                         key={b.id}
-                        onClick={() => setSelected(b.id)}
-                        className={`w-full flex items-center gap-3 rounded-2xl p-3 border transition-all text-amber-200 ${
+                        onClick={() => setBuyTokens(b.tokens)}
+                        className={`cashier-bundle relative w-full flex items-center gap-3 rounded-2xl p-3 border transition-all text-amber-200 ${
                           isActive
                             ? "border-amber-400 bg-amber-400/10 shadow-[0_0_12px_rgba(212,175,55,0.25)]"
                             : "border-emerald-400/20 bg-emerald-950/30 hover:border-emerald-400/40"
@@ -345,6 +353,11 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                             <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain inline" />
                           </p>
                         </div>
+                        {b.bonus ? (
+                          <span className="cashier-bonus absolute -top-2 right-3 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500 text-white shadow">
+                            +{b.bonus} Bonus
+                          </span>
+                        ) : null}
                         {isActive && (
                           <span className="text-amber-300 text-xs font-black uppercase tracking-widest">✓</span>
                         )}
@@ -353,24 +366,29 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                   })}
                 </div>
 
-                {/* Quantity selector */}
+                {/* Custom token amount — chips follow at 10 per token */}
                 <div className="px-5 pt-4 pb-2">
-                  <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-100/60 mb-2">Quantity</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[1, 2, 3].map((q) => (
-                      <button
-                        key={q}
-                        onClick={() => setQty(q)}
-                        className={`py-2.5 rounded-xl font-black text-sm uppercase tracking-widest border transition ${
-                          qty === q
-                            ? "bg-amber-400 text-emerald-950 border-amber-300"
-                            : "bg-emerald-950/40 text-emerald-100/70 border-emerald-400/20 hover:border-emerald-400/40"
-                        }`}
-                      >
-                        ×{q}
-                      </button>
-                    ))}
+                  <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-100/60 mb-2">
+                    Tokens to spend
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <img src={TOKEN_IMG} alt="token" className="w-5 h-5 object-contain flex-shrink-0" />
+                    <input
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      value={buyTokens}
+                      onChange={(e) => setBuyTokens(e.target.value)}
+                      className="flex-1 min-w-0 rounded-xl px-3 py-2.5 bg-emerald-950/40 border border-emerald-400/20 text-amber-200 font-black text-sm tabular-nums focus:border-amber-400 focus:outline-none"
+                    />
+                    <span className="flex items-center gap-1 rounded-xl px-3 py-2.5 bg-emerald-950/40 border border-amber-400/30 text-amber-200 font-black text-sm tabular-nums whitespace-nowrap">
+                      = {totalChips}
+                      <MiniChipIcon size={12} />
+                    </span>
                   </div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-100/50 mt-2">
+                    {bonusChips > 0 ? `Bundle bonus applied — +${bonusChips} extra chips` : "1 token = 10 chips"}
+                  </p>
                 </div>
 
                 {/* Total + confirm */}
@@ -417,7 +435,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
             {mode === "cashout" && (
               <>
                 <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-100/60 text-center px-5 pb-3">
-                  Convert chips to tokens · 20% service fee
+                  Convert chips to tokens · 10 chips = 1 token
                 </p>
 
                 {/* Daily limit tracker */}
@@ -436,7 +454,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                 <div className="px-5 pb-3">
                   <div className="flex items-center gap-2 mb-2">
                     <button
-                      onClick={() => setCashAmount((a) => Math.max(a - 5, 0))}
+                      onClick={() => setCashAmount((a) => Math.max(a - CHIPS_PER_TOKEN, 0))}
                       disabled={chips < 1 || limitReached}
                       className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
                     >
@@ -446,14 +464,14 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                       type="range"
                       min={0}
                       max={Math.max(cashMax, 1)}
-                      step={1}
+                      step={CHIPS_PER_TOKEN}
                       value={Math.min(cashAmount, cashMax)}
                       onChange={(e) => setCashAmount(Number(e.target.value))}
                       disabled={chips < 1 || limitReached}
                       className="flex-1 accent-cyan-400"
                     />
                     <button
-                      onClick={() => setCashAmount((a) => Math.min(a + 5, cashMax))}
+                      onClick={() => setCashAmount((a) => Math.min(a + CHIPS_PER_TOKEN, cashMax))}
                       disabled={chips < 1 || limitReached}
                       className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
                     >
@@ -463,7 +481,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1 text-amber-200 font-black text-sm tabular-nums">
                       <MiniChipIcon size={14} />
-                      {cashChips} CHIPS
+                      {chipsUsed} CHIPS
                     </span>
                     <button
                       onClick={() => setCashAmount(cashMax)}
@@ -478,12 +496,13 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
 
                 {/* Breakdown */}
                 <div className="px-5 space-y-2 pb-3">
-                  <div className="flex items-center justify-between rounded-2xl px-4 py-2.5 bg-rose-950/30 border border-rose-400/20">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-rose-200/80">
-                      Service fee (20%)
+                  <div className="flex items-center justify-between rounded-2xl px-4 py-2.5 bg-cyan-950/30 border border-cyan-400/20">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-cyan-200/80">
+                      Conversion rate
                     </span>
-                    <span className="flex items-center gap-1 text-rose-300 font-black text-sm tabular-nums">
-                      −{fee} <MiniChipIcon size={12} />
+                    <span className="flex items-center gap-1 text-cyan-200 font-black text-sm tabular-nums">
+                      {CHIPS_PER_TOKEN} <MiniChipIcon size={12} /> = 1
+                      <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain" />
                     </span>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl px-4 py-2.5 bg-amber-400/10 border border-amber-400/40">
@@ -508,7 +527,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                   </button>
                   {!canCashOut && chips >= 1 && (
                     <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
-                      Choose at least 1 chip
+                      Choose at least {CHIPS_PER_TOKEN} chips
                     </p>
                   )}
                   {chips < 1 && (
@@ -525,6 +544,15 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
               </>
             )}
           </motion.div>
+
+            {/* Skip option, sitting below the modal container */}
+            <button
+              onClick={onClose}
+              className="w-full shrink-0 py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-100/80 bg-emerald-950/60 border border-emerald-400/30 hover:text-white hover:border-emerald-400/60 transition"
+            >
+              Close
+            </button>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
