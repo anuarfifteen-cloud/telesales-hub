@@ -56,6 +56,11 @@ const MIN_BET = 5;             // table minimum
 const BET_STEP = 5;            // every valid wager is a 5-chip step, which keeps…
 const BLACKJACK_TOKENS = 10;   // …standard win returns whole, and a natural 21 adds this fixed bonus on top
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
+// Pace of the Dealer's turn: one smooth beat per card drawn, so each flip and
+// total update is readable. The result popup then waits a further moment so the
+// player can study the Dealer's finished hand before the outcome covers it.
+const DEALER_DRAW_MS = 550;
+const RESULT_MODAL_DELAY = 1800;
 
 /** Standard win returns stake + 1:1 profit (2× the wager), cashed in at 10 chips per token. */
 function winTokens(wager) {
@@ -167,6 +172,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const [revealHole, setRevealHole] = useState(false);
   const [phase, setPhase] = useState("bet"); // bet | player | dealer | resolve
   const [result, setResult] = useState(null); // { type, detail, natural, tokenWin, chipRefund, bet }
+  const [resultVisible, setResultVisible] = useState(false); // popup is held back from the moment the Dealer is done
   const [aiResult, setAiResult] = useState(null); // { type, detail } — display only
   const [aiRevealed, setAiRevealed] = useState(false); // AI cards stay face-down until its turn ends
   const [busy, setBusy] = useState(false);
@@ -212,6 +218,17 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     const chipRefund = type === "push" ? wager : 0;
     setResult({ type, detail, natural, tokenWin, chipRefund, bet: wager });
     setPhase("resolve");
+    // Hold the popup back for a beat so the Dealer's final cards and total stay
+    // in view, then land it — with the win/loss flash and fireworks timed to it.
+    setResultVisible(false);
+    setTimeout(() => {
+      setResultVisible(true);
+      if (type === "win" || type === "loss") {
+        setFlash(type);
+        if (type === "win") setTimeout(burstConfetti, 130);
+        setTimeout(() => setFlash(null), 600);
+      }
+    }, RESULT_MODAL_DELAY);
     try {
       // Read the balances fresh so a stale screen can't overwrite them.
       const fresh = await base44.auth.me();
@@ -250,19 +267,11 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         detail: `Blackjack 21 — ${detail}`,
       });
       queryClient.invalidateQueries({ queryKey: ["blackjack-history", user?.id] });
-      if (type === "win") {
-        playWinFanfare();
-        setFlash("win");
-        // Fire the fireworks as the result popup lands, so the two are in sync.
-        setTimeout(burstConfetti, 130);
-        setTimeout(() => setFlash(null), 600);
-      } else if (type === "push") {
-        playPush();
-      } else {
-        playLoss();
-        setFlash("loss");
-        setTimeout(() => setFlash(null), 600);
-      }
+      // The sound lands as the Dealer's hand ends; the visual celebration rides
+      // with the popup (see the timer above) so both arrive together.
+      if (type === "win") playWinFanfare();
+      else if (type === "push") playPush();
+      else playLoss();
     } catch {
       toast.error("Couldn't save your round. Balance may be out of sync.");
     }
@@ -368,7 +377,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         // Play out Player 2 + Dealer so the table winner is named correctly.
         const aiFinal = await playAI(dd);
         while (dealerShouldHit(dl, difficulty)) {
-          await new Promise((r) => setTimeout(r, 420));
+          await new Promise((r) => setTimeout(r, DEALER_DRAW_MS));
           dl = [...dl, draw(dd)];
           dd = [...dd];
           setDealer(dl);
@@ -408,7 +417,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
     // Dealer plays by the difficulty's stand threshold.
     while (dealerShouldHit(dl, difficulty)) {
-      await new Promise((r) => setTimeout(r, 420));
+      await new Promise((r) => setTimeout(r, DEALER_DRAW_MS));
       dl = [...dl, draw(d)];
       d = [...d];
       setDealer(dl);
@@ -428,6 +437,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setDeck([]);
     setRevealHole(false);
     setResult(null);
+    setResultVisible(false);
     setAiResult(null);
     setAiRevealed(false);
     setCommittedBet(0);
@@ -564,7 +574,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
           {/* Result overlay */}
           <BlackjackResultCard
-            show={phase === "resolve" && !!result}
+            show={phase === "resolve" && !!result && resultVisible}
             result={result}
             aiResult={aiResult}
             showAi={difficulty !== "very_easy"}
