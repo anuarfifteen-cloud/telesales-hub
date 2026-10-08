@@ -10,7 +10,7 @@ const SECTIONS = [
     items: [
       {
         q: "What is the goal?",
-        a: "Get a hand total closer to 21 than the other hands at the table — without going over 21.",
+        a: "Get a hand total closer to 21 than the Dealer's — without going over 21.",
       },
       {
         label: "Card values",
@@ -18,7 +18,7 @@ const SECTIONS = [
       },
       {
         label: "The deal",
-        a: "You're seated at a 3-seat table: YOU, PLAYER 2 (the AI) and the DEALER. Every seat gets 2 cards, and one of the Dealer's cards stays face down. On the easiest table setting, Player 2 sits out and you play the Dealer heads-up.",
+        a: "You and the Dealer each get 2 cards. Both of the Dealer's cards start face down — the Dealer's hand is only turned over once your turn ends.",
       },
       {
         label: "Your move",
@@ -26,15 +26,15 @@ const SECTIONS = [
       },
       {
         label: "Dealer's turn",
-        a: "The Dealer flips the hidden card and plays its own hand by the table's house rules — its strategy stays private.",
+        a: "The Dealer turns its cards over and plays its own hand by the house rules — its strategy stays private.",
       },
       {
         label: "Who wins",
-        a: "The highest total that doesn't go over 21 wins the round. Going over 21 is a Bust — an instant loss. Tying the top hand is a Push and your chips come back.",
+        a: "The hand closest to 21 without going over wins the round. Going over 21 is a Bust — an instant loss. Matching the Dealer's total is a Push and your chips come back.",
       },
       {
         label: "Natural Blackjack",
-        a: "An Ace + a 10-value card on your first two cards. That's a Blackjack — the best hand at the table!",
+        a: "An Ace + a 10-value card on your first two cards. That's a Blackjack — the best hand in the game!",
       },
     ],
   },
@@ -80,10 +80,6 @@ const SECTIONS = [
       {
         label: "Push (Tie)",
         a: "Your original chips are returned to your chip balance.",
-      },
-      {
-        label: "Player 2 (AI)",
-        a: "PLAYER 2 is an opponent seat at the table: it plays its own hand and competes for the same pot. The highest hand at the table takes the round, so if Player 2 beats you it's a loss even when the Dealer busts. On the easiest table setting, Player 2 sits out.",
       },
     ],
   },

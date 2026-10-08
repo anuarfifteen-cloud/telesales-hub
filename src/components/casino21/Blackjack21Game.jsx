@@ -251,7 +251,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       if (type === "win") {
         playWinFanfare();
         setFlash("win");
-        burstConfetti();
+        // Fire the fireworks as the result popup lands, so the two are in sync.
+        setTimeout(burstConfetti, 130);
         setTimeout(() => setFlash(null), 600);
       } else if (type === "push") {
         playPush();

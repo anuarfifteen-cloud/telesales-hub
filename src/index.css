@@ -509,16 +509,11 @@
     box-shadow: none;
   }
 
-  /* ── Gamer/Retro: Blackjack 21 result card ──
-     The theme repaints this rounded card white, but its outcome/refund text
-     keeps the light win/push/loss colors → white-on-white. Force every text
-     element in the result card to ink black so the outcome stays readable. */
-  [data-theme="gamer"] .blackjack-result-card,
-  [data-theme="retro"] .blackjack-result-card,
-  [data-theme="gamer"] .blackjack-result-card *,
-  [data-theme="retro"] .blackjack-result-card * {
-    color: #1a1a1a !important;
-  }
+  /* ── Blackjack 21 result popup ──
+     Results now land as a dark felt popup pinned over the game. It pins its own
+     felt surface and light win/push/loss text on purpose, so it is built from
+     rounded-3xl (never the rounded-2xl/rounded-xl + .border combination the
+     Gamer/Retro blanket card rule repaints white). */
 
   /* ── Gamer/Retro: light-background text contrast fixes ── */
 
