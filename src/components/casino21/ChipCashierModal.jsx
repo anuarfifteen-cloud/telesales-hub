@@ -239,11 +239,13 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate, on
   return (
     <AnimatePresence>
       {open && (
+        // pb-24 reserves room for the floating bottom navigation pill, so the
+        // Confirm Purchase / Close controls are never hidden behind it on mobile.
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+          className="fixed inset-0 z-[70] flex items-center justify-center p-4 pb-24"
           style={{ background: "rgba(0,0,0,0.75)" }}
           onClick={onClose}
         >

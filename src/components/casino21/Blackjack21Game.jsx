@@ -203,8 +203,10 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   // The wager was already taken at deal. A win pays the token equivalent of the
   // 2× chip return (or the fixed Blackjack award) straight into the token
   // wallet, a push refunds the chips, a loss keeps them.
-  const settle = async (type, detail, natural = false) => {
-    const wager = committedBet;
+  // `wagerOverride` lets the automatic natural-Blackjack path pass the wager it
+  // just committed, instead of reading state that hasn't re-rendered yet.
+  const settle = async (type, detail, natural = false, wagerOverride) => {
+    const wager = wagerOverride ?? committedBet;
     // A natural Blackjack pays the standard 2× win PLUS the fixed bonus on top.
     const tokenWin = type === "win" ? winTokens(wager) + (natural ? BLACKJACK_TOKENS : 0) : 0;
     const chipRefund = type === "push" ? wager : 0;
@@ -341,7 +343,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         setAiRevealed(true);
         const res = resolveRound(p, a, dl, difficulty);
         setAiResult(res.aiRes);
-        await settle(res.type, res.detail, res.natural);
+        // Pass the wager committed in this same handler — `committedBet` state
+        // is not re-rendered yet at this point, so reading it here paid 0.
+        await settle(res.type, res.detail, res.natural, b);
       }, 800);
     }
   };
