@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
@@ -56,12 +56,6 @@ const MIN_BET = 5;             // table minimum
 const BET_STEP = 5;            // every valid wager is a 5-chip step, which keeps…
 const BLACKJACK_TOKENS = 10;   // …standard win returns whole, and a natural 21 adds this fixed bonus on top
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
-// Dealer's turn: one beat per card — hole-card flip then each draw — so both the
-// new card and the running total are readable as they happen.
-const DEALER_STEP_MS = 550;
-// Once the dealer's hand is final, hold this long before the result popup opens,
-// so the player can take in the dealer's final cards and total.
-const RESULT_DELAY_MS = 1800;
 
 /** Standard win returns stake + 1:1 profit (2× the wager), cashed in at 10 chips per token. */
 function winTokens(wager) {
@@ -178,21 +172,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState("game");
   const [flash, setFlash] = useState(null);
-  // True only once RESULT_DELAY_MS has passed since the hand settled — gates the
-  // result popup so the dealer's final hand is visible first.
-  const [resultReady, setResultReady] = useState(false);
-  // Set by "New Round" to pull the wager + Deal controls back into view.
-  const [scrollToBet, setScrollToBet] = useState(false);
-  const betControlsRef = useRef(null);
   const queryClient = useQueryClient();
-
-  // Runs after New Round re-renders the bet controls, so the felt scrolls back to
-  // the wager row and Deal button and the next bet can be placed immediately.
-  useEffect(() => {
-    if (!scrollToBet) return;
-    betControlsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    setScrollToBet(false);
-  }, [scrollToBet]);
 
   // Highest legal wager: the largest 5-chip step the player can afford.
   const maxBet = Math.floor(chips / BET_STEP) * BET_STEP;
@@ -232,11 +212,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     const chipRefund = type === "push" ? wager : 0;
     setResult({ type, detail, natural, tokenWin, chipRefund, bet: wager });
     setPhase("resolve");
-    // Hold the popup back so the dealer's final hand reads first. The clock
-    // starts here — the exact moment the dealer stopped drawing.
-    const settledAt = Date.now();
-    setResultReady(false);
-    setTimeout(() => setResultReady(true), RESULT_DELAY_MS);
     try {
       // Read the balances fresh so a stale screen can't overwrite them.
       const fresh = await base44.auth.me();
@@ -278,9 +253,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       if (type === "win") {
         playWinFanfare();
         setFlash("win");
-        // Fire the fireworks as the result popup lands, so the two are in sync —
-        // measured from the hand settling, not from whenever the saves resolved.
-        setTimeout(burstConfetti, Math.max(0, RESULT_DELAY_MS - (Date.now() - settledAt)) + 130);
+        // Fire the fireworks as the result popup lands, so the two are in sync.
+        setTimeout(burstConfetti, 130);
         setTimeout(() => setFlash(null), 600);
       } else if (type === "push") {
         playPush();
@@ -334,7 +308,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setResult(null);
     setAiResult(null);
     setAiRevealed(false);
-    setResultReady(false);
     setPhase("player");
 
     // Deal ONE card at a time across the table. Each card mounts on its own, so
@@ -390,14 +363,12 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       setTimeout(async () => {
         setPhase("dealer");
         setRevealHole(true);
-        // Beat for the hole card to flip before the next card is drawn.
-        await new Promise((r) => setTimeout(r, DEALER_STEP_MS));
         let dd = [...d];
         let dl = [...dealer];
         // Play out Player 2 + Dealer so the table winner is named correctly.
         const aiFinal = await playAI(dd);
         while (dealerShouldHit(dl, difficulty)) {
-          await new Promise((r) => setTimeout(r, DEALER_STEP_MS));
+          await new Promise((r) => setTimeout(r, 420));
           dl = [...dl, draw(dd)];
           dd = [...dd];
           setDealer(dl);
@@ -429,8 +400,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     if (busy || phase !== "player") return;
     setPhase("dealer");
     setRevealHole(true);
-    // Beat for the hole card to flip before the next card is drawn.
-    await new Promise((r) => setTimeout(r, DEALER_STEP_MS));
     let d = [...deck];
     let dl = [...dealer];
 
@@ -439,7 +408,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
     // Dealer plays by the difficulty's stand threshold.
     while (dealerShouldHit(dl, difficulty)) {
-      await new Promise((r) => setTimeout(r, DEALER_STEP_MS));
+      await new Promise((r) => setTimeout(r, 420));
       dl = [...dl, draw(d)];
       d = [...d];
       setDealer(dl);
@@ -461,11 +430,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setResult(null);
     setAiResult(null);
     setAiRevealed(false);
-    setResultReady(false);
     setCommittedBet(0);
     setPhase("bet");
-    // Bring the wager + Deal controls back into view for the next hand.
-    setScrollToBet(true);
   };
 
   const adjustBet = (delta) => {
@@ -486,7 +452,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           <button
             key={id}
             onClick={() => setView(id)}
-            className={`flex-1 py-2 sm:py-2.5 text-xs font-semibold uppercase tracking-wider rounded-xl transition-all ${
+            className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-xl transition-all ${
               view === id
                 ? "bg-background text-foreground border border-border shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -499,7 +465,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
       {view === "game" && (
         <div
-          className="relative rounded-b-2xl border border-t-0 border-border p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 overflow-hidden"
+          className="relative rounded-b-2xl border border-t-0 border-border p-4 flex flex-col gap-3 overflow-hidden"
           style={{
             background:
               "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)",
@@ -535,12 +501,12 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           <div className="relative flex flex-wrap items-center gap-2">
             <button
               onClick={() => setShowCashier(true)}
-              className="mr-auto flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-amber-400 border border-amber-300 text-emerald-950 text-[11px] font-black uppercase tracking-widest shadow-[0_2px_8px_rgba(212,175,55,0.4)] hover:brightness-105 transition"
+              className="mr-auto flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-400 border border-amber-300 text-emerald-950 text-[11px] font-black uppercase tracking-widest shadow-[0_2px_8px_rgba(212,175,55,0.4)] hover:brightness-105 transition"
             >
               <MiniChipIcon size={14} /> Cashier
             </button>
             <div
-              className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-2.5 py-0.5 sm:px-3 sm:py-1 border border-amber-400/30"
+              className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30"
               title="Blackjack 21 chips — the betting currency"
             >
               <MiniChipIcon size={14} />
@@ -598,7 +564,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
           {/* Result overlay */}
           <BlackjackResultCard
-            show={phase === "resolve" && !!result && resultReady}
+            show={phase === "resolve" && !!result}
             result={result}
             aiResult={aiResult}
             showAi={difficulty !== "very_easy"}
@@ -607,12 +573,12 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
           {/* Bet + controls */}
           {phase === "bet" && (
-            <div ref={betControlsRef} className="flex flex-col gap-2 sm:gap-3">
+            <>
               <BetBar bet={bet} maxBet={maxBet} onSet={setBet} onAdjust={adjustBet} chips={chips} />
               <button
                 onClick={handleDeal}
                 disabled={busy || chips < MIN_BET}
-                className="w-full py-2.5 sm:py-3 rounded-full font-black uppercase tracking-widest text-sm bg-emerald-700/60 text-emerald-100 border border-emerald-400/30 disabled:opacity-40 hover:bg-emerald-600/70 transition"
+                className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm bg-emerald-700/60 text-emerald-100 border border-emerald-400/30 disabled:opacity-40 hover:bg-emerald-600/70 transition"
               >
                 <Play className="inline mr-1 w-4 h-4" /> Deal
               </button>
@@ -624,7 +590,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
                   You need {MIN_BET} chips to play — buy chips in the Cashier →
                 </button>
               )}
-            </div>
+            </>
           )}
 
           {inPlay && (
@@ -632,7 +598,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
               <button
                 onClick={handleHit}
                 disabled={busy || phase === "dealer"}
-                className="py-2.5 sm:py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40 transition"
+                className="py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40 transition"
                 style={{ background: "#d4af37" }}
               >
                 <Plus className="inline mr-1 w-4 h-4" /> Hit
@@ -640,7 +606,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
               <button
                 onClick={handleStand}
                 disabled={busy || phase === "dealer"}
-                className="py-2.5 sm:py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40 transition"
+                className="py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40 transition"
                 style={{ background: "#d4af37" }}
               >
                 <Shield className="inline mr-1 w-4 h-4" /> Stand
@@ -673,12 +639,12 @@ function BetBar({ bet, maxBet, onSet, onAdjust, chips }) {
   const sliderMax = Math.max(maxBet, MIN_BET);
   const shownBet = Math.min(Math.max(bet, MIN_BET), sliderMax);
   return (
-    <div className="flex flex-col gap-1.5 sm:gap-2">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <button
           onClick={() => onAdjust(-BET_STEP)}
           disabled={!playable || shownBet <= MIN_BET}
-          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
+          className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
         >
           ‹
         </button>
@@ -695,7 +661,7 @@ function BetBar({ bet, maxBet, onSet, onAdjust, chips }) {
         <button
           onClick={() => onAdjust(BET_STEP)}
           disabled={!playable || shownBet >= sliderMax}
-          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
+          className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
         >
           ›
         </button>

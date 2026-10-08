@@ -78,11 +78,8 @@ export default function PlayingCard({
   isNew = false,
   zIndex = 0,
   small = false,
-  flipIn = false,
 }) {
-  // Phones get a shorter card so a full felt — dealer hand, both player seats,
-  // the wager row and Deal — fits one screen height; desktop keeps the big card.
-  const sizeClass = small ? "h-14 w-10 sm:h-16 sm:w-11" : "h-16 w-11 sm:h-24 sm:w-16";
+  const sizeClass = small ? "h-16 w-11" : "h-20 w-14 sm:h-24 sm:w-16";
   const gold = isRoyalBatik();
 
   // A newly dealt card fires its slide sound exactly as it lands (after the
@@ -116,12 +113,9 @@ export default function PlayingCard({
       className={`relative ${sizeClass} flex-shrink-0`}
       style={{ perspective: 800, zIndex }}
     >
-      {/* A seat turning over mounts here at 180° and rotates to face-up; every
-          other card starts flat, so only the reveal plays a flip. */}
       <motion.div
         className="relative h-full w-full"
         style={{ transformStyle: "preserve-3d" }}
-        initial={flipIn ? { rotateY: 180 } : false}
         animate={{ rotateY: faceDown ? 180 : 0 }}
         transition={{ duration: 0.5, ease: "easeInOut" }}
       >

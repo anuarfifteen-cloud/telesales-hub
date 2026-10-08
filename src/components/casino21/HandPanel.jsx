@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import PlayingCard from "./PlayingCard";
 
@@ -16,20 +15,12 @@ const DEALER_OVERLAP = 40;
 export default function HandPanel({ title, value, cards, revealHole = true, tag, compact = false, hidden = false, overlap }) {
   const isHidden = hidden || (title === "DEALER" && !revealHole);
   const gap = overlap !== undefined && overlap !== null ? overlap : OVERLAP;
-  // True only on the render where a face-down seat turns over, so its cards play
-  // a flip from back to face instead of snapping — the seat's cards stay mounted
-  // as backs until that moment, so no face can flash during the deal.
-  const wasHidden = useRef(isHidden);
-  const flippedIn = wasHidden.current && !isHidden;
-  useEffect(() => {
-    wasHidden.current = isHidden;
-  });
   return (
     <div
-      className={`rounded-2xl border border-white/15 ${compact ? "p-1.5 sm:p-2" : "p-2 sm:p-3"}`}
+      className={`rounded-2xl border border-white/15 ${compact ? "p-2" : "p-3"}`}
       style={{ background: "rgba(255,255,255,0.08)", backdropFilter: "blur(10px)" }}
     >
-      <div className="flex items-center justify-between mb-1 sm:mb-2">
+      <div className="flex items-center justify-between mb-2">
         <span className="flex items-center gap-1.5">
           <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-100/80">
             {title}
@@ -44,13 +35,9 @@ export default function HandPanel({ title, value, cards, revealHole = true, tag,
           {isHidden ? "?" : value !== undefined && value !== null ? value : "—"}
         </span>
       </div>
-      {/* Shorter on phones so the whole felt — dealer, both seats, the wager row
-          and Deal button — fits one screen; full height returns from sm up. */}
       <div
-        className={`flex flex-wrap items-start ${
-          compact ? "min-h-[3.25rem] sm:min-h-[4rem]" : "min-h-[4.5rem] sm:min-h-[5.5rem]"
-        }`}
-        style={{ paddingRight: gap }}
+        className="flex flex-wrap items-start"
+        style={{ minHeight: compact ? "4rem" : "5.5rem", paddingRight: gap }}
       >
         <AnimatePresence>
           {cards.map((c, i) => (
@@ -67,7 +54,6 @@ export default function HandPanel({ title, value, cards, revealHole = true, tag,
                 small={compact}
                 backOnly={isHidden}
                 faceDown={false}
-                flipIn={flippedIn}
                 zIndex={i + 1}
               />
             </div>
