@@ -45,7 +45,7 @@ export default function BlackjackResultCard({ show, result, aiResult, showAi, on
           {result.type === "win" && (
             <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-amber-100/60">
               {result.natural
-                ? `Natural 21 — fixed ${BLACKJACK_TOKENS}-token award on any bet`
+                ? `Natural 21 — ${result.bet * 2} chips → ${result.tokenWin - BLACKJACK_TOKENS} tokens + ${BLACKJACK_TOKENS} bonus`
                 : `Return ${result.bet * 2} chips → ${result.tokenWin} tokens`}
             </p>
           )}

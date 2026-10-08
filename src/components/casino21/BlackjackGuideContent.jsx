@@ -4,6 +4,41 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 // questions (or named rules) with the answer written for players, not admins.
 const SECTIONS = [
   {
+    id: "basics",
+    icon: "🎯",
+    title: "Blackjack Basics",
+    items: [
+      {
+        q: "What is the goal?",
+        a: "Get a hand total closer to 21 than the other hands at the table — without going over 21.",
+      },
+      {
+        label: "Card values",
+        a: "2 to 10 = face value. Jack, Queen and King = 10 each. Ace = 1 or 11, whichever makes your hand better.",
+      },
+      {
+        label: "The deal",
+        a: "You and the Dealer each get 2 cards, and one of the Dealer's cards stays face down. Most tables also deal a Player 2 (AI) hand.",
+      },
+      {
+        label: "Your move",
+        a: "Hit = draw one more card to get closer to 21. Stand = keep your total and end your turn.",
+      },
+      {
+        label: "Dealer's turn",
+        a: "The Dealer flips the hidden card and keeps drawing until reaching at least 17.",
+      },
+      {
+        label: "Who wins",
+        a: "The highest total that doesn't go over 21 wins the round. Going over 21 is a Bust — an instant loss. Tying the top hand is a Push and your chips come back.",
+      },
+      {
+        label: "Natural Blackjack",
+        a: "An Ace + a 10-value card on your first two cards. That's a Blackjack — the best hand at the table!",
+      },
+    ],
+  },
+  {
     id: "daily",
     icon: "🎁",
     title: "Free Daily Ammo",
@@ -40,11 +75,15 @@ const SECTIONS = [
       },
       {
         label: "Natural 21 (Blackjack)",
-        a: "Hit a natural Blackjack on your first 2 cards and you automatically win a flat 10-Token (100-Chip) bonus regardless of your bet size!",
+        a: "Ace + a 10-value card on your first 2 cards. It pays your normal win — 2× your bet, cashed in at 10 Chips = 1 Token — PLUS a flat 10-Token bonus on top, no matter how big or small your bet is. (e.g. a 5-Chip bet pays 1 Token + 10 bonus = 11 Tokens.)",
       },
       {
         label: "Push (Tie)",
         a: "Your original chips are returned to your chip balance.",
+      },
+      {
+        label: "Player 2 (AI)",
+        a: "Most tables also deal a Player 2 hand. The highest hand at the table takes the round — if Player 2 beats you, the round is a loss even when the Dealer busts.",
       },
     ],
   },
@@ -90,7 +129,7 @@ function RuleCard({ label, a }) {
 
 export default function BlackjackGuideContent() {
   return (
-    <Accordion type="multiple" defaultValue={["daily"]} className="w-full">
+    <Accordion type="multiple" defaultValue={["basics"]} className="w-full">
       {SECTIONS.map((section) => (
         <AccordionItem key={section.id} value={section.id} className="border-amber-400/20">
           <AccordionTrigger className="py-3 text-[12px] font-black uppercase tracking-widest text-amber-200 hover:no-underline [&>svg]:text-amber-300">

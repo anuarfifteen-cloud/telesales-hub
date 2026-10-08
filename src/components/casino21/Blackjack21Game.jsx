@@ -54,7 +54,7 @@ const GAME_TYPE = "blackjack";
 // Chips are the betting currency, but every win pays out straight into tokens.
 const MIN_BET = 5;             // table minimum
 const BET_STEP = 5;            // every valid wager is a 5-chip step, which keeps…
-const BLACKJACK_TOKENS = 10;   // …standard win returns whole, and a natural 21 pays this fixed award
+const BLACKJACK_TOKENS = 10;   // …standard win returns whole, and a natural 21 adds this fixed bonus on top
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 
 /** Standard win returns stake + 1:1 profit (2× the wager), cashed in at 10 chips per token. */
@@ -66,7 +66,7 @@ function winTokens(wager) {
 // Compares the final hands of You, Player 2 (AI), and the Dealer. Among all
 // non-busted hands, the single highest score (≤21) is the sole winner.
 //   • You bust        → loss (someone else is named the table winner)
-//   • You sole highest → win (a natural Blackjack pays its own fixed award)
+//   • You sole highest → win (a natural Blackjack pays 2× plus the fixed bonus)
 //   • You tie for top  → push (refund the bet)
 //   • Someone else strictly higher → loss (they are named the winner)
 //
@@ -205,7 +205,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   // wallet, a push refunds the chips, a loss keeps them.
   const settle = async (type, detail, natural = false) => {
     const wager = committedBet;
-    const tokenWin = type === "win" ? (natural ? BLACKJACK_TOKENS : winTokens(wager)) : 0;
+    // A natural Blackjack pays the standard 2× win PLUS the fixed bonus on top.
+    const tokenWin = type === "win" ? winTokens(wager) + (natural ? BLACKJACK_TOKENS : 0) : 0;
     const chipRefund = type === "push" ? wager : 0;
     setResult({ type, detail, natural, tokenWin, chipRefund, bet: wager });
     setPhase("resolve");
@@ -232,7 +233,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           user_id: user.id,
           user_name: displayName,
           amount: tokenWin,
-          source: "Blackjack 21 Win",
+          source: natural
+            ? `Blackjack 21 Natural (2× win + ${BLACKJACK_TOKENS}-token bonus)`
+            : "Blackjack 21 Win",
           timestamp: new Date().toISOString(),
         });
       }
