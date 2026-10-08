@@ -18,7 +18,7 @@ const SECTIONS = [
       },
       {
         label: "The deal",
-        a: "You and the Dealer each get 2 cards, and one of the Dealer's cards stays face down. Most tables also deal a Player 2 (AI) hand.",
+        a: "You're seated at a 3-seat table: YOU, PLAYER 2 (the AI) and the DEALER. Every seat gets 2 cards, and one of the Dealer's cards stays face down. On the easiest table setting, Player 2 sits out and you play the Dealer heads-up.",
       },
       {
         label: "Your move",
@@ -26,7 +26,7 @@ const SECTIONS = [
       },
       {
         label: "Dealer's turn",
-        a: "The Dealer flips the hidden card and keeps drawing until reaching at least 17.",
+        a: "The Dealer flips the hidden card and plays its own hand by the table's house rules — its strategy stays private.",
       },
       {
         label: "Who wins",
@@ -41,7 +41,7 @@ const SECTIONS = [
   {
     id: "daily",
     icon: "🎁",
-    title: "Free Daily Ammo",
+    title: "Daily Free Chips",
     items: [
       {
         q: "How do I get free chips?",
@@ -83,7 +83,7 @@ const SECTIONS = [
       },
       {
         label: "Player 2 (AI)",
-        a: "Most tables also deal a Player 2 hand. The highest hand at the table takes the round — if Player 2 beats you, the round is a loss even when the Dealer busts.",
+        a: "PLAYER 2 is an opponent seat at the table: it plays its own hand and competes for the same pot. The highest hand at the table takes the round, so if Player 2 beats you it's a loss even when the Dealer busts. On the easiest table setting, Player 2 sits out.",
       },
     ],
   },
