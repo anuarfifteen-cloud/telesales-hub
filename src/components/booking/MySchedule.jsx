@@ -89,14 +89,14 @@ function SlotRow({ slot, bookings, globalRankMap }) {
                   💎 7-Day Priority Access
                 </span>
               ) : (
-                <span className={`text-[10px] leading-tight mt-0.5 font-medium 
+                <span className={`text-[10px] leading-tight mt-0.5 font-semibold 
                   ${item.globalRank === 1 
                     ? "text-emerald-600 dark:text-emerald-400" 
                     : item.vip_plus_used 
                       ? "text-purple-600 dark:text-purple-400 font-bold" // Purple sub-label style
                       : item.vip_used 
                         ? "text-amber-600 dark:text-amber-400" 
-                        : "text-muted-foreground"}`}
+                        : "text-foreground/85"}`}
                 >
                   {item.vip_plus_used 
                     ? "🔮 1-Hour VIP Plus 🔮" 
