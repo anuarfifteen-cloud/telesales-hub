@@ -46,6 +46,8 @@ import BlackjackStats from "./BlackjackStats";
 import BlackjackHistory from "./BlackjackHistory";
 import ChipCashierModal from "./ChipCashierModal";
 import BlackjackResultCard from "./BlackjackResultCard";
+import HowToPlayButton from "./HowToPlayButton";
+import BlackjackHowToPlayModal from "./BlackjackHowToPlayModal";
 import MiniChipIcon from "./MiniChipIcon";
 
 const GAME_TYPE = "blackjack";
@@ -143,6 +145,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   // The Cashier no longer opens with the game — players open it from the
   // balance strip or the bet screen whenever they want to top up.
   const [showCashier, setShowCashier] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   // Admin-controlled difficulty (AppSettings.blackjack_difficulty). Falls back
   // to "normal" when missing. Re-fetched when the Cashier opens so a mid-session
@@ -486,11 +489,11 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
             )}
           </AnimatePresence>
 
-          {/* Balance strip — Cashier + chips */}
-          <div className="relative flex items-center justify-between gap-2">
+          {/* Balance strip — Cashier + chips + rules (wraps on narrow phones) */}
+          <div className="relative flex flex-wrap items-center gap-2">
             <button
               onClick={() => setShowCashier(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-400 border border-amber-300 text-emerald-950 text-[11px] font-black uppercase tracking-widest shadow-[0_2px_8px_rgba(212,175,55,0.4)] hover:brightness-105 transition"
+              className="mr-auto flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-400 border border-amber-300 text-emerald-950 text-[11px] font-black uppercase tracking-widest shadow-[0_2px_8px_rgba(212,175,55,0.4)] hover:brightness-105 transition"
             >
               <MiniChipIcon size={14} /> Cashier
             </button>
@@ -501,6 +504,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
               <MiniChipIcon size={14} />
               <span className="text-amber-200 font-bold text-sm tabular-nums">{chips}</span>
             </div>
+            <HowToPlayButton onClick={() => setShowGuide(true)} className="ml-auto" />
           </div>
 
           {/* Felt plaque */}
@@ -612,7 +616,10 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         open={showCashier}
         onClose={() => setShowCashier(false)}
         onUserUpdate={onUserUpdate}
+        onOpenGuide={() => setShowGuide(true)}
       />
+
+      <BlackjackHowToPlayModal open={showGuide} onClose={() => setShowGuide(false)} />
 
     </div>
   );

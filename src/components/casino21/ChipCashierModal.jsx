@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { X, Loader2 } from "lucide-react";
 import MiniChipIcon from "./MiniChipIcon";
+import HowToPlayButton from "./HowToPlayButton";
 import { logChipMovement } from "@/lib/chipLog";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
@@ -69,7 +70,7 @@ function ChipIcon({ bundle, size = 56 }) {
   );
 }
 
-export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) {
+export default function ChipCashierModal({ user, open, onClose, onUserUpdate, onOpenGuide }) {
   const [mode, setMode] = useState("buy"); // buy | cashout
   const [buyTokens, setBuyTokens] = useState(BUNDLES[0].tokens);
   const [cashAmount, setCashAmount] = useState(0);
@@ -276,6 +277,13 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                 <X className="w-4 h-4 mx-auto" />
               </button>
             </div>
+
+            {/* Rules & rewards entry */}
+            {onOpenGuide && (
+              <div className="px-5 pb-3">
+                <HowToPlayButton size="md" onClick={onOpenGuide} className="w-full" />
+              </div>
+            )}
 
             {/* Mode toggle */}
             <div className="px-5 pb-3">
