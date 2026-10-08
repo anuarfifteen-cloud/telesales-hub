@@ -253,12 +253,15 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate, on
             className="flex w-full max-w-sm max-h-full flex-col items-center gap-3 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
+          {/* shrink-0 holds the card at its natural height so the wrapper scrolls
+              instead of the card being squeezed — without it the card's bottom
+              (the Total + Confirm Purchase block) is clipped by overflow-hidden. */}
           <motion.div
             initial={{ scale: 0.92, y: 16 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.92, y: 16 }}
             transition={{ type: "spring", stiffness: 260, damping: 24 }}
-            className="cashier-panel w-full rounded-3xl border border-emerald-400/30 overflow-hidden"
+            className="cashier-panel w-full shrink-0 rounded-3xl border border-emerald-400/30 overflow-hidden"
             style={{
               background:
                 "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)",
