@@ -10,10 +10,22 @@ import { bruneiToday } from "@/lib/bruneiDay";
 export const DAILY_GIFT_CHIPS = 5;
 
 /**
- * Compact daily gift popup for Blackjack 21: a free 5-chip present the player
- * can claim once per Brunei day. The claim writes the chip balance and today's
- * Brunei date onto the user record (the Daily Spin mechanic), so a claim on one
- * device blocks the popup everywhere until the date rolls over at 00:00.
+ * Has this player already claimed today's free chips? The claim date lives on
+ * the user record, so the answer is the same on every device. Claims stamped
+ * with the older `last_chip_gift_date` field still count for that same day.
+ */
+export function chipGiftClaimedToday(fresh) {
+  const today = bruneiToday();
+  return fresh?.last_claimed_date === today || fresh?.last_chip_gift_date === today;
+}
+
+/**
+ * Compact daily gift popup, opened from the Tokens tab: a free 5-chip present
+ * the player can claim once per Brunei day. The claim writes the chip balance
+ * and today's Brunei date onto the user record (the Daily Spin mechanic), so a
+ * claim on one device blocks the popup everywhere until the date rolls over at
+ * 00:00. Dismissing it without claiming leaves the gift available — the popup
+ * appears again the next time the player opens the Tokens tab.
  */
 export default function DailyChipGiftModal({ user, open, onClose, onClaimed }) {
   const [claiming, setClaiming] = useState(false);
@@ -26,7 +38,7 @@ export default function DailyChipGiftModal({ user, open, onClose, onClaimed }) {
 
     const fresh = await base44.auth.me();
     // Bail out if another device claimed while this popup was open.
-    if (fresh?.last_chip_gift_date === bruneiToday()) {
+    if (chipGiftClaimedToday(fresh)) {
       setClaiming(false);
       onClose();
       return;
@@ -35,7 +47,7 @@ export default function DailyChipGiftModal({ user, open, onClose, onClaimed }) {
     const currentChips = Number(fresh?.casinoChips) || 0;
     await base44.auth.updateMe({
       casinoChips: currentChips + DAILY_GIFT_CHIPS,
-      last_chip_gift_date: bruneiToday(),
+      last_claimed_date: bruneiToday(),
     });
     await logChipMovement({
       user,

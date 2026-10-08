@@ -7,8 +7,11 @@ import MiniChipIcon from "./MiniChipIcon";
 import { logChipMovement } from "@/lib/chipLog";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
-// Cash-out conversion is strict: 10 chips = 1 token, no service fee.
+// Buying chips stays at 1 token = 10 chips.
 const CHIPS_PER_TOKEN = 10;
+// Cashing out is steeper — 20 chips = 1 token (a 50% service fee on the way out) —
+// and only ever moves whole 20-chip blocks, so a payout is always whole tokens.
+const CASHOUT_CHIPS_PER_TOKEN = 20;
 // Fallback ceilings, used when an admin hasn't saved a value in AppSettings
 // (Admin Dashboard → Casino Economy → Cashier Limits).
 const DAILY_CASHOUT_LIMIT = 5000;
@@ -91,7 +94,8 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
 
   // Daily cash-out cap (Brunei day) — sum chips already converted today from logs.
   const remaining = Math.max(0, dailyCap - usedToday);
-  const cashMax = Math.max(0, Math.min(chips, remaining));
+  // Largest whole 20-chip block the player may convert right now.
+  const cashMax = Math.floor(Math.min(chips, remaining) / CASHOUT_CHIPS_PER_TOKEN) * CASHOUT_CHIPS_PER_TOKEN;
 
   // Monthly conversion tracker (Brunei calendar month): tokens spent buying chips.
   const monthRemaining = Math.max(0, monthlyCap - usedThisMonth);
@@ -158,13 +162,13 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, user?.id]);
 
-  // Cash-out amounts, capped by the daily limit. Only whole blocks of 10 chips
-  // convert, so the payout is exactly 1 token per 10 chips.
+  // Cash-out amounts, capped by the daily limit. Only whole blocks of 20 chips
+  // convert, so the payout is exactly 1 token per 20 chips.
   const cashChips = Math.min(Math.max(Math.floor(cashAmount), 0), cashMax);
-  const chipsUsed = Math.floor(cashChips / CHIPS_PER_TOKEN) * CHIPS_PER_TOKEN;
-  const receive = chipsUsed / CHIPS_PER_TOKEN;
+  const chipsUsed = Math.floor(cashChips / CASHOUT_CHIPS_PER_TOKEN) * CASHOUT_CHIPS_PER_TOKEN;
+  const receive = chipsUsed / CASHOUT_CHIPS_PER_TOKEN;
   const limitReached = remaining <= 0;
-  const canCashOut = chipsUsed >= CHIPS_PER_TOKEN && !limitReached;
+  const canCashOut = chipsUsed >= CASHOUT_CHIPS_PER_TOKEN && !limitReached;
 
   const handleBuy = async () => {
     if (busy) return;
@@ -202,7 +206,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
   const handleCashOut = async () => {
     if (busy) return;
     if (!canCashOut) {
-      toast.error(`Enter at least ${CHIPS_PER_TOKEN} chips to cash out.`);
+      toast.error(`Enter at least ${CASHOUT_CHIPS_PER_TOKEN} chips to cash out.`);
       return;
     }
     setBusy(true);
@@ -215,11 +219,11 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
         user_id: user.id,
         user_name: userName,
         amount: receive,
-        source: `Blackjack 21 — Cash Out (${chipsUsed} chips → ${receive} tokens, 10 chips = 1 token)`,
+        source: `Blackjack 21 — Cash Out (${chipsUsed} chips → ${receive} tokens, 20 chips = 1 token)`,
         timestamp: new Date().toISOString(),
       });
       await onUserUpdate?.();
-      logChipMovement({ user, action_type: "cashier_cashout", amount: -chipsUsed, balance_after: chips - chipsUsed, detail: `Cash out ${chipsUsed} chips → ${receive} tokens, 10 chips = 1 token` });
+      logChipMovement({ user, action_type: "cashier_cashout", amount: -chipsUsed, balance_after: chips - chipsUsed, detail: `Cash out ${chipsUsed} chips → ${receive} tokens, 20 chips = 1 token` });
       toast.success(`Cashed out ${chipsUsed} chips for ${receive} tokens.`);
       setCashAmount(0);
       await refreshUsedToday();
@@ -435,7 +439,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
             {mode === "cashout" && (
               <>
                 <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-100/60 text-center px-5 pb-3">
-                  Convert chips to tokens · 10 chips = 1 token
+                  Convert chips to tokens · 20 chips = 1 token
                 </p>
 
                 {/* Daily limit tracker */}
@@ -454,8 +458,8 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                 <div className="px-5 pb-3">
                   <div className="flex items-center gap-2 mb-2">
                     <button
-                      onClick={() => setCashAmount((a) => Math.max(a - CHIPS_PER_TOKEN, 0))}
-                      disabled={chips < 1 || limitReached}
+                      onClick={() => setCashAmount((a) => Math.max(a - CASHOUT_CHIPS_PER_TOKEN, 0))}
+                      disabled={chips < CASHOUT_CHIPS_PER_TOKEN || limitReached}
                       className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
                     >
                       ‹
@@ -463,16 +467,16 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                     <input
                       type="range"
                       min={0}
-                      max={Math.max(cashMax, 1)}
-                      step={CHIPS_PER_TOKEN}
+                      max={Math.max(cashMax, CASHOUT_CHIPS_PER_TOKEN)}
+                      step={CASHOUT_CHIPS_PER_TOKEN}
                       value={Math.min(cashAmount, cashMax)}
                       onChange={(e) => setCashAmount(Number(e.target.value))}
-                      disabled={chips < 1 || limitReached}
+                      disabled={chips < CASHOUT_CHIPS_PER_TOKEN || limitReached}
                       className="flex-1 accent-cyan-400"
                     />
                     <button
-                      onClick={() => setCashAmount((a) => Math.min(a + CHIPS_PER_TOKEN, cashMax))}
-                      disabled={chips < 1 || limitReached}
+                      onClick={() => setCashAmount((a) => Math.min(a + CASHOUT_CHIPS_PER_TOKEN, cashMax))}
+                      disabled={chips < CASHOUT_CHIPS_PER_TOKEN || limitReached}
                       className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
                     >
                       ›
@@ -485,7 +489,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                     </span>
                     <button
                       onClick={() => setCashAmount(cashMax)}
-                      disabled={chips < 1 || limitReached}
+                      disabled={chips < CASHOUT_CHIPS_PER_TOKEN || limitReached}
                       className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest text-emerald-950 disabled:opacity-30"
                       style={{ background: "#d4af37" }}
                     >
@@ -501,7 +505,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                       Conversion rate
                     </span>
                     <span className="flex items-center gap-1 text-cyan-200 font-black text-sm tabular-nums">
-                      {CHIPS_PER_TOKEN} <MiniChipIcon size={12} /> = 1
+                      {CASHOUT_CHIPS_PER_TOKEN} <MiniChipIcon size={12} /> = 1
                       <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain" />
                     </span>
                   </div>
@@ -525,17 +529,17 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate }) 
                   >
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : `Cash Out ${receive} Tokens`}
                   </button>
-                  {!canCashOut && chips >= 1 && (
+                  {!canCashOut && chips >= CASHOUT_CHIPS_PER_TOKEN && (
                     <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
-                      Choose at least {CHIPS_PER_TOKEN} chips
+                      Choose at least {CASHOUT_CHIPS_PER_TOKEN} chips
                     </p>
                   )}
-                  {chips < 1 && (
+                  {chips < CASHOUT_CHIPS_PER_TOKEN && (
                     <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
-                      No chips to cash out
+                      You need at least {CASHOUT_CHIPS_PER_TOKEN} chips to cash out
                     </p>
                   )}
-                  {limitReached && chips >= 1 && (
+                  {limitReached && chips >= CASHOUT_CHIPS_PER_TOKEN && (
                     <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
                       Daily limit reached — come back tomorrow
                     </p>

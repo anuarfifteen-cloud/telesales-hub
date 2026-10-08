@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
@@ -45,23 +45,32 @@ import { logChipMovement } from "@/lib/chipLog";
 import BlackjackStats from "./BlackjackStats";
 import BlackjackHistory from "./BlackjackHistory";
 import ChipCashierModal from "./ChipCashierModal";
-import DailyChipGiftModal from "./DailyChipGiftModal";
+import BlackjackResultCard from "./BlackjackResultCard";
 import MiniChipIcon from "./MiniChipIcon";
-import { bruneiToday } from "@/lib/bruneiDay";
 
 const GAME_TYPE = "blackjack";
+// Chips are the betting currency, but every win pays out straight into tokens.
+const MIN_BET = 5;             // table minimum
+const BET_STEP = 5;            // every valid wager is a 5-chip step, which keeps…
+const BLACKJACK_TOKENS = 10;   // …standard win returns whole, and a natural 21 pays this fixed award
+const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
+
+/** Standard win returns stake + 1:1 profit (2× the wager), cashed in at 10 chips per token. */
+function winTokens(wager) {
+  return (wager * 2) / 10;
+}
 
 // ── Winner-Takes-All resolution ─────────────────────────────────────
 // Compares the final hands of You, Player 2 (AI), and the Dealer. Among all
 // non-busted hands, the single highest score (≤21) is the sole winner.
 //   • You bust        → loss (someone else is named the table winner)
-//   • You sole highest → win (natural Blackjack pays 2.5×, else 2×)
+//   • You sole highest → win (a natural Blackjack pays its own fixed award)
 //   • You tie for top  → push (refund the bet)
 //   • Someone else strictly higher → loss (they are named the winner)
 //
 // On `very_easy` the AI is dealt for display only and is EXCLUDED from the
 // settlement — the comparison is You vs the Dealer only (classic Blackjack).
-function resolveRound(playerHand, aiHand, dealerHand, bet, difficulty) {
+function resolveRound(playerHand, aiHand, dealerHand, difficulty) {
   const pVal = handValue(playerHand);
   const aVal = handValue(aiHand);
   const dVal = handValue(dealerHand);
@@ -82,28 +91,24 @@ function resolveRound(playerHand, aiHand, dealerHand, bet, difficulty) {
   const winnerLabel = (hands) =>
     hands.map((h) => (h.who === "ai" ? "PLAYER 2" : "DEALER")).join(" & ");
 
-  let type, detail, chipPayout;
+  let type, detail, natural = false;
 
   if (pBust) {
     type = "loss";
-    chipPayout = 0;
     if (topHands.length === 0) detail = "ALL BUST";
     else if (topHands.length > 1) detail = `${winnerLabel(topHands)} TIE`;
     else if (topHands[0].who === "ai") detail = "PLAYER 2 WINS";
     else detail = "DEALER WINS";
   } else if (pVal === maxVal && topHands.length === 1) {
     type = "win";
-    const natural = isBlackjack(playerHand);
-    chipPayout = natural ? Math.round(bet * 2.5) : bet * 2;
+    natural = isBlackjack(playerHand);
     detail = natural ? "BLACKJACK! YOU WIN" : "YOU WIN";
   } else if (pVal === maxVal && topHands.length > 1) {
     type = "push";
-    chipPayout = bet;
     const others = topHands.filter((h) => h.who !== "you");
     detail = `PUSH — TIED WITH ${winnerLabel(others)}`;
   } else {
     type = "loss";
-    chipPayout = 0;
     if (topHands.length > 1) detail = `${winnerLabel(topHands)} TIE`;
     else if (topHands[0].who === "ai") detail = "PLAYER 2 WINS";
     else detail = "DEALER WINS";
@@ -126,38 +131,18 @@ function resolveRound(playerHand, aiHand, dealerHand, bet, difficulty) {
     aiRes = { type: "loss", detail: "Lost the table" };
   }
 
-  return { type, detail, chipPayout, aiRes };
+  return { type, detail, natural, aiRes };
 }
 
 export default function Blackjack21Game({ user, onUserUpdate }) {
   const chips = Number(user?.casinoChips) || 0;
-  const chipsRef = useRef(chips);
-  useEffect(() => {
-    chipsRef.current = chips;
-  }, [chips]);
+  const displayName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
-  const [bet, setBet] = useState(5);
+  const [bet, setBet] = useState(MIN_BET);
   const [committedBet, setCommittedBet] = useState(0);
   // The Cashier no longer opens with the game — players open it from the
   // balance strip or the bet screen whenever they want to top up.
   const [showCashier, setShowCashier] = useState(false);
-
-  // Daily free gift: offered once per Brunei day, per user. The claim date is
-  // stored on the user record (same mechanic as the Daily Spin), so a claim on
-  // one device stops the popup showing on every other device until 00:00.
-  const [showGift, setShowGift] = useState(false);
-  useEffect(() => {
-    let active = true;
-    base44.auth
-      .me()
-      .then((fresh) => {
-        if (active && fresh && fresh.last_chip_gift_date !== bruneiToday()) setShowGift(true);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, []);
 
   // Admin-controlled difficulty (AppSettings.blackjack_difficulty). Falls back
   // to "normal" when missing. Re-fetched when the Cashier opens so a mid-session
@@ -178,7 +163,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const [dealer, setDealer] = useState([]);
   const [revealHole, setRevealHole] = useState(false);
   const [phase, setPhase] = useState("bet"); // bet | player | dealer | resolve
-  const [result, setResult] = useState(null); // { type, detail, chipPayout, bet }
+  const [result, setResult] = useState(null); // { type, detail, natural, tokenWin, chipRefund, bet }
   const [aiResult, setAiResult] = useState(null); // { type, detail } — display only
   const [aiRevealed, setAiRevealed] = useState(false); // AI cards stay face-down until its turn ends
   const [busy, setBusy] = useState(false);
@@ -186,7 +171,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const [flash, setFlash] = useState(null);
   const queryClient = useQueryClient();
 
-  const maxBet = Math.max(1, chips);
+  // Highest legal wager: the largest 5-chip step the player can afford.
+  const maxBet = Math.floor(chips / BET_STEP) * BET_STEP;
   const draw = (d) => d.pop();
 
   const burstConfetti = () => {
@@ -210,26 +196,51 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     } catch {}
   };
 
-  // ── Round settlement (chip-based; no token movement on settle) ──────
-  const settle = async (type, detail, chipPayout) => {
-    setResult({ type, detail, chipPayout, bet: committedBet });
+  // ── Round settlement ────────────────────────────────────────────────
+  // The wager was already taken at deal. A win pays the token equivalent of the
+  // 2× chip return (or the fixed Blackjack award) straight into the token
+  // wallet, a push refunds the chips, a loss keeps them.
+  const settle = async (type, detail, natural = false) => {
+    const wager = committedBet;
+    const tokenWin = type === "win" ? (natural ? BLACKJACK_TOKENS : winTokens(wager)) : 0;
+    const chipRefund = type === "push" ? wager : 0;
+    setResult({ type, detail, natural, tokenWin, chipRefund, bet: wager });
     setPhase("resolve");
     try {
+      // Read the balances fresh so a stale screen can't overwrite them.
+      const fresh = await base44.auth.me();
+      const chipBalance = Number(fresh?.casinoChips) || 0;
+      const tokenBalance = Number(fresh?.earlyAccessTokens) || 0;
       const updates = {};
-      if (chipPayout > 0) updates.casinoChips = chipsRef.current + chipPayout;
+      if (chipRefund > 0) updates.casinoChips = chipBalance + chipRefund;
+      if (tokenWin > 0) updates.earlyAccessTokens = tokenBalance + tokenWin;
       if (Object.keys(updates).length) await base44.auth.updateMe(updates);
       await base44.entities.CoinFlipGame.create({
         user_id: user.id,
         user_email: user.email,
         game_type: GAME_TYPE,
-        wager: committedBet,
+        wager,
         result: type === "push" ? "push" : type === "win" ? "win" : "loss",
-        tokens_delta: 0,
+        tokens_delta: tokenWin,
         detail,
       });
+      if (tokenWin > 0) {
+        await base44.entities.TokenTransaction.create({
+          user_id: user.id,
+          user_name: displayName,
+          amount: tokenWin,
+          source: "Blackjack 21 Win",
+          timestamp: new Date().toISOString(),
+        });
+      }
       await onUserUpdate?.();
-      const balAfter = chipPayout > 0 ? chipsRef.current + chipPayout : chipsRef.current;
-      logChipMovement({ user, action_type: type, amount: chipPayout > 0 ? chipPayout : 0, balance_after: balAfter, detail: `Blackjack 21 — ${detail}` });
+      logChipMovement({
+        user,
+        action_type: type,
+        amount: chipRefund,
+        balance_after: chipBalance + chipRefund,
+        detail: `Blackjack 21 — ${detail}`,
+      });
       queryClient.invalidateQueries({ queryKey: ["blackjack-history", user?.id] });
       if (type === "win") {
         playWinFanfare();
@@ -251,18 +262,30 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   // ── Deal a fresh hand (player + AI + dealer) ────────────────────────
   const handleDeal = async () => {
     if (busy) return;
-    const b = Math.min(Math.max(Math.floor(bet), 1), maxBet);
-    if (chips < 1) return;
-    if (b > chips) {
-      toast.error("Not enough chips for that bet.");
+    if (chips < MIN_BET) {
+      toast.error(`You need at least ${MIN_BET} chips to play.`);
       return;
     }
     setBusy(true);
     playClink();
+    // Re-read the balance before taking the wager and cap it to a 5-chip step,
+    // so the wager is always affordable and its 2× return is whole tokens.
+    const fresh = await base44.auth.me();
+    const balance = Number(fresh?.casinoChips) || 0;
+    const b = Math.min(
+      Math.floor(bet / BET_STEP) * BET_STEP,
+      Math.floor(balance / BET_STEP) * BET_STEP
+    );
+    if (b < MIN_BET) {
+      toast.error(`You need at least ${MIN_BET} chips to play.`);
+      setBusy(false);
+      await onUserUpdate?.();
+      return;
+    }
     setCommittedBet(b);
-    await base44.auth.updateMe({ casinoChips: chips - b });
+    await base44.auth.updateMe({ casinoChips: balance - b });
     await onUserUpdate?.();
-    logChipMovement({ user, action_type: "bet", amount: -b, balance_after: chips - b, detail: `Blackjack 21 bet ${b}` });
+    logChipMovement({ user, action_type: "bet", amount: -b, balance_after: balance - b, detail: `Blackjack 21 bet ${b}` });
 
     const d = shuffle(createDeck());
     const p = [];
@@ -309,9 +332,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       setTimeout(async () => {
         setRevealHole(true);
         setAiRevealed(true);
-        const res = resolveRound(p, a, dl, b, difficulty);
+        const res = resolveRound(p, a, dl, difficulty);
         setAiResult(res.aiRes);
-        await settle(res.type, res.detail, res.chipPayout);
+        await settle(res.type, res.detail, res.natural);
       }, 800);
     }
   };
@@ -340,9 +363,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           setDealer(dl);
           setDeck(dd);
         }
-        const res = resolveRound(p, aiFinal, dl, committedBet, difficulty);
+        const res = resolveRound(p, aiFinal, dl, difficulty);
         setAiResult(res.aiRes);
-        await settle(res.type, res.detail, res.chipPayout);
+        await settle(res.type, res.detail, res.natural);
       }, 500);
     }
   };
@@ -382,9 +405,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     }
 
     // Winner-takes-all: compare You, Player 2, and Dealer.
-    const res = resolveRound(player, aiFinal, dl, committedBet, difficulty);
+    const res = resolveRound(player, aiFinal, dl, difficulty);
     setAiResult(res.aiRes);
-    await settle(res.type, res.detail, res.chipPayout);
+    await settle(res.type, res.detail, res.natural);
   };
 
   const newRound = () => {
@@ -400,8 +423,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setPhase("bet");
   };
 
-  const adjustBet = (dir) => {
-    setBet((b) => Math.min(Math.max(b + dir, 1), maxBet));
+  const adjustBet = (delta) => {
+    setBet((b) => Math.min(Math.max(b + delta, MIN_BET), Math.max(maxBet, MIN_BET)));
     playClink();
   };
   const inPlay = phase === "player" || phase === "dealer";
@@ -473,7 +496,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
             </button>
             <div
               className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30"
-              title="Blackjack 21 chips — betting currency & winnings"
+              title="Blackjack 21 chips — the betting currency"
             >
               <MiniChipIcon size={14} />
               <span className="text-amber-200 font-bold text-sm tabular-nums">{chips}</span>
@@ -483,7 +506,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           {/* Felt plaque */}
           <div className="relative text-center -mt-1">
             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-300/70">
-              Win pays 2× chips · cash out in the Cashier
+              Win pays 2× in tokens · 10 chips = 1 token
             </span>
           </div>
 
@@ -491,10 +514,11 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           {inPlay && committedBet > 0 && (
             <div className="relative flex justify-center -mt-1 -mb-1">
               <div className="flex items-center gap-1.5">
-                <MiniChipIcon size={22} />
-                <span className="flex items-center gap-1 text-amber-200 font-black text-sm tabular-nums">
-                  {committedBet * 2}
-                </span>
+                <MiniChipIcon size={20} />
+                <span className="text-amber-200 font-black text-sm tabular-nums">{committedBet * 2}</span>
+                <span className="text-amber-300/60 text-xs">→</span>
+                <img src={TOKEN_IMG} alt="token" className="w-4 h-4 object-contain" />
+                <span className="text-amber-200 font-black text-sm tabular-nums">{winTokens(committedBet)}</span>
               </div>
             </div>
           )}
@@ -527,50 +551,13 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           )}
 
           {/* Result overlay */}
-          <AnimatePresence>
-            {phase === "resolve" && result && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                className={`blackjack-result-card relative text-center rounded-xl py-3 border ${
-                  result.type === "win"
-                    ? "bg-amber-500/20 border-amber-400/50 text-amber-200"
-                    : result.type === "push"
-                    ? "bg-slate-500/20 border-slate-400/50 text-slate-100"
-                    : "bg-rose-900/30 border-rose-500/50 text-rose-200"
-                }`}
-              >
-                <p className="text-lg font-black uppercase tracking-widest">{result.detail}</p>
-                <p className="text-sm font-bold tabular-nums flex items-center justify-center gap-1">
-                  {result.type === "win" ? (
-                    <>
-                      +{result.chipPayout} <MiniChipIcon size={12} />
-                    </>
-                  ) : result.type === "push" ? (
-                    <>
-                      Refunded {result.bet} <MiniChipIcon size={12} />
-                    </>
-                  ) : (
-                    <>
-                      −{result.bet} <MiniChipIcon size={12} />
-                    </>
-                  )}
-                </p>
-                {aiResult && difficulty !== "very_easy" && (
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">
-                    AI · {aiResult.detail}
-                  </p>
-                )}
-                <button
-                  onClick={newRound}
-                  className="mt-2 px-4 py-1.5 rounded-full bg-amber-400 text-emerald-950 text-xs font-black uppercase tracking-widest"
-                >
-                  New Round
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <BlackjackResultCard
+            show={phase === "resolve" && !!result}
+            result={result}
+            aiResult={aiResult}
+            showAi={difficulty !== "very_easy"}
+            onNewRound={newRound}
+          />
 
           {/* Bet + controls */}
           {phase === "bet" && (
@@ -578,17 +565,17 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
               <BetBar bet={bet} maxBet={maxBet} onSet={setBet} onAdjust={adjustBet} chips={chips} />
               <button
                 onClick={handleDeal}
-                disabled={busy || chips < 1}
+                disabled={busy || chips < MIN_BET}
                 className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm bg-emerald-700/60 text-emerald-100 border border-emerald-400/30 disabled:opacity-40 hover:bg-emerald-600/70 transition"
               >
                 <Play className="inline mr-1 w-4 h-4" /> Deal
               </button>
-              {chips < 1 && (
+              {chips < MIN_BET && (
                 <button
                   onClick={() => setShowCashier(true)}
                   className="w-full text-center text-[11px] font-bold uppercase tracking-widest text-amber-300/80 hover:text-amber-200 transition"
                 >
-                  Open the Cashier to buy chips →
+                  You need {MIN_BET} chips to play — buy chips in the Cashier →
                 </button>
               )}
             </>
@@ -627,41 +614,38 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         onUserUpdate={onUserUpdate}
       />
 
-      <DailyChipGiftModal
-        user={user}
-        open={showGift}
-        onClose={() => setShowGift(false)}
-        onClaimed={onUserUpdate}
-      />
     </div>
   );
 }
 
 // ── Bet slider with arrows + MAX ───────────────────────────────────────
 function BetBar({ bet, maxBet, onSet, onAdjust, chips }) {
+  const playable = chips >= MIN_BET;
+  const sliderMax = Math.max(maxBet, MIN_BET);
+  const shownBet = Math.min(Math.max(bet, MIN_BET), sliderMax);
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <button
-          onClick={() => onAdjust(-1)}
-          disabled={bet <= 1 || chips < 1}
+          onClick={() => onAdjust(-BET_STEP)}
+          disabled={!playable || shownBet <= MIN_BET}
           className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
         >
           ‹
         </button>
         <input
           type="range"
-          min={1}
-          max={maxBet}
-          step={1}
-          value={Math.min(bet, maxBet)}
+          min={MIN_BET}
+          max={sliderMax}
+          step={BET_STEP}
+          value={shownBet}
           onChange={(e) => onSet(Number(e.target.value))}
-          disabled={chips < 1}
+          disabled={!playable}
           className="flex-1 accent-cyan-400"
         />
         <button
-          onClick={() => onAdjust(1)}
-          disabled={bet >= maxBet || chips < 1}
+          onClick={() => onAdjust(BET_STEP)}
+          disabled={!playable || shownBet >= sliderMax}
           className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
         >
           ›
@@ -670,17 +654,20 @@ function BetBar({ bet, maxBet, onSet, onAdjust, chips }) {
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1 text-amber-200 font-black text-sm tabular-nums">
           <MiniChipIcon size={14} />
-          {bet} CHIPS
+          {shownBet} CHIPS
         </span>
         <button
           onClick={() => onSet(maxBet)}
-          disabled={chips < 1}
+          disabled={!playable}
           className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest text-emerald-950 disabled:opacity-30"
           style={{ background: "#d4af37" }}
         >
           MAX
         </button>
       </div>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-amber-200/60 text-center">
+        {MIN_BET}-chip minimum · {BET_STEP}-chip steps
+      </p>
     </div>
   );
 }

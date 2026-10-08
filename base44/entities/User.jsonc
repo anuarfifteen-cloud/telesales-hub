@@ -18,7 +18,7 @@
     "casinoChips": {
       "type": "number",
       "default": 0,
-      "description": "Blackjack 21 chips \u2014 a secondary currency used exclusively for Blackjack 21 betting. Purchased with tokens via the Chip Cashier; wins pay back in chips. Chips can be cashed out to tokens in the Cashier with a 20% service fee."
+      "description": "Blackjack 21 chips \u2014 a secondary currency used exclusively for Blackjack 21 betting (5-chip minimum, 5-chip steps). Chips are bought in the Cashier at 10 chips per token; wins are paid straight into the token wallet at 10 chips = 1 token, with a natural Blackjack paying a fixed 10 tokens. Chips can be cashed out in the Cashier at 20 chips = 1 token, in whole 20-chip steps."
     },
     "avatar_photo_url": {
       "type": "string",
@@ -32,9 +32,13 @@
       "type": "string",
       "description": "Date of last daily spin (YYYY-MM-DD, Brunei timezone)"
     },
+    "last_claimed_date": {
+      "type": "string",
+      "description": "Date the daily free 5-chip Blackjack 21 gift was claimed (YYYY-MM-DD, Brunei timezone). One claim per user per Brunei day, shared across devices; the gift popup on the Tokens tab is skipped for the rest of the day once set."
+    },
     "last_chip_gift_date": {
       "type": "string",
-      "description": "Date the daily free 5-chip Blackjack 21 gift was claimed (YYYY-MM-DD, Brunei timezone). One claim per user per Brunei day, shared across devices; the gift popup is skipped for the rest of the day once set."
+      "description": "Legacy field for the daily free 5-chip gift claim date (YYYY-MM-DD, Brunei timezone), kept so claims made before last_claimed_date existed still count for that day"
     },
     "is_defending_champ": {
       "type": "boolean",

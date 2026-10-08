@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 
-// Mode-scoped stats for Blackjack 21 records only (chip-based net).
+// Mode-scoped stats for Blackjack 21 rounds (tokens won).
 export default function BlackjackStats({ userId }) {
   const { data: history = [] } = useQuery({
     queryKey: ["blackjack-history", userId],
@@ -14,14 +14,10 @@ export default function BlackjackStats({ userId }) {
   const losses = history.filter((h) => h.result === "loss").length;
   const pushes = history.filter((h) => h.result === "push").length;
   const total = history.length;
-  const blackjacks = history.filter((h) => h.detail === "Blackjack!").length;
-  // Chip net: win profit (1× bet, 1.5× on blackjack) minus losses.
-  const net = history.reduce((s, h) => {
-    if (h.result === "win")
-      return s + (h.detail === "Blackjack!" ? Math.round((h.wager || 0) * 1.5) : h.wager || 0);
-    if (h.result === "loss") return s - (h.wager || 0);
-    return s;
-  }, 0);
+  const blackjacks = history.filter((h) => (h.detail || "").includes("BLACKJACK")).length;
+  // Token net: every winning round pays into the token wallet, so the rounds'
+  // token movements are the player's actual take.
+  const net = history.reduce((s, h) => s + (Number(h.tokens_delta) || 0), 0);
   const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
 
   const cells = [
@@ -31,7 +27,7 @@ export default function BlackjackStats({ userId }) {
     { label: "Pushes", value: pushes, color: "text-slate-500" },
     { label: "Blackjacks", value: blackjacks, color: "text-amber-600 dark:text-amber-400" },
     { label: "Win rate", value: total > 0 ? `${winRate}%` : "—", color: "text-blue-600 dark:text-blue-400" },
-    { label: "Net chips", value: net > 0 ? `+${net}` : net, color: net >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400" },
+    { label: "Net tokens", value: net > 0 ? `+${net}` : net, color: net >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400" },
   ];
 
   return (

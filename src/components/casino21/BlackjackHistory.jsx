@@ -2,7 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import MiniChipIcon from "./MiniChipIcon";
 
-// Mode-scoped history for Blackjack 21 records only (chip-based rounds).
+const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
+
+// Mode-scoped history for Blackjack 21 rounds (chips wagered, tokens won).
 export default function BlackjackHistory({ userId }) {
   const { data: history = [] } = useQuery({
     queryKey: ["blackjack-history", userId],
@@ -23,12 +25,9 @@ export default function BlackjackHistory({ userId }) {
   return (
     <div className="space-y-2 max-h-80 overflow-y-auto pr-1 p-1">
       {history.map((r) => {
-        const winChips =
-          r.result === "win"
-            ? r.detail === "Blackjack!"
-              ? Math.round((r.wager || 0) * 2.5)
-              : (r.wager || 0) * 2
-            : 0;
+        // Wins land in the token wallet, so the round's token movement is what
+        // the player actually took away.
+        const wonTokens = Number(r.tokens_delta) || 0;
         return (
           <div
             key={r.id}
@@ -57,7 +56,10 @@ export default function BlackjackHistory({ userId }) {
               }`}
             >
               {r.result === "win" ? (
-                <>+{winChips} <MiniChipIcon size={12} /></>
+                <>
+                  +{wonTokens}
+                  <img src={TOKEN_IMG} alt="tokens" className="w-3.5 h-3.5 object-contain" />
+                </>
               ) : r.result === "loss" ? (
                 <>−{r.wager} <MiniChipIcon size={12} /></>
               ) : (

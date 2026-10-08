@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
 import EarlyAccessToggle from "@/components/profile/EarlyAccessToggle";
 import CoinFlipStreak from "@/components/coinflip/CoinFlipStreak";
 import PerfectTen from "@/components/coinflip/PerfectTen";
@@ -12,11 +13,29 @@ import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
 import TapVaultCard from "@/components/tokens/TapVaultCard";
 import Blackjack21Game from "@/components/casino21/Blackjack21Game";
 import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
+import DailyChipGiftModal, { chipGiftClaimedToday } from "@/components/casino21/DailyChipGiftModal";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true }) {
   const [innerTab, setInnerTab] = useState("milestones");
   // tabs: milestones | vip | ninja | coinflip | perfect10 | supertap | blindvoucher | flappy | blackjack21 | scratchcard | diamondsmash
   const tokens = user?.earlyAccessTokens ?? 0;
+
+  // Daily 5-chip gift: offered once per Brunei day. Checked on every visit to
+  // the Tokens tab — dismissing the popup leaves the gift unclaimed, so it
+  // shows again the next time the tab is opened.
+  const [showChipGift, setShowChipGift] = useState(false);
+  useEffect(() => {
+    let active = true;
+    base44.auth
+      .me()
+      .then((fresh) => {
+        if (active && fresh && !chipGiftClaimedToday(fresh)) setShowChipGift(true);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // ninjaEnabled is preloaded by Home (via AppSettings subscription) so the tab
   // is already resolved by the time the user switches here — no 1s pop-in.
@@ -267,6 +286,14 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           {isAdmin && <VipActivityFeed user={user} isAdmin={isAdmin} />}
         </>
       )}
+
+      {/* Daily 5 free chips */}
+      <DailyChipGiftModal
+        user={user}
+        open={showChipGift}
+        onClose={() => setShowChipGift(false)}
+        onClaimed={onUserUpdate}
+      />
     </div>
   );
 }
