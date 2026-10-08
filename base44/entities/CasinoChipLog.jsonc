@@ -31,7 +31,7 @@
     },
     "amount": {
       "type": "number",
-      "description": "Signed net chip change for this entry (+/-). A loss round logs 0."
+      "description": "Signed net chip change for this entry (+/-). A loss round logs 0. A Blackjack win also logs 0 \u2014 that round pays in tokens, not chips; see tokens_won and chips_won."
     },
     "balance_after": {
       "type": "number",
@@ -40,6 +40,14 @@
     "tokens_spent": {
       "type": "number",
       "description": "Tokens paid for this movement. Only recorded on cashier_buy entries, where it drives the player's monthly chip conversion cap. Older entries without it are treated as 0."
+    },
+    "tokens_won": {
+      "type": "number",
+      "description": "Tokens credited to the player's wallet by a Blackjack 21 win, including the flat natural-Blackjack bonus. Only recorded on win entries; older entries without it are reconstructed from the matching Blackjack round record."
+    },
+    "chips_won": {
+      "type": "number",
+      "description": "Chip-equivalent payout of a Blackjack 21 win \u2014 the 2\u00d7 wager return in chips (10 chips = 1 token). Only recorded on win entries."
     },
     "detail": {
       "type": "string",

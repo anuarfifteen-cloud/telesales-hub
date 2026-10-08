@@ -216,6 +216,11 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     // A natural Blackjack pays the standard 2× win PLUS the fixed bonus on top.
     const tokenWin = type === "win" ? winTokens(wager) + (natural ? BLACKJACK_TOKENS : 0) : 0;
     const chipRefund = type === "push" ? wager : 0;
+    // A win moves no chips (the wager was already taken at deal) — it pays in
+    // tokens, so the log entry carries the token award and the 2× bet chip
+    // equivalent for the Casino Token Log to display.
+    const tokensWon = type === "win" ? tokenWin : null;
+    const chipsWon = type === "win" ? wager * 2 : null;
     setResult({ type, detail, natural, tokenWin, chipRefund, bet: wager });
     setPhase("resolve");
     // Hold the popup back for a beat so the Dealer's final cards and total stay
@@ -264,6 +269,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         action_type: type,
         amount: chipRefund,
         balance_after: chipBalance + chipRefund,
+        tokens_won: tokensWon,
+        chips_won: chipsWon,
         detail: `Blackjack 21 — ${detail}`,
       });
       queryClient.invalidateQueries({ queryKey: ["blackjack-history", user?.id] });

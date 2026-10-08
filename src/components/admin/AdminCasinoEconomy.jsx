@@ -41,6 +41,43 @@ function formatTimestamp(ts) {
   });
 }
 
+// ── Blackjack 21 win payouts ──────────────────────────────────────────
+// A win moves no chips — the wager was already taken at deal and the award
+// lands in the token wallet — so its chip delta is legitimately 0. New entries
+// carry the payout directly; older ones are matched back to their Blackjack
+// round record, written in the same settlement a moment earlier.
+function bucketKey(ts, offsetMinutes = 0) {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "";
+  d.setMinutes(d.getMinutes() + offsetMinutes);
+  return d.toISOString().slice(0, 16);
+}
+
+function buildWinIndex(rows) {
+  const map = new Map();
+  for (const r of rows) {
+    const tokens = Number(r.tokens_delta) || 0;
+    if (tokens <= 0) continue;
+    map.set(`${r.user_id}|${bucketKey(r.created_date)}`, {
+      tokens,
+      chips: (Number(r.wager) || 0) * 2,
+    });
+  }
+  return map;
+}
+
+/** { tokens, chips } for a win entry — tokens null when the payout can't be determined. */
+function resolveWinPayout(log, winIndex) {
+  if (log.action_type !== "win") return null;
+  const stored = log.tokens_won != null ? Number(log.tokens_won) : NaN;
+  if (stored > 0) return { tokens: stored, chips: Number(log.chips_won) || 0 };
+  for (const offset of [0, -1, 1]) {
+    const hit = winIndex.get(`${log.user_id}|${bucketKey(log.timestamp, offset)}`);
+    if (hit) return hit;
+  }
+  return { tokens: null, chips: 0 };
+}
+
 export default function AdminCasinoEconomy() {
   const queryClient = useQueryClient();
   const [view, setView] = useState("balances");
@@ -410,13 +447,31 @@ function LogsView({ users }) {
     },
   });
 
+  // Blackjack win rounds, used to reconstruct payouts for entries logged before
+  // the chip log recorded the token award.
+  const { data: blackjackWins = [] } = useQuery({
+    queryKey: ["casinoBlackjackWins"],
+    queryFn: async () => {
+      const rows = await base44.entities.CoinFlipGame.filter(
+        { game_type: "blackjack", result: "win" },
+        "-created_date",
+        300
+      );
+      return rows || [];
+    },
+  });
+  const winIndex = buildWinIndex(blackjackWins);
+
   const filtered = logs.filter((l) => {
     if (selectedUser && l.user_id !== selectedUser) return false;
     if (selectedAction && l.action_type !== selectedAction) return false;
     return true;
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["casinoChipLogs"] });
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["casinoChipLogs"] });
+    queryClient.invalidateQueries({ queryKey: ["casinoBlackjackWins"] });
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -475,19 +530,36 @@ function LogsView({ users }) {
               const amt = Number(l.amount) || 0;
               const isPos = amt > 0;
               const isZero = amt === 0;
+              const winPayout = resolveWinPayout(l, winIndex);
               return (
                 <div key={l.id || i} className="px-4 py-3">
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${ACTION_BADGE[l.action_type] || "bg-muted text-muted-foreground"}`}>
                       {ACTION_LABELS[l.action_type] || l.action_type}
                     </span>
-                    <span
-                      className={`text-sm font-black tabular-nums ${
-                        isZero ? "text-muted-foreground" : isPos ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
-                      }`}
-                    >
-                      {isPos ? `+${amt}` : amt}
-                    </span>
+                    {winPayout ? (
+                      // A win pays in tokens, not chips — show the award instead
+                      // of the (always zero) chip delta.
+                      <span
+                        className={`text-sm font-black tabular-nums ${
+                          winPayout.tokens == null
+                            ? "text-muted-foreground"
+                            : "text-emerald-600 dark:text-emerald-400"
+                        }`}
+                      >
+                        {winPayout.tokens == null
+                          ? "—"
+                          : `+${winPayout.tokens} ${winPayout.tokens === 1 ? "token" : "tokens"}`}
+                      </span>
+                    ) : (
+                      <span
+                        className={`text-sm font-black tabular-nums ${
+                          isZero ? "text-muted-foreground" : isPos ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                        }`}
+                      >
+                        {isPos ? `+${amt}` : amt}
+                      </span>
+                    )}
                     <span className="text-[10px] text-muted-foreground ml-auto flex-shrink-0">
                       {formatTimestamp(l.timestamp)}
                     </span>
@@ -501,6 +573,13 @@ function LogsView({ users }) {
                   </div>
                   {l.detail && (
                     <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{l.detail}</p>
+                  )}
+                  {winPayout && (
+                    <p className="text-[11px] font-semibold text-muted-foreground mt-0.5">
+                      {winPayout.tokens == null
+                        ? "Payout not recorded for this older entry"
+                        : `2× bet → ${winPayout.chips} chips · ${winPayout.tokens} paid in tokens`}
+                    </p>
                   )}
                 </div>
               );
