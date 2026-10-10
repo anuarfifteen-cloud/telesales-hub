@@ -1,0 +1,131 @@
+{
+  "name": "ActiveTable",
+  "type": "object",
+  "properties": {
+    "round_id": {
+      "type": "string",
+      "description": "Human-readable identifier for the current round, e.g. RND-84920. Regenerated for every new round and for every emergency reset."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "waiting_for_bets",
+        "player_turns",
+        "dealer_turn",
+        "completed",
+        "resetting"
+      ],
+      "default": "waiting_for_bets",
+      "description": "Phase of the shared round. waiting_for_bets = seats may place wagers, player_turns = seats act in order, dealer_turn = host plays the Dealer hand, completed = payouts flagged, resetting = emergency reset in progress."
+    },
+    "current_turn_seat": {
+      "type": "number",
+      "default": 1,
+      "description": "Seat number (1-5) whose turn it is. Only that seat's client may act; every other client's Hit/Stand controls are disabled."
+    },
+    "host_user_id": {
+      "type": "string",
+      "description": "User ID of the client running the table engine (dealing, timeout auto-stand, Dealer play, payouts). Hands off to the lowest remaining seat when the host leaves."
+    },
+    "last_action_timestamp": {
+      "type": "number",
+      "description": "UNIX epoch ms of the last table activity. Drives the 15-second turn timer and the 30-second emergency reset window."
+    },
+    "betting_ends_at": {
+      "type": "number",
+      "description": "UNIX epoch ms when the betting phase closes. 0 means betting is open and the window has not been started yet."
+    },
+    "dealer_hand": {
+      "type": "array",
+      "description": "The Dealer's cards as card objects ({ suit, color, rank, value, faceUp }). The second card is dealt with faceUp false until the Dealer's turn.",
+      "items": {
+        "type": "object"
+      }
+    },
+    "deck": {
+      "type": "array",
+      "description": "Remaining shuffled cards for this round, drawn by both hits and the Dealer. Refilled on every new round.",
+      "items": {
+        "type": "object"
+      }
+    },
+    "min_bet": {
+      "type": "number",
+      "default": 1,
+      "description": "Minimum chip wager per hand"
+    },
+    "max_bet": {
+      "type": "number",
+      "default": 50,
+      "description": "Maximum chip wager per hand"
+    },
+    "seats": {
+      "type": "array",
+      "description": "Up to 5 seat objects holding each player's wager, cards, hand value, phase status and self-payout flags.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "seat_id": {
+            "type": "number"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "user_name": {
+            "type": "string"
+          },
+          "bet_chips": {
+            "type": "number"
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "hand_value": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "empty",
+              "betting",
+              "playing",
+              "stood",
+              "busted",
+              "disconnected"
+            ]
+          },
+          "payout_flag": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "WIN",
+              "LOSS",
+              "PUSH",
+              "BLACKJACK"
+            ]
+          },
+          "payout_claimed": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "status",
+    "round_id"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
