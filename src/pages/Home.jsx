@@ -12,6 +12,7 @@ import LiveClock from "@/components/booking/LiveClock";
 import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins, Megaphone } from "lucide-react";
 import TokensTab from "./TokensTab";
 import { getStoredTheme, applyTheme, applyActiveTheme, THEME_MODE_LOCK } from "@/lib/theme";
+import { syncPublicProfile } from "@/lib/publicProfile";
 import AdminPinModal from "@/components/admin/AdminPinModal";
 import AdminBookingTotals from "@/components/admin/AdminBookingTotals";
 import {
@@ -294,6 +295,9 @@ useEffect(() => {
     setLocalTimeAtFetch(localAfter);
     setServerTimeRef(timeRes?.data?.serverTime || null);
     setUser(u);
+    // Publish this member's display fields (photo, initials, ring tier, name)
+    // so every other member's leaderboard can render them.
+    syncPublicProfile(u);
     return u;
   };
 
@@ -303,7 +307,12 @@ useEffect(() => {
       if (u) {
         const today = new Date().toLocaleDateString("en-CA", { timeZone: TZ });
         if (u.lastActiveDate !== today) {
-          base44.auth.updateMe({ lastActiveDate: today }).catch(() => {});
+          // Write today's activity date, then re-publish it so other members'
+          // avatar activity dots reflect it immediately.
+          base44.auth
+            .updateMe({ lastActiveDate: today })
+            .then(() => syncPublicProfile({ ...u, lastActiveDate: today }))
+            .catch(() => {});
         }
       }
     }).catch(() => {});

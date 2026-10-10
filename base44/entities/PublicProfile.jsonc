@@ -1,0 +1,66 @@
+{
+  "name": "PublicProfile",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Base44 user ID this public profile mirrors \u2014 the upsert key used by the sync"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Display name shown next to the avatar on leaderboards"
+    },
+    "avatar_photo_url": {
+      "type": "string",
+      "description": "Public URL of the member's profile photo, mirrored from the User entity"
+    },
+    "avatar_initials": {
+      "type": "string",
+      "description": "Up to 2 custom letters shown inside the avatar when no photo is set"
+    },
+    "tapVaultBalance": {
+      "type": "number",
+      "default": 0,
+      "description": "Mirrored TAP Vault balance \u2014 determines the avatar's tier ring on leaderboards"
+    },
+    "lastActiveDate": {
+      "type": "string",
+      "description": "YYYY-MM-DD (Brunei timezone) of the member's most recent app session, driving the avatar's activity dot and the inactive-leaderboard filter"
+    },
+    "hideFromLeaderboard": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, the member is excluded from the public Vault Titans leaderboard"
+    },
+    "updated_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last sync"
+    }
+  },
+  "required": [
+    "user_id"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

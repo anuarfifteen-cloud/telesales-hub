@@ -23,8 +23,11 @@ export default function VaultTitansLeaderboard({ currentUser }) {
   useEffect(() => {
     const load = async () => {
       try {
+        // PublicProfile carries every member's public display fields (name,
+        // photo, initials, vault balance, activity). The built-in User entity
+        // only lets admins read other users, so non-admins saw only themselves.
         const [u, s] = await Promise.all([
-          base44.entities.User.list(),
+          base44.entities.PublicProfile.list(),
           base44.entities.AppSettings.list(),
         ]);
         setUsers(u);
@@ -36,7 +39,7 @@ export default function VaultTitansLeaderboard({ currentUser }) {
       }
     };
     load();
-    const unsub = base44.entities.User.subscribe(() => load());
+    const unsub = base44.entities.PublicProfile.subscribe(() => load());
     return () => { if (unsub) unsub(); };
   }, []);
 
@@ -45,6 +48,9 @@ export default function VaultTitansLeaderboard({ currentUser }) {
   const ranked = users
     .map((u) => ({
       ...u,
+      // PublicProfile rows key on user_id; expose it as id so rank checks,
+      // champion lookups and the avatar all resolve against the real user.
+      id: u.user_id,
       vault: Number(u.tapVaultBalance) || 0,
       hidden: u.hideFromLeaderboard === true,
       inactive:

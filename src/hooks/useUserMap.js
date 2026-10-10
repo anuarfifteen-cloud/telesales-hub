@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 
-// Module-level cache so every leaderboard shares one User.list() fetch.
+// Module-level cache so every leaderboard shares one PublicProfile fetch.
 let cached = null;
 let inFlight = null;
 
-// Returns a map of { [userId]: userRecord }. Shared across all mounted
-// leaderboards via a module cache; refreshed on User entity subscriptions.
+// Returns a map of { [userId]: profileRecord } holding every member's public
+// display fields — photo, initials, vault tier ring and activity dot. Reads the
+// PublicProfile entity because the built-in User entity only lets admins read
+// other users. Shared across all mounted leaderboards via a module cache;
+// refreshed on PublicProfile subscriptions.
 export function useUserMap() {
   const [map, setMap] = useState(cached || {});
 
@@ -20,9 +23,11 @@ export function useUserMap() {
       }
       inFlight = (async () => {
         try {
-          const users = await base44.entities.User.list();
+          const rows = await base44.entities.PublicProfile.list();
           const m = {};
-          users.forEach((u) => { if (u.id) m[u.id] = u; });
+          rows.forEach((p) => {
+            if (p.user_id) m[p.user_id] = { ...p, id: p.user_id };
+          });
           cached = m;
           return m;
         } catch {
@@ -35,7 +40,7 @@ export function useUserMap() {
       if (mounted) setMap(m);
     };
     load();
-    const unsub = base44.entities.User.subscribe(() => { cached = null; load(); });
+    const unsub = base44.entities.PublicProfile.subscribe(() => { cached = null; load(); });
     return () => { mounted = false; if (unsub) unsub(); };
   }, []);
 
