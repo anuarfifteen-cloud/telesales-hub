@@ -105,167 +105,169 @@ export default function MpBetControls({
     );
   }
 
-  // Host has set the buy-in; this player must Bet or Decline. The panel pops
-  // out of the table as a raised felt card (matching the approved snippet):
-  // gold border, deep green gradient, soft shadow, card-arrive entrance.
+  // Host has set the buy-in; this player must Bet or Decline. The prompt pops
+  // out centered over the table (like the result pop-out) as a raised felt
+  // card: gold border, deep green gradient, soft shadow, card-arrive entrance.
   return (
-    <div
-      className="mp-bet-card"
-      style={{
-        boxSizing: "border-box",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        padding: 17,
-        border: "1px solid #c4a45e",
-        borderRadius: 20,
-        background: "linear-gradient(150deg,#123b2e 0%,#09271f 100%)",
-        color: "#f2e6c5",
-        fontFamily:
-          'system-ui,-apple-system,"Segoe UI",sans-serif',
-        boxShadow:
-          "0 16px 36px rgba(12,43,32,.22),0 3px 9px rgba(12,43,32,.14),inset 0 1px rgba(255,255,255,.08)",
-        animation: "mp-card-arrive .48s cubic-bezier(.2,.75,.25,1) both",
-      }}
-    >
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" />
       <div
-        className="mp-bet-buyin"
+        className="mp-bet-card relative w-full max-w-sm"
         style={{
           boxSizing: "border-box",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 16,
-          padding: "12px 14px",
-          border: "1px solid rgba(220,185,105,.4)",
-          borderRadius: 14,
-          background: "rgba(3,25,19,.54)",
+          flexDirection: "column",
+          gap: 12,
+          padding: 17,
+          border: "1px solid #c4a45e",
+          borderRadius: 20,
+          background: "linear-gradient(150deg,#123b2e 0%,#09271f 100%)",
+          color: "#f2e6c5",
+          fontFamily:
+            'system-ui,-apple-system,"Segoe UI",sans-serif',
+          boxShadow:
+            "0 16px 36px rgba(12,43,32,.22),0 3px 9px rgba(12,43,32,.14),inset 0 1px rgba(255,255,255,.08)",
+          animation: "mp-card-arrive .48s cubic-bezier(.2,.75,.25,1) both",
         }}
       >
-        <span
+        <div
+          className="mp-bet-buyin"
           style={{
-            margin: 0,
-            fontWeight: 800,
-            textTransform: "uppercase",
-            letterSpacing: ".13em",
-            fontSize: 11,
-            color: "#d9bd78",
-          }}
-        >
-          Buy-in
-        </span>
-        <span
-          style={{
+            boxSizing: "border-box",
             display: "flex",
             alignItems: "center",
-            gap: 7,
-            color: "#f1d27e",
-            fontSize: 15,
-            fontWeight: 900,
-            fontVariantNumeric: "tabular-nums",
+            justifyContent: "space-between",
+            gap: 16,
+            padding: "12px 14px",
+            border: "1px solid rgba(220,185,105,.4)",
+            borderRadius: 14,
+            background: "rgba(3,25,19,.54)",
           }}
         >
-          <MiniChipIcon size={16} /> {wager} chips
-        </span>
-      </div>
+          <span
+            style={{
+              margin: 0,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              letterSpacing: ".13em",
+              fontSize: 11,
+              color: "#d9bd78",
+            }}
+          >
+            Buy-in
+          </span>
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              color: "#f1d27e",
+              fontSize: 15,
+              fontWeight: 900,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            <MiniChipIcon size={16} /> {wager} chips
+          </span>
+        </div>
 
-      {betSeconds !== null && betSeconds > 0 && (
+        {betSeconds !== null && betSeconds > 0 && (
+          <p
+            style={{
+              margin: 0,
+              alignSelf: "center",
+              color: "#d9bd78",
+              fontSize: 10,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              letterSpacing: ".13em",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            Match window: {betSeconds}s
+          </p>
+        )}
+
+        <div
+          className="mp-bet-actions"
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
+        >
+          <button
+            type="button"
+            onClick={() => onPlace(wager)}
+            disabled={cantMatch || busy}
+            className="mp-bet-match"
+            style={{
+              boxSizing: "border-box",
+              minWidth: 0,
+              padding: "13px 9px",
+              borderRadius: 999,
+              font: '900 12px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif',
+              textTransform: "uppercase",
+              letterSpacing: ".09em",
+              cursor: "pointer",
+              border: "1px solid #f0d080",
+              background: "linear-gradient(180deg,#e7c76e,#c39a42)",
+              color: "#173328",
+              boxShadow:
+                "0 4px 12px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.45)",
+              transition:
+                "background-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease",
+              opacity: cantMatch || busy ? 0.4 : 1,
+            }}
+          >
+            Bet {wager} chips
+          </button>
+          <button
+            type="button"
+            onClick={onDecline}
+            disabled={busy}
+            className="mp-bet-decline"
+            style={{
+              boxSizing: "border-box",
+              minWidth: 0,
+              padding: "13px 9px",
+              borderRadius: 999,
+              font: '900 12px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif',
+              textTransform: "uppercase",
+              letterSpacing: ".09em",
+              cursor: "pointer",
+              border: "1px solid rgba(219,151,133,.58)",
+              background: "#642f2b",
+              color: "#f7e8dc",
+              boxShadow: "inset 0 1px rgba(255,255,255,.08)",
+              transition:
+                "background-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease",
+              opacity: busy ? 0.4 : 1,
+            }}
+          >
+            Decline
+          </button>
+        </div>
+
+        {cantMatch && (
+          <button
+            onClick={onOpenCashier}
+            className="text-[11px] font-bold uppercase tracking-widest text-amber-300/80 hover:text-amber-200 transition"
+          >
+            Not enough chips to bet — buy chips in the Cashier, or Decline →
+          </button>
+        )}
+
         <p
           style={{
             margin: 0,
             alignSelf: "center",
-            color: "#d9bd78",
+            color: "#cdb879",
             fontSize: 10,
             fontWeight: 800,
             textTransform: "uppercase",
-            letterSpacing: ".13em",
-            fontVariantNumeric: "tabular-nums",
+            letterSpacing: ".1em",
           }}
         >
-          Match window: {betSeconds}s
+          Winner takes the whole pot
         </p>
-      )}
-
-      <div
-        className="mp-bet-actions"
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
-      >
-        <button
-          type="button"
-          onClick={() => onPlace(wager)}
-          disabled={cantMatch || busy}
-          className="mp-bet-match"
-          style={{
-            boxSizing: "border-box",
-            minWidth: 0,
-            padding: "13px 9px",
-            borderRadius: 999,
-            font: '900 12px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif',
-            textTransform: "uppercase",
-            letterSpacing: ".09em",
-            cursor: "pointer",
-            border: "1px solid #f0d080",
-            background: "linear-gradient(180deg,#e7c76e,#c39a42)",
-            color: "#173328",
-            boxShadow:
-              "0 4px 12px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.45)",
-            transition:
-              "background-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease",
-            opacity: cantMatch || busy ? 0.4 : 1,
-          }}
-        >
-          Bet {wager} chips
-        </button>
-        <button
-          type="button"
-          onClick={onDecline}
-          disabled={busy}
-          className="mp-bet-decline"
-          style={{
-            boxSizing: "border-box",
-            minWidth: 0,
-            padding: "13px 9px",
-            borderRadius: 999,
-            font: '900 12px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif',
-            textTransform: "uppercase",
-            letterSpacing: ".09em",
-            cursor: "pointer",
-            border: "1px solid rgba(219,151,133,.58)",
-            background: "#642f2b",
-            color: "#f7e8dc",
-            boxShadow: "inset 0 1px rgba(255,255,255,.08)",
-            transition:
-              "background-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease",
-            opacity: busy ? 0.4 : 1,
-          }}
-        >
-          Decline
-        </button>
       </div>
-
-      {cantMatch && (
-        <button
-          onClick={onOpenCashier}
-          className="text-[11px] font-bold uppercase tracking-widest text-amber-300/80 hover:text-amber-200 transition"
-        >
-          Not enough chips to bet — buy chips in the Cashier, or Decline →
-        </button>
-      )}
-
-      <p
-        style={{
-          margin: 0,
-          alignSelf: "center",
-          color: "#cdb879",
-          fontSize: 10,
-          fontWeight: 800,
-          textTransform: "uppercase",
-          letterSpacing: ".1em",
-        }}
-      >
-        Winner takes the whole pot
-      </p>
     </div>
   );
 }

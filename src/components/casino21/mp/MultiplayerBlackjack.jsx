@@ -125,18 +125,23 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   // Pop the win/loss result as soon as the round completes for my hand; clear it
   // when the next round opens.
   useEffect(() => {
-    if (
+    // Show the result exactly once per round — only while the round is
+    // completed AND no next-round choice has been made yet. The moment any
+    // player picks New Bet / End Game (or the host starts Play Again),
+    // next_action is set and we clear the pop-out immediately, so it never
+    // re-fires when the table transitions to the next round.
+    const showResult =
       status === "completed" &&
       mySeat &&
       (mySeat.cards || []).length > 0 &&
-      table?.next_action !== "replay_pending"
-    ) {
+      !table?.next_action;
+    if (showResult) {
       const flag = mySeat.payout_flag;
       setResult({ flag, amount: payoutFor(flag, mySeat.bet_chips, mySeat.payout_amount) });
       if (flag === "WINNER" || flag === "SPLIT") playWinFanfare();
       else if (flag === "LOSS") playLoss();
       else if (flag === "REFUND") playPush();
-    } else if (status === "waiting_for_bets" || table?.next_action === "replay_pending") {
+    } else {
       setResult(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -809,25 +814,29 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
             ) : (
               <>
                 <p className="text-center text-[11px] font-bold text-amber-200/80">
-                  {isHost ? "Round complete — choose the next move:" : "Round complete — waiting for the host:"}
+                  {isHost
+                    ? "Round complete — choose the next move:"
+                    : "Round complete — end the game or wait for the host."}
                 </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => chooseNext("new_bet")}
-                    disabled={busy}
-                    className={goldBtn}
-                    style={goldStyle}
-                    title="Same players, choose a new wager"
-                  >
-                    <Coins className="inline mr-1 w-4 h-4" /> New Bet
-                  </button>
+                <div className={`grid ${isHost ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
+                  {isHost && (
+                    <button
+                      onClick={() => chooseNext("new_bet")}
+                      disabled={busy}
+                      className={goldBtn}
+                      style={goldStyle}
+                      title="Same players, choose a new wager"
+                    >
+                      <Coins className="inline mr-1 w-4 h-4" /> New Bet
+                    </button>
+                  )}
                   <button
                     onClick={() => chooseNext("stop")}
                     disabled={busy}
                     className="py-3 rounded-full font-black uppercase tracking-widest text-sm text-rose-50 bg-rose-700/70 border border-rose-400/40 disabled:opacity-40 transition"
-                    title="Clear the table"
+                    title="Clear the table and leave"
                   >
-                    <LogOut className="inline mr-1 w-4 h-4" /> Stop
+                    <LogOut className="inline mr-1 w-4 h-4" /> End Game
                   </button>
                 </div>
               </>
