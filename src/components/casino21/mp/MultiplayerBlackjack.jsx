@@ -298,7 +298,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
         const fresh = await base44.auth.me();
         const balance = Number(fresh?.casinoChips) || 0;
         if (balance < wager) {
-          toast.error("Not enough chips to replay — sitting this round out.");
+          toast.error("Not enough chips to play again — sitting this round out.");
           await patch({
             seats: seats.map((s) =>
               s.seat_id === mySeat.seat_id
@@ -436,9 +436,12 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   };
 
   // After a round, any player chooses the next move. The host engine applies it.
+  // For "replay" (Play Again), close the result pop-out immediately so the
+  // transition to the next same-bet round feels instant.
   const chooseNext = async (action) => {
     if (busy || !table || status !== "completed") return;
     if (table.next_action) return; // someone already chose
+    if (action === "replay") setResult(null);
     setBusy(true);
     try {
       await patch({ next_action: action, last_action_timestamp: Date.now() });
@@ -714,7 +717,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
                 style={goldStyle}
                 title="Same players, same buy-in"
               >
-                <RefreshCw className="inline mr-1 w-4 h-4" /> Replay
+                <RefreshCw className="inline mr-1 w-4 h-4" /> Play Again
               </button>
               <button
                 onClick={() => chooseNext("new_bet")}
@@ -735,9 +738,14 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
               </button>
             </div>
             {table.next_action && (
-              <p className="text-center text-[10px] font-bold uppercase tracking-widest text-amber-200/70">
-                Starting {table.next_action.replace("_", " ")}…
-              </p>
+              <div className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-200/80">
+                <span className="w-3 h-3 rounded-full border-2 border-amber-300/40 border-t-amber-300 animate-spin" />
+                {table.next_action === "replay"
+                  ? "Starting next round…"
+                  : table.next_action === "new_bet"
+                  ? "Opening new bets…"
+                  : "Closing the table…"}
+              </div>
             )}
           </div>
         )}
