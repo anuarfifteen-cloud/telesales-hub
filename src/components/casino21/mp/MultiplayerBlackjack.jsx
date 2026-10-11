@@ -727,7 +727,17 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
 
         {mySeat && status === "waiting_for_bets" && (
           <div className="relative">
-            {Number(mySeat.bet_chips) > 0 && !mySeat.auto_replay ? (
+            {mySeat.auto_replay ? (
+              <div className="rounded-2xl border border-amber-400/30 bg-emerald-950/40 px-3 py-3 flex items-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-full border-2 border-amber-300/40 border-t-amber-300 animate-spin shrink-0" />
+                <span className="text-xs font-bold text-amber-200">
+                  Rematch starting — committing {commonWager || mySeat.bet_chips} chips…
+                </span>
+                <span className="ml-auto text-[10px] font-bold text-amber-200/70">
+                  Play Again
+                </span>
+              </div>
+            ) : Number(mySeat.bet_chips) > 0 ? (
               <div className="rounded-2xl border border-amber-400/30 bg-emerald-950/40 px-3 py-2.5 flex items-center gap-2">
                 <MiniChipIcon size={14} />
                 <span className="text-xs font-bold text-amber-200">
