@@ -834,6 +834,27 @@
   100% { transform: scale(1); }
 }
 
+/* ── Multiplayer Blackjack: floating buy-in card (Match/Decline) ── */
+@keyframes mp-card-arrive {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.mp-bet-match:hover:not(:disabled) {
+  background: #f0d88f !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,.26), inset 0 1px rgba(255,255,255,.35) !important;
+}
+.mp-bet-decline:hover:not(:disabled) {
+  background: #793b34 !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,.26), inset 0 1px rgba(255,255,255,.35) !important;
+}
+.mp-bet-actions button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.mp-bet-actions button:focus-visible {
+  outline: 3px solid #f6df9d;
+  outline-offset: 3px;
+}
+
 /* Diamond Smash — special-match screen shake (retriggered via .match-shake class) */
 @keyframes match-shake {
   0%, 100% { transform: translate(0, 0); }

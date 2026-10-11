@@ -464,7 +464,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       <div className="flex gap-1 p-1 bg-muted/50 border border-border rounded-t-2xl">
         {[
           ["game", "🎮 Game"],
-          ["multiplayer", "🤝 Multi"],
+          ["multiplayer", "🌐 Online"],
           ["stats", "📊 Stats"],
           ["history", "📜 History"],
         ].map(([id, label]) => (

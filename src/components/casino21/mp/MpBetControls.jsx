@@ -105,37 +105,140 @@ export default function MpBetControls({
     );
   }
 
-  // Host has set the buy-in; this player must Match or Decline.
+  // Host has set the buy-in; this player must Bet or Decline. The panel pops
+  // out of the table as a raised felt card (matching the approved snippet):
+  // gold border, deep green gradient, soft shadow, card-arrive entrance.
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between rounded-2xl border border-amber-400/30 bg-emerald-950/40 px-3 py-2.5">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-amber-200/80">
+    <div
+      className="mp-bet-card"
+      style={{
+        boxSizing: "border-box",
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        padding: 17,
+        border: "1px solid #c4a45e",
+        borderRadius: 20,
+        background: "linear-gradient(150deg,#123b2e 0%,#09271f 100%)",
+        color: "#f2e6c5",
+        fontFamily:
+          'system-ui,-apple-system,"Segoe UI",sans-serif',
+        boxShadow:
+          "0 16px 36px rgba(12,43,32,.22),0 3px 9px rgba(12,43,32,.14),inset 0 1px rgba(255,255,255,.08)",
+        animation: "mp-card-arrive .48s cubic-bezier(.2,.75,.25,1) both",
+      }}
+    >
+      <div
+        className="mp-bet-buyin"
+        style={{
+          boxSizing: "border-box",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          padding: "12px 14px",
+          border: "1px solid rgba(220,185,105,.4)",
+          borderRadius: 14,
+          background: "rgba(3,25,19,.54)",
+        }}
+      >
+        <span
+          style={{
+            margin: 0,
+            fontWeight: 800,
+            textTransform: "uppercase",
+            letterSpacing: ".13em",
+            fontSize: 11,
+            color: "#d9bd78",
+          }}
+        >
           Buy-in
         </span>
-        <span className="flex items-center gap-1.5 text-amber-200 font-black text-sm tabular-nums">
-          <MiniChipIcon size={14} /> {wager} chips
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+            color: "#f1d27e",
+            fontSize: 15,
+            fontWeight: 900,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          <MiniChipIcon size={16} /> {wager} chips
         </span>
       </div>
 
       {betSeconds !== null && betSeconds > 0 && (
-        <p className="text-center text-[10px] font-bold uppercase tracking-widest text-amber-200/70 tabular-nums">
+        <p
+          style={{
+            margin: 0,
+            alignSelf: "center",
+            color: "#d9bd78",
+            fontSize: 10,
+            fontWeight: 800,
+            textTransform: "uppercase",
+            letterSpacing: ".13em",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
           Match window: {betSeconds}s
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
+      <div
+        className="mp-bet-actions"
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
+      >
         <button
+          type="button"
           onClick={() => onPlace(wager)}
           disabled={cantMatch || busy}
-          className="py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40 transition"
-          style={{ background: "#d4af37" }}
+          className="mp-bet-match"
+          style={{
+            boxSizing: "border-box",
+            minWidth: 0,
+            padding: "13px 9px",
+            borderRadius: 999,
+            font: '900 12px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif',
+            textTransform: "uppercase",
+            letterSpacing: ".09em",
+            cursor: "pointer",
+            border: "1px solid #f0d080",
+            background: "linear-gradient(180deg,#e7c76e,#c39a42)",
+            color: "#173328",
+            boxShadow:
+              "0 4px 12px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.45)",
+            transition:
+              "background-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease",
+            opacity: cantMatch || busy ? 0.4 : 1,
+          }}
         >
-          Match {wager}
+          Bet {wager} chips
         </button>
         <button
+          type="button"
           onClick={onDecline}
           disabled={busy}
-          className="py-3 rounded-full font-black uppercase tracking-widest text-sm text-rose-50 bg-rose-700/60 border border-rose-400/40 disabled:opacity-40 transition"
+          className="mp-bet-decline"
+          style={{
+            boxSizing: "border-box",
+            minWidth: 0,
+            padding: "13px 9px",
+            borderRadius: 999,
+            font: '900 12px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif',
+            textTransform: "uppercase",
+            letterSpacing: ".09em",
+            cursor: "pointer",
+            border: "1px solid rgba(219,151,133,.58)",
+            background: "#642f2b",
+            color: "#f7e8dc",
+            boxShadow: "inset 0 1px rgba(255,255,255,.08)",
+            transition:
+              "background-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease",
+            opacity: busy ? 0.4 : 1,
+          }}
         >
           Decline
         </button>
@@ -146,11 +249,21 @@ export default function MpBetControls({
           onClick={onOpenCashier}
           className="text-[11px] font-bold uppercase tracking-widest text-amber-300/80 hover:text-amber-200 transition"
         >
-          Not enough chips to match — buy chips in the Cashier, or Decline →
+          Not enough chips to bet — buy chips in the Cashier, or Decline →
         </button>
       )}
 
-      <p className="text-[10px] font-bold uppercase tracking-widest text-amber-200/50 text-center">
+      <p
+        style={{
+          margin: 0,
+          alignSelf: "center",
+          color: "#cdb879",
+          fontSize: 10,
+          fontWeight: 800,
+          textTransform: "uppercase",
+          letterSpacing: ".1em",
+        }}
+      >
         Winner takes the whole pot
       </p>
     </div>
