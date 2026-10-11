@@ -56,7 +56,6 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [chipFx, setChipFx] = useState(0);
-  const [optimistic, setOptimistic] = useState({ roundId: null, payout: 0, baseline: 0 });
   const autoBetRef = useRef(false);
   const replayRef = useRef("");
   const now = useNow(1000);
@@ -67,11 +66,6 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   const seats = normalizeSeats(table?.seats);
   const mySeat = seats.find((s) => s.user_id === user?.id) || null;
   const chips = Number(user?.casinoChips) || 0;
-  // Optimistic overlay: shows pending winnings instantly, before the
-  // background settlement write credits the wallet.
-  const displayChips = optimistic.roundId
-    ? optimistic.baseline + optimistic.payout
-    : chips;
   const status = table?.status || "waiting_for_bets";
   const inPlay = status === "player_turns" || status === "settling";
   const commonWager = Number(table?.common_wager) || 0;
@@ -130,36 +124,6 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, mySeat?.payout_flag, mySeat?.seat_id]);
-
-  // Optimistic payout: the moment the round resolves for my seat, reflect the
-  // pending winnings in the displayed balance — before the background wallet
-  // write lands — so the chip counter never freezes during the DB round-trip.
-  useEffect(() => {
-    if (
-      status === "completed" &&
-      mySeat &&
-      (mySeat.cards || []).length > 0 &&
-      mySeat.payout_flag &&
-      mySeat.payout_flag !== "PENDING" &&
-      !mySeat.payout_claimed &&
-      table?.round_id &&
-      optimistic.roundId !== table.round_id
-    ) {
-      const payout = payoutFor(mySeat.payout_flag, mySeat.bet_chips, mySeat.payout_amount);
-      setOptimistic({ roundId: table.round_id, payout, baseline: chips });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, mySeat?.payout_flag, mySeat?.payout_claimed, table?.round_id]);
-
-  // Clear the overlay once the wallet is actually credited, the seat is marked
-  // claimed, or the next round opens — so the payout is never double-counted
-  // after settlement completes.
-  useEffect(() => {
-    if (!optimistic.roundId) return;
-    if (status === "waiting_for_bets" || mySeat?.payout_claimed || chips > optimistic.baseline) {
-      setOptimistic({ roundId: null, payout: 0, baseline: 0 });
-    }
-  }, [optimistic.roundId, optimistic.baseline, status, mySeat?.payout_claimed, chips]);
 
   const joinSeat = async (seatId) => {
     if (busy || !table || !user) return;
@@ -626,7 +590,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
             title="Your Blackjack 21 chips"
           >
             <MiniChipIcon size={14} />
-            <span className="text-amber-200 font-bold text-sm tabular-nums">{displayChips}</span>
+            <span className="text-amber-200 font-bold text-sm tabular-nums">{chips}</span>
           </div>
         </div>
 
