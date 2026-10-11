@@ -2,16 +2,21 @@ import { useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { logChipMovement } from "@/lib/chipLog";
 import { normalizeSeats, payoutFor } from "./mpEngine";
+import { insertAction } from "./tableActions";
 
 // Client-driven self-payout: when this player's seat carries a finished
-// payout_flag, their own client credits their own casinoChips and then marks
-// the seat settled so it can never be settled twice.
+// payout_flag, their own client credits their own casinoChips and then inserts
+// a CLAIM action so the host (the sole table writer) marks the seat claimed.
+// The seat is never written directly by the player, so it can never collide
+// with a host write.
 //
-// Best-effort by design — the flag flip happens after the wallet write, so a
-// crash in between could re-credit. A per-round browser guard keeps the
-// duplicate inside one browser away, and the flag stops repeats everywhere else.
+// Best-effort by design — the credit happens before the CLAIM is processed, so
+// a crash in between could re-credit. A per-round browser guard keeps the
+// duplicate inside one browser away, and the host-set payout_claimed flag stops
+// repeats on every other device once processed.
 export default function useSettlement({ table, user, patch, onUserUpdate }) {
   const busyRef = useRef(false);
+  const sentRef = useRef("");
   const ref = useRef({});
   ref.current = { table, user, patch, onUserUpdate };
 
@@ -28,6 +33,9 @@ export default function useSettlement({ table, user, patch, onUserUpdate }) {
       (s) => s.seat_id === mine.seat_id
     );
     if (!seat) return;
+
+    const sentKey = `${snapshot.table.round_id}_${seat.seat_id}`;
+    if (sentRef.current === sentKey) return; // CLAIM already sent this round
 
     const guardKey = `mp_settled_${snapshot.table.round_id}_${seat.seat_id}_${seat.payout_flag}`;
     busyRef.current = true;
@@ -69,16 +77,16 @@ export default function useSettlement({ table, user, patch, onUserUpdate }) {
           }
         }
 
-        // Mark settled using the freshest seats we have, so we don't wipe
-        // another player's seat that just changed.
-        const latest = normalizeSeats(ref.current.table?.seats);
-        await snapshot.patch({
-          seats: latest.map((s) =>
-            s.seat_id === seat.seat_id
-              ? { ...s, bet_chips: 0, payout_claimed: true, status: "betting" }
-              : s
-          ),
+        // Ask the host to mark the seat claimed (sole-writer, collision-safe).
+        await insertAction({
+          table_id: snapshot.table.id,
+          round_id: snapshot.table.round_id,
+          user_id: snapshot.user.id,
+          user_name: snapshot.user.full_name || snapshot.user.email?.split("@")[0] || "Player",
+          action_type: "CLAIM",
+          seat_id: seat.seat_id,
         });
+        sentRef.current = sentKey;
       } catch (e) {
         console.warn("Multiplayer payout failed:", e);
       } finally {

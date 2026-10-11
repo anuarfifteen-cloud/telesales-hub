@@ -30,9 +30,10 @@
         "ACCEPT_BET",
         "DECLINE_BET",
         "HIT",
-        "STAND"
+        "STAND",
+        "CLAIM"
       ],
-      "description": "JOIN = claim an open seat; LEAVE = leave a seat; ACCEPT_BET = match the host buy-in (chips already deducted by the submitter); DECLINE_BET = decline the buy-in; HIT = draw a card on the submitter's turn; STAND = end the submitter's turn."
+      "description": "JOIN = claim an open seat; LEAVE = leave a seat; ACCEPT_BET = match the host buy-in (chips already deducted by the submitter); DECLINE_BET = decline the buy-in; HIT = draw a card on the submitter's turn; STAND = end the submitter's turn; CLAIM = the player has credited their own wallet for a settled payout and the host should mark the seat claimed so it can never pay out twice."
     },
     "wager": {
       "type": "number",

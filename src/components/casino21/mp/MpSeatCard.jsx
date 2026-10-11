@@ -31,12 +31,13 @@ export default function MpSeatCard({
   onJoin,
   revealCards = false,
   idleMs = null,
+  isTurn = false,
 }) {
   const filled = !!seat.user_id;
   const cards = seat.cards || [];
   const showResult = filled && seat.payout_flag && seat.payout_flag !== "PENDING";
   const payout = showResult ? payoutFor(seat.payout_flag, seat.bet_chips, seat.payout_amount) : 0;
-  const ready = filled && cards.length > 0 && (seat.ready === true || seat.status === "busted");
+  const ready = filled && cards.length > 0 && (seat.status === "stood" || seat.status === "busted" || seat.status === "disconnected");
   const isActing = seat.status === "playing" && !ready;
 
   // Your own hand is always face-up. Opponents only reveal at the end of the
@@ -67,7 +68,9 @@ export default function MpSeatCard({
   return (
     <div
       className={`mp-seat-card rounded-2xl border p-2.5 transition-all ${
-        ready
+        isTurn
+          ? "border-amber-400 bg-amber-400/15 ring-1 ring-amber-300/60"
+          : ready
           ? "border-amber-400/70 bg-amber-400/10"
           : isActing
           ? "border-emerald-400/60 bg-emerald-400/10"
@@ -107,9 +110,14 @@ export default function MpSeatCard({
             {seat.hand_value ?? ""}
           </span>
         )}
+        {isTurn && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-400 border border-amber-300 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-emerald-950 shrink-0">
+            Turn
+          </span>
+        )}
         {ready && (
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/20 border border-amber-400/50 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-200">
-            <Check className="w-2.5 h-2.5" /> Ready
+            <Check className="w-2.5 h-2.5" /> Done
           </span>
         )}
         {idleMs !== null && (

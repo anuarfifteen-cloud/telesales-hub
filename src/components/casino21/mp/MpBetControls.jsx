@@ -10,6 +10,7 @@ export default function MpBetControls({
   setBet,
   chips,
   busy,
+  pending = false,
   commonWager,
   isHost = false,
   betSeconds = null,
@@ -27,6 +28,7 @@ export default function MpBetControls({
       );
   const tooPoor = balance < MIN_BET;
   const cantMatch = locked && balance < wager;
+  const submitting = pending;
 
   // Non-host waiting for the host to set the buy-in.
   if (!isHost && !locked) {
@@ -84,11 +86,11 @@ export default function MpBetControls({
         </div>
         <button
           onClick={() => onPlace(wager)}
-          disabled={tooPoor || busy}
+          disabled={tooPoor || busy || submitting}
           className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40 transition"
           style={{ background: "#d4af37" }}
         >
-          Set {wager} Chip Buy-in
+          {submitting ? "Submitting…" : `Set ${wager} Chip Buy-in`}
         </button>
         {tooPoor && (
           <button
@@ -195,7 +197,7 @@ export default function MpBetControls({
           <button
             type="button"
             onClick={() => onPlace(wager)}
-            disabled={cantMatch || busy}
+            disabled={cantMatch || busy || submitting}
             className="mp-bet-match"
             style={{
               boxSizing: "border-box",
@@ -221,7 +223,7 @@ export default function MpBetControls({
           <button
             type="button"
             onClick={onDecline}
-            disabled={busy}
+            disabled={busy || submitting}
             className="mp-bet-decline"
             style={{
               boxSizing: "border-box",
@@ -254,6 +256,21 @@ export default function MpBetControls({
           </button>
         )}
 
+        {submitting && (
+          <p
+            style={{
+              margin: 0,
+              alignSelf: "center",
+              color: "#d9bd78",
+              fontSize: 10,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              letterSpacing: ".13em",
+            }}
+          >
+            Submitting — waiting for the host…
+          </p>
+        )}
         <p
           style={{
             margin: 0,

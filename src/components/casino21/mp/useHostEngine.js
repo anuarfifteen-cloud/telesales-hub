@@ -259,6 +259,16 @@ async function applyAction(action, table, patch, now) {
     });
   }
 
+  if (action.action_type === "CLAIM") {
+    if (seat.payout_claimed) return null; // already claimed (idempotent)
+    const next = seats.map((s) =>
+      Number(s.seat_id) === Number(seat.seat_id)
+        ? { ...s, bet_chips: 0, payout_claimed: true, status: "betting" }
+        : s
+    );
+    return await patch({ seats: next, last_action_timestamp: now });
+  }
+
   return null;
 }
 
