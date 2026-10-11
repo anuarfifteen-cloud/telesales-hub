@@ -435,6 +435,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
               isTurn={status === "player_turns" && table.current_turn_seat === s.seat_id}
               canJoin={canJoin && !s.user_id}
               onJoin={() => joinSeat(s.seat_id)}
+              revealCards={status === "settling" || status === "completed"}
             />
           ))}
         </div>

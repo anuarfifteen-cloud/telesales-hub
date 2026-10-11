@@ -1,4 +1,5 @@
 import PlayingCard from "../PlayingCard";
+import { handValue } from "../blackjackDeck";
 import { payoutFor } from "./mpEngine";
 
 const STATUS = {
@@ -19,12 +20,21 @@ const RESULT = {
 
 // One seat of the shared PvP table: who is sitting there, their wager, their
 // hand and — once the pot is scored — their own payout flag and amount.
-export default function MpSeatCard({ seat, isMe, isTurn, canJoin, onJoin }) {
+export default function MpSeatCard({ seat, isMe, isTurn, canJoin, onJoin, revealCards = false }) {
   const st = STATUS[seat.status] || STATUS.empty;
   const filled = !!seat.user_id;
   const showResult = filled && seat.payout_flag && seat.payout_flag !== "PENDING";
   const payout = showResult ? payoutFor(seat.payout_flag, seat.bet_chips, seat.payout_amount) : 0;
   const cards = seat.cards || [];
+  // Your own hand is always face-up. Opponents stay face-down until their hand
+  // resolves (stand / bust / disconnect), they land a natural two-card 21, or
+  // the round moves to scoring/completion.
+  const resolved =
+    seat.status === "stood" ||
+    seat.status === "busted" ||
+    seat.status === "disconnected";
+  const naturalBJ = cards.length === 2 && handValue(cards) === 21;
+  const showFace = isMe || resolved || naturalBJ || revealCards;
 
   return (
     <div
@@ -61,7 +71,7 @@ export default function MpSeatCard({ seat, isMe, isTurn, canJoin, onJoin }) {
           </p>
         </div>
 
-        {filled && cards.length > 0 && (
+        {filled && cards.length > 0 && showFace && (
           <span className="text-sm font-black text-amber-300 tabular-nums">
             {seat.hand_value ?? ""}
           </span>
@@ -80,7 +90,7 @@ export default function MpSeatCard({ seat, isMe, isTurn, canJoin, onJoin }) {
         <div className="flex flex-wrap items-start mt-2" style={{ paddingRight: 16 }}>
           {cards.map((c, i) => (
             <div key={i} style={{ marginRight: -16, position: "relative", zIndex: i + 1 }}>
-              <PlayingCard card={c} small isNew zIndex={i + 1} />
+              <PlayingCard card={c} small isNew zIndex={i + 1} faceDown={!showFace} backOnly={!showFace} />
             </div>
           ))}
         </div>
