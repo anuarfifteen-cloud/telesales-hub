@@ -7,6 +7,7 @@ import {
   COMPLETED_AUTO_MS,
   AUTO_BET_GRACE_MS,
   BET_IDLE_MS,
+  MIN_PLAYERS_TO_DEAL,
   normalizeSeats,
   isCommitted,
   allRevealReady,
@@ -116,8 +117,12 @@ async function runTick({ table, patch }) {
       .filter((s) => isCommitted(s))
       .sort((a, b) => a.seat_id - b.seat_id);
 
-    // Instant-start: as soon as every seated player has committed, deal.
-    if (bettors.length > 0 && bettors.length === seatedLive.length) {
+    // Instant-start: as soon as every seated player has committed AND there are
+    // enough players (host + at least one matcher), deal.
+    if (
+      bettors.length >= MIN_PLAYERS_TO_DEAL &&
+      bettors.length === seatedLive.length
+    ) {
       await dealRound({ seats, bettors, patch });
       return;
     }
@@ -138,8 +143,21 @@ async function runTick({ table, patch }) {
     const finalBettors = seatedLive
       .filter((s) => isCommitted(s))
       .sort((a, b) => a.seat_id - b.seat_id);
-    if (finalBettors.length === 0) {
-      await patch({ betting_ends_at: 0, deal_at: 0, common_wager: 0 });
+    if (finalBettors.length < MIN_PLAYERS_TO_DEAL) {
+      // Not enough matchers — refund each committed seat (the settlement hook
+      // credits each player's own wallet) and reset to a fresh waiting state.
+      const next = seats.map((s) =>
+        isCommitted(s)
+          ? { ...s, payout_flag: "REFUND", payout_amount: Number(s.bet_chips) || 0 }
+          : { ...s, bet_chips: 0, auto_replay: false, status: s.user_id ? "betting" : "empty" }
+      );
+      await patch({
+        seats: next,
+        common_wager: 0,
+        betting_ends_at: 0,
+        deal_at: 0,
+        last_action_timestamp: now,
+      });
       return;
     }
     await dealRound({ seats, bettors: finalBettors, patch });

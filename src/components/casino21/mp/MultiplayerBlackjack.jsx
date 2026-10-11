@@ -33,6 +33,8 @@ import {
   isCommitted,
   payoutFor,
   newRoundId,
+  hostUserIdForSeats,
+  emptySeat,
 } from "./mpEngine";
 import MpResultPopout from "./MpResultPopout";
 
@@ -70,6 +72,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   const inPlay = status === "player_turns" || status === "settling";
   const commonWager = Number(table?.common_wager) || 0;
   const totalPot = Number(table?.total_pot) || 0;
+  const isHost = !!mySeat && table?.host_user_id === user?.id;
 
   const dealtIn = seats.filter((s) => s.user_id && (s.cards || []).length > 0);
   const readyCount = dealtIn.filter(
@@ -148,7 +151,8 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
             }
           : s
       );
-      await patch({ seats: next, host_user_id: table.host_user_id || user.id });
+      const lowest = next.filter((s) => s.user_id).sort((a, b) => a.seat_id - b.seat_id)[0];
+      await patch({ seats: next, host_user_id: lowest?.user_id || table.host_user_id || user.id });
     } finally {
       setBusy(false);
     }
@@ -161,7 +165,10 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
       const refund = !inPlay ? Number(mySeat.bet_chips) || 0 : 0;
       const next = seats.map((s) => {
         if (s.seat_id !== mySeat.seat_id) return s;
-        if (inPlay) return { ...s, status: "disconnected" };
+        // Leaving mid-round: retain the wager in the pot, auto-stand the hand
+        // (ready) so the reveal can proceed, and mark disconnected so the host
+        // engine hands off. No refund.
+        if (inPlay) return { ...s, status: "disconnected", ready: true };
         return {
           ...s,
           user_id: "",
@@ -181,7 +188,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
       const remainingBettors = next.filter((s) => Number(s.bet_chips) > 0);
       const nextHost =
         table.host_user_id === user.id
-          ? next.find((s) => s.user_id)?.user_id || ""
+          ? next.find((s) => s.user_id && s.seat_id !== mySeat.seat_id)?.user_id || ""
           : table.host_user_id;
       await patch({
         seats: next,
@@ -214,6 +221,8 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   const placeBet = async (amount) => {
     if (busy || !mySeat || !table || status !== "waiting_for_bets") return;
     const locked = commonWager > 0;
+    // Only the host may set the buy-in; everyone else may only match it.
+    if (!locked && !isHost) return;
     const wager = locked
       ? commonWager
       : Math.max(MIN_BET, Math.min(MAX_BET, Math.round(Number(amount) || MIN_BET)));
@@ -249,7 +258,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
       });
       playChipChime();
       setChipFx((x) => x + 1);
-      toast.success(firstWager ? `Buy-in set to ${wager}.` : `Bet placed: ${wager} chips.`);
+      toast.success(firstWager ? `Buy-in set to ${wager}.` : `Matched ${wager} chips.`);
     } finally {
       setBusy(false);
     }
@@ -365,6 +374,43 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
         betting_ends_at: remainingBettors.length ? table.betting_ends_at : 0,
         deal_at: remainingBettors.length ? table.deal_at : 0,
       });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const declineSeat = async () => {
+    if (busy || !mySeat || !table) return;
+    setBusy(true);
+    try {
+      const refund = Number(mySeat.bet_chips) || 0;
+      const next = seats.map((s) =>
+        s.seat_id === mySeat.seat_id ? emptySeat(mySeat.seat_id) : s
+      );
+      const remainingBettors = next.filter((s) => Number(s.bet_chips) > 0);
+      const nextHost = hostUserIdForSeats(next) || table.host_user_id;
+      await patch({
+        seats: next,
+        host_user_id: nextHost,
+        common_wager: remainingBettors.length ? commonWager : 0,
+        betting_ends_at: remainingBettors.length ? table.betting_ends_at : 0,
+        deal_at: remainingBettors.length ? table.deal_at : 0,
+        last_action_timestamp: Date.now(),
+      });
+      if (refund > 0) {
+        const fresh = await base44.auth.me();
+        const balance = Number(fresh?.casinoChips) || 0;
+        await base44.auth.updateMe({ casinoChips: balance + refund });
+        await onUserUpdate?.();
+        logChipMovement({
+          user,
+          action_type: "push",
+          amount: refund,
+          balance_after: balance + refund,
+          detail: `Multiplayer Blackjack declined buy-in (${refund})`,
+        });
+      }
+      toast.success("You declined the buy-in and left the table.");
     } finally {
       setBusy(false);
     }
@@ -507,10 +553,11 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
       const list = normalizeSeats(t.seats);
       const mine = list.find((s) => s.user_id === u.id);
       if (!mine || mine.status === "disconnected") return;
-      const hostSeat = list.find((s) => s.user_id === t.host_user_id);
-      if (hostSeat && hostSeat.status !== "disconnected") return;
-      const candidate = list.filter((s) => s.user_id && s.status !== "disconnected")[0];
-      if (!candidate || candidate.user_id !== u.id) return;
+      const expected = hostUserIdForSeats(list);
+      if (!expected || t.host_user_id === expected) return;
+      // Only the player who should be the next host (lowest occupied seat)
+      // claims the engine.
+      if (expected !== u.id) return;
       p({ host_user_id: u.id, last_action_timestamp: Date.now() });
     }, 3000);
     return () => clearInterval(iv);
@@ -525,7 +572,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
       if (!t || !u) return;
       p({
         seats: normalizeSeats(t.seats).map((s) =>
-          s.user_id === u.id ? { ...s, status: "disconnected" } : s
+          s.user_id === u.id ? { ...s, status: "disconnected", ready: true } : s
         ),
       });
     };
@@ -646,7 +693,10 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
                 chips={chips}
                 busy={busy}
                 commonWager={commonWager}
+                isHost={isHost}
+                betSeconds={betSeconds}
                 onPlace={placeBet}
+                onDecline={declineSeat}
                 onOpenCashier={onOpenCashier}
               />
             )}

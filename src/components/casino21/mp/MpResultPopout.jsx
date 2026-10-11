@@ -8,7 +8,7 @@ import MiniChipIcon from "../MiniChipIcon";
 export default function MpResultPopout({ result, onDismiss }) {
   useEffect(() => {
     if (!result) return;
-    const t = setTimeout(onDismiss, 2400);
+    const t = setTimeout(onDismiss, 1500);
     return () => clearTimeout(t);
   }, [result, onDismiss]);
 
@@ -83,9 +83,12 @@ export default function MpResultPopout({ result, onDismiss }) {
                 Bet forfeited to the pot
               </p>
             )}
-            <p className="mt-4 text-[10px] font-bold uppercase tracking-widest text-white/40">
-              Tap to continue
-            </p>
+            <button
+              onClick={onDismiss}
+              className="mt-4 px-6 py-2 rounded-full border border-white/25 bg-white/10 text-white/80 text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition"
+            >
+              Close
+            </button>
           </motion.div>
         </motion.div>
       )}

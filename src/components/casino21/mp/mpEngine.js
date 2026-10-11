@@ -13,6 +13,7 @@ export const ROUND_END_MS = 3500; // how long a finished round stays before auto
 export const COMPLETED_AUTO_MS = 15000; // auto-advance a completed round to new_bet if no choice made
 export const AUTO_BET_GRACE_MS = 2000; // grace after betting closes for auto-bets to land
 export const BET_IDLE_MS = 30000; // seated-but-unbet seats are kicked after this long in betting
+export const MIN_PLAYERS_TO_DEAL = 2; // host + at least one matcher required to start a round
 
 export function newRoundId() {
   return `RND-${Math.floor(10000 + Math.random() * 89999)}`;
@@ -44,6 +45,16 @@ export function normalizeSeats(seats) {
     const found = list.find((s) => Number(s?.seat_id) === i + 1);
     return found ? { ...emptySeat(i + 1), ...found } : emptySeat(i + 1);
   });
+}
+
+// The host is the player in the lowest occupied seat. Returns their user_id,
+// or "" when nobody is seated. Drives host_user_id on the shared table row so
+// every client agrees on who runs the engine and who may set the buy-in.
+export function hostUserIdForSeats(seats) {
+  const occupied = normalizeSeats(seats).filter((s) => s.user_id);
+  if (!occupied.length) return "";
+  occupied.sort((a, b) => a.seat_id - b.seat_id);
+  return occupied[0].user_id;
 }
 
 export function seatByUser(seats, userId) {
