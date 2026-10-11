@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
-import { createDeck, shuffle, handValue } from "../blackjackDeck";
+import { handValue } from "../blackjackDeck";
 import {
   MIN_BET,
-  REVEAL_MS,
+  TURN_MS,
   ROUND_END_MS,
   COMPLETED_AUTO_MS,
   AUTO_BET_GRACE_MS,
@@ -11,22 +11,29 @@ import {
   MIN_PLAYERS_TO_DEAL,
   normalizeSeats,
   isCommitted,
-  allRevealReady,
-  autoReadyForReveal,
   applyNextAction,
   resolvePot,
   cleanSeats,
   emptySeat,
   newRoundId,
+  nextDealtInSeat,
+  buildDeal,
+  hostUserIdForSeats,
 } from "./mpEngine";
+import { fetchPendingActions, deleteAction } from "./tableActions";
 
 // The table engine. Runs only on the host's client, once a second, and only
-// while the tab is visible — it closes betting, deals, auto-readies hands at
-// the reveal deadline, evaluates the pot, and applies the next-round choice.
+// while the tab is visible. The host is the SOLE writer of the ActiveTable row
+// for game actions — players INSERT TableAction records (JOIN, LEAVE,
+// ACCEPT_BET, DECLINE_BET, HIT, STAND) and the host applies each one to the
+// table and deletes it. Because inserts never collide, N players acting at
+// the same millisecond produce N clean rows with no last-write-wins overwrites.
 //
-// This is deliberately client-driven (no backend functions on this plan), so it
-// is best-effort: if the host closes their tab mid-round the engine stops and
-// any player can use the emergency reset to unstick the table.
+// Card play is strictly turn-based: only the seat matching current_turn_seat
+// can submit a HIT/STAND, so a single hand is modified at a time. This is
+// deliberately client-driven (no backend functions on this plan), so it is
+// best-effort: if the host closes their tab mid-round the engine stops and any
+// player can use the emergency reset to unstick the table.
 export default function useHostEngine({ table, patch, user }) {
   const ref = useRef({});
   ref.current = { table, patch, user };
@@ -54,12 +61,213 @@ export default function useHostEngine({ table, patch, user }) {
 
 async function runTick({ table, patch }) {
   const now = Date.now();
+  let latest = table;
+
+  // 1. Process the action queue. Each action is applied idempotently, then
+  //    deleted so it can never be re-applied. Stale actions (from a previous
+  //    round) are just deleted.
+  const actions = await fetchPendingActions(table.id);
+  for (const action of actions) {
+    if (action.round_id !== latest.round_id) {
+      await deleteAction(action.id);
+      continue;
+    }
+    const result = await applyAction(action, latest, patch, now);
+    if (result) latest = result;
+    await deleteAction(action.id);
+  }
+
+  // 2. Run the phase logic on the post-action table state.
+  await runPhase(latest, patch, now);
+}
+
+// Apply a single queued action to the table. Returns the updated record (from
+// the patch) when the table changed, or null when the action was a no-op
+// (out-of-turn, wrong phase, already-applied, seat no longer yours). Every
+// branch is idempotent so a re-apply after a crash is safe.
+async function applyAction(action, table, patch, now) {
+  const seats = normalizeSeats(table.seats);
+  const status = table.status || "waiting_for_bets";
+  const seat = seats.find((s) => Number(s.seat_id) === Number(action.seat_id));
+  if (!seat) return null;
+  // The action must still belong to the submitter's seat.
+  if (action.action_type !== "JOIN" && seat.user_id !== action.user_id) return null;
+
+  if (action.action_type === "JOIN") {
+    if (status !== "waiting_for_bets") return null;
+    if (seat.user_id) return null; // seat already taken — drop the action
+    const next = seats.map((s) =>
+      Number(s.seat_id) === Number(action.seat_id)
+        ? {
+            ...s,
+            user_id: action.user_id,
+            user_name: action.user_name || "Player",
+            bet_chips: 0,
+            cards: [],
+            hand_value: 0,
+            status: "betting",
+            ready: false,
+            auto_replay: false,
+            last_activity: now,
+            payout_flag: "PENDING",
+            payout_amount: 0,
+            payout_claimed: false,
+          }
+        : s
+    );
+    const nextHost = hostUserIdForSeats(next) || table.host_user_id;
+    return await patch({
+      seats: next,
+      host_user_id: nextHost,
+      last_action_timestamp: now,
+    });
+  }
+
+  if (action.action_type === "LEAVE") {
+    if (status === "player_turns" || status === "settling") {
+      // Mid-round leave: forfeit the hand, stand it, mark disconnected so the
+      // reveal can proceed. No refund — the bet stays in the pot.
+      const next = seats.map((s) =>
+        Number(s.seat_id) === Number(action.seat_id)
+          ? { ...s, status: "disconnected", ready: true }
+          : s
+      );
+      const nextHost = hostUserIdForSeats(next) || "";
+      return await patch({
+        seats: next,
+        host_user_id: nextHost,
+        last_action_timestamp: now,
+      });
+    }
+    // Pre/post-round leave: empty the seat. The player's own client already
+    // refunded their wallet if they had a committed bet (no host refund needed).
+    const next = seats.map((s) =>
+      Number(s.seat_id) === Number(action.seat_id) ? emptySeat(s.seat_id) : s
+    );
+    const nextHost = hostUserIdForSeats(next) || "";
+    const remainingBettors = next.filter((s) => Number(s.bet_chips) > 0);
+    return await patch({
+      seats: next,
+      host_user_id: nextHost,
+      common_wager: remainingBettors.length ? table.common_wager : 0,
+      betting_ends_at: remainingBettors.length ? table.betting_ends_at : 0,
+      deal_at: remainingBettors.length ? table.deal_at : 0,
+      last_action_timestamp: now,
+    });
+  }
+
+  if (action.action_type === "ACCEPT_BET") {
+    if (status !== "waiting_for_bets") return null;
+    if (Number(seat.bet_chips) > 0) return null; // already committed
+    const wager = Number(action.wager) || MIN_BET;
+    const next = seats.map((s) =>
+      Number(s.seat_id) === Number(action.seat_id)
+        ? { ...s, bet_chips: wager, status: "betting", auto_replay: false, last_activity: now }
+        : s
+    );
+    const commonWager = Number(table.common_wager) || wager;
+    const betting_ends_at = Number(table.betting_ends_at) || (now + BETTING_MS);
+    return await patch({
+      seats: next,
+      common_wager: commonWager,
+      betting_ends_at,
+      deal_at: 0,
+      last_action_timestamp: now,
+    });
+  }
+
+  if (action.action_type === "DECLINE_BET") {
+    if (status !== "waiting_for_bets") return null;
+    if (!seat.user_id) return null;
+    const next = seats.map((s) =>
+      Number(s.seat_id) === Number(action.seat_id) ? emptySeat(s.seat_id) : s
+    );
+    const nextHost = hostUserIdForSeats(next) || "";
+    const remainingBettors = next.filter((s) => Number(s.bet_chips) > 0);
+    return await patch({
+      seats: next,
+      host_user_id: nextHost,
+      common_wager: remainingBettors.length ? table.common_wager : 0,
+      betting_ends_at: remainingBettors.length ? table.betting_ends_at : 0,
+      deal_at: remainingBettors.length ? table.deal_at : 0,
+      last_action_timestamp: now,
+    });
+  }
+
+  if (action.action_type === "HIT") {
+    if (status !== "player_turns") return null;
+    if (Number(table.current_turn_seat) !== Number(seat.seat_id)) return null;
+    if (seat.status !== "playing") return null;
+    const deck = [...(table.deck || [])];
+    if (!deck.length) return null;
+    const card = deck.pop();
+    const cards = [...(seat.cards || []), card];
+    const total = handValue(cards);
+    const busted = total > 21;
+    const twentyOne = total === 21;
+    const nextStatus = busted ? "busted" : twentyOne ? "stood" : "playing";
+    const next = seats.map((s) =>
+      Number(s.seat_id) === Number(seat.seat_id)
+        ? { ...s, cards, hand_value: total, status: nextStatus }
+        : s
+    );
+    if (busted || twentyOne) {
+      const nextTurn = nextDealtInSeat(next, seat.seat_id);
+      if (nextTurn === null) {
+        return await patch({
+          seats: next,
+          deck,
+          status: "settling",
+          last_action_timestamp: now,
+        });
+      }
+      return await patch({
+        seats: next,
+        deck,
+        current_turn_seat: nextTurn,
+        reveal_deadline: now + TURN_MS,
+        last_action_timestamp: now,
+      });
+    }
+    return await patch({
+      seats: next,
+      deck,
+      last_action_timestamp: now,
+    });
+  }
+
+  if (action.action_type === "STAND") {
+    if (status !== "player_turns") return null;
+    if (Number(table.current_turn_seat) !== Number(seat.seat_id)) return null;
+    if (seat.status !== "playing") return null;
+    const next = seats.map((s) =>
+      Number(s.seat_id) === Number(seat.seat_id) ? { ...s, status: "stood" } : s
+    );
+    const nextTurn = nextDealtInSeat(next, seat.seat_id);
+    if (nextTurn === null) {
+      return await patch({
+        seats: next,
+        status: "settling",
+        last_action_timestamp: now,
+      });
+    }
+    return await patch({
+      seats: next,
+      current_turn_seat: nextTurn,
+      reveal_deadline: now + TURN_MS,
+      last_action_timestamp: now,
+    });
+  }
+
+  return null;
+}
+
+async function runPhase(table, patch, now) {
   const seats = normalizeSeats(table.seats);
   const seated = seats.filter((s) => s.user_id);
   const status = table.status || "waiting_for_bets";
 
-  // Nobody is seated — park the table in a clean waiting state so the next
-  // player never inherits a stale hand.
+  // Nobody seated — park the table in a clean waiting state.
   if (seated.length === 0) {
     const dirty =
       status !== "waiting_for_bets" ||
@@ -88,8 +296,7 @@ async function runTick({ table, patch }) {
   }
 
   if (status === "waiting_for_bets") {
-    // Drop seats that sat down but never committed a bet within 60s — frees the
-    // seat for someone else. Only uncommitted seats are kicked.
+    // Drop seats that sat down but never committed a bet within 60s.
     const stale = seated.filter(
       (s) =>
         s.status !== "disconnected" &&
@@ -118,67 +325,22 @@ async function runTick({ table, patch }) {
       .filter((s) => isCommitted(s))
       .sort((a, b) => a.seat_id - b.seat_id);
 
-    // Replay fast-path: a rematch round has no betting window (betting_ends_at
-    // is 0). Once every pre-filled accepter has auto-committed (no seat has
-    // auto_replay: true), deal immediately — the rematch starts at once, with-
-    // out waiting for a 10s timer. A 10s timeout force-declines any stuck
-    // accepter so the round is never blocked forever.
-    if (!table.betting_ends_at) {
-      const hasPendingReplay = seated.some((s) => s.auto_replay === true);
-      if (hasPendingReplay) {
-        const roundAge = now - Number(table.last_action_timestamp || 0);
-        if (roundAge > BETTING_MS) {
-          await patch({
-            seats: seats.map((s) =>
-              s.auto_replay === true
-                ? { ...s, bet_chips: 0, auto_replay: false, last_activity: now }
-                : s
-            ),
-            last_action_timestamp: now,
-          });
-        }
-        return;
-      }
-      const replayBettors = seatedLive
-        .filter((s) => isCommitted(s))
-        .sort((a, b) => a.seat_id - b.seat_id);
-      if (replayBettors.length >= MIN_PLAYERS_TO_DEAL) {
-        await dealRound({ seats, bettors: replayBettors, patch });
-        return;
-      }
-      // Not enough committed accepters — refund and open a fresh betting round.
-      const next = seats.map((s) =>
-        isCommitted(s)
-          ? { ...s, payout_flag: "REFUND", payout_amount: Number(s.bet_chips) || 0 }
-          : { ...s, bet_chips: 0, auto_replay: false, status: s.user_id ? "betting" : "empty" }
-      );
-      await patch({
-        seats: next,
-        common_wager: 0,
-        betting_ends_at: 0,
-        deal_at: 0,
-        last_action_timestamp: now,
-      });
-      return;
-    }
-
-    // Instant-start: as soon as every seated player has committed AND there are
-    // enough players (host + at least one matcher), deal.
+    // Instant-start: once every seated player has committed AND there are
+    // enough players, deal immediately — no need to wait for the window.
     if (
       bettors.length >= MIN_PLAYERS_TO_DEAL &&
       bettors.length === seatedLive.length
     ) {
-      await dealRound({ seats, bettors, patch });
+      await dealRound({ seats, bettors, patch, now });
       return;
     }
 
-    // No wager on the table yet → no timer to run.
     const anyWager = seatedLive.some((s) => Number(s.bet_chips) > 0);
     if (!anyWager) return;
     if (!table.betting_ends_at || now < table.betting_ends_at) return;
 
-    // Betting window closed with uncommitted seats — give auto-bets a grace,
-    // then deal to whoever has committed.
+    // Betting window closed — give auto/late accepts a short grace, then deal
+    // to whoever has committed (uncommitted seated players simply sit out).
     if (!table.deal_at) {
       await patch({ deal_at: now + AUTO_BET_GRACE_MS });
       return;
@@ -205,22 +367,41 @@ async function runTick({ table, patch }) {
       });
       return;
     }
-    await dealRound({ seats, bettors: finalBettors, patch });
+    await dealRound({ seats, bettors: finalBettors, patch, now });
     return;
   }
 
   if (status === "player_turns") {
-    // Everyone reveal-ready → score the pot now.
-    if (allRevealReady(seats)) {
-      await patch({ status: "settling", last_action_timestamp: now });
+    const cur = seats.find((s) => Number(s.seat_id) === Number(table.current_turn_seat));
+    // Current seat already finished (stood/busted/empty/disconnected) → advance.
+    if (!cur || cur.status !== "playing") {
+      const nextTurn = nextDealtInSeat(seats, Number(table.current_turn_seat));
+      if (nextTurn === null) {
+        await patch({ status: "settling", last_action_timestamp: now });
+        return;
+      }
+      await patch({
+        current_turn_seat: nextTurn,
+        reveal_deadline: now + TURN_MS,
+        last_action_timestamp: now,
+      });
       return;
     }
-    // Reveal deadline passed → auto-ready the remaining hands, then score.
+    // Per-turn deadline passed → auto-stand the active player and advance.
     const deadline = Number(table.reveal_deadline || 0);
     if (deadline && now >= deadline) {
+      const next = seats.map((s) =>
+        Number(s.seat_id) === Number(cur.seat_id) ? { ...s, status: "stood" } : s
+      );
+      const nextTurn = nextDealtInSeat(next, cur.seat_id);
+      if (nextTurn === null) {
+        await patch({ seats: next, status: "settling", last_action_timestamp: now });
+        return;
+      }
       await patch({
-        seats: autoReadyForReveal(seats),
-        status: "settling",
+        seats: next,
+        current_turn_seat: nextTurn,
+        reveal_deadline: now + TURN_MS,
         last_action_timestamp: now,
       });
     }
@@ -240,42 +421,6 @@ async function runTick({ table, patch }) {
 
   if (status === "completed") {
     const action = table.next_action;
-
-    // Host initiated Play Again — wait for other seated players to accept or
-    // decline before proceeding. Non-response at the deadline counts as decline.
-    if (action === "replay_pending") {
-      const nonHostSeated = seats.filter(
-        (s) => s.user_id && s.user_id !== table.host_user_id
-      );
-      const allResponded = nonHostSeated.every(
-        (s) => s.replay_accept === true || s.replay_accept === false
-      );
-      const deadline =
-        Number(table.replay_deadline || 0) ||
-        Number(table.last_action_timestamp || 0) + 10000;
-      const deadlinePassed = now >= deadline;
-
-      if (!allResponded && !deadlinePassed) return;
-
-      // Count accepters: the host always accepts; others only if they said yes.
-      const accepters = seats.filter((s) => {
-        if (!s.user_id) return false;
-        if (s.user_id === table.host_user_id) return true;
-        return s.replay_accept === true;
-      });
-
-      if (accepters.length >= MIN_PLAYERS_TO_DEAL) {
-        const fields = applyNextAction("replay", seats, table);
-        if (fields) await patch(fields);
-      } else {
-        // Not enough accepters — cancel and open a fresh-bet round.
-        const fields = applyNextAction("new_bet", seats, table);
-        if (fields) await patch(fields);
-      }
-      return;
-    }
-
-    // A player has chosen Replay / New Bet / Stop — apply it.
     if (action) {
       const fields = applyNextAction(action, seats, table);
       if (fields) {
@@ -292,54 +437,20 @@ async function runTick({ table, patch }) {
   }
 }
 
-// Two cards to every participant. No Dealer hand in PvP. Sums the wagers into
-// the pot and opens the 30-second simultaneous-play reveal window.
-async function dealRound({ seats, bettors, patch }) {
-  const deck = shuffle(createDeck());
-  const draw = () => deck.pop();
-  const ids = new Set(bettors.map((b) => b.seat_id));
-  const totalPot = bettors.reduce((sum, b) => sum + (Number(b.bet_chips) || 0), 0);
-  const commonWager = Number(bettors[0].bet_chips) || MIN_BET;
-
-  const next = seats.map((s) => {
-    if (ids.has(s.seat_id)) {
-      const cards = [draw(), draw()];
-      return {
-        ...s,
-        cards,
-        hand_value: handValue(cards),
-        status: "playing",
-        ready: false,
-        auto_replay: false,
-        payout_flag: "PENDING",
-        payout_amount: 0,
-        payout_claimed: false,
-      };
-    }
-    // A seated player who didn't commit sits this round out.
-    return {
-      ...s,
-      cards: [],
-      hand_value: 0,
-      status: s.user_id ? "betting" : "empty",
-      ready: false,
-      auto_replay: false,
-      payout_flag: "PENDING",
-      payout_amount: 0,
-      payout_claimed: false,
-    };
-  });
-
+// Two cards to every bettor, pick the first live seat as the starting turn,
+// open the per-turn reveal window. No Dealer hand in PvP.
+async function dealRound({ seats, bettors, patch, now }) {
+  const deal = buildDeal(seats, bettors);
   await patch({
-    seats: next,
-    deck,
-    total_pot: totalPot,
-    common_wager: commonWager,
+    seats: deal.seats,
+    deck: deal.deck,
+    total_pot: deal.total_pot,
+    common_wager: deal.common_wager,
+    current_turn_seat: deal.current_turn_seat,
     betting_ends_at: 0,
     deal_at: 0,
     status: "player_turns",
-    current_turn_seat: bettors[0].seat_id,
-    reveal_deadline: Date.now() + REVEAL_MS,
+    reveal_deadline: Date.now() + TURN_MS,
     last_action_timestamp: Date.now(),
   });
 }

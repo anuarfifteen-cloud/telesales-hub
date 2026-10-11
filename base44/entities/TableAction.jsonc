@@ -1,0 +1,58 @@
+{
+  "name": "TableAction",
+  "type": "object",
+  "properties": {
+    "table_id": {
+      "type": "string",
+      "description": "ActiveTable row id this action targets"
+    },
+    "round_id": {
+      "type": "string",
+      "description": "Round id at submission time. The host ignores actions whose round_id does not match the table's current round, so a stale action from a previous round can never apply to the next one."
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User submitting the action"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the submitting user"
+    },
+    "seat_id": {
+      "type": "number",
+      "description": "Seat the action applies to"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "JOIN",
+        "LEAVE",
+        "ACCEPT_BET",
+        "DECLINE_BET",
+        "HIT",
+        "STAND"
+      ],
+      "description": "JOIN = claim an open seat; LEAVE = leave a seat; ACCEPT_BET = match the host buy-in (chips already deducted by the submitter); DECLINE_BET = decline the buy-in; HIT = draw a card on the submitter's turn; STAND = end the submitter's turn."
+    },
+    "wager": {
+      "type": "number",
+      "default": 0,
+      "description": "Chip amount the submitter already deducted from their own wallet. Only set for ACCEPT_BET. The host copies this onto the seat's bet_chips when it processes the action; the wager is never deducted by the host."
+    }
+  },
+  "required": [
+    "table_id",
+    "round_id",
+    "user_id",
+    "seat_id",
+    "action_type"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {},
+    "delete": {}
+  }
+}

@@ -1,13 +1,14 @@
 // Pure helpers for the shared Multiplayer Blackjack PvP table.
 // No database access, no side effects — every rule here is deterministic so
 // every client derives the same outcome from the same table row.
-import { handValue, isBlackjack } from "../blackjackDeck";
+import { handValue, isBlackjack, createDeck, shuffle } from "../blackjackDeck";
 
 export const SEAT_COUNT = 5;
 export const MIN_BET = 1;
 export const MAX_BET = 999;
 export const BETTING_MS = 10000; // 10-second betting window once the first wager lands
 export const REVEAL_MS = 30000; // 30-second simultaneous-play window before auto-reveal
+export const TURN_MS = 20000; // per-turn deadline in sequential turn-based play: if the active player does not act within this window the host auto-stands their hand and advances the turn
 export const UNSTICK_MS = 30000; // stalled-table window before the reset button appears
 export const ROUND_END_MS = 3500; // how long a finished round stays before auto-advance
 export const COMPLETED_AUTO_MS = 15000; // auto-advance a completed round to new_bet if no choice made
@@ -63,6 +64,75 @@ export function hostUserIdForSeats(seats) {
 export function seatByUser(seats, userId) {
   if (!userId) return null;
   return normalizeSeats(seats).find((s) => s.user_id === userId) || null;
+}
+
+// Next dealt-in seat whose hand is still "playing", searching forwards from
+// `fromSeatId` in seat order (wrapping around). Returns null when no dealt-in
+// player still has a live hand — meaning the round should settle.
+export function nextDealtInSeat(seats, fromSeatId) {
+  const list = normalizeSeats(seats);
+  const dealtIn = list.filter((s) => s.user_id && (s.cards || []).length > 0);
+  const live = dealtIn.filter((s) => s.status === "playing");
+  if (!live.length) return null;
+  const ordered = [...live].sort((a, b) => a.seat_id - b.seat_id);
+  const after = ordered.filter((s) => s.seat_id > fromSeatId);
+  return after.length ? after[0].seat_id : ordered[0].seat_id;
+}
+
+// Pure deal: builds a fresh shuffled deck, deals two cards to every bettor,
+// sets each hand to "playing" (or "stood" for a natural 21), and picks the
+// first live bettor as the starting turn. Shared by the initial deal and the
+// rematch deal. Returns the fields the host patches onto the table row.
+export function buildDeal(seats, bettors) {
+  const deck = shuffle(createDeck());
+  const draw = () => deck.pop();
+  const ids = new Set(bettors.map((b) => b.seat_id));
+  const totalPot = bettors.reduce((sum, b) => sum + (Number(b.bet_chips) || 0), 0);
+  const commonWager = Number(bettors[0]?.bet_chips) || MIN_BET;
+
+  const next = normalizeSeats(seats).map((s) => {
+    if (!ids.has(s.seat_id)) {
+      return {
+        ...s,
+        cards: [],
+        hand_value: 0,
+        status: s.user_id ? "betting" : "empty",
+        ready: false,
+        auto_replay: false,
+        payout_flag: "PENDING",
+        payout_amount: 0,
+        payout_claimed: false,
+      };
+    }
+    const cards = [draw(), draw()];
+    const hv = handValue(cards);
+    const natural21 = hv === 21;
+    return {
+      ...s,
+      cards,
+      hand_value: hv,
+      status: natural21 ? "stood" : "playing",
+      ready: false,
+      auto_replay: false,
+      payout_flag: "PENDING",
+      payout_amount: 0,
+      payout_claimed: false,
+    };
+  });
+
+  const firstPlaying = bettors
+    .slice()
+    .sort((a, b) => a.seat_id - b.seat_id)
+    .find((b) => next.find((s) => s.seat_id === b.seat_id)?.status === "playing");
+  const current_turn_seat = firstPlaying ? firstPlaying.seat_id : bettors[0].seat_id;
+
+  return {
+    seats: next,
+    deck,
+    total_pot: totalPot,
+    common_wager: commonWager,
+    current_turn_seat,
+  };
 }
 
 // A bet is "committed" once its chips are actually paid into the pot. During a
