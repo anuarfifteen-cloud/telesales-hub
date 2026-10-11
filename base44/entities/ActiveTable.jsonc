@@ -11,12 +11,12 @@
       "enum": [
         "waiting_for_bets",
         "player_turns",
-        "dealer_turn",
+        "settling",
         "completed",
         "resetting"
       ],
       "default": "waiting_for_bets",
-      "description": "Phase of the shared round. waiting_for_bets = seats may place wagers, player_turns = seats act in order, dealer_turn = host plays the Dealer hand, completed = payouts flagged, resetting = emergency reset in progress."
+      "description": "Phase of the shared PvP round. waiting_for_bets = seats place equal wagers during the 10s window; player_turns = seats act in order (Hit/Stand); settling = host evaluates the pot and flags payouts; completed = payouts flagged; resetting = emergency reset in progress."
     },
     "current_turn_seat": {
       "type": "number",
@@ -25,26 +25,33 @@
     },
     "host_user_id": {
       "type": "string",
-      "description": "User ID of the client running the table engine (dealing, timeout auto-stand, Dealer play, payouts). Hands off to the lowest remaining seat when the host leaves."
+      "description": "User ID of the client running the table engine (dealing, timeout auto-stand, pot evaluation, payouts). Hands off to the lowest remaining seat when the host leaves."
     },
     "last_action_timestamp": {
       "type": "number",
-      "description": "UNIX epoch ms of the last table activity. Drives the 15-second turn timer and the 30-second emergency reset window."
+      "description": "UNIX epoch ms of the last table activity. Drives the 10-second per-turn timer and the 30-second emergency reset window."
     },
     "betting_ends_at": {
       "type": "number",
-      "description": "UNIX epoch ms when the betting phase closes. 0 means betting is open and the window has not been started yet."
+      "description": "UNIX epoch ms when the 10-second betting phase closes. 0 means betting has not opened yet (no wager placed)."
     },
-    "dealer_hand": {
-      "type": "array",
-      "description": "The Dealer's cards as card objects ({ suit, color, rank, value, faceUp }). The second card is dealt with faceUp false until the Dealer's turn.",
-      "items": {
-        "type": "object"
-      }
+    "deal_at": {
+      "type": "number",
+      "description": "UNIX epoch ms when the host deals after the betting window closes. Adds a short grace window for auto-bets. 0 means not scheduled."
+    },
+    "common_wager": {
+      "type": "number",
+      "default": 0,
+      "description": "The equal chip wager every participant must contribute to the pot. Set by the first bettor; subsequent bettors must match it. 0 means no wager has been placed yet."
+    },
+    "total_pot": {
+      "type": "number",
+      "default": 0,
+      "description": "Accumulated chip pool for the round \u2014 the sum of all participating wagers. Awarded to the winning hand(s) or refunded on an all-bust."
     },
     "deck": {
       "type": "array",
-      "description": "Remaining shuffled cards for this round, drawn by both hits and the Dealer. Refilled on every new round.",
+      "description": "Remaining shuffled cards for this round, drawn by player hits. Refilled on every new round. There is no Dealer hand in PvP mode.",
       "items": {
         "type": "object"
       }
@@ -101,11 +108,15 @@
             "type": "string",
             "enum": [
               "PENDING",
-              "WIN",
-              "LOSS",
-              "PUSH",
-              "BLACKJACK"
+              "WINNER",
+              "SPLIT",
+              "REFUND",
+              "LOSS"
             ]
+          },
+          "payout_amount": {
+            "type": "number",
+            "description": "Exact chip amount this seat receives at settlement. WINNER = whole pot; SPLIT = pot share (lowest tied seat gets any remainder); REFUND = original wager; LOSS = 0."
           },
           "payout_claimed": {
             "type": "boolean"

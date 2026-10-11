@@ -11,19 +11,19 @@ const STATUS = {
 };
 
 const RESULT = {
-  WIN: "bg-emerald-500/20 border-emerald-400/40 text-emerald-200",
-  BLACKJACK: "bg-amber-400/20 border-amber-400/50 text-amber-200",
-  PUSH: "bg-slate-400/20 border-slate-300/40 text-slate-100",
+  WINNER: "bg-amber-400/20 border-amber-400/50 text-amber-200",
+  SPLIT: "bg-emerald-500/20 border-emerald-400/40 text-emerald-200",
+  REFUND: "bg-slate-400/20 border-slate-300/40 text-slate-100",
   LOSS: "bg-rose-500/20 border-rose-400/40 text-rose-200",
 };
 
-// One seat of the shared table: who is sitting there, their wager, their hand
-// and — once the round is scored — their own payout flag.
+// One seat of the shared PvP table: who is sitting there, their wager, their
+// hand and — once the pot is scored — their own payout flag and amount.
 export default function MpSeatCard({ seat, isMe, isTurn, canJoin, onJoin }) {
   const st = STATUS[seat.status] || STATUS.empty;
   const filled = !!seat.user_id;
   const showResult = filled && seat.payout_flag && seat.payout_flag !== "PENDING";
-  const payout = showResult ? payoutFor(seat.payout_flag, seat.bet_chips) : 0;
+  const payout = showResult ? payoutFor(seat.payout_flag, seat.bet_chips, seat.payout_amount) : 0;
   const cards = seat.cards || [];
 
   return (
@@ -89,7 +89,7 @@ export default function MpSeatCard({ seat, isMe, isTurn, canJoin, onJoin }) {
       {showResult && (
         <div
           className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${
-            RESULT[seat.payout_flag] || RESULT.PUSH
+            RESULT[seat.payout_flag] || RESULT.LOSS
           }`}
         >
           {seat.payout_flag}

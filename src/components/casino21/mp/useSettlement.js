@@ -35,7 +35,7 @@ export default function useSettlement({ table, user, patch, onUserUpdate }) {
     (async () => {
       try {
         const bet = Number(seat.bet_chips) || 0;
-        const payout = payoutFor(seat.payout_flag, bet);
+        const payout = payoutFor(seat.payout_flag, bet, seat.payout_amount);
 
         let seen = false;
         try {
@@ -59,20 +59,18 @@ export default function useSettlement({ table, user, patch, onUserUpdate }) {
             logChipMovement({
               user: snapshot.user,
               action_type:
-                seat.payout_flag === "LOSS"
-                  ? "loss"
-                  : seat.payout_flag === "PUSH"
+                seat.payout_flag === "REFUND"
                   ? "push"
                   : "win",
               amount: payout,
               balance_after: next,
-              detail: `Multiplayer Blackjack — ${seat.payout_flag} (bet ${bet})`,
+              detail: `Multiplayer Blackjack PvP — ${seat.payout_flag} (pot share ${payout})`,
             });
           }
         }
 
-        // Mark settled using the freshest seats we have, so we don't wipe the
-        // Dealer's hand or another player's seat that just changed.
+        // Mark settled using the freshest seats we have, so we don't wipe
+        // another player's seat that just changed.
         const latest = normalizeSeats(ref.current.table?.seats);
         await snapshot.patch({
           seats: latest.map((s) =>
@@ -87,5 +85,5 @@ export default function useSettlement({ table, user, patch, onUserUpdate }) {
         busyRef.current = false;
       }
     })();
-  }, [pending, flag, mine?.seat_id, mine?.bet_chips]);
+  }, [pending, flag, mine?.seat_id, mine?.bet_chips, mine?.payout_amount]);
 }
