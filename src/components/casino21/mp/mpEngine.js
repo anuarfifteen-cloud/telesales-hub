@@ -34,6 +34,7 @@ export function emptySeat(seatId) {
     ready: false,
     auto_replay: false,
     last_activity: 0,
+    last_seen: 0,
     payout_flag: "PENDING",
     payout_amount: 0,
     payout_claimed: false,

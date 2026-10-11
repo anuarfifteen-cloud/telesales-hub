@@ -3,10 +3,8 @@ import { handValue } from "../blackjackDeck";
 import {
   MIN_BET,
   TURN_MS,
-  ROUND_END_MS,
   COMPLETED_AUTO_MS,
   AUTO_BET_GRACE_MS,
-  BET_IDLE_MS,
   BETTING_MS,
   MIN_PLAYERS_TO_DEAL,
   normalizeSeats,
@@ -21,19 +19,24 @@ import {
   hostUserIdForSeats,
 } from "./mpEngine";
 import { fetchPendingActions, deleteAction } from "./tableActions";
+import {
+  shouldRunEngine,
+  needsLeaseWrite,
+  LEASE_MS,
+  PRESENCE_TIMEOUT_MS,
+} from "./hostLease";
 
-// The table engine. Runs only on the host's client, once a second, and only
-// while the tab is visible. The host is the SOLE writer of the ActiveTable row
-// for game actions — players INSERT TableAction records (JOIN, LEAVE,
-// ACCEPT_BET, DECLINE_BET, HIT, STAND) and the host applies each one to the
-// table and deletes it. Because inserts never collide, N players acting at
-// the same millisecond produce N clean rows with no last-write-wins overwrites.
+// The table engine. Runs on whichever client currently holds the host lease,
+// once a second, and only while the tab is visible. The lease holder is the
+// SOLE writer of the ActiveTable row for game actions — players INSERT
+// TableAction records (JOIN, LEAVE, ACCEPT_BET, DECLINE_BET, HIT, STAND,
+// HEARTBEAT) and the host applies each one to the table and deletes it.
 //
-// Card play is strictly turn-based: only the seat matching current_turn_seat
-// can submit a HIT/STAND, so a single hand is modified at a time. This is
-// deliberately client-driven (no backend functions on this plan), so it is
-// best-effort: if the host closes their tab mid-round the engine stops and any
-// player can use the emergency reset to unstick the table.
+// The lease is renewed every few ticks. When the holder closes their tab the
+// lease expires and the lowest-numbered seated player claims it, so processing
+// never stops as long as any player is active. Presence heartbeats let the
+// engine tell connected-but-idle players apart from players whose browsers are
+// gone, so only truly-absent seats are freed.
 export default function useHostEngine({ table, patch, user }) {
   const ref = useRef({});
   ref.current = { table, patch, user };
@@ -43,8 +46,9 @@ export default function useHostEngine({ table, patch, user }) {
     const iv = setInterval(async () => {
       const current = ref.current;
       if (!current.table || !current.user) return;
-      if (current.table.host_user_id !== current.user.id) return;
       if (document.visibilityState !== "visible") return;
+      // Only the lease holder runs the engine.
+      if (!shouldRunEngine(current.table, current.user, Date.now())) return;
       if (busyRef.current) return;
       busyRef.current = true;
       try {
@@ -59,16 +63,26 @@ export default function useHostEngine({ table, patch, user }) {
   }, []);
 }
 
-async function runTick({ table, patch }) {
+async function runTick({ table, patch, user }) {
   const now = Date.now();
   let latest = table;
 
+  // Claim or renew the host lease. Only write when the lease needs it (claim
+  // or near-expiry) to avoid a write every tick.
+  if (needsLeaseWrite(latest, user.id, now)) {
+    const claimed = await patch({
+      host_user_id: user.id,
+      host_lease_expires_at: now + LEASE_MS,
+    });
+    if (claimed) latest = claimed;
+  }
+
   // 1. Process the action queue. Each action is applied idempotently, then
   //    deleted so it can never be re-applied. Stale actions (from a previous
-  //    round) are just deleted.
-  const actions = await fetchPendingActions(table.id);
+  //    round) are just deleted — except HEARTBEAT, which applies across rounds.
+  const actions = await fetchPendingActions(latest.id);
   for (const action of actions) {
-    if (action.round_id !== latest.round_id) {
+    if (action.action_type !== "HEARTBEAT" && action.round_id !== latest.round_id) {
       await deleteAction(action.id);
       continue;
     }
@@ -90,8 +104,29 @@ async function applyAction(action, table, patch, now) {
   const status = table.status || "waiting_for_bets";
   const seat = seats.find((s) => Number(s.seat_id) === Number(action.seat_id));
   if (!seat) return null;
-  // The action must still belong to the submitter's seat.
+  // The action must still belong to the submitter's seat (JOIN is the exception
+  // — it claims an empty seat).
   if (action.action_type !== "JOIN" && seat.user_id !== action.user_id) return null;
+
+  // Keep the current host when it is still seated; only reassign when the host
+  // left or there was none. This prevents the host from yanking to the lowest
+  // seat every time a lower seat joins.
+  const resolveHost = (next) => {
+    if (table.host_user_id && next.some((s) => s.user_id === table.host_user_id)) {
+      return table.host_user_id;
+    }
+    return hostUserIdForSeats(next) || "";
+  };
+
+  if (action.action_type === "HEARTBEAT") {
+    if (!seat.user_id || seat.user_id !== action.user_id) return null;
+    const next = seats.map((s) =>
+      Number(s.seat_id) === Number(action.seat_id)
+        ? { ...s, last_seen: now }
+        : s
+    );
+    return await patch({ seats: next });
+  }
 
   if (action.action_type === "JOIN") {
     if (status !== "waiting_for_bets") return null;
@@ -109,16 +144,16 @@ async function applyAction(action, table, patch, now) {
             ready: false,
             auto_replay: false,
             last_activity: now,
+            last_seen: now,
             payout_flag: "PENDING",
             payout_amount: 0,
             payout_claimed: false,
           }
         : s
     );
-    const nextHost = hostUserIdForSeats(next) || table.host_user_id;
     return await patch({
       seats: next,
-      host_user_id: nextHost,
+      host_user_id: resolveHost(next),
       last_action_timestamp: now,
     });
   }
@@ -132,10 +167,9 @@ async function applyAction(action, table, patch, now) {
           ? { ...s, status: "disconnected", ready: true }
           : s
       );
-      const nextHost = hostUserIdForSeats(next) || "";
       return await patch({
         seats: next,
-        host_user_id: nextHost,
+        host_user_id: resolveHost(next),
         last_action_timestamp: now,
       });
     }
@@ -144,11 +178,10 @@ async function applyAction(action, table, patch, now) {
     const next = seats.map((s) =>
       Number(s.seat_id) === Number(action.seat_id) ? emptySeat(s.seat_id) : s
     );
-    const nextHost = hostUserIdForSeats(next) || "";
     const remainingBettors = next.filter((s) => Number(s.bet_chips) > 0);
     return await patch({
       seats: next,
-      host_user_id: nextHost,
+      host_user_id: resolveHost(next),
       common_wager: remainingBettors.length ? table.common_wager : 0,
       betting_ends_at: remainingBettors.length ? table.betting_ends_at : 0,
       deal_at: remainingBettors.length ? table.deal_at : 0,
@@ -162,7 +195,7 @@ async function applyAction(action, table, patch, now) {
     const wager = Number(action.wager) || MIN_BET;
     const next = seats.map((s) =>
       Number(s.seat_id) === Number(action.seat_id)
-        ? { ...s, bet_chips: wager, status: "betting", auto_replay: false, last_activity: now }
+        ? { ...s, bet_chips: wager, status: "betting", auto_replay: false, last_activity: now, last_seen: now }
         : s
     );
     const commonWager = Number(table.common_wager) || wager;
@@ -182,11 +215,10 @@ async function applyAction(action, table, patch, now) {
     const next = seats.map((s) =>
       Number(s.seat_id) === Number(action.seat_id) ? emptySeat(s.seat_id) : s
     );
-    const nextHost = hostUserIdForSeats(next) || "";
     const remainingBettors = next.filter((s) => Number(s.bet_chips) > 0);
     return await patch({
       seats: next,
-      host_user_id: nextHost,
+      host_user_id: resolveHost(next),
       common_wager: remainingBettors.length ? table.common_wager : 0,
       betting_ends_at: remainingBettors.length ? table.betting_ends_at : 0,
       deal_at: remainingBettors.length ? table.deal_at : 0,
@@ -208,7 +240,7 @@ async function applyAction(action, table, patch, now) {
     const nextStatus = busted ? "busted" : twentyOne ? "stood" : "playing";
     const next = seats.map((s) =>
       Number(s.seat_id) === Number(seat.seat_id)
-        ? { ...s, cards, hand_value: total, status: nextStatus }
+        ? { ...s, cards, hand_value: total, status: nextStatus, last_seen: now }
         : s
     );
     if (busted || twentyOne) {
@@ -241,7 +273,7 @@ async function applyAction(action, table, patch, now) {
     if (Number(table.current_turn_seat) !== Number(seat.seat_id)) return null;
     if (seat.status !== "playing") return null;
     const next = seats.map((s) =>
-      Number(s.seat_id) === Number(seat.seat_id) ? { ...s, status: "stood" } : s
+      Number(s.seat_id) === Number(seat.seat_id) ? { ...s, status: "stood", last_seen: now } : s
     );
     const nextTurn = nextDealtInSeat(next, seat.seat_id);
     if (nextTurn === null) {
@@ -287,7 +319,8 @@ async function runPhase(table, patch, now) {
       table.reveal_deadline ||
       table.common_wager ||
       table.total_pot ||
-      table.next_action;
+      table.next_action ||
+      Number(table.host_lease_expires_at || 0);
     if (!dirty) return;
     await patch({
       seats: cleanSeats(seats),
@@ -300,19 +333,24 @@ async function runPhase(table, patch, now) {
       common_wager: 0,
       total_pot: 0,
       next_action: null,
+      host_user_id: "",
+      host_lease_expires_at: 0,
       last_action_timestamp: now,
     });
     return;
   }
 
   if (status === "waiting_for_bets") {
-    // Drop seats that sat down but never committed a bet within 60s.
+    // Presence-based kick: free seats whose browsers have been gone beyond the
+    // presence timeout. Only uncommitted bettors are kicked (committed bets
+    // stay in the pot and are handled by the deal / turn logic). A connected
+    // but idle player (recent heartbeat) is never kicked.
     const stale = seated.filter(
       (s) =>
         s.status !== "disconnected" &&
         !isCommitted(s) &&
-        Number(s.last_activity) > 0 &&
-        now - Number(s.last_activity) > BET_IDLE_MS
+        Number(s.last_seen) > 0 &&
+        now - Number(s.last_seen) > PRESENCE_TIMEOUT_MS
     );
     if (stale.length) {
       const kicked = new Set(stale.map((s) => s.seat_id));
@@ -322,6 +360,9 @@ async function runPhase(table, patch, now) {
       const remainingBettors = next.filter((s) => Number(s.bet_chips) > 0);
       await patch({
         seats: next,
+        host_user_id: (table.host_user_id && next.some((s) => s.user_id === table.host_user_id))
+          ? table.host_user_id
+          : hostUserIdForSeats(next) || "",
         common_wager: remainingBettors.length ? table.common_wager : 0,
         betting_ends_at: remainingBettors.length ? table.betting_ends_at : 0,
         deal_at: remainingBettors.length ? table.deal_at : 0,
