@@ -86,6 +86,7 @@ export default function AdminDashboard({ onBack }) {
   const [settingsId, setSettingsId] = useState(null);
   const [voucherFeedEnabled, setVoucherFeedEnabled] = useState(true);
   const [ninjaEnabled, setNinjaEnabled] = useState(true);
+  const [onlineBlackjackEnabled, setOnlineBlackjackEnabled] = useState(true);
 
   useEffect(() => {
     base44.entities.AppSettings.list().then(rows => {
@@ -94,6 +95,7 @@ export default function AdminDashboard({ onBack }) {
         setSettingsId(s.id);
         setVoucherFeedEnabled(s.voucher_feed_enabled !== false);
         setNinjaEnabled(s.ninja_enabled !== false);
+        setOnlineBlackjackEnabled(s.online_blackjack_enabled !== false);
       }
     });
   }, []);
@@ -120,6 +122,42 @@ export default function AdminDashboard({ onBack }) {
       setSettingsId(created.id);
     }
     toast.success(val ? "Ninja Token enabled." : "Ninja Token hidden from players.");
+  };
+
+  const handleToggleOnlineBlackjack = async (val) => {
+    setOnlineBlackjackEnabled(val);
+    const payload = { online_blackjack_enabled: val };
+    if (settingsId) {
+      await base44.entities.AppSettings.update(settingsId, payload);
+    } else {
+      const created = await base44.entities.AppSettings.create(payload);
+      setSettingsId(created.id);
+    }
+    if (!val) {
+      // Clear the shared table so nobody stays seated while the mode is off.
+      try {
+        const page = await base44.entities.ActiveTable.filter({}, { limit: 10 });
+        const tables = page.items || [];
+        for (const t of tables) {
+          await base44.entities.ActiveTable.update(t.id, {
+            seats: Array.from({ length: 5 }, (_, i) => ({
+              seat_id: i + 1, user_id: "", user_name: "", bet_chips: 0,
+              cards: [], hand_value: 0, status: "empty", ready: false,
+              auto_replay: false, last_activity: 0, last_seen: 0,
+              payout_flag: "PENDING", payout_amount: 0, payout_claimed: false,
+              replay_accept: null,
+            })),
+            deck: [], status: "waiting_for_bets", current_turn_seat: 1,
+            betting_ends_at: 0, deal_at: 0, reveal_deadline: 0,
+            common_wager: 0, total_pot: 0, next_action: null,
+            round_id: `RND-${Math.floor(10000 + Math.random() * 89999)}`,
+            host_user_id: "", host_lease_expires_at: 0,
+            last_action_timestamp: Date.now(),
+          });
+        }
+      } catch (e) { /* best-effort cleanup */ }
+    }
+    toast.success(val ? "Online Blackjack enabled." : "Online Blackjack under maintenance.");
   };
 
   const handleSyncDirectory = async () => {
@@ -377,6 +415,26 @@ export default function AdminDashboard({ onBack }) {
             style={{ width: "52px" }}
           >
             <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${ninjaEnabled ? "translate-x-7" : "translate-x-1"}`} />
+          </button>
+        </div>
+
+        {/* Online Blackjack Maintenance Toggle */}
+        <div className="bg-white rounded-2xl border border-border p-5 flex items-center justify-between gap-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+          <div>
+            <h3 className="font-bold text-slate-900 text-base">🌐 Online Blackjack</h3>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Show the shared multiplayer Blackjack table. When off, players see an "Under maintenance" message; single-player Blackjack stays playable.
+            </p>
+            <p className={`text-xs font-semibold mt-1 ${onlineBlackjackEnabled ? "text-emerald-600" : "text-amber-600"}`}>
+              {onlineBlackjackEnabled ? "Currently ON" : "Currently UNDER MAINTENANCE"}
+            </p>
+          </div>
+          <button
+            onClick={() => handleToggleOnlineBlackjack(!onlineBlackjackEnabled)}
+            className={`relative inline-flex h-7 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${onlineBlackjackEnabled ? "bg-emerald-500" : "bg-slate-300"}`}
+            style={{ width: "52px" }}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${onlineBlackjackEnabled ? "translate-x-7" : "translate-x-1"}`} />
           </button>
         </div>
 
