@@ -54,14 +54,14 @@ export default function MpSeatCard({
   useEffect(() => {
     const prev = prevCountRef.current;
     const curr = cards.length;
-    if (curr > prev && isMe) {
+    if (curr > prev) {
       const newCards = curr - prev;
       for (let i = 0; i < newCards; i++) {
         setTimeout(playCardSlide, i * 350);
       }
     }
     prevCountRef.current = curr;
-  }, [cards.length, isMe]);
+  }, [cards.length]);
 
   return (
     <div

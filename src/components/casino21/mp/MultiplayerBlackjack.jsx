@@ -75,6 +75,8 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   const commonWager = Number(table?.common_wager) || 0;
   const totalPot = Number(table?.total_pot) || 0;
   const isHost = !!mySeat && table?.host_user_id === user?.id;
+  const showReplayPrompt =
+    status === "completed" && !!mySeat && !isHost && table?.next_action === "replay_pending";
 
   const dealtIn = seats.filter((s) => s.user_id && (s.cards || []).length > 0);
   const readyCount = dealtIn.filter(
@@ -640,6 +642,16 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   return (
     <div className="w-full max-w-sm mx-auto">
       <MpResultPopout result={result} onDismiss={() => setResult(null)} />
+      <MpReplayPrompt
+        show={showReplayPrompt}
+        wager={commonWager}
+        secondsLeft={replaySeconds}
+        responded={!!mySeat && (mySeat.replay_accept === true || mySeat.replay_accept === false)}
+        onAccept={() => respondReplay(true)}
+        onDecline={() => respondReplay(false)}
+        onLeave={leaveSeat}
+        busy={busy}
+      />
       <div
         className="relative rounded-2xl border border-border p-3 flex flex-col gap-3 overflow-hidden"
         style={{ background: "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)" }}
@@ -812,14 +824,10 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
                   )}
                 </div>
               ) : (
-                <MpReplayPrompt
-                  wager={commonWager}
-                  secondsLeft={replaySeconds}
-                  responded={mySeat.replay_accept === true || mySeat.replay_accept === false}
-                  onAccept={() => respondReplay(true)}
-                  onDecline={() => respondReplay(false)}
-                  busy={busy}
-                />
+                <div className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-200/80 py-2">
+                  <span className="w-3 h-3 rounded-full border-2 border-amber-300/40 border-t-amber-300 animate-spin" />
+                  Waiting for the host…
+                </div>
               )
             ) : table.next_action ? (
               <div className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-200/80 py-2">

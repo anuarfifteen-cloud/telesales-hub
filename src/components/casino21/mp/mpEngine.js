@@ -301,7 +301,7 @@ export function applyNextAction(action, seats, table) {
       deck: [],
       status: "waiting_for_bets",
       current_turn_seat: 1,
-      betting_ends_at: now + BETTING_MS,
+      betting_ends_at: 0,
       deal_at: 0,
       reveal_deadline: 0,
       replay_deadline: 0,

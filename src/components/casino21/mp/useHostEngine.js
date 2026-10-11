@@ -7,6 +7,7 @@ import {
   COMPLETED_AUTO_MS,
   AUTO_BET_GRACE_MS,
   BET_IDLE_MS,
+  BETTING_MS,
   MIN_PLAYERS_TO_DEAL,
   normalizeSeats,
   isCommitted,
@@ -116,6 +117,50 @@ async function runTick({ table, patch }) {
     const bettors = seatedLive
       .filter((s) => isCommitted(s))
       .sort((a, b) => a.seat_id - b.seat_id);
+
+    // Replay fast-path: a rematch round has no betting window (betting_ends_at
+    // is 0). Once every pre-filled accepter has auto-committed (no seat has
+    // auto_replay: true), deal immediately — the rematch starts at once, with-
+    // out waiting for a 10s timer. A 10s timeout force-declines any stuck
+    // accepter so the round is never blocked forever.
+    if (!table.betting_ends_at) {
+      const hasPendingReplay = seated.some((s) => s.auto_replay === true);
+      if (hasPendingReplay) {
+        const roundAge = now - Number(table.last_action_timestamp || 0);
+        if (roundAge > BETTING_MS) {
+          await patch({
+            seats: seats.map((s) =>
+              s.auto_replay === true
+                ? { ...s, bet_chips: 0, auto_replay: false, last_activity: now }
+                : s
+            ),
+            last_action_timestamp: now,
+          });
+        }
+        return;
+      }
+      const replayBettors = seatedLive
+        .filter((s) => isCommitted(s))
+        .sort((a, b) => a.seat_id - b.seat_id);
+      if (replayBettors.length >= MIN_PLAYERS_TO_DEAL) {
+        await dealRound({ seats, bettors: replayBettors, patch });
+        return;
+      }
+      // Not enough committed accepters — refund and open a fresh betting round.
+      const next = seats.map((s) =>
+        isCommitted(s)
+          ? { ...s, payout_flag: "REFUND", payout_amount: Number(s.bet_chips) || 0 }
+          : { ...s, bet_chips: 0, auto_replay: false, status: s.user_id ? "betting" : "empty" }
+      );
+      await patch({
+        seats: next,
+        common_wager: 0,
+        betting_ends_at: 0,
+        deal_at: 0,
+        last_action_timestamp: now,
+      });
+      return;
+    }
 
     // Instant-start: as soon as every seated player has committed AND there are
     // enough players (host + at least one matcher), deal.
