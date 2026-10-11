@@ -5,10 +5,12 @@ import {
   TURN_MS,
   ROUND_END_MS,
   AUTO_BET_GRACE_MS,
+  BET_IDLE_MS,
   normalizeSeats,
   nextPlayingSeat,
   resolvePot,
   cleanSeats,
+  emptySeat,
   newRoundId,
 } from "./mpEngine";
 
@@ -75,6 +77,32 @@ async function runTick({ table, patch }) {
   }
 
   if (status === "waiting_for_bets") {
+    // Drop seats that sat down but never placed a bet within 30s — frees the
+    // seat for someone else. Only unbet seats are kicked; a locked-in wager
+    // keeps the player in the round.
+    const stale = seated.filter(
+      (s) =>
+        s.status !== "disconnected" &&
+        !Number(s.bet_chips) &&
+        Number(s.last_activity) > 0 &&
+        now - Number(s.last_activity) > BET_IDLE_MS
+    );
+    if (stale.length) {
+      const kicked = new Set(stale.map((s) => s.seat_id));
+      const next = seats.map((s) =>
+        kicked.has(s.seat_id) ? emptySeat(s.seat_id) : s
+      );
+      const remainingBettors = next.filter((s) => Number(s.bet_chips) > 0);
+      await patch({
+        seats: next,
+        common_wager: remainingBettors.length ? table.common_wager : 0,
+        betting_ends_at: remainingBettors.length ? table.betting_ends_at : 0,
+        deal_at: remainingBettors.length ? table.deal_at : 0,
+        last_action_timestamp: now,
+      });
+      return;
+    }
+
     const seatedLive = seated.filter((s) => s.status !== "disconnected");
     const bettors = seatedLive
       .filter((s) => Number(s.bet_chips) >= MIN_BET)

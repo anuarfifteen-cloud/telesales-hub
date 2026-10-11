@@ -12,6 +12,7 @@ import useNow from "./useNow";
 import MpPotBanner from "./MpPotBanner";
 import MpSeatCard from "./MpSeatCard";
 import MpBetControls from "./MpBetControls";
+import { playShuffle } from "@/lib/sounds";
 import {
   MIN_BET,
   MAX_BET,
@@ -21,8 +22,10 @@ import {
   AUTO_BET_GRACE_MS,
   normalizeSeats,
   nextPlayingSeat,
+  payoutFor,
   newRoundId,
 } from "./mpEngine";
+import MpResultPopout from "./MpResultPopout";
 
 const STATUS_LABEL = {
   waiting_for_bets: "Waiting for bets",
@@ -40,11 +43,34 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   const { table, loading, patch, reload, polling } = useActiveTable(user);
   const [bet, setBet] = useState(MIN_BET);
   const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
   const autoBetRef = useRef(false);
   const now = useNow(1000);
 
   useHostEngine({ table, patch, user });
   useSettlement({ table, user, patch, onUserUpdate });
+
+  // Card-shuffle flourish the moment a player opens the multiplayer table.
+  const didEnterRef = useRef(false);
+  useEffect(() => {
+    if (didEnterRef.current) return;
+    didEnterRef.current = true;
+    playShuffle();
+  }, []);
+
+  // Pop the win/loss result as soon as the round completes for my hand; clear it
+  // when the next round opens.
+  useEffect(() => {
+    if (status === "completed" && mySeat && (mySeat.cards || []).length > 0) {
+      setResult({
+        flag: mySeat.payout_flag,
+        amount: payoutFor(mySeat.payout_flag, mySeat.bet_chips, mySeat.payout_amount),
+      });
+    } else if (status === "waiting_for_bets") {
+      setResult(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, mySeat?.payout_flag, mySeat?.seat_id]);
 
   const seats = normalizeSeats(table?.seats);
   const mySeat = seats.find((s) => s.user_id === user?.id) || null;
@@ -87,6 +113,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
               payout_flag: "PENDING",
               payout_amount: 0,
               payout_claimed: false,
+              last_activity: Date.now(),
             }
           : s
       );
@@ -177,7 +204,9 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
       const firstWager = !commonWager;
       await patch({
         seats: seats.map((s) =>
-          s.seat_id === mySeat.seat_id ? { ...s, bet_chips: wager, status: "betting" } : s
+          s.seat_id === mySeat.seat_id
+            ? { ...s, bet_chips: wager, status: "betting", last_activity: Date.now() }
+            : s
         ),
         common_wager: commonWager || wager,
         betting_ends_at: table.betting_ends_at || Date.now() + BETTING_MS,
@@ -223,7 +252,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
         detail: `Multiplayer Blackjack bet withdrawn (${refund})`,
       });
       const nextSeats = seats.map((s) =>
-        s.seat_id === mySeat.seat_id ? { ...s, bet_chips: 0 } : s
+        s.seat_id === mySeat.seat_id ? { ...s, bet_chips: 0, last_activity: Date.now() } : s
       );
       const remainingBettors = nextSeats.filter((s) => Number(s.bet_chips) > 0);
       await patch({
@@ -249,12 +278,23 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
       }
       const cards = [...mySeat.cards, card];
       const total = handValue(cards);
-      const busted = total > 21;
+      // A hit only ends my turn when the hand resolves — bust, or a 21 (auto
+      // -stand). Otherwise the turn stays mine so I'm free to hit again.
+      const resolved = total > 21 || total === 21;
+      const nextStatus = total > 21 ? "busted" : total === 21 ? "stood" : "playing";
       const nextSeats = seats.map((s) =>
         s.seat_id === mySeat.seat_id
-          ? { ...s, cards, hand_value: total, status: busted ? "busted" : "playing" }
+          ? { ...s, cards, hand_value: total, status: nextStatus }
           : s
       );
+      if (!resolved) {
+        await patch({
+          seats: nextSeats,
+          deck,
+          last_action_timestamp: Date.now(),
+        });
+        return;
+      }
       const next = nextPlayingSeat(nextSeats, mySeat.seat_id);
       await patch({
         seats: nextSeats,
@@ -378,6 +418,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
 
   return (
     <div className="w-full max-w-sm mx-auto">
+      <MpResultPopout result={result} onDismiss={() => setResult(null)} />
       <div
         className="relative rounded-2xl border border-border p-3 flex flex-col gap-3 overflow-hidden"
         style={{ background: "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)" }}

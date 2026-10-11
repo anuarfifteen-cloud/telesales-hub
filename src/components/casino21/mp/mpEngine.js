@@ -9,8 +9,9 @@ export const MAX_BET = 50;
 export const BETTING_MS = 10000; // 10-second betting window once the first wager lands
 export const TURN_MS = 10000; // 10-second per-seat turn window
 export const UNSTICK_MS = 30000; // stalled-table window before the reset button appears
-export const ROUND_END_MS = 8000; // how long a finished round stays on screen
+export const ROUND_END_MS = 3500; // how long a finished round stays on screen before the next round
 export const AUTO_BET_GRACE_MS = 2000; // grace after betting closes for auto-bets to land
+export const BET_IDLE_MS = 30000; // seated-but-unbet seats are kicked after this long in betting
 
 export function newRoundId() {
   return `RND-${Math.floor(10000 + Math.random() * 89999)}`;

@@ -246,6 +246,34 @@ export function playCardSlide() {
   } catch {}
 }
 
+// Casino 21 — card shuffle (a quick flurry of filtered-noise swishes, like a
+// dealer riffling the deck). Used when a player enters the multiplayer table.
+export function playShuffle() {
+  try {
+    const ac = ctx();
+    for (let i = 0; i < 5; i++) {
+      const t = ac.currentTime + i * 0.07;
+      const buffer = ac.createBuffer(1, ac.sampleRate * 0.09, ac.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let j = 0; j < data.length; j++) {
+        data[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / data.length, 2);
+      }
+      const src = ac.createBufferSource();
+      src.buffer = buffer;
+      const filter = ac.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 2200 + i * 150;
+      const gain = ac.createGain();
+      gain.gain.setValueAtTime(0.1, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(ac.destination);
+      src.start(t);
+    }
+  } catch {}
+}
+
 // Casino 21 — win fanfare (5-note ascending arpeggio)
 export function playWinFanfare() {
   try {
