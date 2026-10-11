@@ -31,8 +31,8 @@ import {
   isCommitted,
   payoutFor,
   newRoundId,
+  hostUserIdForSeats,
 } from "./mpEngine";
-import { effectiveHostId, HEARTBEAT_INTERVAL_MS } from "./hostLease";
 import MpResultPopout from "./MpResultPopout";
 
 const STATUS_LABEL = {
@@ -77,27 +77,6 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
 
   const now = useNow(1000);
 
-  // Detect an admin force-reset: when admin_reset_at changes, show a brief
-  // alert and clear local pending/result state so the player returns to the
-  // open-table view.
-  const adminResetRef = useRef(0);
-  useEffect(() => {
-    const resetAt = Number(table?.admin_reset_at) || 0;
-    if (!resetAt) return;
-    if (resetAt !== adminResetRef.current) {
-      if (adminResetRef.current !== 0) {
-        toast.info("The table was reset by an admin. All wagers have been refunded.");
-        setResult(null);
-        setPendingBet(false);
-        setPendingHit(false);
-        setPendingStand(false);
-        setPendingJoin(null);
-        setPendingLeave(false);
-      }
-      adminResetRef.current = resetAt;
-    }
-  }, [table?.admin_reset_at]);
-
   useHostEngine({ table, patch, user });
   useSettlement({ table, user, patch, onUserUpdate });
 
@@ -108,7 +87,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   const inPlay = status === "player_turns" || status === "settling";
   const commonWager = Number(table?.common_wager) || 0;
   const totalPot = Number(table?.total_pot) || 0;
-  const isHost = !!mySeat && effectiveHostId(table, now) === user?.id;
+  const isHost = !!mySeat && table?.host_user_id === user?.id;
   const currentTurn = Number(table?.current_turn_seat) || 0;
 
   // Clear pending flags once the table reflects the submitted action.
@@ -153,12 +132,8 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
       ? Math.max(0, Math.ceil((Number(table.reveal_deadline) - now) / 1000))
       : null;
 
-  const leaseValid = Number(table?.host_lease_expires_at || 0) > now;
   const canUnstick =
-    !!table &&
-    status !== "completed" &&
-    !leaseValid &&
-    now - Number(table?.last_action_timestamp || 0) > UNSTICK_MS;
+    !!table && status !== "completed" && now - Number(table?.last_action_timestamp || 0) > UNSTICK_MS;
   const canJoin = !mySeat && !inPlay;
 
   // Turn-based: only the active player can HIT/STAND.
@@ -177,31 +152,6 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
     didEnterRef.current = true;
     playShuffle();
   }, []);
-
-  // Presence heartbeat: every few seconds while seated and visible, ping the
-  // host so it knows this browser is still alive. The host updates the seat's
-  // last_seen; a seat not seen within the presence timeout is freed.
-  const beatRef = useRef({});
-  beatRef.current = { table, user, mySeatId: mySeat?.seat_id };
-  useEffect(() => {
-    if (!mySeat?.seat_id || !table?.id) return;
-    const sendBeat = () => {
-      if (document.visibilityState !== "visible") return;
-      const s = beatRef.current;
-      if (!s.table || !s.user || !s.mySeatId) return;
-      insertAction({
-        table_id: s.table.id,
-        round_id: s.table.round_id,
-        user_id: s.user.id,
-        user_name: s.user.full_name || s.user.email?.split("@")[0] || "Player",
-        action_type: "HEARTBEAT",
-        seat_id: s.mySeatId,
-      }).catch(() => {});
-    };
-    sendBeat();
-    const iv = setInterval(sendBeat, HEARTBEAT_INTERVAL_MS);
-    return () => clearInterval(iv);
-  }, [mySeat?.seat_id, table?.id, table?.round_id]);
 
   // Pop the win/loss result exactly once per completed round.
   useEffect(() => {
@@ -401,12 +351,31 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
     }
   };
 
+  // Host handoff: if the host leaves or drops, the lowest remaining seat
+  // claims the engine (best-effort — each client only claims for itself).
+  const handoffRef = useRef({});
+  handoffRef.current = { table, patch, user };
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const { table: t, patch: p, user: u } = handoffRef.current;
+      if (!t || !u) return;
+      const list = normalizeSeats(t.seats);
+      const mine = list.find((s) => s.user_id === u.id);
+      if (!mine || mine.status === "disconnected") return;
+      const expected = hostUserIdForSeats(list);
+      if (!expected || t.host_user_id === expected) return;
+      if (expected !== u.id) return;
+      p({ host_user_id: u.id, last_action_timestamp: Date.now() });
+    }, 3000);
+    return () => clearInterval(iv);
+  }, []);
+
   // Best-effort: flag this player as away when the tab is closed mid-round, by
   // inserting a LEAVE action for the host to apply.
   useEffect(() => {
     if (!mySeat || !inPlay) return;
     const handler = () => {
-      const { table: t, user: u } = beatRef.current;
+      const { table: t, user: u } = handoffRef.current;
       if (!t || !u) return;
       insertAction({
         table_id: t.id,

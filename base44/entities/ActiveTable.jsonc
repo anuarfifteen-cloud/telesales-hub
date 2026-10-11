@@ -25,21 +25,11 @@
     },
     "host_user_id": {
       "type": "string",
-      "description": "User ID of the client currently holding the host lease (running the table engine). The holder renews host_lease_expires_at each tick; when the lease expires any eligible active player claims it, so processing continues even if the previous host closed their tab."
-    },
-    "host_lease_expires_at": {
-      "type": "number",
-      "default": 0,
-      "description": "UNIX epoch ms when the current host's lease expires. The active host renews this to now + LEASE_MS every tick. When now exceeds this value the host is considered gone and the lowest-numbered seated player (excluding the dead host if others remain) claims the lease."
+      "description": "User ID of the client running the table engine (dealing, reveal-deadline auto-ready, pot evaluation, payouts). Hands off to the lowest remaining seat when the host leaves."
     },
     "last_action_timestamp": {
       "type": "number",
       "description": "UNIX epoch ms of the last table activity. Drives the 30-second emergency reset window and the completed-round auto-advance."
-    },
-    "admin_reset_at": {
-      "type": "number",
-      "default": 0,
-      "description": "UNIX epoch ms of the last admin force-reset. Set to Date.now() by the admin 'Force Reset Table & Kick All' control. Clients track this value: when it changes they show the 'table was reset by an admin' alert and return to the open-table view. 0 means no admin reset has occurred."
     },
     "betting_ends_at": {
       "type": "number",
@@ -146,11 +136,7 @@
           },
           "last_activity": {
             "type": "number",
-            "description": "UNIX epoch ms of the seat's last gameplay interaction (join, bet, hit). Drives the 60s betting idle-kick for uncommitted bettors."
-          },
-          "last_seen": {
-            "type": "number",
-            "description": "UNIX epoch ms of the seat's last presence heartbeat, updated by the host when it processes a HEARTBEAT action. Drives the presence-based kick: a seat whose last_seen is stale beyond PRESENCE_TIMEOUT_MS is treated as disconnected and freed so new players can join."
+            "description": "UNIX epoch ms of the seat's last interaction (join, bet, hit). Drives the 30s idle-kick during betting."
           },
           "payout_flag": {
             "type": "string",
