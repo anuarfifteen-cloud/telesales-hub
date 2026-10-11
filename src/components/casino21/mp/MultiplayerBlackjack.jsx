@@ -680,7 +680,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
           chipFx={chipFx}
         />
 
-        <div className="flex flex-col gap-2">
+        <div className="mp-seat-list flex flex-col gap-2">
           {seats.map((s) => (
             <MpSeatCard
               key={s.seat_id}

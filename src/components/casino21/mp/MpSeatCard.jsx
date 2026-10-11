@@ -65,7 +65,7 @@ export default function MpSeatCard({
 
   return (
     <div
-      className={`rounded-2xl border p-2.5 transition-all ${
+      className={`mp-seat-card rounded-2xl border p-2.5 transition-all ${
         ready
           ? "border-amber-400/70 bg-amber-400/10"
           : isActing
