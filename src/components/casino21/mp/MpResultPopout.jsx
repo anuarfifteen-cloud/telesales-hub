@@ -8,7 +8,7 @@ import MiniChipIcon from "../MiniChipIcon";
 export default function MpResultPopout({ result, onDismiss }) {
   useEffect(() => {
     if (!result) return;
-    const t = setTimeout(onDismiss, 2400);
+    const t = setTimeout(onDismiss, 3000);
     return () => clearTimeout(t);
   }, [result, onDismiss]);
 
