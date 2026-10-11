@@ -28,7 +28,6 @@ export default function MpSeatCard({
   onJoin,
   revealCards = false,
 }) {
-  const st = STATUS[seat.status] || STATUS.empty;
   const filled = !!seat.user_id;
   const cards = seat.cards || [];
   const showResult = filled && seat.payout_flag && seat.payout_flag !== "PENDING";
@@ -39,6 +38,11 @@ export default function MpSeatCard({
   // Your own hand is always face-up. Opponents only reveal at the end of the
   // round so an early bust can never decide the winner prematurely.
   const showFace = isMe || revealCards;
+  // Opponents must not learn a hand busted before the reveal — mask the bust
+  // status as a neutral "stood" state. The owner always sees their own status.
+  const displayStatus =
+    !isMe && !revealCards && seat.status === "busted" ? "stood" : seat.status;
+  const st = STATUS[displayStatus] || STATUS.empty;
 
   return (
     <div
