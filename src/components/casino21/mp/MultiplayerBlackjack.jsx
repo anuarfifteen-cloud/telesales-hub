@@ -50,28 +50,6 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   useHostEngine({ table, patch, user });
   useSettlement({ table, user, patch, onUserUpdate });
 
-  // Card-shuffle flourish the moment a player opens the multiplayer table.
-  const didEnterRef = useRef(false);
-  useEffect(() => {
-    if (didEnterRef.current) return;
-    didEnterRef.current = true;
-    playShuffle();
-  }, []);
-
-  // Pop the win/loss result as soon as the round completes for my hand; clear it
-  // when the next round opens.
-  useEffect(() => {
-    if (status === "completed" && mySeat && (mySeat.cards || []).length > 0) {
-      setResult({
-        flag: mySeat.payout_flag,
-        amount: payoutFor(mySeat.payout_flag, mySeat.bet_chips, mySeat.payout_amount),
-      });
-    } else if (status === "waiting_for_bets") {
-      setResult(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, mySeat?.payout_flag, mySeat?.seat_id]);
-
   const seats = normalizeSeats(table?.seats);
   const mySeat = seats.find((s) => s.user_id === user?.id) || null;
   const chips = Number(user?.casinoChips) || 0;
@@ -95,6 +73,28 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   const canUnstick =
     !!table && status !== "completed" && now - Number(table?.last_action_timestamp || 0) > UNSTICK_MS;
   const canJoin = !mySeat && !inPlay;
+
+  // Card-shuffle flourish the moment a player opens the multiplayer table.
+  const didEnterRef = useRef(false);
+  useEffect(() => {
+    if (didEnterRef.current) return;
+    didEnterRef.current = true;
+    playShuffle();
+  }, []);
+
+  // Pop the win/loss result as soon as the round completes for my hand; clear it
+  // when the next round opens.
+  useEffect(() => {
+    if (status === "completed" && mySeat && (mySeat.cards || []).length > 0) {
+      setResult({
+        flag: mySeat.payout_flag,
+        amount: payoutFor(mySeat.payout_flag, mySeat.bet_chips, mySeat.payout_amount),
+      });
+    } else if (status === "waiting_for_bets") {
+      setResult(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, mySeat?.payout_flag, mySeat?.seat_id]);
 
   const joinSeat = async (seatId) => {
     if (busy || !table || !user) return;
