@@ -23,7 +23,7 @@ import useNow from "./useNow";
 import MpPotBanner from "./MpPotBanner";
 import MpSeatCard from "./MpSeatCard";
 import MpBetControls from "./MpBetControls";
-import { playShuffle, playChipChime } from "@/lib/sounds";
+import { playShuffle, playChipChime, playWinFanfare, playLoss, playPush } from "@/lib/sounds";
 import {
   MIN_BET,
   MAX_BET,
@@ -123,16 +123,22 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   // Pop the win/loss result as soon as the round completes for my hand; clear it
   // when the next round opens.
   useEffect(() => {
-    if (status === "completed" && mySeat && (mySeat.cards || []).length > 0) {
-      setResult({
-        flag: mySeat.payout_flag,
-        amount: payoutFor(mySeat.payout_flag, mySeat.bet_chips, mySeat.payout_amount),
-      });
-    } else if (status === "waiting_for_bets") {
+    if (
+      status === "completed" &&
+      mySeat &&
+      (mySeat.cards || []).length > 0 &&
+      table?.next_action !== "replay_pending"
+    ) {
+      const flag = mySeat.payout_flag;
+      setResult({ flag, amount: payoutFor(flag, mySeat.bet_chips, mySeat.payout_amount) });
+      if (flag === "WINNER" || flag === "SPLIT") playWinFanfare();
+      else if (flag === "LOSS") playLoss();
+      else if (flag === "REFUND") playPush();
+    } else if (status === "waiting_for_bets" || table?.next_action === "replay_pending") {
       setResult(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, mySeat?.payout_flag, mySeat?.seat_id]);
+  }, [status, mySeat?.payout_flag, mySeat?.seat_id, table?.next_action]);
 
   const joinSeat = async (seatId) => {
     if (busy || !table || !user) return;

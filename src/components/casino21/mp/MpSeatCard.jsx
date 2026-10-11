@@ -1,5 +1,7 @@
+import { useEffect, useRef } from "react";
 import PlayingCard from "../PlayingCard";
 import { payoutFor } from "./mpEngine";
+import { playCardSlide } from "@/lib/sounds";
 import { Check } from "lucide-react";
 
 const STATUS = {
@@ -44,6 +46,22 @@ export default function MpSeatCard({
   const displayStatus =
     !isMe && !revealCards && seat.status === "busted" ? "stood" : seat.status;
   const st = STATUS[displayStatus] || STATUS.empty;
+
+  // Play a slide sound for each newly dealt card in MY hand only, staggered to
+  // match the deal animation. Watching the card count directly is more reliable
+  // than the card's mount effect (which a quick re-render can swallow).
+  const prevCountRef = useRef(0);
+  useEffect(() => {
+    const prev = prevCountRef.current;
+    const curr = cards.length;
+    if (curr > prev && isMe) {
+      const newCards = curr - prev;
+      for (let i = 0; i < newCards; i++) {
+        setTimeout(playCardSlide, i * 350);
+      }
+    }
+    prevCountRef.current = curr;
+  }, [cards.length, isMe]);
 
   return (
     <div
@@ -115,7 +133,7 @@ export default function MpSeatCard({
                 zIndex={i + 1}
                 faceDown={!showFace}
                 backOnly={!showFace}
-                silent={!isMe}
+                silent
               />
             </div>
           ))}
