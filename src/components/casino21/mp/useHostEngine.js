@@ -88,7 +88,7 @@ async function runTick({ table, patch }) {
   }
 
   if (status === "waiting_for_bets") {
-    // Drop seats that sat down but never committed a bet within 30s — frees the
+    // Drop seats that sat down but never committed a bet within 60s — frees the
     // seat for someone else. Only uncommitted seats are kicked.
     const stale = seated.filter(
       (s) =>

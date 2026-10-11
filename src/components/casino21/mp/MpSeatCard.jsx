@@ -30,6 +30,7 @@ export default function MpSeatCard({
   canJoin,
   onJoin,
   revealCards = false,
+  idleMs = null,
 }) {
   const filled = !!seat.user_id;
   const cards = seat.cards || [];
@@ -109,6 +110,11 @@ export default function MpSeatCard({
         {ready && (
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/20 border border-amber-400/50 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-200">
             <Check className="w-2.5 h-2.5" /> Ready
+          </span>
+        )}
+        {idleMs !== null && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 border border-rose-400/40 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-rose-200 tabular-nums shrink-0">
+            {Math.ceil(idleMs / 1000)}s
           </span>
         )}
         {!filled && canJoin && (

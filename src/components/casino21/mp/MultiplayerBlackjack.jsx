@@ -30,6 +30,7 @@ import {
   BETTING_MS,
   UNSTICK_MS,
   REPLAY_RESPONSE_MS,
+  BET_IDLE_MS,
   normalizeSeats,
   isCommitted,
   payoutFor,
@@ -77,6 +78,20 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   const isHost = !!mySeat && table?.host_user_id === user?.id;
   const showReplayPrompt =
     status === "completed" && !!mySeat && !isHost && table?.next_action === "replay_pending";
+
+  // Inactivity countdown: an uncommitted seated player is auto-kicked after
+  // BET_IDLE_MS with no activity. Shown on every uncommitted seat and in the
+  // player's own betting panel so everyone can see the deadline ticking.
+  const idleMsFor = (seat) => {
+    if (!seat || !seat.user_id) return null;
+    if (isCommitted(seat)) return null;
+    if (seat.status === "disconnected") return null;
+    const la = Number(seat.last_activity || 0);
+    if (!la) return null;
+    return Math.max(0, BET_IDLE_MS - (now - la));
+  };
+  const myIdleMs = status === "waiting_for_bets" ? idleMsFor(mySeat) : null;
+  const myIdleSeconds = myIdleMs !== null ? Math.ceil(myIdleMs / 1000) : null;
 
   const dealtIn = seats.filter((s) => s.user_id && (s.cards || []).length > 0);
   const readyCount = dealtIn.filter(
@@ -695,6 +710,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
               canJoin={canJoin && !s.user_id}
               onJoin={() => joinSeat(s.seat_id)}
               revealCards={status === "settling" || status === "completed"}
+              idleMs={status === "waiting_for_bets" ? idleMsFor(s) : null}
             />
           ))}
         </div>
@@ -735,18 +751,30 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
                 </button>
               </div>
             ) : (
-              <MpBetControls
-                bet={bet}
-                setBet={setBet}
-                chips={chips}
-                busy={busy}
-                commonWager={commonWager}
-                isHost={isHost}
-                betSeconds={betSeconds}
-                onPlace={placeBet}
-                onDecline={declineSeat}
-                onOpenCashier={onOpenCashier}
-              />
+              <>
+                {myIdleSeconds !== null && (
+                  <div className="rounded-2xl border border-rose-400/30 bg-rose-900/30 px-3 py-2 mb-2 flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-rose-200/90">
+                      Auto-kick in
+                    </span>
+                    <span className="text-sm font-black text-rose-200 tabular-nums">
+                      {myIdleSeconds}s
+                    </span>
+                  </div>
+                )}
+                <MpBetControls
+                  bet={bet}
+                  setBet={setBet}
+                  chips={chips}
+                  busy={busy}
+                  commonWager={commonWager}
+                  isHost={isHost}
+                  betSeconds={betSeconds}
+                  onPlace={placeBet}
+                  onDecline={declineSeat}
+                  onOpenCashier={onOpenCashier}
+                />
+              </>
             )}
           </div>
         )}

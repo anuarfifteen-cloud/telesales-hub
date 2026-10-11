@@ -5,14 +5,14 @@ import { handValue, isBlackjack } from "../blackjackDeck";
 
 export const SEAT_COUNT = 5;
 export const MIN_BET = 1;
-export const MAX_BET = 50;
+export const MAX_BET = 999;
 export const BETTING_MS = 10000; // 10-second betting window once the first wager lands
 export const REVEAL_MS = 30000; // 30-second simultaneous-play window before auto-reveal
 export const UNSTICK_MS = 30000; // stalled-table window before the reset button appears
 export const ROUND_END_MS = 3500; // how long a finished round stays before auto-advance
 export const COMPLETED_AUTO_MS = 15000; // auto-advance a completed round to new_bet if no choice made
 export const AUTO_BET_GRACE_MS = 2000; // grace after betting closes for auto-bets to land
-export const BET_IDLE_MS = 30000; // seated-but-unbet seats are kicked after this long in betting
+export const BET_IDLE_MS = 60000; // seated-but-unbet seats are kicked after this long in betting
 export const MIN_PLAYERS_TO_DEAL = 2; // host + at least one matcher required to start a round
 export const REPLAY_RESPONSE_MS = 10000; // how long non-host players have to accept/decline a Play Again
 export const CARD_DEAL_STAGGER = 0.35; // seconds between the two initial deal-card sounds
