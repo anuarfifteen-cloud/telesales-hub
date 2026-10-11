@@ -813,25 +813,24 @@
   color: #ffffff !important;
 }
 
-/* ── Royal Batik: Multiplayer Blackjack Online seat-card visibility ──
-   The blanket `div.rounded-2xl` rule repaints every seat card the same navy as
-   the table (#0f1560), so the cards vanish into the felt. Give the seat list
-   and each card a distinct translucent surface + a stronger gold border so the
-   five seats stay clearly visible against the Online table. Light themes are
-   untouched. */
-[data-theme="royal_batik"] .mp-seat-list .mp-seat-card {
-  background: rgba(13, 18, 60, 0.55) !important;
-  border: 1.5px solid rgba(255, 215, 0, 0.5) !important;
-  border-radius: 18px !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
+/* ── Royal Batik: Online multiplayer table stays on its normal green felt ──
+   The blanket `div.rounded-2xl` navy + gold treatment repaints the table and
+   every seat card the same navy, so the Online sub-tab reads as blank. Scope
+   the table so Royal Batik's overrides do NOT apply: restore the green felt on
+   the container and neutralize the navy/gold fill on every inner card so the
+   normal light text, chips, playing cards and controls stay clearly visible.
+   Other Royal Batik screens and every other theme are untouched. */
+[data-theme="royal_batik"] .mp-online-table.rounded-2xl {
+  background: linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: none !important;
 }
-/* Seat name + status text — keep the light felt colors readable on the navy */
-[data-theme="royal_batik"] .mp-seat-list .mp-seat-card p {
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-}
-/* Open-seat number circle — lift it off the navy instead of near-black */
-[data-theme="royal_batik"] .mp-seat-list .mp-seat-card .bg-emerald-950\/60 {
-  background-color: rgba(30, 40, 110, 0.7) !important;
+[data-theme="royal_batik"] .mp-online-table div.rounded-2xl,
+[data-theme="royal_batik"] .mp-online-table div.rounded-xl,
+[data-theme="royal_batik"] .mp-online-table div.rounded-lg {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: none !important;
 }
 
 /* ── Royal Batik: AdminTaxEngine Pre-Execution table legibility ──

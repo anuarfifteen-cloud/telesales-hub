@@ -628,7 +628,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
       <MpResultPopout result={result} onDismiss={() => setResult(null)} />
 
       <div
-        className="relative rounded-2xl border border-border p-3 flex flex-col gap-3 overflow-hidden"
+        className="mp-online-table relative rounded-2xl border border-border p-3 flex flex-col gap-3 overflow-hidden"
         style={{ background: "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)" }}
       >
         <div
