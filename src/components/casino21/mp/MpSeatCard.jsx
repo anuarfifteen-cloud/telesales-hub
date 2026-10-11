@@ -1,6 +1,6 @@
 import PlayingCard from "../PlayingCard";
-import { handValue } from "../blackjackDeck";
 import { payoutFor } from "./mpEngine";
+import { Check } from "lucide-react";
 
 const STATUS = {
   empty: { text: "Open", cls: "text-emerald-100/50" },
@@ -18,29 +18,35 @@ const RESULT = {
   LOSS: "bg-rose-500/20 border-rose-400/40 text-rose-200",
 };
 
-// One seat of the shared PvP table: who is sitting there, their wager, their
-// hand and — once the pot is scored — their own payout flag and amount.
-export default function MpSeatCard({ seat, isMe, isTurn, canJoin, onJoin, revealCards = false }) {
+// One seat of the shared PvP table. In simultaneous-play mode every player acts
+// at once; opponents' cards stay face-down until the reveal (settling /
+// completed). A READY pill shows once a hand is locked in or busted.
+export default function MpSeatCard({
+  seat,
+  isMe,
+  canJoin,
+  onJoin,
+  revealCards = false,
+}) {
   const st = STATUS[seat.status] || STATUS.empty;
   const filled = !!seat.user_id;
+  const cards = seat.cards || [];
   const showResult = filled && seat.payout_flag && seat.payout_flag !== "PENDING";
   const payout = showResult ? payoutFor(seat.payout_flag, seat.bet_chips, seat.payout_amount) : 0;
-  const cards = seat.cards || [];
-  // Your own hand is always face-up. Opponents stay face-down until their hand
-  // resolves (stand / bust / disconnect), they land a natural two-card 21, or
-  // the round moves to scoring/completion.
-  const resolved =
-    seat.status === "stood" ||
-    seat.status === "busted" ||
-    seat.status === "disconnected";
-  const naturalBJ = cards.length === 2 && handValue(cards) === 21;
-  const showFace = isMe || resolved || naturalBJ || revealCards;
+  const ready = filled && cards.length > 0 && (seat.ready === true || seat.status === "busted");
+  const isActing = seat.status === "playing" && !ready;
+
+  // Your own hand is always face-up. Opponents only reveal at the end of the
+  // round so an early bust can never decide the winner prematurely.
+  const showFace = isMe || revealCards;
 
   return (
     <div
       className={`rounded-2xl border p-2.5 transition-all ${
-        isTurn
-          ? "border-amber-400/80 bg-amber-400/10"
+        ready
+          ? "border-amber-400/70 bg-amber-400/10"
+          : isActing
+          ? "border-emerald-400/60 bg-emerald-400/10"
           : filled
           ? "border-white/15 bg-white/5"
           : "border-white/10 bg-emerald-950/30"
@@ -49,7 +55,7 @@ export default function MpSeatCard({ seat, isMe, isTurn, canJoin, onJoin, reveal
       <div className="flex items-center gap-2">
         <span
           className={`w-6 h-6 rounded-full border text-[10px] font-black flex items-center justify-center shrink-0 ${
-            isTurn
+            ready
               ? "bg-amber-400 text-emerald-950 border-amber-300"
               : "bg-emerald-950/60 border-white/20 text-amber-300"
           }`}
@@ -67,13 +73,18 @@ export default function MpSeatCard({ seat, isMe, isTurn, canJoin, onJoin, reveal
             {Number(seat.bet_chips) > 0 && (
               <span className="text-amber-200/80"> · bet {seat.bet_chips}</span>
             )}
-            {isTurn && <span className="text-amber-300"> · your move</span>}
+            {isActing && <span className="text-emerald-200"> · playing</span>}
           </p>
         </div>
 
         {filled && cards.length > 0 && showFace && (
           <span className="text-sm font-black text-amber-300 tabular-nums">
             {seat.hand_value ?? ""}
+          </span>
+        )}
+        {ready && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/20 border border-amber-400/50 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-200">
+            <Check className="w-2.5 h-2.5" /> Ready
           </span>
         )}
         {!filled && canJoin && (

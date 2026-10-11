@@ -16,28 +16,42 @@
         "resetting"
       ],
       "default": "waiting_for_bets",
-      "description": "Phase of the shared PvP round. waiting_for_bets = seats place equal wagers during the 10s window; player_turns = seats act in order (Hit/Stand); settling = host evaluates the pot and flags payouts; completed = payouts flagged; resetting = emergency reset in progress."
+      "description": "Phase of the shared PvP round. waiting_for_bets = seats place equal wagers; player_turns = all players act simultaneously (Hit/Stand/Ready) until everyone is ready or the reveal deadline passes; settling = host evaluates the pot and flags payouts; completed = payouts flagged, players choose Replay/New Bet/Stop; resetting = emergency reset in progress."
     },
     "current_turn_seat": {
       "type": "number",
       "default": 1,
-      "description": "Seat number (1-5) whose turn it is. Only that seat's client may act; every other client's Hit/Stand controls are disabled."
+      "description": "Legacy field retained for compatibility. Simultaneous-play mode does not use turn order; every dealt-in player acts at once."
     },
     "host_user_id": {
       "type": "string",
-      "description": "User ID of the client running the table engine (dealing, timeout auto-stand, pot evaluation, payouts). Hands off to the lowest remaining seat when the host leaves."
+      "description": "User ID of the client running the table engine (dealing, reveal-deadline auto-ready, pot evaluation, payouts). Hands off to the lowest remaining seat when the host leaves."
     },
     "last_action_timestamp": {
       "type": "number",
-      "description": "UNIX epoch ms of the last table activity. Drives the 10-second per-turn timer and the 30-second emergency reset window."
+      "description": "UNIX epoch ms of the last table activity. Drives the 30-second emergency reset window and the completed-round auto-advance."
     },
     "betting_ends_at": {
       "type": "number",
-      "description": "UNIX epoch ms when the 10-second betting phase closes. 0 means betting has not opened yet (no wager placed)."
+      "description": "UNIX epoch ms when the betting phase closes. 0 means betting has not opened yet (no wager placed)."
     },
     "deal_at": {
       "type": "number",
       "description": "UNIX epoch ms when the host deals after the betting window closes. Adds a short grace window for auto-bets. 0 means not scheduled."
+    },
+    "reveal_deadline": {
+      "type": "number",
+      "default": 0,
+      "description": "UNIX epoch ms when the 30-second simultaneous-play reveal window ends. Set when the host deals. When it passes, any not-yet-ready dealt-in hand is auto-readied (stood + ready) and the pot is scored. 0 means not in play."
+    },
+    "next_action": {
+      "type": "string",
+      "enum": [
+        "replay",
+        "new_bet",
+        "stop"
+      ],
+      "description": "The next-round choice a player makes once a round completes. replay = same players, same buy-in, auto re-commit; new_bet = same players, fresh wager; stop = clear the table. The host engine applies and clears it."
     },
     "common_wager": {
       "type": "number",
@@ -68,7 +82,7 @@
     },
     "seats": {
       "type": "array",
-      "description": "Up to 5 seat objects holding each player's wager, cards, hand value, phase status and self-payout flags.",
+      "description": "Up to 5 seat objects holding each player's wager, cards, hand value, readiness, phase status and self-payout flags.",
       "items": {
         "type": "object",
         "properties": {
@@ -103,6 +117,20 @@
               "busted",
               "disconnected"
             ]
+          },
+          "ready": {
+            "type": "boolean",
+            "default": false,
+            "description": "True once the player has pressed Ready (or been auto-readied by the reveal deadline). A busted hand counts as ready regardless. The pot is scored only when every dealt-in player is ready."
+          },
+          "auto_replay": {
+            "type": "boolean",
+            "default": false,
+            "description": "Set true at the start of a Replay round: the seat's bet_chips is pre-filled with the common wager but not yet paid. The player's own client re-deducts and flips this to false to commit."
+          },
+          "last_activity": {
+            "type": "number",
+            "description": "UNIX epoch ms of the seat's last interaction (join, bet, hit). Drives the 30s idle-kick during betting."
           },
           "payout_flag": {
             "type": "string",

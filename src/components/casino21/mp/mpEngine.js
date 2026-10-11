@@ -7,9 +7,10 @@ export const SEAT_COUNT = 5;
 export const MIN_BET = 1;
 export const MAX_BET = 50;
 export const BETTING_MS = 10000; // 10-second betting window once the first wager lands
-export const TURN_MS = 10000; // 10-second per-seat turn window
+export const REVEAL_MS = 30000; // 30-second simultaneous-play window before auto-reveal
 export const UNSTICK_MS = 30000; // stalled-table window before the reset button appears
-export const ROUND_END_MS = 3500; // how long a finished round stays on screen before the next round
+export const ROUND_END_MS = 3500; // how long a finished round stays before auto-advance
+export const COMPLETED_AUTO_MS = 15000; // auto-advance a completed round to new_bet if no choice made
 export const AUTO_BET_GRACE_MS = 2000; // grace after betting closes for auto-bets to land
 export const BET_IDLE_MS = 30000; // seated-but-unbet seats are kicked after this long in betting
 
@@ -26,6 +27,9 @@ export function emptySeat(seatId) {
     cards: [],
     hand_value: 0,
     status: "empty",
+    ready: false,
+    auto_replay: false,
+    last_activity: 0,
     payout_flag: "PENDING",
     payout_amount: 0,
     payout_claimed: false,
@@ -47,28 +51,61 @@ export function seatByUser(seats, userId) {
   return normalizeSeats(seats).find((s) => s.user_id === userId) || null;
 }
 
-// Next seat still able to act, strictly after `fromSeat`. 0 = nobody left
-// (the round moves to settlement).
-export function nextPlayingSeat(seats, fromSeat) {
-  const next = normalizeSeats(seats).find(
-    (s) => s.seat_id > fromSeat && s.status === "playing"
-  );
-  return next ? next.seat_id : 0;
+// A bet is "committed" once its chips are actually paid into the pot. During a
+// Replay round a seat's bet_chips is pre-filled but auto_replay stays true until
+// the player's own client re-deducts — only then is it committed.
+export function isCommitted(seat) {
+  return Number(seat.bet_chips) > 0 && seat.auto_replay !== true;
 }
 
-// Clears every hand, wager and payout flag for a fresh round while keeping
-// players seated.
-export function cleanSeats(seats) {
-  return normalizeSeats(seats).map((s) => ({
-    ...s,
-    bet_chips: 0,
-    cards: [],
-    hand_value: 0,
-    status: s.user_id ? "betting" : "empty",
-    payout_flag: "PENDING",
-    payout_amount: 0,
-    payout_claimed: false,
-  }));
+// Clears every hand and payout flag for a fresh round while keeping players
+// seated. `replay` keeps the common wager pre-filled (auto-commits next round);
+// otherwise the wager is cleared so players bet fresh.
+export function cleanSeats(seats, { replay = false, wager = MIN_BET } = {}) {
+  return normalizeSeats(seats).map((s) => {
+    if (!s.user_id) return emptySeat(s.seat_id);
+    return {
+      ...s,
+      bet_chips: replay ? wager : 0,
+      cards: [],
+      hand_value: 0,
+      status: "betting",
+      ready: false,
+      auto_replay: replay,
+      last_activity: 0,
+      payout_flag: "PENDING",
+      payout_amount: 0,
+      payout_claimed: false,
+    };
+  });
+}
+
+// A dealt-in hand is "reveal-ready" when it has busted or the player pressed
+// Ready. The pot is scored only once EVERY dealt-in player is reveal-ready.
+export function isRevealReady(seat) {
+  return seat.status === "busted" || seat.ready === true;
+}
+
+export function allRevealReady(seats) {
+  const players = normalizeSeats(seats).filter(
+    (s) => s.user_id && (s.cards || []).length > 0
+  );
+  if (players.length === 0) return false;
+  return players.every(isRevealReady);
+}
+
+// Auto-ready every dealt-in hand at the reveal deadline: stand any hand still
+// being played, then mark ready. Busted hands are left as-is.
+export function autoReadyForReveal(seats) {
+  return normalizeSeats(seats).map((s) => {
+    if (!s.user_id || !(s.cards || []).length) return s;
+    if (s.status === "busted") return s;
+    return {
+      ...s,
+      status: s.status === "playing" ? "stood" : s.status,
+      ready: true,
+    };
+  });
 }
 
 // PvP winner-take-all resolution.
@@ -164,6 +201,98 @@ export function payoutText(flag, bet, amount) {
   return "";
 }
 
+// Build the table patch for a completed-round next-action choice. Each choice
+// resets the table to a fresh waiting_for_bets state with the players kept.
+export function applyNextAction(action, seats, table) {
+  const now = Date.now();
+  const wager = Number(table?.common_wager) || MIN_BET;
+
+  if (action === "stop") {
+    return {
+      seats: Array.from({ length: SEAT_COUNT }, (_, i) => emptySeat(i + 1)),
+      deck: [],
+      status: "waiting_for_bets",
+      current_turn_seat: 1,
+      betting_ends_at: 0,
+      deal_at: 0,
+      reveal_deadline: 0,
+      common_wager: 0,
+      total_pot: 0,
+      next_action: null,
+      round_id: newRoundId(),
+      last_action_timestamp: now,
+    };
+  }
+
+  if (action === "new_bet") {
+    return {
+      seats: normalizeSeats(seats).map((s) =>
+        s.user_id
+          ? {
+              ...s,
+              cards: [],
+              hand_value: 0,
+              bet_chips: 0,
+              status: "betting",
+              ready: false,
+              auto_replay: false,
+              last_activity: 0,
+              payout_flag: "PENDING",
+              payout_amount: 0,
+              payout_claimed: false,
+            }
+          : emptySeat(s.seat_id)
+      ),
+      deck: [],
+      status: "waiting_for_bets",
+      current_turn_seat: 1,
+      betting_ends_at: 0,
+      deal_at: 0,
+      reveal_deadline: 0,
+      common_wager: 0,
+      total_pot: 0,
+      next_action: null,
+      round_id: newRoundId(),
+      last_action_timestamp: now,
+    };
+  }
+
+  if (action === "replay") {
+    return {
+      seats: normalizeSeats(seats).map((s) =>
+        s.user_id
+          ? {
+              ...s,
+              cards: [],
+              hand_value: 0,
+              bet_chips: wager,
+              status: "betting",
+              ready: false,
+              auto_replay: true,
+              last_activity: now,
+              payout_flag: "PENDING",
+              payout_amount: 0,
+              payout_claimed: false,
+            }
+          : emptySeat(s.seat_id)
+      ),
+      deck: [],
+      status: "waiting_for_bets",
+      current_turn_seat: 1,
+      betting_ends_at: now + BETTING_MS,
+      deal_at: 0,
+      reveal_deadline: 0,
+      common_wager: wager,
+      total_pot: 0,
+      next_action: null,
+      round_id: newRoundId(),
+      last_action_timestamp: now,
+    };
+  }
+
+  return null;
+}
+
 export function initialTableRecord(hostUserId) {
   return {
     round_id: newRoundId(),
@@ -173,6 +302,8 @@ export function initialTableRecord(hostUserId) {
     last_action_timestamp: Date.now(),
     betting_ends_at: 0,
     deal_at: 0,
+    reveal_deadline: 0,
+    next_action: null,
     common_wager: 0,
     total_pot: 0,
     deck: [],

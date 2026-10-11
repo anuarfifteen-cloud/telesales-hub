@@ -223,6 +223,28 @@ export function playTicketFlourish() {
   } catch {}
 }
 
+// Multiplayer Blackjack — chip placement chime: a quick two-note rising chime
+// played when a player places or matches the shared wager.
+export function playChipChime() {
+  try {
+    const ac = ctx();
+    [988, 1319].forEach((freq, i) => {
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      osc.type = "sine";
+      const t = ac.currentTime + i * 0.07;
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.18, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      osc.start(t);
+      osc.stop(t + 0.24);
+    });
+  } catch {}
+}
+
 // Casino 21 — soft card slide / deal swish (filtered noise burst)
 export function playCardSlide() {
   try {

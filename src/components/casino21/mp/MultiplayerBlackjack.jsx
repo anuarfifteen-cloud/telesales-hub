@@ -1,7 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Plus, Shield, RotateCcw, LogOut, Radio, WifiOff, Users } from "lucide-react";
+import {
+  Plus,
+  Shield,
+  Check,
+  RotateCcw,
+  LogOut,
+  Radio,
+  WifiOff,
+  Users,
+  RefreshCw,
+  Coins,
+} from "lucide-react";
 import { handValue } from "../blackjackDeck";
 import { logChipMovement } from "@/lib/chipLog";
 import MiniChipIcon from "../MiniChipIcon";
@@ -12,16 +23,14 @@ import useNow from "./useNow";
 import MpPotBanner from "./MpPotBanner";
 import MpSeatCard from "./MpSeatCard";
 import MpBetControls from "./MpBetControls";
-import { playShuffle } from "@/lib/sounds";
+import { playShuffle, playChipChime } from "@/lib/sounds";
 import {
   MIN_BET,
   MAX_BET,
   BETTING_MS,
-  TURN_MS,
   UNSTICK_MS,
-  AUTO_BET_GRACE_MS,
   normalizeSeats,
-  nextPlayingSeat,
+  isCommitted,
   payoutFor,
   newRoundId,
 } from "./mpEngine";
@@ -38,13 +47,17 @@ const STATUS_LABEL = {
 // Shared-table Multiplayer Blackjack PvP: 1–5 seats, equal wagers, winner-take
 // -all pot, run entirely from the clients on the free plan. Every rule lives
 // in the shared table row, so all screens agree — but coordination is
-// best-effort (see the footnote).
+// best-effort (see the footnote). Play is simultaneous: everyone hits/stands
+// at once and the winner is revealed only when all players are Ready or the
+// 30-second reveal window ends.
 export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier }) {
   const { table, loading, patch, reload, polling } = useActiveTable(user);
   const [bet, setBet] = useState(MIN_BET);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+  const [chipFx, setChipFx] = useState(0);
   const autoBetRef = useRef(false);
+  const replayRef = useRef("");
   const now = useNow(1000);
 
   useHostEngine({ table, patch, user });
@@ -55,24 +68,40 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   const chips = Number(user?.casinoChips) || 0;
   const status = table?.status || "waiting_for_bets";
   const inPlay = status === "player_turns" || status === "settling";
-  const isMyTurn =
-    !!mySeat &&
-    status === "player_turns" &&
-    table?.current_turn_seat === mySeat.seat_id &&
-    mySeat.status === "playing";
-  const turnSeat = seats.find((s) => s.seat_id === table?.current_turn_seat) || null;
   const commonWager = Number(table?.common_wager) || 0;
   const totalPot = Number(table?.total_pot) || 0;
+
+  const dealtIn = seats.filter((s) => s.user_id && (s.cards || []).length > 0);
+  const readyCount = dealtIn.filter(
+    (s) => s.status === "busted" || s.ready === true
+  ).length;
+
   const betSeconds = table?.betting_ends_at
     ? Math.max(0, Math.ceil((table.betting_ends_at - now) / 1000))
     : null;
-  const turnSeconds =
-    status === "player_turns"
-      ? Math.max(0, Math.ceil((Number(table?.last_action_timestamp || 0) + TURN_MS - now) / 1000))
+  const revealSeconds =
+    status === "player_turns" && Number(table?.reveal_deadline) > 0
+      ? Math.max(0, Math.ceil((Number(table.reveal_deadline) - now) / 1000))
       : null;
+
   const canUnstick =
     !!table && status !== "completed" && now - Number(table?.last_action_timestamp || 0) > UNSTICK_MS;
   const canJoin = !mySeat && !inPlay;
+
+  // Can I act right now (simultaneous — no turn order)?
+  const canHit =
+    !!mySeat &&
+    status === "player_turns" &&
+    mySeat.status === "playing" &&
+    !mySeat.ready;
+  const canStand = canHit;
+  const canReady =
+    !!mySeat &&
+    status === "player_turns" &&
+    (mySeat.cards || []).length > 0 &&
+    mySeat.status !== "busted" &&
+    mySeat.status !== "empty" &&
+    mySeat.ready !== true;
 
   // Card-shuffle flourish the moment a player opens the multiplayer table.
   const didEnterRef = useRef(false);
@@ -110,10 +139,12 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
               cards: [],
               hand_value: 0,
               status: "betting",
+              ready: false,
+              auto_replay: false,
+              last_activity: Date.now(),
               payout_flag: "PENDING",
               payout_amount: 0,
               payout_claimed: false,
-              last_activity: Date.now(),
             }
           : s
       );
@@ -139,6 +170,9 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
           cards: [],
           hand_value: 0,
           status: "empty",
+          ready: false,
+          auto_replay: false,
+          last_activity: 0,
           payout_flag: "PENDING",
           payout_amount: 0,
           payout_claimed: false,
@@ -205,7 +239,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
       await patch({
         seats: seats.map((s) =>
           s.seat_id === mySeat.seat_id
-            ? { ...s, bet_chips: wager, status: "betting", last_activity: Date.now() }
+            ? { ...s, bet_chips: wager, status: "betting", auto_replay: false, last_activity: Date.now() }
             : s
         ),
         common_wager: commonWager || wager,
@@ -213,6 +247,8 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
         deal_at: 0,
         last_action_timestamp: Date.now(),
       });
+      playChipChime();
+      setChipFx((x) => x + 1);
       toast.success(firstWager ? `Buy-in set to ${wager}.` : `Bet placed: ${wager} chips.`);
     } finally {
       setBusy(false);
@@ -224,7 +260,8 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   // player's own client does this — the host can't deduct from another wallet.
   useEffect(() => {
     if (!mySeat || !table || status !== "waiting_for_bets") return;
-    if (Number(mySeat.bet_chips) > 0) return;
+    if (isCommitted(mySeat)) return;
+    if (mySeat.auto_replay) return; // replay auto-commit handles its own deduction
     if (autoBetRef.current) return;
     const endsAt = Number(table.betting_ends_at || 0);
     if (!endsAt || now < endsAt) return;
@@ -233,7 +270,74 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
     autoBetRef.current = true;
     const wager = commonWager || MIN_BET;
     placeBet(wager);
-  }, [now, status, mySeat?.bet_chips, table?.betting_ends_at, table?.deal_at, commonWager]);
+  }, [now, status, mySeat?.bet_chips, mySeat?.auto_replay, table?.betting_ends_at, table?.deal_at, commonWager]);
+
+  // Replay auto-commit: at the start of a Replay round my seat's wager is
+  // pre-filled but flagged auto_replay. My own client re-deducts it (idempotent
+  // per round) and flips the flag so the host knows I'm committed.
+  useEffect(() => {
+    if (!mySeat || !table || status !== "waiting_for_bets") return;
+    if (mySeat.auto_replay !== true) return;
+    const roundId = table.round_id;
+    if (replayRef.current === roundId) return;
+    replayRef.current = roundId;
+
+    const guardKey = `mp_replay_${roundId}_${mySeat.seat_id}`;
+    let already = false;
+    try {
+      already = localStorage.getItem(guardKey) === "1";
+    } catch {
+      already = false;
+    }
+    if (already) return;
+
+    const wager = commonWager || Number(mySeat.bet_chips) || MIN_BET;
+    (async () => {
+      setBusy(true);
+      try {
+        const fresh = await base44.auth.me();
+        const balance = Number(fresh?.casinoChips) || 0;
+        if (balance < wager) {
+          toast.error("Not enough chips to replay — sitting this round out.");
+          await patch({
+            seats: seats.map((s) =>
+              s.seat_id === mySeat.seat_id
+                ? { ...s, bet_chips: 0, auto_replay: false, last_activity: Date.now() }
+                : s
+            ),
+          });
+          return;
+        }
+        await base44.auth.updateMe({ casinoChips: balance - wager });
+        await onUserUpdate?.();
+        logChipMovement({
+          user,
+          action_type: "bet",
+          amount: -wager,
+          balance_after: balance - wager,
+          detail: `Multiplayer Blackjack replay bet ${wager}`,
+        });
+        try {
+          localStorage.setItem(guardKey, "1");
+        } catch {
+          /* private mode — the flag still protects us */
+        }
+        playChipChime();
+        setChipFx((x) => x + 1);
+        await patch({
+          seats: seats.map((s) =>
+            s.seat_id === mySeat.seat_id
+              ? { ...s, auto_replay: false, last_activity: Date.now() }
+              : s
+          ),
+          last_action_timestamp: Date.now(),
+        });
+      } finally {
+        setBusy(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [now, status, mySeat?.auto_replay, table?.round_id, commonWager]);
 
   const removeBet = async () => {
     if (busy || !mySeat || !table || status !== "waiting_for_bets" || !mySeat.bet_chips) return;
@@ -252,7 +356,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
         detail: `Multiplayer Blackjack bet withdrawn (${refund})`,
       });
       const nextSeats = seats.map((s) =>
-        s.seat_id === mySeat.seat_id ? { ...s, bet_chips: 0, last_activity: Date.now() } : s
+        s.seat_id === mySeat.seat_id ? { ...s, bet_chips: 0, auto_replay: false, last_activity: Date.now() } : s
       );
       const remainingBettors = nextSeats.filter((s) => Number(s.bet_chips) > 0);
       await patch({
@@ -267,7 +371,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   };
 
   const hit = async () => {
-    if (!isMyTurn || busy) return;
+    if (!canHit || busy) return;
     setBusy(true);
     try {
       const deck = [...(table.deck || [])];
@@ -278,29 +382,20 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
       }
       const cards = [...mySeat.cards, card];
       const total = handValue(cards);
-      // A hit only ends my turn when the hand resolves — bust, or a 21 (auto
-      // -stand). Otherwise the turn stays mine so I'm free to hit again.
-      const resolved = total > 21 || total === 21;
-      const nextStatus = total > 21 ? "busted" : total === 21 ? "stood" : "playing";
+      const busted = total > 21;
+      const twentyOne = total === 21;
+      const nextStatus = busted ? "busted" : twentyOne ? "stood" : "playing";
+      // A bust or a 21 locks the hand and counts as ready — no premature reveal
+      // of the whole table though; the host only scores once everyone is ready.
+      const nextReady = busted || twentyOne ? true : mySeat.ready;
       const nextSeats = seats.map((s) =>
         s.seat_id === mySeat.seat_id
-          ? { ...s, cards, hand_value: total, status: nextStatus }
+          ? { ...s, cards, hand_value: total, status: nextStatus, ready: nextReady }
           : s
       );
-      if (!resolved) {
-        await patch({
-          seats: nextSeats,
-          deck,
-          last_action_timestamp: Date.now(),
-        });
-        return;
-      }
-      const next = nextPlayingSeat(nextSeats, mySeat.seat_id);
       await patch({
         seats: nextSeats,
         deck,
-        current_turn_seat: next || 1,
-        status: next ? "player_turns" : "settling",
         last_action_timestamp: Date.now(),
       });
     } finally {
@@ -309,19 +404,44 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   };
 
   const stand = async () => {
-    if (!isMyTurn || busy) return;
+    if (!canStand || busy) return;
     setBusy(true);
     try {
-      const nextSeats = seats.map((s) =>
-        s.seat_id === mySeat.seat_id ? { ...s, status: "stood" } : s
-      );
-      const next = nextPlayingSeat(nextSeats, mySeat.seat_id);
       await patch({
-        seats: nextSeats,
-        current_turn_seat: next || 1,
-        status: next ? "player_turns" : "settling",
+        seats: seats.map((s) =>
+          s.seat_id === mySeat.seat_id ? { ...s, status: "stood" } : s
+        ),
         last_action_timestamp: Date.now(),
       });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const readyUp = async () => {
+    if (!canReady || busy) return;
+    setBusy(true);
+    try {
+      await patch({
+        seats: seats.map((s) =>
+          s.seat_id === mySeat.seat_id
+            ? { ...s, status: s.status === "playing" ? "stood" : s.status, ready: true }
+            : s
+        ),
+        last_action_timestamp: Date.now(),
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // After a round, any player chooses the next move. The host engine applies it.
+  const chooseNext = async (action) => {
+    if (busy || !table || status !== "completed") return;
+    if (table.next_action) return; // someone already chose
+    setBusy(true);
+    try {
+      await patch({ next_action: action, last_action_timestamp: Date.now() });
     } finally {
       setBusy(false);
     }
@@ -342,13 +462,15 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
       }
       const next = normalizeSeats(fresh.seats).map((s) => {
         if (s.user_id && Number(s.bet_chips) > 0 && s.payout_flag === "PENDING") {
-          return { ...s, cards: [], hand_value: 0, status: "betting", payout_flag: "REFUND", payout_amount: Number(s.bet_chips) };
+          return { ...s, cards: [], hand_value: 0, status: "betting", ready: false, auto_replay: false, payout_flag: "REFUND", payout_amount: Number(s.bet_chips) };
         }
         return {
           ...s,
           cards: [],
           hand_value: 0,
           status: s.user_id ? "betting" : "empty",
+          ready: false,
+          auto_replay: false,
         };
       });
       await patch({
@@ -358,8 +480,10 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
         current_turn_seat: 1,
         betting_ends_at: 0,
         deal_at: 0,
+        reveal_deadline: 0,
         common_wager: 0,
         total_pot: 0,
+        next_action: null,
         round_id: newRoundId(),
         last_action_timestamp: Date.now(),
       });
@@ -414,7 +538,9 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
     );
   }
 
-  const turnName = turnSeat?.user_name || `Seat ${table.current_turn_seat}`;
+  const goldBtn =
+    "py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-30 transition";
+  const goldStyle = { background: "#d4af37" };
 
   return (
     <div className="w-full max-w-sm mx-auto">
@@ -465,7 +591,12 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
           </div>
         </div>
 
-        <MpPotBanner pot={totalPot} commonWager={commonWager} active={inPlay || status === "completed"} />
+        <MpPotBanner
+          pot={totalPot}
+          commonWager={commonWager}
+          active={inPlay || status === "completed"}
+          chipFx={chipFx}
+        />
 
         <div className="flex flex-col gap-2">
           {seats.map((s) => (
@@ -473,7 +604,6 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
               key={s.seat_id}
               seat={s}
               isMe={s.user_id === user?.id}
-              isTurn={status === "player_turns" && table.current_turn_seat === s.seat_id}
               canJoin={canJoin && !s.user_id}
               onJoin={() => joinSeat(s.seat_id)}
               revealCards={status === "settling" || status === "completed"}
@@ -489,7 +619,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
 
         {mySeat && status === "waiting_for_bets" && (
           <div className="relative">
-            {Number(mySeat.bet_chips) > 0 ? (
+            {Number(mySeat.bet_chips) > 0 && !mySeat.auto_replay ? (
               <div className="rounded-2xl border border-amber-400/30 bg-emerald-950/40 px-3 py-2.5 flex items-center gap-2">
                 <MiniChipIcon size={14} />
                 <span className="text-xs font-bold text-amber-200">
@@ -520,30 +650,49 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
           </div>
         )}
 
-        {status === "player_turns" && (
+        {status === "player_turns" && mySeat && (
           <div className="flex flex-col gap-2">
-            <p className="text-center text-[11px] font-bold text-amber-200/80 tabular-nums">
-              {isMyTurn ? `Your turn — ${turnSeconds}s to act` : `${turnName} is playing — ${turnSeconds}s`}
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={hit}
-                disabled={!isMyTurn || busy}
-                className="py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-30 transition"
-                style={{ background: "#d4af37" }}
-              >
+            <div className="flex items-center justify-between text-[11px] font-bold text-amber-200/80 tabular-nums">
+              <span>
+                {revealSeconds !== null ? `Reveal in ${revealSeconds}s` : "Playing"}
+              </span>
+              <span>
+                {readyCount}/{dealtIn.length} ready
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <button onClick={hit} disabled={!canHit || busy} className={goldBtn} style={goldStyle}>
                 <Plus className="inline mr-1 w-4 h-4" /> Hit
               </button>
-              <button
-                onClick={stand}
-                disabled={!isMyTurn || busy}
-                className="py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-30 transition"
-                style={{ background: "#d4af37" }}
-              >
+              <button onClick={stand} disabled={!canStand || busy} className={goldBtn} style={goldStyle}>
                 <Shield className="inline mr-1 w-4 h-4" /> Stand
               </button>
+              <button
+                onClick={readyUp}
+                disabled={!canReady || busy}
+                className="py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-30 transition"
+                style={{ background: "#34d399" }}
+              >
+                <Check className="inline mr-1 w-4 h-4" /> Ready
+              </button>
             </div>
+            {mySeat.status === "busted" && (
+              <p className="text-center text-[11px] font-bold text-rose-300/90">
+                You busted — waiting for the reveal.
+              </p>
+            )}
+            {mySeat.ready && mySeat.status !== "busted" && (
+              <p className="text-center text-[11px] font-bold text-amber-200/80">
+                Ready — waiting for the other players.
+              </p>
+            )}
           </div>
+        )}
+
+        {status === "player_turns" && !mySeat && (
+          <p className="text-center text-[11px] font-bold text-amber-200/70">
+            Round in progress — join a seat for the next round.
+          </p>
         )}
 
         {status === "settling" && (
@@ -552,9 +701,50 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
           </p>
         )}
 
-        {status === "completed" && (
+        {status === "completed" && mySeat && (
+          <div className="flex flex-col gap-2">
+            <p className="text-center text-[11px] font-bold text-amber-200/80">
+              Round complete — choose the next move:
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => chooseNext("replay")}
+                disabled={busy || !!table.next_action}
+                className={goldBtn}
+                style={goldStyle}
+                title="Same players, same buy-in"
+              >
+                <RefreshCw className="inline mr-1 w-4 h-4" /> Replay
+              </button>
+              <button
+                onClick={() => chooseNext("new_bet")}
+                disabled={busy || !!table.next_action}
+                className={goldBtn}
+                style={goldStyle}
+                title="Same players, choose a new wager"
+              >
+                <Coins className="inline mr-1 w-4 h-4" /> New Bet
+              </button>
+              <button
+                onClick={() => chooseNext("stop")}
+                disabled={busy || !!table.next_action}
+                className="py-3 rounded-full font-black uppercase tracking-widest text-sm text-rose-50 bg-rose-700/70 border border-rose-400/40 disabled:opacity-40 transition"
+                title="Clear the table"
+              >
+                <LogOut className="inline mr-1 w-4 h-4" /> Stop
+              </button>
+            </div>
+            {table.next_action && (
+              <p className="text-center text-[10px] font-bold uppercase tracking-widest text-amber-200/70">
+                Starting {table.next_action.replace("_", " ")}…
+              </p>
+            )}
+          </div>
+        )}
+
+        {status === "completed" && !mySeat && (
           <p className="text-center text-[11px] font-bold text-amber-200/80">
-            Round complete — the next round starts in a moment.
+            Round complete — join a seat for the next round.
           </p>
         )}
 
