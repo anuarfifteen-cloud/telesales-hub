@@ -130,11 +130,32 @@ export function autoReadyForReveal(seats) {
 //   • the sole highest hand wins the whole pot; tied highest hands split it
 //     evenly with any indivisible remainder going to the lowest-seat tied winner
 //   • if every participant busts, each wager is refunded
+//   • if no valid hands can be scored (glitch/dropped cards), each wager is refunded
 // Returns { seats, total_pot } with payout_flag + payout_amount set per seat.
 export function resolvePot(seats) {
   const list = normalizeSeats(seats);
   const players = list.filter((s) => s.user_id && (s.cards || []).length > 0);
   const totalPot = players.reduce((sum, s) => sum + (Number(s.bet_chips) || 0), 0);
+
+  // Unresolved: chips were bet but no valid hands can be scored (cards lost to a
+  // glitch, a deal that never landed, etc.). Refund every bettor their original
+  // wager so chips are never stuck in the pot without a winner.
+  if (players.length === 0) {
+    const bettors = list.filter((s) => s.user_id && Number(s.bet_chips) > 0);
+    return {
+      seats: list.map((s) =>
+        s.user_id && Number(s.bet_chips) > 0
+          ? {
+              ...s,
+              payout_flag: "REFUND",
+              payout_amount: Number(s.bet_chips),
+              hand_value: handValue(s.cards || []),
+            }
+          : s
+      ),
+      total_pot: bettors.reduce((sum, s) => sum + Number(s.bet_chips), 0),
+    };
+  }
 
   const nonBusted = players.filter((s) => handValue(s.cards) <= 21);
 
