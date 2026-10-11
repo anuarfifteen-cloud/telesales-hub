@@ -29,6 +29,7 @@ import {
   MAX_BET,
   BETTING_MS,
   UNSTICK_MS,
+  REPLAY_RESPONSE_MS,
   normalizeSeats,
   isCommitted,
   payoutFor,
@@ -37,6 +38,7 @@ import {
   emptySeat,
 } from "./mpEngine";
 import MpResultPopout from "./MpResultPopout";
+import MpReplayPrompt from "./MpReplayPrompt";
 
 const STATUS_LABEL = {
   waiting_for_bets: "Waiting for bets",
@@ -85,6 +87,10 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   const revealSeconds =
     status === "player_turns" && Number(table?.reveal_deadline) > 0
       ? Math.max(0, Math.ceil((Number(table.reveal_deadline) - now) / 1000))
+      : null;
+  const replaySeconds =
+    status === "completed" && Number(table?.replay_deadline) > 0
+      ? Math.max(0, Math.ceil((Number(table.replay_deadline) - now) / 1000))
       : null;
 
   const canUnstick =
@@ -481,16 +487,49 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
     }
   };
 
-  // After a round, any player chooses the next move. The host engine applies it.
-  // For "replay" (Play Again), close the result pop-out immediately so the
-  // transition to the next same-bet round feels instant.
+  // After a round, the host can initiate Play Again (same wager, accept/decline
+  // prompt to others), and any player can choose New Bet or Stop. The host
+  // engine applies the resulting state transition.
   const chooseNext = async (action) => {
     if (busy || !table || status !== "completed") return;
     if (table.next_action) return; // someone already chose
-    if (action === "replay") setResult(null);
+    if (action === "replay") {
+      // Only the host can initiate Play Again — opens the accept/decline window.
+      if (!isHost) return;
+      setResult(null);
+      setBusy(true);
+      try {
+        await patch({
+          next_action: "replay_pending",
+          replay_deadline: Date.now() + REPLAY_RESPONSE_MS,
+          last_action_timestamp: Date.now(),
+        });
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    // new_bet / stop — any seated player can choose.
     setBusy(true);
     try {
       await patch({ next_action: action, last_action_timestamp: Date.now() });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // A non-host player responds to the host's Play Again prompt.
+  const respondReplay = async (accepted) => {
+    if (busy || !mySeat || !table || status !== "completed") return;
+    if (table.next_action !== "replay_pending") return;
+    setBusy(true);
+    try {
+      await patch({
+        seats: seats.map((s) =>
+          s.seat_id === mySeat.seat_id ? { ...s, replay_accept: accepted } : s
+        ),
+        last_action_timestamp: Date.now(),
+      });
     } finally {
       setBusy(false);
     }
@@ -654,6 +693,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
               key={s.seat_id}
               seat={s}
               isMe={s.user_id === user?.id}
+              isHostSeat={!!s.user_id && s.user_id === table?.host_user_id}
               canJoin={canJoin && !s.user_id}
               onJoin={() => joinSeat(s.seat_id)}
               revealCards={status === "settling" || status === "completed"}
@@ -756,39 +796,27 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
 
         {status === "completed" && mySeat && (
           <div className="flex flex-col gap-2">
-            <p className="text-center text-[11px] font-bold text-amber-200/80">
-              Round complete — choose the next move:
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => chooseNext("replay")}
-                disabled={busy || !!table.next_action}
-                className={goldBtn}
-                style={goldStyle}
-                title="Same players, same buy-in"
-              >
-                <RefreshCw className="inline mr-1 w-4 h-4" /> Play Again
-              </button>
-              <button
-                onClick={() => chooseNext("new_bet")}
-                disabled={busy || !!table.next_action}
-                className={goldBtn}
-                style={goldStyle}
-                title="Same players, choose a new wager"
-              >
-                <Coins className="inline mr-1 w-4 h-4" /> New Bet
-              </button>
-              <button
-                onClick={() => chooseNext("stop")}
-                disabled={busy || !!table.next_action}
-                className="py-3 rounded-full font-black uppercase tracking-widest text-sm text-rose-50 bg-rose-700/70 border border-rose-400/40 disabled:opacity-40 transition"
-                title="Clear the table"
-              >
-                <LogOut className="inline mr-1 w-4 h-4" /> Stop
-              </button>
-            </div>
-            {table.next_action && (
-              <div className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-200/80">
+            {table.next_action === "replay_pending" ? (
+              isHost ? (
+                <div className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-200/80 py-2">
+                  <span className="w-3 h-3 rounded-full border-2 border-amber-300/40 border-t-amber-300 animate-spin" />
+                  Waiting for players to accept…
+                  {replaySeconds !== null && replaySeconds > 0 && (
+                    <span className="tabular-nums">{replaySeconds}s</span>
+                  )}
+                </div>
+              ) : (
+                <MpReplayPrompt
+                  wager={commonWager}
+                  secondsLeft={replaySeconds}
+                  responded={mySeat.replay_accept === true || mySeat.replay_accept === false}
+                  onAccept={() => respondReplay(true)}
+                  onDecline={() => respondReplay(false)}
+                  busy={busy}
+                />
+              )
+            ) : table.next_action ? (
+              <div className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-200/80 py-2">
                 <span className="w-3 h-3 rounded-full border-2 border-amber-300/40 border-t-amber-300 animate-spin" />
                 {table.next_action === "replay"
                   ? "Starting next round…"
@@ -796,6 +824,42 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
                   ? "Opening new bets…"
                   : "Closing the table…"}
               </div>
+            ) : (
+              <>
+                <p className="text-center text-[11px] font-bold text-amber-200/80">
+                  {isHost ? "Round complete — choose the next move:" : "Round complete — waiting for the host:"}
+                </p>
+                <div className={`grid ${isHost ? "grid-cols-3" : "grid-cols-2"} gap-2`}>
+                  {isHost && (
+                    <button
+                      onClick={() => chooseNext("replay")}
+                      disabled={busy}
+                      className={goldBtn}
+                      style={goldStyle}
+                      title="Same players, same buy-in"
+                    >
+                      <RefreshCw className="inline mr-1 w-4 h-4" /> Play Again
+                    </button>
+                  )}
+                  <button
+                    onClick={() => chooseNext("new_bet")}
+                    disabled={busy}
+                    className={goldBtn}
+                    style={goldStyle}
+                    title="Same players, choose a new wager"
+                  >
+                    <Coins className="inline mr-1 w-4 h-4" /> New Bet
+                  </button>
+                  <button
+                    onClick={() => chooseNext("stop")}
+                    disabled={busy}
+                    className="py-3 rounded-full font-black uppercase tracking-widest text-sm text-rose-50 bg-rose-700/70 border border-rose-400/40 disabled:opacity-40 transition"
+                    title="Clear the table"
+                  >
+                    <LogOut className="inline mr-1 w-4 h-4" /> Stop
+                  </button>
+                </div>
+              </>
             )}
           </div>
         )}

@@ -44,14 +44,20 @@
       "default": 0,
       "description": "UNIX epoch ms when the 30-second simultaneous-play reveal window ends. Set when the host deals. When it passes, any not-yet-ready dealt-in hand is auto-readied (stood + ready) and the pot is scored. 0 means not in play."
     },
+    "replay_deadline": {
+      "type": "number",
+      "default": 0,
+      "description": "UNIX epoch ms when the Play Again accept/decline window closes. Set by the host when initiating a replay. When it passes, any non-responding seated player is treated as declined. 0 means no replay is pending."
+    },
     "next_action": {
       "type": "string",
       "enum": [
         "replay",
+        "replay_pending",
         "new_bet",
         "stop"
       ],
-      "description": "The next-round choice a player makes once a round completes. replay = same players, same buy-in, auto re-commit; new_bet = same players, fresh wager; stop = clear the table. The host engine applies and clears it."
+      "description": "The next-round choice a player makes once a round completes. replay_pending = host initiated Play Again and is waiting for other seated players to accept or decline before the round proceeds."
     },
     "common_wager": {
       "type": "number",
@@ -148,6 +154,11 @@
           },
           "payout_claimed": {
             "type": "boolean"
+          },
+          "replay_accept": {
+            "type": "boolean",
+            "default": null,
+            "description": "A non-host seated player's response to the host's Play Again prompt. true = accepts the same-wager rematch; false = declines and sits the round out; null = has not responded yet."
           }
         }
       }

@@ -14,6 +14,8 @@ export const COMPLETED_AUTO_MS = 15000; // auto-advance a completed round to new
 export const AUTO_BET_GRACE_MS = 2000; // grace after betting closes for auto-bets to land
 export const BET_IDLE_MS = 30000; // seated-but-unbet seats are kicked after this long in betting
 export const MIN_PLAYERS_TO_DEAL = 2; // host + at least one matcher required to start a round
+export const REPLAY_RESPONSE_MS = 10000; // how long non-host players have to accept/decline a Play Again
+export const CARD_DEAL_STAGGER = 0.35; // seconds between the two initial deal-card sounds
 
 export function newRoundId() {
   return `RND-${Math.floor(10000 + Math.random() * 89999)}`;
@@ -34,6 +36,7 @@ export function emptySeat(seatId) {
     payout_flag: "PENDING",
     payout_amount: 0,
     payout_claimed: false,
+    replay_accept: null,
   };
 }
 
@@ -227,6 +230,7 @@ export function applyNextAction(action, seats, table) {
       betting_ends_at: 0,
       deal_at: 0,
       reveal_deadline: 0,
+      replay_deadline: 0,
       common_wager: 0,
       total_pot: 0,
       next_action: null,
@@ -247,6 +251,7 @@ export function applyNextAction(action, seats, table) {
               status: "betting",
               ready: false,
               auto_replay: false,
+              replay_accept: null,
               last_activity: 0,
               payout_flag: "PENDING",
               payout_amount: 0,
@@ -260,6 +265,7 @@ export function applyNextAction(action, seats, table) {
       betting_ends_at: 0,
       deal_at: 0,
       reveal_deadline: 0,
+      replay_deadline: 0,
       common_wager: 0,
       total_pot: 0,
       next_action: null,
@@ -269,30 +275,36 @@ export function applyNextAction(action, seats, table) {
   }
 
   if (action === "replay") {
+    const hostId = table?.host_user_id;
     return {
-      seats: normalizeSeats(seats).map((s) =>
-        s.user_id
-          ? {
-              ...s,
-              cards: [],
-              hand_value: 0,
-              bet_chips: wager,
-              status: "betting",
-              ready: false,
-              auto_replay: true,
-              last_activity: now,
-              payout_flag: "PENDING",
-              payout_amount: 0,
-              payout_claimed: false,
-            }
-          : emptySeat(s.seat_id)
-      ),
+      seats: normalizeSeats(seats).map((s) => {
+        if (!s.user_id) return emptySeat(s.seat_id);
+        // Only the host and players who accepted the Play Again prompt get
+        // auto-replayed with the same wager. Decliners and non-responders sit
+        // this round out (staying seated but not dealt in).
+        const accepted = s.user_id === hostId || s.replay_accept === true;
+        return {
+          ...s,
+          cards: [],
+          hand_value: 0,
+          bet_chips: accepted ? wager : 0,
+          status: "betting",
+          ready: false,
+          auto_replay: accepted,
+          replay_accept: null,
+          last_activity: now,
+          payout_flag: "PENDING",
+          payout_amount: 0,
+          payout_claimed: false,
+        };
+      }),
       deck: [],
       status: "waiting_for_bets",
       current_turn_seat: 1,
       betting_ends_at: now + BETTING_MS,
       deal_at: 0,
       reveal_deadline: 0,
+      replay_deadline: 0,
       common_wager: wager,
       total_pot: 0,
       next_action: null,

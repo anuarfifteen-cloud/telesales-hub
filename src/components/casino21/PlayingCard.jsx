@@ -76,6 +76,7 @@ export default function PlayingCard({
   backOnly = false,
   delay = 0,
   isNew = false,
+  silent = false,
   zIndex = 0,
   small = false,
 }) {
@@ -84,17 +85,19 @@ export default function PlayingCard({
 
   // A newly dealt card fires its slide sound exactly as it lands (after the
   // animation delay), so audio and visuals stay in sync — one click per card.
+  // Opponents' cards are silent so only your own hand is audible.
   useEffect(() => {
-    if (!isNew) return;
+    if (!isNew || silent) return;
     const t = setTimeout(playCardSlide, Math.max(0, delay) * 1000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Slower tween so each card slides in visibly and the sound lands mid-slide.
   const landing = {
-    initial: isNew ? { opacity: 0, y: -28, rotate: -8, scale: 0.85 } : false,
+    initial: isNew ? { opacity: 0, y: -40, rotate: -8, scale: 0.85 } : false,
     animate: { opacity: 1, y: 0, rotate: 0, scale: 1 },
-    transition: { type: "spring", stiffness: 260, damping: 20, delay },
+    transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1], delay },
   };
 
   // Back-only mode: render ONLY the card back. The face value is never mounted

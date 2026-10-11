@@ -194,8 +194,43 @@ async function runTick({ table, patch }) {
   }
 
   if (status === "completed") {
-    // A player has chosen Replay / New Bet / Stop — apply it.
     const action = table.next_action;
+
+    // Host initiated Play Again — wait for other seated players to accept or
+    // decline before proceeding. Non-response at the deadline counts as decline.
+    if (action === "replay_pending") {
+      const nonHostSeated = seats.filter(
+        (s) => s.user_id && s.user_id !== table.host_user_id
+      );
+      const allResponded = nonHostSeated.every(
+        (s) => s.replay_accept === true || s.replay_accept === false
+      );
+      const deadline =
+        Number(table.replay_deadline || 0) ||
+        Number(table.last_action_timestamp || 0) + 10000;
+      const deadlinePassed = now >= deadline;
+
+      if (!allResponded && !deadlinePassed) return;
+
+      // Count accepters: the host always accepts; others only if they said yes.
+      const accepters = seats.filter((s) => {
+        if (!s.user_id) return false;
+        if (s.user_id === table.host_user_id) return true;
+        return s.replay_accept === true;
+      });
+
+      if (accepters.length >= MIN_PLAYERS_TO_DEAL) {
+        const fields = applyNextAction("replay", seats, table);
+        if (fields) await patch(fields);
+      } else {
+        // Not enough accepters — cancel and open a fresh-bet round.
+        const fields = applyNextAction("new_bet", seats, table);
+        if (fields) await patch(fields);
+      }
+      return;
+    }
+
+    // A player has chosen Replay / New Bet / Stop — apply it.
     if (action) {
       const fields = applyNextAction(action, seats, table);
       if (fields) {

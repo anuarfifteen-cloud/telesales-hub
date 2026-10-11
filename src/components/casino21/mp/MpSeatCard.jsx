@@ -24,6 +24,7 @@ const RESULT = {
 export default function MpSeatCard({
   seat,
   isMe,
+  isHostSeat = false,
   canJoin,
   onJoin,
   revealCards = false,
@@ -70,6 +71,7 @@ export default function MpSeatCard({
         <div className="flex-1 min-w-0">
           <p className="text-xs font-bold text-emerald-50 truncate">
             {filled ? seat.user_name || "Player" : "Open seat"}
+            {isHostSeat && <span className="ml-1 text-[9px] font-black text-amber-300">(HOST)</span>}
             {isMe && <span className="ml-1 text-[9px] font-black text-amber-300">YOU</span>}
           </p>
           <p className={`text-[10px] font-semibold ${st.cls}`}>
@@ -105,7 +107,16 @@ export default function MpSeatCard({
         <div className="flex flex-wrap items-start mt-2" style={{ paddingRight: 16 }}>
           {cards.map((c, i) => (
             <div key={i} style={{ marginRight: -16, position: "relative", zIndex: i + 1 }}>
-              <PlayingCard card={c} small isNew zIndex={i + 1} faceDown={!showFace} backOnly={!showFace} />
+              <PlayingCard
+                card={c}
+                small
+                isNew
+                delay={i === 1 ? 0.35 : 0}
+                zIndex={i + 1}
+                faceDown={!showFace}
+                backOnly={!showFace}
+                silent={!isMe}
+              />
             </div>
           ))}
         </div>
