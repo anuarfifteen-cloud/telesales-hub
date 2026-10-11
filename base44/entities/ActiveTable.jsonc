@@ -36,6 +36,11 @@
       "type": "number",
       "description": "UNIX epoch ms of the last table activity. Drives the 30-second emergency reset window and the completed-round auto-advance."
     },
+    "admin_reset_at": {
+      "type": "number",
+      "default": 0,
+      "description": "UNIX epoch ms of the last admin force-reset. Set to Date.now() by the admin 'Force Reset Table & Kick All' control. Clients track this value: when it changes they show the 'table was reset by an admin' alert and return to the open-table view. 0 means no admin reset has occurred."
+    },
     "betting_ends_at": {
       "type": "number",
       "description": "UNIX epoch ms when the betting phase closes. 0 means betting has not opened yet (no wager placed)."

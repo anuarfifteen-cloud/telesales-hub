@@ -77,6 +77,27 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
 
   const now = useNow(1000);
 
+  // Detect an admin force-reset: when admin_reset_at changes, show a brief
+  // alert and clear local pending/result state so the player returns to the
+  // open-table view.
+  const adminResetRef = useRef(0);
+  useEffect(() => {
+    const resetAt = Number(table?.admin_reset_at) || 0;
+    if (!resetAt) return;
+    if (resetAt !== adminResetRef.current) {
+      if (adminResetRef.current !== 0) {
+        toast.info("The table was reset by an admin. All wagers have been refunded.");
+        setResult(null);
+        setPendingBet(false);
+        setPendingHit(false);
+        setPendingStand(false);
+        setPendingJoin(null);
+        setPendingLeave(false);
+      }
+      adminResetRef.current = resetAt;
+    }
+  }, [table?.admin_reset_at]);
+
   useHostEngine({ table, patch, user });
   useSettlement({ table, user, patch, onUserUpdate });
 
