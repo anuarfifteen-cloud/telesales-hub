@@ -30,8 +30,6 @@ import {
   UNSTICK_MS,
   normalizeSeats,
   startBlitzTournament,
-  blitzApplyNextAction,
-  newRoundId,
   blitzResetFields,
 } from "./blitzEngine";
 

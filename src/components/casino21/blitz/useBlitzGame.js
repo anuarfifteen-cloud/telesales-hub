@@ -4,12 +4,10 @@ import {
   shuffle,
   handValue,
   isBlackjack,
-  isBust,
 } from "../blackjackDeck";
 import {
   BLITZ_START_CHIPS,
   BLITZ_WAGER,
-  BLITZ_DURATION_MS,
   DEALER_DRAW_MS,
   blitzDealerShouldHit,
   settleBlitzHand,
@@ -40,6 +38,7 @@ export default function useBlitzGame({ active, blitzEndsAt, onSubmitScore }) {
   const stateRef = useRef({});
   stateRef.current = { phase, locked, blitzChips, wager, playerHand, dealerHand };
   const finishingRef = useRef(false);
+  const deckRef = useRef([]);
   const submitScoreRef = useRef(onSubmitScore);
   submitScoreRef.current = onSubmitScore;
 
@@ -135,51 +134,13 @@ export default function useBlitzGame({ active, blitzEndsAt, onSubmitScore }) {
     [doSettle]
   );
 
-  // ── Deal a new hand ───────────────────────────────────────────────
-  const dealHand = useCallback(() => {
-    if (locked || eliminated) return;
-    if (stateRef.current.phase === "playing" || stateRef.current.phase === "dealer")
-      return;
-
-    const balance = stateRef.current.blitzChips;
-    const bet = Math.min(BLITZ_WAGER, balance);
-    if (bet <= 0) return;
-
-    setBlitzChips((c) => c - bet);
-    setWager(bet);
-    setResult(null);
-    setRevealHole(false);
-    setPhase("playing");
-
-    const d = shuffle(createDeck());
-    const p = [d.pop(), d.pop()];
-    const dl = [d.pop(), d.pop()];
-    setPlayerHand(p);
-    setDealerHand(dl);
-
-    // Can double down if any chips remain after the wager.
-    setCanDouble(balance - bet > 0);
-
-    // Naturals: settle immediately.
-    const pNatural = isBlackjack(p);
-    const dNatural = isBlackjack(dl);
-    if (pNatural || dNatural) {
-      doFinishDealer(d, dl, p, bet);
-    }
-  }, [locked, eliminated, doFinishDealer]);
-
   // ── Hit ───────────────────────────────────────────────────────────
   const hit = useCallback(() => {
     if (locked || stateRef.current.phase !== "playing") return;
     setCanDouble(false);
-    // Read current hands from state refs.
-    const deck = [];
     const p = [...stateRef.current.playerHand];
     const dl = [...stateRef.current.dealerHand];
     const bet = stateRef.current.wager;
-    // We need the deck — reconstruct from a fresh shuffle since deck isn't
-    // stored in state (it's throwaway per hand). Actually we DO need to track
-    // the deck. Let me store it in a ref.
     const d = deckRef.current;
     if (!d || !d.length) return;
     const card = d.pop();
@@ -242,11 +203,8 @@ export default function useBlitzGame({ active, blitzEndsAt, onSubmitScore }) {
     }
   }, [locked, canDouble, doSettle, doFinishDealer]);
 
-  // Deck ref — persists across renders within a hand, reset on each deal.
-  const deckRef = useRef([]);
-
-  // Override dealHand to also set the deck ref.
-  const dealHandWithDeck = useCallback(() => {
+  // Deal a new hand (also stores the deck in deckRef for hit/double).
+  const dealHand = useCallback(() => {
     if (locked || eliminated) return;
     if (stateRef.current.phase === "playing" || stateRef.current.phase === "dealer")
       return;
@@ -288,7 +246,7 @@ export default function useBlitzGame({ active, blitzEndsAt, onSubmitScore }) {
     eliminated,
     dealerThinking,
     revealHole,
-    dealHand: dealHandWithDeck,
+    dealHand,
     hit,
     stand: () => doStand(false),
     doubleDown,

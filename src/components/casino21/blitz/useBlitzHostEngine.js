@@ -10,7 +10,7 @@ import {
   resolveBlitzWinners,
   blitzApplyNextAction,
   blitzResetFields,
-  newRoundId,
+  COMPLETED_AUTO_MS,
 } from "./blitzEngine";
 import { fetchPendingActions, deleteAction } from "../mp/tableActions";
 import {
@@ -19,7 +19,6 @@ import {
   LEASE_MS,
   PRESENCE_TIMEOUT_MS,
 } from "../mp/hostLease";
-import { COMPLETED_AUTO_MS } from "./blitzEngine";
 
 // The Blitz host engine. Runs on whichever client holds the host lease, once
 // a second, only while the tab is visible. The lease holder is the sole writer
