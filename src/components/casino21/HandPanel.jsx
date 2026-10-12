@@ -1,6 +1,9 @@
 import { AnimatePresence } from "framer-motion";
 import PlayingCard from "./PlayingCard";
 
+// Default card renderer. The Ranked table passes a custom silver-royal card
+// component via the `cardComponent` prop; standard Blackjack keeps the default.
+
 // Light fanned overlap (px) shared by You / Player 2 so all corner values stay
 // readable. Cards wrap to rows of up to 3 — the panel grows downward to fit.
 const OVERLAP = 8;
@@ -12,7 +15,7 @@ const DEALER_OVERLAP = 40;
 // reveal; `tag` renders a small badge (e.g. "AI"); `compact` shrinks the panel
 // for the player/AI seats so two fit side-by-side on the mobile felt. `overlap`
 // overrides the negative horizontal card spacing (Dealer uses the tight value).
-export default function HandPanel({ title, value, cards, revealHole = true, tag, compact = false, hidden = false, overlap }) {
+export default function HandPanel({ title, value, cards, revealHole = true, tag, compact = false, hidden = false, overlap, cardComponent: Card = PlayingCard }) {
   const isHidden = hidden || (title === "DEALER" && !revealHole);
   const gap = overlap !== undefined && overlap !== null ? overlap : OVERLAP;
   return (
@@ -47,7 +50,7 @@ export default function HandPanel({ title, value, cards, revealHole = true, tag,
               key={`${title}-${i}`}
               style={{ marginRight: -gap, position: "relative", zIndex: i + 1 }}
             >
-              <PlayingCard
+              <Card
                 card={c}
                 delay={0}
                 isNew

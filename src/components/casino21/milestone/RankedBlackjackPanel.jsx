@@ -14,6 +14,7 @@ import {
 } from "../blackjackDeck";
 import HandPanel from "../HandPanel";
 import MiniChipIcon from "../MiniChipIcon";
+import RankedPlayingCard from "./RankedPlayingCard";
 
 // Ranked Blackjack — a focused, self-contained 1-v-1 table that lives inside the
 // 🏆RANK tab. Wagers are strictly 1–10 casinoChips (capped to the player's
@@ -306,6 +307,7 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
         cards={dealer}
         revealHole={revealHole}
         overlap={40}
+        cardComponent={RankedPlayingCard}
       />
       {dealerThinking && (
         <div className="relative flex justify-center -mt-1 mb-1">
@@ -314,7 +316,7 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
       )}
 
       {/* Player */}
-      <HandPanel title="YOU" value={handValue(player)} cards={player} />
+      <HandPanel title="YOU" value={handValue(player)} cards={player} cardComponent={RankedPlayingCard} />
 
       {/* Inline result banner */}
       {phase === "resolve" && result && (
