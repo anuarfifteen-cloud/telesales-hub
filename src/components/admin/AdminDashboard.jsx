@@ -23,6 +23,7 @@ import AdminVoucherLog from "./AdminVoucherLog";
 import AdminTaxEngine from "./AdminTaxEngine";
 import AdminVaultHoldings from "./AdminVaultHoldings";
 import AdminCasinoEconomy from "./AdminCasinoEconomy";
+import AdminMilestoneSeasonControl from "./AdminMilestoneSeasonControl";
 
 const LIVE_FEED_KEY = "liveFeedEnabled";
 
@@ -530,6 +531,9 @@ export default function AdminDashboard({ onBack }) {
             {resetting ? "Resetting…" : "Force Reset Table & Kick All Players"}
           </button>
         </div>
+
+        {/* 🏆RANK Milestone Season Control */}
+        <AdminMilestoneSeasonControl />
 
         {/* Force Reset Confirmation Modal */}
         {showForceResetConfirm && (

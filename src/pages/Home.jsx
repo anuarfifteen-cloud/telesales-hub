@@ -36,6 +36,7 @@ import FeatureUnlockModal from "@/components/FeatureUnlockModal";
 import DailySpinWheel from "@/components/booking/DailySpinWheel";
 import TokenVoucher from "@/components/booking/MysteryBoxModal";
 import ThemeShop from "@/components/profile/ThemeShop";
+import NewSeasonRewardsPopup from "@/components/casino21/milestone/NewSeasonRewardsPopup";
 import AvatarInitialsEditor from "@/components/profile/AvatarInitialsEditor";
 import AvatarPhotoEditor from "@/components/profile/AvatarPhotoEditor";
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
@@ -1315,6 +1316,8 @@ useEffect(() => {
         announcement={activePopup}
         onDismiss={() => setActivePopup(null)} 
       />
+
+      <NewSeasonRewardsPopup user={user} onUserUpdate={refreshUser} />
 
       <FeatureUnlockModal
         isOpen={unlockModal.open}

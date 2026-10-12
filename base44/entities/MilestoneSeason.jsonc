@@ -1,0 +1,62 @@
+{
+  "name": "MilestoneSeason",
+  "type": "object",
+  "properties": {
+    "season_number": {
+      "type": "number",
+      "default": 1,
+      "description": "Current milestone season number. Increments on each reset (Diamond claim with auto-reset, or admin manual reset)."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "completed"
+      ],
+      "default": "active",
+      "description": "active = season in progress; completed = a Diamond was claimed but the season has not yet reset (only when auto_reset_enabled is false)."
+    },
+    "diamond_claimed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the Rank 10 Diamond grand prize has been claimed this season. First-claim-wins \u2014 only one player can ever claim it per season."
+    },
+    "diamond_claimed_by": {
+      "type": "string",
+      "description": "User ID of the first player to claim the Rank 10 Diamond this season."
+    },
+    "diamond_claimed_by_name": {
+      "type": "string",
+      "description": "Display name of the Diamond claimant."
+    },
+    "diamond_claimed_at": {
+      "type": "number",
+      "default": 0,
+      "description": "UNIX epoch ms when the Diamond was claimed."
+    },
+    "auto_reset_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "If true, claiming the Rank 10 Diamond automatically triggers a global season reset. If false, the season stays completed until an admin manually resets it."
+    },
+    "last_reset_at": {
+      "type": "number",
+      "default": 0,
+      "description": "UNIX epoch ms of the last season reset."
+    }
+  },
+  "required": [
+    "season_number",
+    "status"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

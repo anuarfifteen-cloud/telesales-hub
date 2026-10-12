@@ -1,0 +1,77 @@
+{
+  "name": "MilestoneProgress",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "User ID this progress row belongs to."
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the user."
+    },
+    "season_number": {
+      "type": "number",
+      "default": 1,
+      "description": "The season this score is for. When the global season advances (Diamond claim or admin reset), this field is rolled over to the new number and the score/claims reset to zero on the user's next read."
+    },
+    "score": {
+      "type": "number",
+      "default": 0,
+      "description": "Total winning chip payouts accumulated in the current season. Only wins add to this; losses and pushes do not reduce it."
+    },
+    "claimed_ranks": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "Ranks 1-9 the player has claimed rewards for this season. Each rank reward can be credited only once per season."
+    },
+    "pending_rank_rewards": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "Ranks 1-9 earned but not yet claimed this season. Survives a season reset so unclaimed rewards can still be claimed via the New Season Rewards popup after the reset."
+    }
+  },
+  "required": [
+    "user_id",
+    "season_number",
+    "score"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

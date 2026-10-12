@@ -49,7 +49,9 @@ import BlackjackResultCard from "./BlackjackResultCard";
 import HowToPlayButton from "./HowToPlayButton";
 import BlackjackHowToPlayModal from "./BlackjackHowToPlayModal";
 import MiniChipIcon from "./MiniChipIcon";
-import BlitzTournament from "./blitz/BlitzTournament";
+import MilestoneProgressionView from "./milestone/MilestoneProgressionView";
+import RankClaimPopup from "./milestone/RankClaimPopup";
+import useMilestoneClaim from "./milestone/useMilestoneClaim";
 
 const GAME_TYPE = "blackjack";
 // Chips are the betting currency, but every win pays out straight into tokens.
@@ -184,6 +186,9 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const [dealerThinking, setDealerThinking] = useState(false);
   const queryClient = useQueryClient();
 
+  // 🏆RANK milestone progression — track seasonal winning payouts.
+  const milestone = useMilestoneClaim(user);
+
   // Highest legal wager: the largest 5-chip step the player can afford.
   const maxBet = Math.floor(chips / BET_STEP) * BET_STEP;
   // On Very Easy and Hard there is no Player 2 — just You vs the Dealer.
@@ -279,6 +284,12 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         chips_won: chipsWon,
         detail: `Blackjack 21 — ${detail}`,
       });
+      // 🏆RANK: add this hand's winning chip payout to the seasonal score.
+      // Only wins count (pushes refund, losses pay nothing). Natural Blackjack
+      // pays 3:2 (floored to whole chips); standard win pays 2× the wager.
+      if (type === "win") {
+        milestone.recordWin(natural ? Math.floor(wager * 2.5) : wager * 2);
+      }
       queryClient.invalidateQueries({ queryKey: ["blackjack-history", user?.id] });
       // The sound lands as the Dealer's hand ends; the visual celebration rides
       // with the popup (see the timer above) so both arrive together.
@@ -480,7 +491,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       <div className="flex gap-1 p-1 bg-muted/50 border border-border rounded-t-2xl">
         {[
           ["game", "🎮 Game"],
-          ["multiplayer", "⚡ Blitz"],
+          ["rank", "🏆RANK"],
           ["stats", "📊 Stats"],
           ["history", "📜 History"],
         ].map(([id, label]) => (
@@ -658,31 +669,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         </div>
       )}
 
-      {view === "multiplayer" && (
-        onlineEnabled ? (
-          <BlitzTournament
-            user={user}
-            onUserUpdate={onUserUpdate}
-            onOpenCashier={() => setShowCashier(true)}
-          />
-        ) : (
-          <div
-            className="relative rounded-b-2xl border border-t-0 border-border p-8 flex flex-col items-center justify-center text-center gap-3 overflow-hidden"
-            style={{ background: "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)" }}
-          >
-            <div
-              className="pointer-events-none absolute inset-0 rounded-b-2xl"
-              style={{ boxShadow: "inset 0 0 0 2px rgba(212,175,55,0.25), inset 0 0 24px rgba(212,175,55,0.08)" }}
-            />
-            <span className="text-4xl">🛠️</span>
-            <h3 className="text-amber-200 font-black uppercase tracking-widest text-sm">
-              Under Maintenance
-            </h3>
-            <p className="text-amber-200/70 text-xs max-w-xs leading-relaxed">
-              Online multiplayer Blackjack is temporarily unavailable. Single-player Blackjack is still open — play in the Game tab.
-            </p>
-          </div>
-        )
+      {view === "rank" && (
+        <MilestoneProgressionView user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {view === "stats" && <BlackjackStats userId={user?.id} />}
@@ -697,6 +685,15 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       />
 
       <BlackjackHowToPlayModal open={showGuide} onClose={() => setShowGuide(false)} />
+
+      <RankClaimPopup
+        claim={milestone.currentClaim}
+        onConfirm={async () => {
+          await milestone.confirmClaim();
+          await onUserUpdate?.();
+        }}
+        onDismiss={milestone.dismissClaim}
+      />
 
     </div>
   );
