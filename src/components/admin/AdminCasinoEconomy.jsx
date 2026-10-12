@@ -6,6 +6,7 @@ import { Loader2, Search, RefreshCw, X, Coins } from "lucide-react";
 import { toast } from "sonner";
 import MiniChipIcon from "@/components/casino21/MiniChipIcon";
 import CashierLimitsCard from "@/components/admin/CashierLimitsCard";
+import MpForceResetCard from "@/components/admin/MpForceResetCard";
 
 const ACTION_LABELS = {
   bet: "Bet",
@@ -98,6 +99,7 @@ export default function AdminCasinoEconomy() {
     <div className="flex flex-col gap-4">
       <DifficultyCard />
       <CashierLimitsCard />
+      <MpForceResetCard />
       {/* View toggle */}
       <div className="grid grid-cols-2 gap-2 p-1 bg-muted/60 rounded-2xl border border-border">
         <button

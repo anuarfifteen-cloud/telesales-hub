@@ -294,6 +294,7 @@ async function runPhase(table, patch, now) {
       deck: [],
       status: "waiting_for_bets",
       current_turn_seat: 1,
+      host_user_id: "", // clear the stale host so the next sit claim can run the engine
       betting_ends_at: 0,
       deal_at: 0,
       reveal_deadline: 0,
