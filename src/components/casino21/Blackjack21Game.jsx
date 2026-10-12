@@ -284,12 +284,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         chips_won: chipsWon,
         detail: `Blackjack 21 — ${detail}`,
       });
-      // 🏆RANK: add this hand's winning chip payout to the seasonal score.
-      // Only wins count (pushes refund, losses pay nothing). Natural Blackjack
-      // pays 3:2 (floored to whole chips); standard win pays 2× the wager.
-      if (type === "win") {
-        milestone.recordWin(natural ? Math.floor(wager * 2.5) : wager * 2);
-      }
+      // Standard casual GAME hands do NOT feed 🏆RANK — only Ranked hands
+      // (played in the RANK tab) contribute to the seasonal milestone score.
       queryClient.invalidateQueries({ queryKey: ["blackjack-history", user?.id] });
       // The sound lands as the Dealer's hand ends; the visual celebration rides
       // with the popup (see the timer above) so both arrive together.
@@ -670,7 +666,11 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       )}
 
       {view === "rank" && (
-        <MilestoneProgressionView user={user} onUserUpdate={onUserUpdate} />
+        <MilestoneProgressionView
+          user={user}
+          onUserUpdate={onUserUpdate}
+          recordWin={milestone.recordWin}
+        />
       )}
 
       {view === "stats" && <BlackjackStats userId={user?.id} />}

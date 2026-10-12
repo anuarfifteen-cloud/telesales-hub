@@ -11,6 +11,7 @@ import {
   claimDiamond,
 } from "@/lib/milestone";
 import useMilestoneData from "./useMilestoneData";
+import RankedBlackjackPanel from "./RankedBlackjackPanel";
 import MiniChipIcon from "../MiniChipIcon";
 
 const TOKEN_IMG =
@@ -24,9 +25,10 @@ function rewardLabel(def) {
   return parts.join(" + ");
 }
 
-export default function MilestoneProgressionView({ user, onUserUpdate }) {
+export default function MilestoneProgressionView({ user, onUserUpdate, recordWin }) {
   const { season, progress, loading, reload } = useMilestoneData(user);
   const [busy, setBusy] = useState(false);
+  const [showRanked, setShowRanked] = useState(false);
 
   const score = Number(progress?.score) || 0;
   const claimed = Array.isArray(progress?.claimed_ranks) ? progress.claimed_ranks : [];
@@ -151,10 +153,28 @@ export default function MilestoneProgressionView({ user, onUserUpdate }) {
         )}
       </div>
 
+      {/* Ranked play panel — the only hands that feed this score */}
+      {showRanked ? (
+        <RankedBlackjackPanel
+          user={user}
+          onUserUpdate={onUserUpdate}
+          recordWin={recordWin}
+          onClose={() => setShowRanked(false)}
+        />
+      ) : (
+        <button
+          onClick={() => setShowRanked(true)}
+          className="relative w-full py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40 transition"
+          style={{ background: "#d4af37" }}
+        >
+          ⚔️ Play Ranked (1–10 chips)
+        </button>
+      )}
+
       {/* Season notice banner */}
       <div className="relative rounded-xl border border-rose-400/30 bg-rose-950/30 px-3 py-2">
         <p className="text-center text-[11px] font-bold text-rose-200 leading-snug">
-          ⚡ Race to Rank 10! The season resets as soon as 1 Diamond is claimed!
+          ⚡ Only Ranked hands count. Race to Rank 10 — the season resets when 1 Diamond is claimed!
         </p>
       </div>
 
@@ -248,7 +268,7 @@ export default function MilestoneProgressionView({ user, onUserUpdate }) {
       </div>
 
       <p className="relative text-[9px] leading-relaxed text-emerald-100/40 text-center">
-        Score grows with every winning Blackjack hand this season. Claim each
+        Score grows only from winning Ranked hands (1–10 chips). Claim each
         rank's reward as you reach it — the first player to 100,000 wins the
         Emperor Diamond and ends the season.
       </p>
