@@ -75,7 +75,7 @@ const SECTIONS = [
       },
       {
         label: "Natural 21 (Blackjack)",
-        a: "Ace + a 10-value card on your first 2 cards. It pays your normal win — 2× your bet, cashed in at 10 Chips = 1 Token — PLUS a flat 10-Token bonus on top, no matter how big or small your bet is. (e.g. a 5-Chip bet pays 1 Token + 10 bonus = 11 Tokens.)",
+        a: "Ace + a 10-value card on your first 2 cards. It pays your normal win — 2× your bet, cashed in at 10 Chips = 1 Token — PLUS a flat 100-Chip bonus on top, no matter how big or small your bet is. (e.g. a 5-Chip bet pays 1 Token + 100 bonus Chips.)",
       },
       {
         label: "Push (Tie)",

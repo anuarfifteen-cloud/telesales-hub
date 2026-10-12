@@ -19,22 +19,23 @@ function CardBack({ gold = false }) {
   if (gold) {
     return (
       <div
-        className="absolute inset-0 rounded-none border-[3px] border-black overflow-hidden shadow-lg"
-        style={{ backgroundImage: GOLD_FILL }}
+        className="absolute inset-0 rounded-[8px] overflow-hidden"
+        style={{ backgroundImage: GOLD_FILL, boxShadow: "0 6px 14px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2)" }}
       >
-        <div className="absolute inset-1 rounded-none border border-white/40" />
+        <div className="absolute inset-1 rounded-[6px] border border-white/40" />
       </div>
     );
   }
   return (
     <div
-      className="absolute inset-0 rounded-none border-[3px] border-black bg-blue-900 overflow-hidden shadow-lg"
+      className="absolute inset-0 rounded-[8px] bg-blue-900 overflow-hidden"
       style={{
         backgroundImage:
           "repeating-linear-gradient(45deg, rgba(255,255,255,0.12) 0 6px, transparent 6px 12px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.12) 0 6px, transparent 6px 12px)",
+        boxShadow: "0 6px 14px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2)",
       }}
     >
-      <div className="absolute inset-1 rounded-none border border-white/25" />
+      <div className="absolute inset-1 rounded-[6px] border border-white/25" />
     </div>
   );
 }
@@ -47,10 +48,13 @@ function CardFace({ card, gold = false }) {
   const suitColor = gold ? (isRed ? "#8B0000" : "#1a1a1a") : isRed ? "#dc2626" : "#0f172a";
   return (
     <div
-      className={`absolute inset-0 rounded-none border-[3px] border-black shadow-lg overflow-hidden ${
+      className={`absolute inset-0 rounded-[8px] overflow-hidden ${
         gold ? "" : "bg-white"
       }`}
-      style={gold ? { backgroundImage: GOLD_FILL } : undefined}
+      style={{
+        boxShadow: "0 6px 14px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2)",
+        ...(gold ? { backgroundImage: GOLD_FILL } : {}),
+      }}
     >
       <div className="absolute top-1 left-1.5 leading-none" style={{ color: suitColor }}>
         <span className="block text-xs sm:text-sm font-black">{card.rank}</span>

@@ -57,7 +57,7 @@ const GAME_TYPE = "blackjack";
 // Chips are the betting currency, but every win pays out straight into tokens.
 const MIN_BET = 5;             // table minimum
 const BET_STEP = 5;            // every valid wager is a 5-chip step, which keeps…
-const BLACKJACK_TOKENS = 10;   // …standard win returns whole, and a natural 21 adds this fixed bonus on top
+const BLACKJACK_CHIP_BONUS = 100; // a natural 21 adds this fixed chip bonus on top
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 // Pace of the Dealer's turn: one smooth beat per card drawn, so each flip and
 // total update is readable. The result popup then waits a further moment so the
@@ -224,15 +224,14 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   // just committed, instead of reading state that hasn't re-rendered yet.
   const settle = async (type, detail, natural = false, wagerOverride) => {
     const wager = wagerOverride ?? committedBet;
-    // A natural Blackjack pays the standard 2× win PLUS the fixed bonus on top.
-    const tokenWin = type === "win" ? winTokens(wager) + (natural ? BLACKJACK_TOKENS : 0) : 0;
+    // A win pays the 2× wager return in tokens. A natural Blackjack adds a flat
+    // 100-chip bonus on top (credited to the chip balance, not tokens).
+    const tokenWin = type === "win" ? winTokens(wager) : 0;
+    const chipBonus = type === "win" && natural ? BLACKJACK_CHIP_BONUS : 0;
     const chipRefund = type === "push" ? wager : 0;
-    // A win moves no chips (the wager was already taken at deal) — it pays in
-    // tokens, so the log entry carries the token award and the 2× bet chip
-    // equivalent for the Casino Token Log to display.
     const tokensWon = type === "win" ? tokenWin : null;
     const chipsWon = type === "win" ? wager * 2 : null;
-    setResult({ type, detail, natural, tokenWin, chipRefund, bet: wager });
+    setResult({ type, detail, natural, tokenWin, chipBonus, chipRefund, bet: wager });
     setPhase("resolve");
     // Hold the popup back for a beat so the Dealer's final cards and total stay
     // in view, then land it — with the win/loss flash and fireworks timed to it.
@@ -251,7 +250,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       const chipBalance = Number(fresh?.casinoChips) || 0;
       const tokenBalance = Number(fresh?.earlyAccessTokens) || 0;
       const updates = {};
-      if (chipRefund > 0) updates.casinoChips = chipBalance + chipRefund;
+      if (chipRefund > 0 || chipBonus > 0) updates.casinoChips = chipBalance + chipRefund + chipBonus;
       if (tokenWin > 0) updates.earlyAccessTokens = tokenBalance + tokenWin;
       if (Object.keys(updates).length) await base44.auth.updateMe(updates);
       await base44.entities.CoinFlipGame.create({
@@ -269,7 +268,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           user_name: displayName,
           amount: tokenWin,
           source: natural
-            ? `Blackjack 21 Natural (2× win + ${BLACKJACK_TOKENS}-token bonus)`
+            ? "Blackjack 21 Natural (2× win + 100-chip bonus)"
             : "Blackjack 21 Win",
           timestamp: new Date().toISOString(),
         });
@@ -278,8 +277,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       logChipMovement({
         user,
         action_type: type,
-        amount: chipRefund,
-        balance_after: chipBalance + chipRefund,
+        amount: chipRefund + chipBonus,
+        balance_after: chipBalance + chipRefund + chipBonus,
         tokens_won: tokensWon,
         chips_won: chipsWon,
         detail: `Blackjack 21 — ${detail}`,

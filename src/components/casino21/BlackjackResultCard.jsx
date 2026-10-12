@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import MiniChipIcon from "./MiniChipIcon";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
-const BLACKJACK_TOKENS = 10;
+const BLACKJACK_CHIP_BONUS = 100;
 
 // Frame colour per outcome — win gold, push slate, loss rose.
 const FRAMES = {
@@ -44,13 +44,13 @@ function Row({ label, children, bonus = false }) {
 /**
  * Every round ends on this popup: it springs up over the felt and itemises what
  * the hand paid — the 2× wager win cashed in at 10 chips = 1 token, and, on a
- * natural 21, the flat 10-token Blackjack bonus on its own gold line.
+ * natural 21, the flat 100-chip Blackjack bonus on its own gold line.
  */
 export default function BlackjackResultCard({ show, result, aiResult, showAi, onNewRound }) {
   const frame = FRAMES[result?.type] || FRAMES.loss;
-  const bonus = result?.type === "win" && result?.natural ? BLACKJACK_TOKENS : 0;
-  // tokenWin already includes the bonus, so the bet-based award is the rest.
-  const winTokens = Math.max(0, (Number(result?.tokenWin) || 0) - bonus);
+  const chipBonus = result?.type === "win" && result?.natural ? (Number(result?.chipBonus) || BLACKJACK_CHIP_BONUS) : 0;
+  // tokenWin is the 2× bet payout in tokens; the natural bonus is separate chips.
+  const winTokens = Math.max(0, Number(result?.tokenWin) || 0);
 
   return (
     <AnimatePresence>
@@ -86,11 +86,11 @@ export default function BlackjackResultCard({ show, result, aiResult, showAi, on
                     <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain" />
                     {winTokens}
                   </Row>
-                  {bonus > 0 && (
+                  {chipBonus > 0 && (
                     <Row label="Blackjack bonus" bonus>
-                      +{bonus}
-                      <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain" />
-                      tokens
+                      +{chipBonus}
+                      <MiniChipIcon size={11} />
+                      chips
                     </Row>
                   )}
                 </>
@@ -112,8 +112,15 @@ export default function BlackjackResultCard({ show, result, aiResult, showAi, on
               >
                 {result.type === "win" ? (
                   <>
-                    +{result.tokenWin}
+                    +{winTokens}
                     <img src={TOKEN_IMG} alt="tokens" className="w-4 h-4 object-contain" />
+                    {chipBonus > 0 && (
+                      <>
+                        <span className="text-emerald-100/40 mx-0.5">+</span>
+                        {chipBonus}
+                        <MiniChipIcon size={14} />
+                      </>
+                    )}
                   </>
                 ) : result.type === "push" ? (
                   <>
