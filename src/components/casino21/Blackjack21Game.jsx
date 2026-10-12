@@ -383,12 +383,14 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     if (isBust(p)) {
       setTimeout(async () => {
         setPhase("dealer");
-        setRevealHole(true);
         let dd = [...d];
         let dl = [...dealer];
         // Play out Player 2 (skipped on Very Easy / Hard) then the Dealer.
         const aiFinal = noAI ? ai : await playAI(dd);
+        // Hole card stays face down while the dealer thinks/draws; reveal only
+        // once the dealer's hand is finished.
         const { dealer: dlFinal } = await playDealer(dd, dl);
+        setRevealHole(true);
         const res = resolveRound(p, aiFinal, dlFinal, difficulty);
         setAiResult(res.aiRes);
         await settle(res.type, res.detail, res.natural);
@@ -412,16 +414,15 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   };
 
   // ── Dealer auto-draw ───────────────────────────────────────────────
-  // On Hard the dealer pauses 1000ms between draws with a "thinking…"
-  // indicator; other difficulties use the snappier DEALER_DRAW_MS beat.
+  // Every difficulty: the dealer pauses 1000ms between draws with a
+  // "thinking…" indicator, and the hole card stays face down until the
+  // dealer is done (stands or busts) — only then is the hand revealed.
   const playDealer = async (startDeck, startDealer) => {
-    const isHard = difficulty === "hard";
-    const drawMs = isHard ? 1000 : DEALER_DRAW_MS;
     let d = [...startDeck];
     let dl = [...startDealer];
     while (dealerShouldHit(dl, difficulty)) {
-      if (isHard) setDealerThinking(true);
-      await new Promise((r) => setTimeout(r, drawMs));
+      setDealerThinking(true);
+      await new Promise((r) => setTimeout(r, 1000));
       setDealerThinking(false);
       dl = [...dl, draw(d)];
       d = [...d];
@@ -435,15 +436,16 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const handleStand = async () => {
     if (busy || phase !== "player") return;
     setPhase("dealer");
-    setRevealHole(true);
     let d = [...deck];
     let dl = [...dealer];
 
     // AI plays out first (skipped on Very Easy / Hard).
     const aiFinal = noAI ? ai : await playAI(d);
 
-    // Dealer plays by the difficulty's stand threshold.
+    // Dealer plays by the difficulty's stand threshold. The hole card stays
+    // face down throughout — reveal the completed hand only after drawing ends.
     const { dealer: dlFinal } = await playDealer(d, dl);
+    setRevealHole(true);
 
     // Winner-takes-all: compare You, Player 2, and Dealer.
     const res = resolveRound(player, aiFinal, dlFinal, difficulty);
