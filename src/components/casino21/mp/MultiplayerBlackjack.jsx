@@ -27,14 +27,12 @@ import {
   MAX_BET,
   UNSTICK_MS,
   BET_IDLE_MS,
-  JOIN_ACK_TIMEOUT_MS,
   normalizeSeats,
   isCommitted,
   payoutFor,
   newRoundId,
-  applyJoinToSeats,
+  hostUserIdForSeats,
 } from "./mpEngine";
-import { effectiveHostId, HEARTBEAT_INTERVAL_MS, LEASE_MS } from "./hostLease";
 import MpResultPopout from "./MpResultPopout";
 
 const STATUS_LABEL = {
@@ -74,36 +72,12 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   const [pendingHit, setPendingHit] = useState(false);
   const [pendingStand, setPendingStand] = useState(false);
   const [pendingJoin, setPendingJoin] = useState(null); // seatId we're waiting to claim
-  const [joinSubmittedAt, setJoinSubmittedAt] = useState(0); // when we submitted the JOIN action
   const [pendingLeave, setPendingLeave] = useState(false);
   const prevCardsRef = useRef(0);
 
   const now = useNow(1000);
 
-  // Detect an admin force-reset: when admin_reset_at changes, show a brief
-  // alert and clear local pending/result state so the player returns to the
-  // open-table view.
-  const adminResetRef = useRef(0);
-  useEffect(() => {
-    const resetAt = Number(table?.admin_reset_at) || 0;
-    if (!resetAt) return;
-    if (resetAt !== adminResetRef.current) {
-      if (adminResetRef.current !== 0) {
-        toast.info("The table was reset by an admin. All wagers have been refunded.");
-        setResult(null);
-        setPendingBet(false);
-        setPendingHit(false);
-        setPendingStand(false);
-        setPendingJoin(null);
-        setPendingLeave(false);
-      }
-      adminResetRef.current = resetAt;
-    }
-  }, [table?.admin_reset_at]);
-
-  const [queueError, setQueueError] = useState(null);
-  const handleQueueError = (err) => setQueueError(err);
-  const { retryNow } = useHostEngine({ table, patch, user, onQueueError: handleQueueError });
+  useHostEngine({ table, patch, user });
   useSettlement({ table, user, patch, onUserUpdate });
 
   const seats = normalizeSeats(table?.seats);
@@ -113,22 +87,18 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
   const inPlay = status === "player_turns" || status === "settling";
   const commonWager = Number(table?.common_wager) || 0;
   const totalPot = Number(table?.total_pot) || 0;
-  const isHost = !!mySeat && effectiveHostId(table, now) === user?.id;
+  const isHost = !!mySeat && table?.host_user_id === user?.id;
   const currentTurn = Number(table?.current_turn_seat) || 0;
 
   // Clear pending flags once the table reflects the submitted action.
   useEffect(() => {
     if (!mySeat) {
       setPendingJoin(null);
-      setJoinSubmittedAt(0);
       setPendingBet(false);
       setPendingHit(false);
       setPendingStand(false);
     } else {
-      if (pendingJoin !== null && mySeat.seat_id === pendingJoin) {
-        setPendingJoin(null);
-        setJoinSubmittedAt(0);
-      }
+      if (pendingJoin !== null && mySeat.seat_id === pendingJoin) setPendingJoin(null);
       if (pendingBet && Number(mySeat.bet_chips) > 0) setPendingBet(false);
       if (pendingHit && (mySeat.cards || []).length > prevCardsRef.current) setPendingHit(false);
       if (pendingStand && (mySeat.status === "stood" || currentTurn !== mySeat.seat_id)) setPendingStand(false);
@@ -162,17 +132,9 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
       ? Math.max(0, Math.ceil((Number(table.reveal_deadline) - now) / 1000))
       : null;
 
-  const leaseValid = Number(table?.host_lease_expires_at || 0) > now;
   const canUnstick =
-    !!table &&
-    status !== "completed" &&
-    !leaseValid &&
-    now - Number(table?.last_action_timestamp || 0) > UNSTICK_MS;
+    !!table && status !== "completed" && now - Number(table?.last_action_timestamp || 0) > UNSTICK_MS;
   const canJoin = !mySeat && !inPlay;
-  const joinTimedOut =
-    pendingJoin !== null &&
-    joinSubmittedAt > 0 &&
-    now - joinSubmittedAt > JOIN_ACK_TIMEOUT_MS;
 
   // Turn-based: only the active player can HIT/STAND.
   const isMyTurn =
@@ -190,31 +152,6 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
     didEnterRef.current = true;
     playShuffle();
   }, []);
-
-  // Presence heartbeat: every few seconds while seated and visible, ping the
-  // host so it knows this browser is still alive. The host updates the seat's
-  // last_seen; a seat not seen within the presence timeout is freed.
-  const beatRef = useRef({});
-  beatRef.current = { table, user, mySeatId: mySeat?.seat_id };
-  useEffect(() => {
-    if (!mySeat?.seat_id || !table?.id) return;
-    const sendBeat = () => {
-      if (document.visibilityState !== "visible") return;
-      const s = beatRef.current;
-      if (!s.table || !s.user || !s.mySeatId) return;
-      insertAction({
-        table_id: s.table.id,
-        round_id: s.table.round_id,
-        user_id: s.user.id,
-        user_name: s.user.full_name || s.user.email?.split("@")[0] || "Player",
-        action_type: "HEARTBEAT",
-        seat_id: s.mySeatId,
-      }).catch(() => {});
-    };
-    sendBeat();
-    const iv = setInterval(sendBeat, HEARTBEAT_INTERVAL_MS);
-    return () => clearInterval(iv);
-  }, [mySeat?.seat_id, table?.id, table?.round_id]);
 
   // Pop the win/loss result exactly once per completed round.
   useEffect(() => {
@@ -250,52 +187,12 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
     if (busy || !table || !user || mySeat) return;
     setBusy(true);
     setPendingJoin(seatId);
-    setJoinSubmittedAt(Date.now());
     try {
-      const occupied = seats.filter((s) => s.user_id).length;
-      if (occupied === 0) {
-        // Empty table: nobody is seated to run the host engine, so bootstrap
-        // by claiming the host lease and applying our own JOIN immediately.
-        // The seat assigns without waiting for an engine that doesn't exist
-        // yet; the JOIN action is still queued so the engine reconciles it
-        // (a no-op since the seat is already taken) once it starts running.
-        const now = Date.now();
-        const nextSeats = applyJoinToSeats(
-          seats,
-          seatId,
-          user.id,
-          user.full_name || user.email?.split("@")[0] || "Player",
-          now
-        );
-        await patch({
-          seats: nextSeats,
-          host_user_id: user.id,
-          host_lease_expires_at: now + LEASE_MS,
-          last_action_timestamp: now,
-        });
-      }
       await submitAction({ action_type: "JOIN", seat_id: seatId });
       playShuffle();
     } finally {
       setBusy(false);
     }
-  };
-
-  // Retry a join that the host has not acknowledged within the timeout: re-insert
-  // the JOIN action and reset the timer so the seat shows "Joining…" again.
-  const retryJoin = async () => {
-    if (pendingJoin === null || !table) return;
-    setJoinSubmittedAt(Date.now());
-    try {
-      await submitAction({ action_type: "JOIN", seat_id: pendingJoin });
-    } catch (e) {
-      console.warn("Join retry failed:", e);
-    }
-  };
-
-  const cancelJoin = () => {
-    setPendingJoin(null);
-    setJoinSubmittedAt(0);
   };
 
   const leaveSeat = async () => {
@@ -454,12 +351,31 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
     }
   };
 
+  // Host handoff: if the host leaves or drops, the lowest remaining seat
+  // claims the engine (best-effort — each client only claims for itself).
+  const handoffRef = useRef({});
+  handoffRef.current = { table, patch, user };
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const { table: t, patch: p, user: u } = handoffRef.current;
+      if (!t || !u) return;
+      const list = normalizeSeats(t.seats);
+      const mine = list.find((s) => s.user_id === u.id);
+      if (!mine || mine.status === "disconnected") return;
+      const expected = hostUserIdForSeats(list);
+      if (!expected || t.host_user_id === expected) return;
+      if (expected !== u.id) return;
+      p({ host_user_id: u.id, last_action_timestamp: Date.now() });
+    }, 3000);
+    return () => clearInterval(iv);
+  }, []);
+
   // Best-effort: flag this player as away when the tab is closed mid-round, by
   // inserting a LEAVE action for the host to apply.
   useEffect(() => {
     if (!mySeat || !inPlay) return;
     const handler = () => {
-      const { table: t, user: u } = beatRef.current;
+      const { table: t, user: u } = handoffRef.current;
       if (!t || !u) return;
       insertAction({
         table_id: t.id,
@@ -536,24 +452,6 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
           </div>
         </div>
 
-        {queueError && isHost && (
-          <div className="relative rounded-2xl border border-rose-400/40 bg-rose-900/40 px-3 py-2 flex items-center gap-2">
-            <WifiOff className="w-3.5 h-3.5 text-rose-300 shrink-0" />
-            <span className="text-[10px] font-bold text-rose-100 flex-1 leading-tight">
-              Can't read the action queue — joins may not process.
-            </span>
-            <button
-              onClick={() => {
-                setQueueError(null);
-                retryNow();
-              }}
-              className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-400 text-emerald-950 border border-amber-300 shrink-0"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
         <MpPotBanner
           pot={totalPot}
           commonWager={commonWager}
@@ -568,12 +466,8 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
               seat={s}
               isMe={s.user_id === user?.id}
               isHostSeat={!!s.user_id && s.user_id === table?.host_user_id}
-              canJoin={canJoin && !s.user_id}
-              joinPendingSeat={pendingJoin}
-              joinTimedOut={joinTimedOut}
+              canJoin={canJoin && !s.user_id && pendingJoin !== s.seat_id}
               onJoin={() => joinSeat(s.seat_id)}
-              onRetryJoin={retryJoin}
-              onCancelJoin={cancelJoin}
               revealCards={status === "settling" || status === "completed"}
               idleMs={status === "waiting_for_bets" ? idleMsFor(s) : null}
               isTurn={status === "player_turns" && currentTurn === s.seat_id && s.status === "playing"}
@@ -583,9 +477,7 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
 
         {pendingJoin !== null && !mySeat && (
           <p className="text-center text-[11px] font-bold text-amber-200/80">
-            {joinTimedOut
-              ? `Seat ${pendingJoin} not confirmed — tap Retry on the seat.`
-              : `Taking seat ${pendingJoin}…`}
+            Taking seat {pendingJoin}…
           </p>
         )}
 

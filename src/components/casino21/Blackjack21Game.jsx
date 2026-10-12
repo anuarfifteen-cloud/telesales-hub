@@ -157,14 +157,12 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   // to "normal" when missing. Re-fetched when the Cashier opens so a mid-session
   // admin change is picked up without reloading the page.
   const [difficulty, setDifficulty] = useState("normal");
-  const [onlineEnabled, setOnlineEnabled] = useState(true);
   useEffect(() => {
     base44.entities.AppSettings
       .list()
       .then((rows) => {
         const s = rows[0];
         if (s?.blackjack_difficulty) setDifficulty(s.blackjack_difficulty);
-        setOnlineEnabled(s?.online_blackjack_enabled !== false);
       })
       .catch(() => {});
   }, [showCashier]);
@@ -638,30 +636,11 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       )}
 
       {view === "multiplayer" && (
-        onlineEnabled ? (
-          <MultiplayerBlackjack
-            user={user}
-            onUserUpdate={onUserUpdate}
-            onOpenCashier={() => setShowCashier(true)}
-          />
-        ) : (
-          <div
-            className="relative rounded-b-2xl border border-t-0 border-border p-8 flex flex-col items-center justify-center text-center gap-3 overflow-hidden"
-            style={{ background: "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)" }}
-          >
-            <div
-              className="pointer-events-none absolute inset-0 rounded-b-2xl"
-              style={{ boxShadow: "inset 0 0 0 2px rgba(212,175,55,0.25), inset 0 0 24px rgba(212,175,55,0.08)" }}
-            />
-            <span className="text-4xl">🛠️</span>
-            <h3 className="text-amber-200 font-black uppercase tracking-widest text-sm">
-              Under Maintenance
-            </h3>
-            <p className="text-amber-200/70 text-xs max-w-xs leading-relaxed">
-              Online multiplayer Blackjack is temporarily unavailable. Single-player Blackjack is still open — play in the Game tab.
-            </p>
-          </div>
-        )
+        <MultiplayerBlackjack
+          user={user}
+          onUserUpdate={onUserUpdate}
+          onOpenCashier={() => setShowCashier(true)}
+        />
       )}
 
       {view === "stats" && <BlackjackStats userId={user?.id} />}

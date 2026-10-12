@@ -14,17 +14,17 @@ export async function insertAction(action) {
 
 // All pending actions for a table, oldest first. The host processes and
 // deletes these one at a time; anything still here is unapplied.
-//
-// Read failures are NOT swallowed. Returning an empty list on error would look
-// identical to an empty queue, so non-host joins and plays would silently never
-// apply. Let the error throw — the host engine logs it explicitly and surfaces a
-// retry control so the host can see the queue is unreachable.
 export async function fetchPendingActions(tableId) {
-  const page = await base44.entities.TableAction.filter(
-    { table_id: tableId },
-    { sort: "created_date", limit: 100 }
-  );
-  return page?.items || [];
+  try {
+    const page = await base44.entities.TableAction.filter(
+      { table_id: tableId },
+      { sort: "created_date", limit: 100 }
+    );
+    return page?.items || [];
+  } catch (e) {
+    console.warn("TableAction fetch failed:", e);
+    return [];
+  }
 }
 
 // Delete an action after the host has applied it (or determined it is stale).
