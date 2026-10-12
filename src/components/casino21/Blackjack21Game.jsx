@@ -486,7 +486,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       {/* Shared Game / Stats / History tab strip */}
       <div className="flex gap-1 p-1 bg-muted/50 border border-border rounded-t-2xl">
         {[
-          ["game", "🎮 Game"],
+          ["game", "🎮 CASUAL"],
           ["rank", "🏆RANK"],
           ["stats", "📊 Stats"],
           ["history", "📜 History"],
