@@ -76,8 +76,8 @@ function winTokens(wager) {
 //   • You tie for top  → push (refund the bet)
 //   • Someone else strictly higher → loss (they are named the winner)
 //
-// On `very_easy` the AI is dealt for display only and is EXCLUDED from the
-// settlement — the comparison is You vs the Dealer only (classic Blackjack).
+// On `very_easy` and `hard` there is no Player 2 — the comparison is You vs
+// the Dealer only (classic Blackjack).
 function resolveRound(playerHand, aiHand, dealerHand, difficulty) {
   const pVal = handValue(playerHand);
   const aVal = handValue(aiHand);
@@ -86,7 +86,7 @@ function resolveRound(playerHand, aiHand, dealerHand, difficulty) {
   const aBust = aVal > 21;
   const dBust = dVal > 21;
 
-  const aiCompetes = difficulty !== "very_easy";
+  const aiCompetes = difficulty !== "very_easy" && difficulty !== "hard";
 
   const valid = [];
   if (!pBust) valid.push({ who: "you", val: pVal });
@@ -181,10 +181,13 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState("game");
   const [flash, setFlash] = useState(null);
+  const [dealerThinking, setDealerThinking] = useState(false);
   const queryClient = useQueryClient();
 
   // Highest legal wager: the largest 5-chip step the player can afford.
   const maxBet = Math.floor(chips / BET_STEP) * BET_STEP;
+  // On Very Easy and Hard there is no Player 2 — just You vs the Dealer.
+  const noAI = difficulty === "very_easy" || difficulty === "hard";
   const draw = (d) => d.pop();
 
   const burstConfetti = () => {
@@ -331,9 +334,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
     // Deal ONE card at a time across the table. Each card mounts on its own, so
     // its slide sound fires exactly when it lands — no burst, no mismatch.
-    // On Very Easy there is no Player 2 — skip dealing AI cards entirely.
-    const dealOrder =
-      difficulty === "very_easy" ? ["p", "d", "p", "d"] : ["p", "d", "a", "p", "d", "a"];
+    // On Very Easy / Hard there is no Player 2 — skip dealing AI cards entirely.
+    const dealOrder = noAI ? ["p", "d", "p", "d"] : ["p", "d", "a", "p", "d", "a"];
     for (const seat of dealOrder) {
       await new Promise((r) => setTimeout(r, 200));
       const card = draw(d);
@@ -384,16 +386,10 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         setRevealHole(true);
         let dd = [...d];
         let dl = [...dealer];
-        // Play out Player 2 + Dealer so the table winner is named correctly.
-        const aiFinal = await playAI(dd);
-        while (dealerShouldHit(dl, difficulty)) {
-          await new Promise((r) => setTimeout(r, DEALER_DRAW_MS));
-          dl = [...dl, draw(dd)];
-          dd = [...dd];
-          setDealer(dl);
-          setDeck(dd);
-        }
-        const res = resolveRound(p, aiFinal, dl, difficulty);
+        // Play out Player 2 (skipped on Very Easy / Hard) then the Dealer.
+        const aiFinal = noAI ? ai : await playAI(dd);
+        const { dealer: dlFinal } = await playDealer(dd, dl);
+        const res = resolveRound(p, aiFinal, dlFinal, difficulty);
         setAiResult(res.aiRes);
         await settle(res.type, res.detail, res.natural);
       }, 500);
@@ -402,6 +398,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
   // ── AI auto-play: hit below 17, stand on 17+ (display only) ─────────
   const playAI = async (d) => {
+    if (difficulty === "hard") return ai; // no Player 2 on Hard
     let a = [...ai];
     const pVal = handValue(player);
     while (aiShouldHit(a, difficulty, pVal)) {
@@ -414,6 +411,26 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     return a;
   };
 
+  // ── Dealer auto-draw ───────────────────────────────────────────────
+  // On Hard the dealer pauses 1000ms between draws with a "thinking…"
+  // indicator; other difficulties use the snappier DEALER_DRAW_MS beat.
+  const playDealer = async (startDeck, startDealer) => {
+    const isHard = difficulty === "hard";
+    const drawMs = isHard ? 1000 : DEALER_DRAW_MS;
+    let d = [...startDeck];
+    let dl = [...startDealer];
+    while (dealerShouldHit(dl, difficulty)) {
+      if (isHard) setDealerThinking(true);
+      await new Promise((r) => setTimeout(r, drawMs));
+      setDealerThinking(false);
+      dl = [...dl, draw(d)];
+      d = [...d];
+      setDealer(dl);
+      setDeck(d);
+    }
+    return { deck: d, dealer: dl };
+  };
+
   // ── Stand → AI plays, then dealer plays, then settle ────────────────
   const handleStand = async () => {
     if (busy || phase !== "player") return;
@@ -422,20 +439,14 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     let d = [...deck];
     let dl = [...dealer];
 
-    // AI plays out first.
-    const aiFinal = await playAI(d);
+    // AI plays out first (skipped on Very Easy / Hard).
+    const aiFinal = noAI ? ai : await playAI(d);
 
     // Dealer plays by the difficulty's stand threshold.
-    while (dealerShouldHit(dl, difficulty)) {
-      await new Promise((r) => setTimeout(r, DEALER_DRAW_MS));
-      dl = [...dl, draw(d)];
-      d = [...d];
-      setDealer(dl);
-      setDeck(d);
-    }
+    const { dealer: dlFinal } = await playDealer(d, dl);
 
     // Winner-takes-all: compare You, Player 2, and Dealer.
-    const res = resolveRound(player, aiFinal, dl, difficulty);
+    const res = resolveRound(player, aiFinal, dlFinal, difficulty);
     setAiResult(res.aiRes);
     await settle(res.type, res.detail, res.natural);
   };
@@ -450,6 +461,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     setResultVisible(false);
     setAiResult(null);
     setAiRevealed(false);
+    setDealerThinking(false);
     setCommittedBet(0);
     setPhase("bet");
   };
@@ -564,10 +576,17 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
             revealHole={revealHole}
             overlap={40}
           />
+          {dealerThinking && (
+            <div className="relative flex justify-center -mt-1 mb-1">
+              <span className="text-amber-200/90 text-xs font-bold animate-pulse">
+                🤔 Dealer thinking...
+              </span>
+            </div>
+          )}
 
           {/* You + Player 2 (AI). On Very Easy the AI is removed entirely and
               YOU renders full-width to match the Dealer panel size. */}
-          {difficulty === "very_easy" ? (
+          {noAI ? (
             <HandPanel title="YOU" value={handValue(player)} cards={player} />
           ) : (
             <div className="grid grid-cols-2 gap-3">
@@ -588,7 +607,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
             show={phase === "resolve" && !!result && resultVisible}
             result={result}
             aiResult={aiResult}
-            showAi={difficulty !== "very_easy"}
+            showAi={!noAI}
             onNewRound={newRound}
           />
 
