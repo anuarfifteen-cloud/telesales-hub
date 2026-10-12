@@ -833,6 +833,25 @@
   box-shadow: none !important;
 }
 
+/* ── Royal Batik: Ranked Blackjack table keeps its green felt ──
+   The blanket `div.rounded-2xl` navy + gold treatment repaints the ranked table
+   and its Dealer/YOU seat panels solid navy, so the felt, cards and seat labels
+   vanish. Scope the table the same way the Online multiplayer table is scoped
+   so the designed green felt shows and inner panels stay transparent. Other
+   themes are untouched. */
+[data-theme="royal_batik"] .ranked-table.rounded-2xl {
+  background: linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%) !important;
+  border-color: rgba(212, 175, 55, 0.4) !important;
+  box-shadow: none !important;
+}
+[data-theme="royal_batik"] .ranked-table div.rounded-2xl,
+[data-theme="royal_batik"] .ranked-table div.rounded-xl,
+[data-theme="royal_batik"] .ranked-table div.rounded-lg {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: none !important;
+}
+
 /* ── Royal Batik: AdminTaxEngine Pre-Execution table legibility ──
    The tax table hardcodes bg-white (body) + bg-slate-100 (header) + bg-rose-50
    (high-roller row). Those are not rounded containers, so the blanket card

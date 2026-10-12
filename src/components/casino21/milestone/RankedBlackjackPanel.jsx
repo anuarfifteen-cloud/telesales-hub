@@ -262,7 +262,7 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
 
   return (
     <div
-      className="relative rounded-2xl border border-amber-400/40 p-3 flex flex-col gap-3 overflow-hidden"
+      className="ranked-table relative rounded-2xl border border-amber-400/40 p-3 flex flex-col gap-3 overflow-hidden"
       style={{ background: "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)" }}
     >
       <div
