@@ -4,7 +4,7 @@
 import { handValue, isBlackjack, isSoft } from "../blackjackDeck";
 
 export const SEAT_COUNT = 5;
-export const ENTRY_FEE = 100; // casinoChips deducted per player
+export const ENTRY_FEE = 50; // casinoChips deducted per player
 export const BLITZ_START_CHIPS = 1000; // temporary Blitz Chips per player
 export const BLITZ_WAGER = 100; // standard wager per hand (or all-in if < 100)
 export const BLITZ_DURATION_MS = 60000; // 60-second tournament
