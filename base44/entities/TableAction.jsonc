@@ -8,7 +8,7 @@
     },
     "round_id": {
       "type": "string",
-      "description": "Round id at submission time. The host ignores actions whose round_id does not match the table's current round, so a stale action from a previous round can never apply to the next one."
+      "description": "Round id at submission time. The host ignores actions whose round_id does not match the table's current round, so a stale action from a previous round can never apply to the next one. HEARTBEAT actions ignore round_id (presence applies across rounds)."
     },
     "user_id": {
       "type": "string",
@@ -31,9 +31,10 @@
         "DECLINE_BET",
         "HIT",
         "STAND",
-        "CLAIM"
+        "CLAIM",
+        "HEARTBEAT"
       ],
-      "description": "JOIN = claim an open seat; LEAVE = leave a seat; ACCEPT_BET = match the host buy-in (chips already deducted by the submitter); DECLINE_BET = decline the buy-in; HIT = draw a card on the submitter's turn; STAND = end the submitter's turn; CLAIM = the player has credited their own wallet for a settled payout and the host should mark the seat claimed so it can never pay out twice."
+      "description": "JOIN = claim an open seat; LEAVE = leave a seat; ACCEPT_BET = match the host buy-in (chips already deducted by the submitter); DECLINE_BET = decline the buy-in; HIT = draw a card on the submitter's turn; STAND = end the submitter's turn; CLAIM = the player has credited their own wallet for a settled payout and the host should mark the seat claimed so it can never pay out twice; HEARTBEAT = presence ping from a seated player; the host updates the seat's last_seen so idle-but-connected players are not kicked while disconnected players eventually are."
     },
     "wager": {
       "type": "number",

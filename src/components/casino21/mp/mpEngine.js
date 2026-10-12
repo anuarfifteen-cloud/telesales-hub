@@ -34,6 +34,7 @@ export function emptySeat(seatId) {
     ready: false,
     auto_replay: false,
     last_activity: 0,
+    last_seen: 0,
     payout_flag: "PENDING",
     payout_amount: 0,
     payout_claimed: false,
@@ -405,29 +406,6 @@ export function applyNextAction(action, seats, table) {
   }
 
   return null;
-}
-
-// Complete reset fields for an abandoned/stuck table. Used by the admin
-// Force Reset control and by the host engine's empty-table cleanup so a
-// departed host never blocks future queued joins. Clears host_user_id so the
-// next player to sit becomes the new host and the engine resumes.
-export function forceResetFields() {
-  return {
-    seats: Array.from({ length: SEAT_COUNT }, (_, i) => emptySeat(i + 1)),
-    deck: [],
-    status: "waiting_for_bets",
-    current_turn_seat: 1,
-    host_user_id: "",
-    last_action_timestamp: Date.now(),
-    betting_ends_at: 0,
-    deal_at: 0,
-    reveal_deadline: 0,
-    replay_deadline: 0,
-    next_action: null,
-    common_wager: 0,
-    total_pot: 0,
-    round_id: newRoundId(),
-  };
 }
 
 export function initialTableRecord(hostUserId) {

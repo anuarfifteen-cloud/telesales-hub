@@ -42,6 +42,11 @@
       "description": "Whether the Premium Scratch Card sub-tab is available to players. When false, players see a 'Coming Soon' placeholder instead of the game; admins can still open it after entering the admin PIN.",
       "default": true
     },
+    "online_blackjack_enabled": {
+      "type": "boolean",
+      "description": "Whether the Online (multiplayer) Blackjack sub-tab is available to players. When false, the Online tab shows an 'Under maintenance' message instead of the shared PvP table; single-player Blackjack stays playable.",
+      "default": true
+    },
     "voucher_feed_enabled": {
       "type": "boolean",
       "description": "Whether the live voucher activity feed is shown in the Blind Voucher shop",

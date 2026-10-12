@@ -86,6 +86,9 @@ export default function AdminDashboard({ onBack }) {
   const [settingsId, setSettingsId] = useState(null);
   const [voucherFeedEnabled, setVoucherFeedEnabled] = useState(true);
   const [ninjaEnabled, setNinjaEnabled] = useState(true);
+  const [onlineBlackjackEnabled, setOnlineBlackjackEnabled] = useState(true);
+  const [showForceResetConfirm, setShowForceResetConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     base44.entities.AppSettings.list().then(rows => {
@@ -94,6 +97,7 @@ export default function AdminDashboard({ onBack }) {
         setSettingsId(s.id);
         setVoucherFeedEnabled(s.voucher_feed_enabled !== false);
         setNinjaEnabled(s.ninja_enabled !== false);
+        setOnlineBlackjackEnabled(s.online_blackjack_enabled !== false);
       }
     });
   }, []);
@@ -120,6 +124,116 @@ export default function AdminDashboard({ onBack }) {
       setSettingsId(created.id);
     }
     toast.success(val ? "Ninja Token enabled." : "Ninja Token hidden from players.");
+  };
+
+  const handleToggleOnlineBlackjack = async (val) => {
+    setOnlineBlackjackEnabled(val);
+    const payload = { online_blackjack_enabled: val };
+    if (settingsId) {
+      await base44.entities.AppSettings.update(settingsId, payload);
+    } else {
+      const created = await base44.entities.AppSettings.create(payload);
+      setSettingsId(created.id);
+    }
+    if (!val) {
+      // Clear the shared table so nobody stays seated while the mode is off.
+      try {
+        const page = await base44.entities.ActiveTable.filter({}, { limit: 10 });
+        const tables = page.items || [];
+        for (const t of tables) {
+          await base44.entities.ActiveTable.update(t.id, {
+            seats: Array.from({ length: 5 }, (_, i) => ({
+              seat_id: i + 1, user_id: "", user_name: "", bet_chips: 0,
+              cards: [], hand_value: 0, status: "empty", ready: false,
+              auto_replay: false, last_activity: 0, last_seen: 0,
+              payout_flag: "PENDING", payout_amount: 0, payout_claimed: false,
+              replay_accept: null,
+            })),
+            deck: [], status: "waiting_for_bets", current_turn_seat: 1,
+            betting_ends_at: 0, deal_at: 0, reveal_deadline: 0,
+            common_wager: 0, total_pot: 0, next_action: null,
+            round_id: `RND-${Math.floor(10000 + Math.random() * 89999)}`,
+            host_user_id: "", host_lease_expires_at: 0,
+            last_action_timestamp: Date.now(),
+          });
+        }
+      } catch (e) { /* best-effort cleanup */ }
+    }
+    toast.success(val ? "Online Blackjack enabled." : "Online Blackjack under maintenance.");
+  };
+
+  const handleForceResetTable = async () => {
+    setResetting(true);
+    try {
+      const page = await base44.entities.ActiveTable.filter({}, { limit: 10 });
+      const tables = page.items || [];
+      let refundCount = 0;
+      for (const t of tables) {
+        // 1. Refund active wagers: credit each seated player's casinoChips.
+        const seats = Array.isArray(t.seats) ? t.seats : [];
+        for (const seat of seats) {
+          if (seat.user_id && Number(seat.bet_chips) > 0 && seat.payout_flag === "PENDING") {
+            try {
+              const u = await base44.entities.User.get(seat.user_id);
+              const bal = Number(u?.casinoChips) || 0;
+              await base44.entities.User.update(seat.user_id, {
+                casinoChips: bal + Number(seat.bet_chips),
+              });
+              refundCount += 1;
+            } catch (e) { /* best-effort refund */ }
+          }
+        }
+        // 2. Invalidate the action queue: increment round_id and delete pending rows.
+        const oldRound = t.round_id || "RND-0";
+        const num = parseInt(String(oldRound).replace(/[^0-9]/g, ""), 10) || 0;
+        const newRound = `RND-${num + 1}`;
+        try {
+          const actionsPage = await base44.entities.TableAction.filter(
+            { table_id: t.id },
+            { limit: 100 }
+          );
+          const actionList = actionsPage.items || actionsPage || [];
+          for (const a of actionList) {
+            try { await base44.entities.TableAction.delete(a.id); } catch (_) {}
+          }
+        } catch (e) { /* best-effort queue clear */ }
+        // 3. Clear seats & state.
+        await base44.entities.ActiveTable.update(t.id, {
+          seats: Array.from({ length: 5 }, (_, i) => ({
+            seat_id: i + 1, user_id: "", user_name: "", bet_chips: 0,
+            cards: [], hand_value: 0, status: "empty", ready: false,
+            auto_replay: false, last_activity: 0, last_seen: 0,
+            payout_flag: "PENDING", payout_amount: 0, payout_claimed: false,
+            replay_accept: null,
+          })),
+          deck: [],
+          status: "waiting_for_bets",
+          current_turn_seat: 1,
+          betting_ends_at: 0,
+          deal_at: 0,
+          reveal_deadline: 0,
+          replay_deadline: 0,
+          common_wager: 0,
+          total_pot: 0,
+          next_action: null,
+          round_id: newRound,
+          host_user_id: "",
+          host_lease_expires_at: 0,
+          last_action_timestamp: Date.now(),
+          admin_reset_at: Date.now(),
+        });
+      }
+      toast.success(
+        refundCount > 0
+          ? `Table reset. ${refundCount} wager(s) refunded and all players ejected.`
+          : "Table reset. All players ejected."
+      );
+    } catch (e) {
+      toast.error("Reset failed: " + (e?.message || "Unknown error"));
+    } finally {
+      setResetting(false);
+      setShowForceResetConfirm(false);
+    }
   };
 
   const handleSyncDirectory = async () => {
@@ -379,6 +493,71 @@ export default function AdminDashboard({ onBack }) {
             <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${ninjaEnabled ? "translate-x-7" : "translate-x-1"}`} />
           </button>
         </div>
+
+        {/* Online Blackjack Maintenance Toggle */}
+        <div className="bg-white rounded-2xl border border-border p-5 flex items-center justify-between gap-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+          <div>
+            <h3 className="font-bold text-slate-900 text-base">🌐 Online Blackjack</h3>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Show the shared multiplayer Blackjack table. When off, players see an "Under maintenance" message; single-player Blackjack stays playable.
+            </p>
+            <p className={`text-xs font-semibold mt-1 ${onlineBlackjackEnabled ? "text-emerald-600" : "text-amber-600"}`}>
+              {onlineBlackjackEnabled ? "Currently ON" : "Currently UNDER MAINTENANCE"}
+            </p>
+          </div>
+          <button
+            onClick={() => handleToggleOnlineBlackjack(!onlineBlackjackEnabled)}
+            className={`relative inline-flex h-7 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${onlineBlackjackEnabled ? "bg-emerald-500" : "bg-slate-300"}`}
+            style={{ width: "52px" }}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${onlineBlackjackEnabled ? "translate-x-7" : "translate-x-1"}`} />
+          </button>
+        </div>
+
+        {/* Multiplayer Blackjack Table Management */}
+        <div className="bg-white rounded-2xl border border-border p-5 space-y-3" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+          <div>
+            <h3 className="font-bold text-slate-900 text-base">🃏 Multiplayer Blackjack Table</h3>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Emergency control. Force-reset the shared online table — refunds active wagers, ejects all seated players, and clears the round.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowForceResetConfirm(true)}
+            disabled={resetting}
+            className="w-full py-3 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition disabled:opacity-50"
+          >
+            {resetting ? "Resetting…" : "Force Reset Table & Kick All Players"}
+          </button>
+        </div>
+
+        {/* Force Reset Confirmation Modal */}
+        {showForceResetConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
+              <h3 className="font-bold text-red-600 text-lg">Force Reset Table?</h3>
+              <p className="text-sm text-slate-600">
+                Are you sure? This will refund active wagers, eject all players, and reset the table.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowForceResetConfirm(false)}
+                  disabled={resetting}
+                  className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleForceResetTable}
+                  disabled={resetting}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition disabled:opacity-50"
+                >
+                  {resetting ? "Resetting…" : "Yes, Reset"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Manual Monthly Progressive Tax Engine */}
         <AdminTaxEngine />
