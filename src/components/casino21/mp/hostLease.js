@@ -25,10 +25,15 @@ export const HEARTBEAT_INTERVAL_MS = 8000; // how often seated clients send a pr
 export function effectiveHostId(table, now) {
   const seats = normalizeSeats(table?.seats);
   const seated = seats.filter((s) => s.user_id);
-  if (!seated.length) return "";
-
   const currentHost = table?.host_user_id || "";
   const leaseValid = Number(table?.host_lease_expires_at || 0) > now;
+
+  // Empty table: the lease holder bootstraps the engine so the first JOIN can
+  // be processed. Without this, no one is seated to run the host and the first
+  // player's JOIN would sit unprocessed forever.
+  if (!seated.length) {
+    return currentHost && leaseValid ? currentHost : "";
+  }
 
   if (currentHost && leaseValid && seated.some((s) => s.user_id === currentHost)) {
     return currentHost;

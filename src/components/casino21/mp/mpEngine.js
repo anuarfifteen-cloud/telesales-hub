@@ -14,6 +14,7 @@ export const ROUND_END_MS = 3500; // how long a finished round stays before auto
 export const COMPLETED_AUTO_MS = 15000; // auto-advance a completed round to new_bet if no choice made
 export const AUTO_BET_GRACE_MS = 2000; // grace after betting closes for auto-bets to land
 export const BET_IDLE_MS = 60000; // seated-but-unbet seats are kicked after this long in betting
+export const STALE_ACTION_MS = 30000; // queued TableAction rows older than this are purged each host tick
 export const MIN_PLAYERS_TO_DEAL = 2; // host + at least one matcher required to start a round
 export const REPLAY_RESPONSE_MS = 10000; // how long non-host players have to accept/decline a Play Again
 export const CARD_DEAL_STAGGER = 0.35; // seconds between the two initial deal-card sounds
@@ -40,6 +41,32 @@ export function emptySeat(seatId) {
     payout_claimed: false,
     replay_accept: null,
   };
+}
+
+// Pure JOIN application: returns a new seats array with the given user seated
+// at seatId. Shared by the host engine's action processor and the empty-table
+// bootstrap path in MultiplayerBlackjack, so both seat a player identically.
+export function applyJoinToSeats(seats, seatId, userId, userName, now) {
+  return normalizeSeats(seats).map((s) =>
+    Number(s.seat_id) === Number(seatId)
+      ? {
+          ...s,
+          user_id: userId,
+          user_name: userName || "Player",
+          bet_chips: 0,
+          cards: [],
+          hand_value: 0,
+          status: "betting",
+          ready: false,
+          auto_replay: false,
+          last_activity: now,
+          last_seen: now,
+          payout_flag: "PENDING",
+          payout_amount: 0,
+          payout_claimed: false,
+        }
+      : s
+  );
 }
 
 // Always return exactly 5 seats in seat order, filling in any missing ones —

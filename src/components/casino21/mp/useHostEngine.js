@@ -17,6 +17,8 @@ import {
   nextDealtInSeat,
   buildDeal,
   hostUserIdForSeats,
+  applyJoinToSeats,
+  STALE_ACTION_MS,
 } from "./mpEngine";
 import { fetchPendingActions, deleteAction } from "./tableActions";
 import {
@@ -82,6 +84,14 @@ async function runTick({ table, patch, user }) {
   //    round) are just deleted — except HEARTBEAT, which applies across rounds.
   const actions = await fetchPendingActions(latest.id);
   for (const action of actions) {
+    // Purge stale actions: anything older than STALE_ACTION_MS, or (for
+    // non-heartbeat gameplay actions) from a previous round, is deleted
+    // before processing so it can never apply to the current round.
+    const createdMs = new Date(action.created_date).getTime();
+    if (now - createdMs > STALE_ACTION_MS) {
+      await deleteAction(action.id);
+      continue;
+    }
     if (action.action_type !== "HEARTBEAT" && action.round_id !== latest.round_id) {
       await deleteAction(action.id);
       continue;
@@ -131,26 +141,7 @@ async function applyAction(action, table, patch, now) {
   if (action.action_type === "JOIN") {
     if (status !== "waiting_for_bets") return null;
     if (seat.user_id) return null; // seat already taken — drop the action
-    const next = seats.map((s) =>
-      Number(s.seat_id) === Number(action.seat_id)
-        ? {
-            ...s,
-            user_id: action.user_id,
-            user_name: action.user_name || "Player",
-            bet_chips: 0,
-            cards: [],
-            hand_value: 0,
-            status: "betting",
-            ready: false,
-            auto_replay: false,
-            last_activity: now,
-            last_seen: now,
-            payout_flag: "PENDING",
-            payout_amount: 0,
-            payout_claimed: false,
-          }
-        : s
-    );
+    const next = applyJoinToSeats(seats, action.seat_id, action.user_id, action.user_name, now);
     return await patch({
       seats: next,
       host_user_id: resolveHost(next),

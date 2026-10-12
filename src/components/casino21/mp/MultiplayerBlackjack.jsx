@@ -31,8 +31,9 @@ import {
   isCommitted,
   payoutFor,
   newRoundId,
+  applyJoinToSeats,
 } from "./mpEngine";
-import { effectiveHostId, HEARTBEAT_INTERVAL_MS } from "./hostLease";
+import { effectiveHostId, HEARTBEAT_INTERVAL_MS, LEASE_MS } from "./hostLease";
 import MpResultPopout from "./MpResultPopout";
 
 const STATUS_LABEL = {
@@ -238,6 +239,28 @@ export default function MultiplayerBlackjack({ user, onUserUpdate, onOpenCashier
     setBusy(true);
     setPendingJoin(seatId);
     try {
+      const occupied = seats.filter((s) => s.user_id).length;
+      if (occupied === 0) {
+        // Empty table: nobody is seated to run the host engine, so bootstrap
+        // by claiming the host lease and applying our own JOIN immediately.
+        // The seat assigns without waiting for an engine that doesn't exist
+        // yet; the JOIN action is still queued so the engine reconciles it
+        // (a no-op since the seat is already taken) once it starts running.
+        const now = Date.now();
+        const nextSeats = applyJoinToSeats(
+          seats,
+          seatId,
+          user.id,
+          user.full_name || user.email?.split("@")[0] || "Player",
+          now
+        );
+        await patch({
+          seats: nextSeats,
+          host_user_id: user.id,
+          host_lease_expires_at: now + LEASE_MS,
+          last_action_timestamp: now,
+        });
+      }
       await submitAction({ action_type: "JOIN", seat_id: seatId });
       playShuffle();
     } finally {
