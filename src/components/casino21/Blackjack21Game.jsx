@@ -49,7 +49,7 @@ import BlackjackResultCard from "./BlackjackResultCard";
 import HowToPlayButton from "./HowToPlayButton";
 import BlackjackHowToPlayModal from "./BlackjackHowToPlayModal";
 import MiniChipIcon from "./MiniChipIcon";
-import MultiplayerBlackjack from "./mp/MultiplayerBlackjack";
+import BlitzTournament from "./blitz/BlitzTournament";
 
 const GAME_TYPE = "blackjack";
 // Chips are the betting currency, but every win pays out straight into tokens.
@@ -480,7 +480,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       <div className="flex gap-1 p-1 bg-muted/50 border border-border rounded-t-2xl">
         {[
           ["game", "🎮 Game"],
-          ["multiplayer", "🌐 Online"],
+          ["multiplayer", "⚡ Blitz"],
           ["stats", "📊 Stats"],
           ["history", "📜 History"],
         ].map(([id, label]) => (
@@ -660,7 +660,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
       {view === "multiplayer" && (
         onlineEnabled ? (
-          <MultiplayerBlackjack
+          <BlitzTournament
             user={user}
             onUserUpdate={onUserUpdate}
             onOpenCashier={() => setShowCashier(true)}

@@ -32,14 +32,15 @@
         "HIT",
         "STAND",
         "CLAIM",
-        "HEARTBEAT"
+        "HEARTBEAT",
+        "BLITZ_SCORE"
       ],
-      "description": "JOIN = claim an open seat; LEAVE = leave a seat; ACCEPT_BET = match the host buy-in (chips already deducted by the submitter); DECLINE_BET = decline the buy-in; HIT = draw a card on the submitter's turn; STAND = end the submitter's turn; CLAIM = the player has credited their own wallet for a settled payout and the host should mark the seat claimed so it can never pay out twice; HEARTBEAT = presence ping from a seated player; the host updates the seat's last_seen so idle-but-connected players are not kicked while disconnected players eventually are."
+      "description": "JOIN = claim an open seat; LEAVE = leave a seat (used for entry-fee rollback in Blitz); ACCEPT_BET = pay the 100-chip Blitz entry fee (chips already deducted by the submitter); DECLINE_BET = decline and leave; HIT/STAND = legacy PvP actions (unused in Blitz, where hands are local); CLAIM = the player credited their own wallet for a settled payout and the host should mark the seat claimed and add them to paid_winner_ids; HEARTBEAT = presence ping; BLITZ_SCORE = submit the player's current temporary Blitz Chip balance (the score value is in the wager field), so the host can update the seat's blitz_score for the live leaderboard and winner determination."
     },
     "wager": {
       "type": "number",
       "default": 0,
-      "description": "Chip amount the submitter already deducted from their own wallet. Only set for ACCEPT_BET. The host copies this onto the seat's bet_chips when it processes the action; the wager is never deducted by the host."
+      "description": "For ACCEPT_BET: the 100-chip entry fee the submitter already deducted from their wallet (the host copies it onto the seat's bet_chips). For BLITZ_SCORE: the player's current temporary Blitz Chip balance (the host copies it onto the seat's blitz_score). The host never deducts or credits chips \u2014 only the player's own client does."
     }
   },
   "required": [

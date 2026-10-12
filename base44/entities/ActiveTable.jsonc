@@ -2,9 +2,18 @@
   "name": "ActiveTable",
   "type": "object",
   "properties": {
+    "mode": {
+      "type": "string",
+      "enum": [
+        "pvp",
+        "blitz"
+      ],
+      "default": "blitz",
+      "description": "Which multiplayer mode this table is running. blitz = 5-player 60-second Blitz tournament (the current mode). pvp = the retired shared-hand PvP mode. The host engine resets any table whose mode is not 'blitz' to a fresh Blitz tournament state."
+    },
     "round_id": {
       "type": "string",
-      "description": "Human-readable identifier for the current round, e.g. RND-84920. Regenerated for every new round and for every emergency reset."
+      "description": "Human-readable identifier for the current round, e.g. RND-84920. Regenerated for every new tournament and for every emergency reset."
     },
     "status": {
       "type": "string",
@@ -16,12 +25,12 @@
         "resetting"
       ],
       "default": "waiting_for_bets",
-      "description": "Phase of the shared PvP round. waiting_for_bets = seats place equal wagers; player_turns = all players act simultaneously (Hit/Stand/Ready) until everyone is ready or the reveal deadline passes; settling = host evaluates the pot and flags payouts; completed = payouts flagged, players choose Replay/New Bet/Stop; resetting = emergency reset in progress."
+      "description": "Phase of the Blitz tournament. waiting_for_bets = seating phase (players join and pay the 100-chip entry fee); player_turns = 60-second tournament active (each player plays independent local hands); settling = timer expired, host determines winners; completed = results shown, payouts processing; resetting = emergency reset in progress."
     },
     "current_turn_seat": {
       "type": "number",
       "default": 1,
-      "description": "Legacy field retained for compatibility. Simultaneous-play mode does not use turn order; every dealt-in player acts at once."
+      "description": "Legacy field retained for compatibility. Blitz mode does not use turn order \u2014 every player plays simultaneously against their own local dealer."
     },
     "host_user_id": {
       "type": "string",
@@ -30,34 +39,51 @@
     "host_lease_expires_at": {
       "type": "number",
       "default": 0,
-      "description": "UNIX epoch ms when the current host's lease expires. The active host renews this to now + LEASE_MS every tick. When now exceeds this value the host is considered gone and the lowest-numbered seated player (excluding the dead host if others remain) claims the lease."
+      "description": "UNIX epoch ms when the current host's lease expires. The active host renews this to now + LEASE_MS every tick. When now exceeds this value the host is considered gone and the lowest-numbered seated player claims the lease."
     },
     "last_action_timestamp": {
       "type": "number",
-      "description": "UNIX epoch ms of the last table activity. Drives the 30-second emergency reset window and the completed-round auto-advance."
+      "description": "UNIX epoch ms of the last table activity. Drives the emergency reset window and the completed-round auto-advance."
     },
     "admin_reset_at": {
       "type": "number",
       "default": 0,
       "description": "UNIX epoch ms of the last admin force-reset. Set to Date.now() by the admin 'Force Reset Table & Kick All' control. Clients track this value: when it changes they show the 'table was reset by an admin' alert and return to the open-table view. 0 means no admin reset has occurred."
     },
+    "blitz_ends_at": {
+      "type": "number",
+      "default": 0,
+      "description": "UNIX epoch ms when the 60-second Blitz tournament ends. Set by the host when the tournament starts (auto at 5 paid seats, or manual host trigger at 2-4 paid seats). All clients sync their countdown to this shared timestamp. When now exceeds this value the host transitions to settling. 0 means the tournament has not started yet."
+    },
+    "prize_pool": {
+      "type": "number",
+      "default": 0,
+      "description": "Total entry fees collected for this tournament \u2014 paid to the winner(s) at settlement. Computed by the host as paid_seats * 100 when the tournament starts."
+    },
+    "paid_winner_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "User IDs of winners who have already been credited their payout. Best-effort per-player idempotency: the host adds a winner's ID here when it processes their CLAIM action, so a refresh or reconnect can check this list to avoid re-crediting. Client-side tracking minimizes duplicates but cannot guarantee exactly-once atomic payouts."
+    },
     "betting_ends_at": {
       "type": "number",
-      "description": "UNIX epoch ms when the betting phase closes. 0 means betting has not opened yet (no wager placed)."
+      "description": "Legacy field, unused in Blitz mode. 0."
     },
     "deal_at": {
       "type": "number",
-      "description": "UNIX epoch ms when the host deals after the betting window closes. Adds a short grace window for auto-bets. 0 means not scheduled."
+      "description": "Legacy field, unused in Blitz mode. 0."
     },
     "reveal_deadline": {
       "type": "number",
       "default": 0,
-      "description": "UNIX epoch ms when the 30-second simultaneous-play reveal window ends. Set when the host deals. When it passes, any not-yet-ready dealt-in hand is auto-readied (stood + ready) and the pot is scored. 0 means not in play."
+      "description": "In Blitz mode: the settling grace-period deadline. When the host transitions to settling it sets this to now + 3000ms, giving players a brief window to submit their final blitz_score before the host resolves winners. 0 means not in settling."
     },
     "replay_deadline": {
       "type": "number",
       "default": 0,
-      "description": "UNIX epoch ms when the Play Again accept/decline window closes. Set by the host when initiating a replay. When it passes, any non-responding seated player is treated as declined. 0 means no replay is pending."
+      "description": "Legacy field, unused in Blitz mode. 0."
     },
     "next_action": {
       "type": "string",
@@ -67,21 +93,21 @@
         "new_bet",
         "stop"
       ],
-      "description": "The next-round choice a player makes once a round completes. replay_pending = host initiated Play Again and is waiting for other seated players to accept or decline before the round proceeds."
+      "description": "The next-tournament choice a player makes once a tournament completes. new_bet = same players stay seated for a new tournament (re-pay entry); stop = clear the table. The host engine applies the transition."
     },
     "common_wager": {
       "type": "number",
       "default": 0,
-      "description": "The equal chip wager every participant must contribute to the pot. Set by the first bettor; subsequent bettors must match it. 0 means no wager has been placed yet."
+      "description": "Legacy field, unused in Blitz mode. 0."
     },
     "total_pot": {
       "type": "number",
       "default": 0,
-      "description": "Accumulated chip pool for the round \u2014 the sum of all participating wagers. Awarded to the winning hand(s) or refunded on an all-bust."
+      "description": "Legacy field, unused in Blitz mode. The Blitz prize pool is in prize_pool instead. 0."
     },
     "deck": {
       "type": "array",
-      "description": "Remaining shuffled cards for this round, drawn by player hits. Refilled on every new round. There is no Dealer hand in PvP mode.",
+      "description": "Legacy field, unused in Blitz mode. Each player shuffles their own local deck \u2014 there is no shared deck.",
       "items": {
         "type": "object"
       }
@@ -89,16 +115,16 @@
     "min_bet": {
       "type": "number",
       "default": 1,
-      "description": "Minimum chip wager per hand"
+      "description": "Legacy field, retained for compatibility."
     },
     "max_bet": {
       "type": "number",
       "default": 50,
-      "description": "Maximum chip wager per hand"
+      "description": "Legacy field, retained for compatibility."
     },
     "seats": {
       "type": "array",
-      "description": "Up to 5 seat objects holding each player's wager, cards, hand value, readiness, phase status and self-payout flags.",
+      "description": "Up to 5 seat objects. In Blitz mode each seat tracks the player's entry fee (bet_chips), their live temporary Blitz Chip balance (blitz_score), and their tournament payout. Local gameplay (cards, hands, dealer) is NOT stored here \u2014 it lives in each player's client state.",
       "items": {
         "type": "object",
         "properties": {
@@ -112,16 +138,24 @@
             "type": "string"
           },
           "bet_chips": {
-            "type": "number"
+            "type": "number",
+            "description": "Entry fee paid (100 if paid, 0 if not yet paid). Used by the host to determine who is confirmed for the tournament."
           },
           "cards": {
             "type": "array",
             "items": {
               "type": "object"
-            }
+            },
+            "description": "Legacy field, unused in Blitz mode. Hands are local."
           },
           "hand_value": {
-            "type": "number"
+            "type": "number",
+            "description": "Legacy field, unused in Blitz mode. 0."
+          },
+          "blitz_score": {
+            "type": "number",
+            "default": 0,
+            "description": "The player's current temporary Blitz Chip balance, submitted by their client and applied by the host. Set to 1000 when the tournament starts, updated as the player plays hands. 0 = eliminated."
           },
           "status": {
             "type": "string",
@@ -132,25 +166,26 @@
               "stood",
               "busted",
               "disconnected"
-            ]
+            ],
+            "description": "Seat status. empty = open; betting = seated, paying entry fee (seating phase); playing = tournament active; stood/busted = current local hand resolved; disconnected = player left mid-tournament."
           },
           "ready": {
             "type": "boolean",
             "default": false,
-            "description": "True once the player has pressed Ready (or been auto-readied by the reveal deadline). A busted hand counts as ready regardless. The pot is scored only when every dealt-in player is ready."
+            "description": "Legacy field, unused in Blitz mode."
           },
           "auto_replay": {
             "type": "boolean",
             "default": false,
-            "description": "Set true at the start of a Replay round: the seat's bet_chips is pre-filled with the common wager but not yet paid. The player's own client re-deducts and flips this to false to commit."
+            "description": "Legacy field, unused in Blitz mode."
           },
           "last_activity": {
             "type": "number",
-            "description": "UNIX epoch ms of the seat's last gameplay interaction (join, bet, hit). Drives the 60s betting idle-kick for uncommitted bettors."
+            "description": "UNIX epoch ms of the seat's last interaction (join, pay). Drives the 60-second idle-kick for unpaid seats."
           },
           "last_seen": {
             "type": "number",
-            "description": "UNIX epoch ms of the seat's last presence heartbeat, updated by the host when it processes a HEARTBEAT action. Drives the presence-based kick: a seat whose last_seen is stale beyond PRESENCE_TIMEOUT_MS is treated as disconnected and freed so new players can join."
+            "description": "UNIX epoch ms of the seat's last presence heartbeat. Drives the presence-based kick: a seat not seen within PRESENCE_TIMEOUT_MS is freed."
           },
           "payout_flag": {
             "type": "string",
@@ -164,7 +199,7 @@
           },
           "payout_amount": {
             "type": "number",
-            "description": "Exact chip amount this seat receives at settlement. WINNER = whole pot; SPLIT = pot share (lowest tied seat gets any remainder); REFUND = original wager; LOSS = 0."
+            "description": "Prize-pool share this seat receives at settlement. WINNER = whole pool; SPLIT = pool share (lowest tied seat gets any remainder); LOSS = 0."
           },
           "payout_claimed": {
             "type": "boolean"
@@ -172,7 +207,7 @@
           "replay_accept": {
             "type": "boolean",
             "default": null,
-            "description": "A non-host seated player's response to the host's Play Again prompt. true = accepts the same-wager rematch; false = declines and sits the round out; null = has not responded yet."
+            "description": "Legacy field, unused in Blitz mode."
           }
         }
       }
