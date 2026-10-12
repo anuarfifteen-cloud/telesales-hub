@@ -15,6 +15,7 @@ export const COMPLETED_AUTO_MS = 15000; // auto-advance a completed round to new
 export const AUTO_BET_GRACE_MS = 2000; // grace after betting closes for auto-bets to land
 export const BET_IDLE_MS = 60000; // seated-but-unbet seats are kicked after this long in betting
 export const STALE_ACTION_MS = 30000; // queued TableAction rows older than this are purged each host tick
+export const JOIN_ACK_TIMEOUT_MS = 10000; // non-host waits this long for the host to seat them before showing Retry/Cancel
 export const MIN_PLAYERS_TO_DEAL = 2; // host + at least one matcher required to start a round
 export const REPLAY_RESPONSE_MS = 10000; // how long non-host players have to accept/decline a Play Again
 export const CARD_DEAL_STAGGER = 0.35; // seconds between the two initial deal-card sounds

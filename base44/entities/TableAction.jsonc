@@ -8,7 +8,7 @@
     },
     "round_id": {
       "type": "string",
-      "description": "Round id at submission time. The host ignores actions whose round_id does not match the table's current round, so a stale action from a previous round can never apply to the next one. HEARTBEAT actions ignore round_id (presence applies across rounds)."
+      "description": "Round id at submission time. The host ignores actions whose round_id does not match the table's current round, so a stale action from a previous round can never apply to the next one. HEARTBEAT and JOIN actions ignore round_id (presence applies across rounds, and a join must still apply even if the round advanced while it sat in the queue)."
     },
     "user_id": {
       "type": "string",

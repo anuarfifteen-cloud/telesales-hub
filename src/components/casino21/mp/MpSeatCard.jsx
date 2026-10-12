@@ -29,6 +29,10 @@ export default function MpSeatCard({
   isHostSeat = false,
   canJoin,
   onJoin,
+  joinPendingSeat = null,
+  joinTimedOut = false,
+  onRetryJoin,
+  onCancelJoin,
   revealCards = false,
   idleMs = null,
   isTurn = false,
@@ -125,13 +129,34 @@ export default function MpSeatCard({
             {Math.ceil(idleMs / 1000)}s
           </span>
         )}
-        {!filled && canJoin && (
+        {!filled && canJoin && joinPendingSeat !== seat.seat_id && (
           <button
             onClick={onJoin}
             className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-400 text-emerald-950 border border-amber-300 shrink-0"
           >
             Sit
           </button>
+        )}
+        {!filled && canJoin && joinPendingSeat === seat.seat_id && !joinTimedOut && (
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-400/40 text-amber-100 border border-amber-400/40 shrink-0 animate-pulse">
+            Joining…
+          </span>
+        )}
+        {!filled && canJoin && joinPendingSeat === seat.seat_id && joinTimedOut && (
+          <div className="flex gap-1 shrink-0">
+            <button
+              onClick={onRetryJoin}
+              className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-400 text-emerald-950 border border-amber-300"
+            >
+              Retry
+            </button>
+            <button
+              onClick={onCancelJoin}
+              className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-rose-700/60 text-rose-100 border border-rose-400/40"
+            >
+              Cancel
+            </button>
+          </div>
         )}
       </div>
 

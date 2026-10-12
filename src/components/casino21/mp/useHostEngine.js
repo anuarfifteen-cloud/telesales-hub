@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { handValue } from "../blackjackDeck";
 import {
   MIN_BET,
@@ -39,13 +39,14 @@ import {
 // never stops as long as any player is active. Presence heartbeats let the
 // engine tell connected-but-idle players apart from players whose browsers are
 // gone, so only truly-absent seats are freed.
-export default function useHostEngine({ table, patch, user }) {
+export default function useHostEngine({ table, patch, user, onQueueError }) {
   const ref = useRef({});
-  ref.current = { table, patch, user };
+  ref.current = { table, patch, user, onQueueError };
   const busyRef = useRef(false);
+  const [retrySignal, setRetrySignal] = useState(0);
 
   useEffect(() => {
-    const iv = setInterval(async () => {
+    const tick = async () => {
       const current = ref.current;
       if (!current.table || !current.user) return;
       if (document.visibilityState !== "visible") return;
@@ -55,17 +56,27 @@ export default function useHostEngine({ table, patch, user }) {
       busyRef.current = true;
       try {
         await runTick(current);
+        // A successful tick clears any surfaced queue error.
+        const cb = current.onQueueError;
+        if (cb) cb(null);
       } catch (e) {
-        console.warn("Multiplayer host tick failed:", e);
+        console.error("[Multiplayer Host] Tick failed:", e);
       } finally {
         busyRef.current = false;
       }
-    }, 1000);
+    };
+    tick();
+    const iv = setInterval(tick, 1000);
     return () => clearInterval(iv);
-  }, []);
+  }, [retrySignal]);
+
+  // Manual retry: re-run the engine immediately (used by the host's
+  // queue-read warning banner).
+  const retryNow = useCallback(() => setRetrySignal((n) => n + 1), []);
+  return { retryNow };
 }
 
-async function runTick({ table, patch, user }) {
+async function runTick({ table, patch, user, onQueueError }) {
   const now = Date.now();
   let latest = table;
 
@@ -79,20 +90,33 @@ async function runTick({ table, patch, user }) {
     if (claimed) latest = claimed;
   }
 
-  // 1. Process the action queue. Each action is applied idempotently, then
-  //    deleted so it can never be re-applied. Stale actions (from a previous
-  //    round) are just deleted — except HEARTBEAT, which applies across rounds.
-  const actions = await fetchPendingActions(latest.id);
+  // 1. Process the action queue. A read failure is surfaced to the host UI so
+  //    they can retry — never swallow it as an empty queue, or non-host joins
+  //    would silently never apply.
+  let actions;
+  try {
+    actions = await fetchPendingActions(latest.id);
+  } catch (e) {
+    console.error("[Multiplayer Host] Queue read failed:", e);
+    if (onQueueError) onQueueError(e);
+    return;
+  }
   for (const action of actions) {
     // Purge stale actions: anything older than STALE_ACTION_MS, or (for
-    // non-heartbeat gameplay actions) from a previous round, is deleted
-    // before processing so it can never apply to the current round.
+    // non-presence gameplay actions) from a previous round, is deleted
+    // before processing so it can never apply to the current round. JOIN and
+    // HEARTBEAT are exempt — a join must still apply even if the round
+    // advanced while it sat in the queue.
     const createdMs = new Date(action.created_date).getTime();
     if (now - createdMs > STALE_ACTION_MS) {
       await deleteAction(action.id);
       continue;
     }
-    if (action.action_type !== "HEARTBEAT" && action.round_id !== latest.round_id) {
+    if (
+      action.action_type !== "HEARTBEAT" &&
+      action.action_type !== "JOIN" &&
+      action.round_id !== latest.round_id
+    ) {
       await deleteAction(action.id);
       continue;
     }
