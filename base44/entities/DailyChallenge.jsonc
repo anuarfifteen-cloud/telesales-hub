@@ -1,0 +1,109 @@
+{
+  "name": "DailyChallenge",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner of this daily challenge record."
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the player."
+    },
+    "day": {
+      "type": "string",
+      "format": "date",
+      "description": "Brunei-calendar day key (YYYY-MM-DD) this record is for. A new day creates a new record, so challenges reset at Brunei midnight."
+    },
+    "missions": {
+      "type": "array",
+      "description": "Three generated daily missions. Each: { slot, type, target, reward, label, claimed, claimedAt }. Progress is derived from `counters` by `type`, not stored per-mission.",
+      "items": {
+        "type": "object"
+      }
+    },
+    "mystery_card": {
+      "type": "object",
+      "description": "Today's Mystery Card: { revealed, revealedAt, type, label, desc, target, reward, claimed, claimedAt }. Instant cards (rank_surge, lucky_break) are marked claimed on reveal; objective cards (quick_hands, double_down, streak_hunter) get a Claim action once their objective completes.",
+      "properties": {
+        "revealed": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string"
+        },
+        "claimed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "counters": {
+      "type": "object",
+      "description": "Live Ranked-only counters for today: { hands, wins, blackjacks, currentStreak, maxStreak }. Updated only by Ranked hand settlement.",
+      "properties": {
+        "hands": {
+          "type": "number"
+        },
+        "wins": {
+          "type": "number"
+        },
+        "blackjacks": {
+          "type": "number"
+        },
+        "currentStreak": {
+          "type": "number"
+        },
+        "maxStreak": {
+          "type": "number"
+        }
+      }
+    },
+    "rank_surge_expires_at": {
+      "type": "number",
+      "default": 0,
+      "description": "UNIX epoch ms when the active 30-minute 2\u00d7 Rank Surge buff expires. 0 = no active boost. While active, Ranked winning payouts count double toward the seasonal \ud83c\udfc6RANK score."
+    },
+    "last_daily_popup_date": {
+      "type": "string",
+      "description": "Brunei day key of the last first-launch 'Daily Ranked Briefing' popup shown. Reserved for the follow-up briefing phase; core-first does not display the popup."
+    }
+  },
+  "required": [
+    "user_id",
+    "day"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

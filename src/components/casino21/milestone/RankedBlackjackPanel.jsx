@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
-import { Play, Plus, Shield, X } from "lucide-react";
+import { Play, Plus, Shield, X, Flame } from "lucide-react";
 import { playClink, playWinFanfare, playPush, playLoss } from "@/lib/sounds";
 import { logChipMovement } from "@/lib/chipLog";
 import {
@@ -30,7 +30,7 @@ const RANKED_MIN = 1;
 const RANKED_MAX = 10;
 const DEALER_DRAW_MS = 550;
 
-export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onClose }) {
+export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, onClose }) {
   const chips = Number(user?.casinoChips) || 0;
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
@@ -47,6 +47,15 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
   const [result, setResult] = useState(null); // { type, detail, natural, chipPayout, chipRefund, bet }
   const [busy, setBusy] = useState(false);
   const [dealerThinking, setDealerThinking] = useState(false);
+
+  // Live 2× Rank Boost countdown, driven by the shared daily-challenge boost.
+  const [boostNow, setBoostNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setBoostNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const boostActive = Number(boostExpiresAt || 0) > boostNow;
+  const boostMs = Math.max(0, Number(boostExpiresAt || 0) - boostNow);
 
   const draw = (d) => d.pop();
   const inPlay = phase === "player" || phase === "dealer";
@@ -126,8 +135,17 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
         chips_won: chipPayout || null,
         detail: `Ranked Blackjack — ${res.detail}`,
       });
-      // 🏆RANK: only Ranked wins feed the seasonal score.
-      if (res.type === "win" && recordWin) recordWin(chipPayout);
+      // 🏆RANK + Daily Challenges: record this Ranked hand for daily progress,
+      // then feed the (boost-doubled) winning payout to the seasonal score.
+      let dailyAfter = null;
+      if (onRankedHand) {
+        try { dailyAfter = await onRankedHand({ result: res.type, natural: res.natural }); } catch {}
+      }
+      const boosted =
+        res.type === "win" && dailyAfter && Number(dailyAfter.rank_surge_expires_at || 0) > Date.now()
+          ? chipPayout * 2
+          : chipPayout;
+      if (res.type === "win" && recordWin) recordWin(boosted);
       if (res.type === "win") playWinFanfare();
       else if (res.type === "push") playPush();
       else playLoss();
@@ -285,6 +303,19 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
           </button>
         )}
       </div>
+
+      {/* Active 2× Rank Boost banner */}
+      {boostActive && (
+        <div className="relative rounded-xl border border-rose-400/50 bg-gradient-to-r from-rose-950/50 to-amber-950/40 px-3 py-1.5 flex items-center gap-2">
+          <Flame className="w-3.5 h-3.5 text-rose-300 animate-pulse" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-amber-200">
+            🔥 2× Rank Boost Active
+          </span>
+          <span className="ml-auto text-xs font-black text-amber-300 tabular-nums">
+            {String(Math.floor(boostMs / 60000)).padStart(2, "0")}:{String(Math.floor((boostMs % 60000) / 1000)).padStart(2, "0")}
+          </span>
+        </div>
+      )}
 
       {/* Balance */}
       <div className="relative flex items-center gap-2">

@@ -11,6 +11,8 @@ import {
   claimDiamond,
 } from "@/lib/milestone";
 import useMilestoneData from "./useMilestoneData";
+import useDailyChallenges from "./useDailyChallenges";
+import DailyChallengesHub from "./DailyChallengesHub";
 import RankedBlackjackPanel from "./RankedBlackjackPanel";
 import MilestoneLeaderboard from "./MilestoneLeaderboard";
 import MiniChipIcon from "../MiniChipIcon";
@@ -28,6 +30,7 @@ function rewardLabel(def) {
 
 export default function MilestoneProgressionView({ user, onUserUpdate, recordWin }) {
   const { season, progress, loading, reload } = useMilestoneData(user);
+  const challenges = useDailyChallenges(user, onUserUpdate);
   const [busy, setBusy] = useState(false);
   const [showRanked, setShowRanked] = useState(false);
   const [subTab, setSubTab] = useState("milestones"); // milestones | leaderboard
@@ -179,12 +182,23 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
             )}
           </div>
 
+          {/* Daily Challenges hub — missions & Mystery Card */}
+          <DailyChallengesHub
+            daily={challenges.daily}
+            loading={challenges.loading}
+            onRevealCard={challenges.revealCard}
+            onClaimMission={challenges.claimMission}
+            onClaimCard={challenges.claimCardReward}
+          />
+
           {/* Ranked play panel — the only hands that feed this score */}
           {showRanked ? (
             <RankedBlackjackPanel
               user={user}
               onUserUpdate={onUserUpdate}
               recordWin={recordWin}
+              onRankedHand={challenges.recordRankedHand}
+              boostExpiresAt={challenges.daily?.rank_surge_expires_at || 0}
               onClose={() => setShowRanked(false)}
             />
           ) : (
