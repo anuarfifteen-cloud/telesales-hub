@@ -1,0 +1,52 @@
+{
+  "name": "MilestoneLeaderboardEntry",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "User ID this public leaderboard row mirrors. Part of the upsert key (with season_number)."
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name shown on the public seasonal leaderboard."
+    },
+    "season_number": {
+      "type": "number",
+      "default": 1,
+      "description": "The season this score is for. Part of the upsert key (with user_id), so each player has one row per season and prior-season rows are simply ignored by the current-season leaderboard query."
+    },
+    "score": {
+      "type": "number",
+      "default": 0,
+      "description": "Total winning chip payouts accumulated in the current season. Mirrored from the private MilestoneProgress row \u2014 only leaderboard-safe fields live here; claimed_ranks and pending_rank_rewards never do."
+    }
+  },
+  "required": [
+    "user_id",
+    "season_number",
+    "score"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

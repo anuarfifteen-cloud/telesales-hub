@@ -113,6 +113,31 @@ export async function getMyProgress(userId, userName, seasonNumber) {
   });
 }
 
+// Mirror the player's public leaderboard-safe fields (name, season, score) into
+// the open-read MilestoneLeaderboardEntry entity. Only called on a real Ranked
+// win, so the board shows players who actually played this season. Keyed on
+// [user_id, season_number] so a new season starts a fresh row per player and
+// prior-season rows are ignored by the current-season query. Best-effort: a
+// leaderboard sync must never block a Blackjack win.
+export async function syncLeaderboardEntry(userId, userName, seasonNumber, score) {
+  if (!userId) return;
+  try {
+    await base44.entities.MilestoneLeaderboardEntry.upsert(
+      [
+        {
+          user_id: userId,
+          user_name: userName || "",
+          season_number: Number(seasonNumber),
+          score: Number(score) || 0,
+        },
+      ],
+      { key: ["user_id", "season_number"] }
+    );
+  } catch {
+    /* best-effort — leaderboard mirror never blocks a win */
+  }
+}
+
 // Add a winning chip payout to the player's seasonal score and flag any newly
 // reached ranks (1-9) so a claim popup can fire. Returns the new ranks.
 export async function addWinPayout(userId, userName, chipPayout) {
@@ -140,6 +165,8 @@ export async function addWinPayout(userId, userName, chipPayout) {
     score: newScore,
     pending_rank_rewards: [...pending, ...newRanks],
   });
+  // Mirror the new score to the public leaderboard row for this season.
+  await syncLeaderboardEntry(userId, userName, season.season_number, newScore);
   return { progress: updated, newRanks };
 }
 

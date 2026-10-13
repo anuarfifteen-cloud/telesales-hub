@@ -3,9 +3,10 @@ import { base44 } from "@/api/base44Client";
 import { getSeason } from "@/lib/milestone";
 import MiniChipIcon from "../MiniChipIcon";
 
-// 🏆RANK live seasonal leaderboard. Pulls every MilestoneProgress row for the
-// active season, sorted by score desc. Only Ranked wins add to `score`, so
-// the ranking reflects pure Ranked-hand seasonal payouts.
+// 🏆RANK live seasonal leaderboard. Reads the open-read MilestoneLeaderboardEntry
+// rows for the active season, sorted by score desc. Only Ranked wins add to
+// `score`, so the ranking reflects pure Ranked-hand seasonal payouts. The
+// private MilestoneProgress records (claims/rewards) stay owner-only.
 export default function MilestoneLeaderboard({ user }) {
   const [rows, setRows] = useState([]);
   const [seasonNumber, setSeasonNumber] = useState(null);
@@ -18,7 +19,7 @@ export default function MilestoneLeaderboard({ user }) {
         const season = await getSeason();
         if (cancelled) return;
         setSeasonNumber(Number(season.season_number));
-        const page = await base44.entities.MilestoneProgress.filter(
+        const page = await base44.entities.MilestoneLeaderboardEntry.filter(
           { season_number: Number(season.season_number) },
           { sort: "-score", limit: 50 }
         );
