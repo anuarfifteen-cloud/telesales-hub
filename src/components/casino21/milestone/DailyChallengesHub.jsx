@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Zap, Gift, Flame, Clock, Check, Lock } from "lucide-react";
+import { Zap, Flame, Clock, Check, Lock } from "lucide-react";
 import {
   progressFor,
   isBoostActive,
   boostMsRemaining,
   msUntilBruneiMidnight,
 } from "@/lib/dailyChallenges";
-import MiniChipIcon from "../MiniChipIcon";
-
 function fmtReset(ms) {
   const s = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(s / 3600);
@@ -22,79 +19,8 @@ function fmtBoost(ms) {
   return `${String(m).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
 }
 
-function MysteryCard({ card, onReveal, busy }) {
-  const revealed = !!card?.revealed;
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <div
-        className="relative w-28 h-40 cursor-pointer"
-        style={{ perspective: 800 }}
-        onClick={() => !revealed && !busy && onReveal()}
-      >
-        <motion.div
-          className="relative w-full h-full"
-          style={{ transformStyle: "preserve-3d" }}
-          animate={{ rotateY: revealed ? 180 : 0 }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
-        >
-          {/* Back — tap to reveal */}
-          <div
-            className="absolute inset-0 rounded-xl flex flex-col items-center justify-center text-center p-2"
-            style={{
-              backfaceVisibility: "hidden",
-              background: "linear-gradient(135deg, #3b1d2e 0%, #1a0f1c 100%)",
-              border: "1.5px solid rgba(212,175,55,0.5)",
-              boxShadow: "inset 0 0 18px rgba(212,175,55,0.18)",
-            }}
-          >
-            <span className="text-2xl">🃏</span>
-            <span className="mt-1 text-[9px] font-black uppercase tracking-widest text-amber-300/80">
-              Tap to Reveal
-            </span>
-          </div>
-          {/* Face */}
-          <div
-            className="absolute inset-0 rounded-xl flex flex-col items-center justify-center text-center p-2"
-            style={{
-              backfaceVisibility: "hidden",
-              transform: "rotateY(180deg)",
-              background:
-                card?.type === "rank_surge"
-                  ? "linear-gradient(135deg, #7c2d12 0%, #431407 100%)"
-                  : "linear-gradient(135deg, #14532d 0%, #052e16 100%)",
-              border: "1.5px solid rgba(212,175,55,0.6)",
-              boxShadow: "0 0 18px rgba(212,175,55,0.25)",
-            }}
-          >
-            <span className="text-2xl">
-              {card?.type === "rank_surge" ? "🔥" : card?.type === "lucky_break" ? "🎁" : "🎯"}
-            </span>
-            <span className="mt-1 text-[11px] font-black uppercase tracking-wider text-amber-300 leading-tight">
-              {card?.label || "Mystery"}
-            </span>
-            <span className="mt-0.5 text-[9px] font-bold text-emerald-100/80 leading-tight">
-              {card?.desc}
-            </span>
-          </div>
-        </motion.div>
-      </div>
-      {!revealed && (
-        <p className="text-[9px] font-bold uppercase tracking-widest text-amber-200/60">
-          1 free reveal / day
-        </p>
-      )}
-    </div>
-  );
-}
-
-export default function DailyChallengesHub({
-  daily,
-  loading,
-  onRevealCard,
-  onClaimMission,
-  onClaimCard,
-}) {
-  const [now, setNow] = useState(Date.now());
+export default function DailyChallengesHub({ daily, loading, onClaimMission }) {
+  const [, setNow] = useState(Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
@@ -110,12 +36,6 @@ export default function DailyChallengesHub({
 
   const boostActive = isBoostActive(daily);
   const missions = Array.isArray(daily.missions) ? daily.missions : [];
-  const card = daily.mystery_card || {};
-  const cardDone =
-    card.revealed &&
-    !card.claimed &&
-    card.target > 0 &&
-    progressFor(card.type, daily.counters) >= card.target;
   const resetMs = msUntilBruneiMidnight();
 
   return (
@@ -147,44 +67,8 @@ export default function DailyChallengesHub({
       {/* Ranked-only notice */}
       <div className="relative rounded-xl border border-amber-400/30 bg-emerald-950/30 px-3 py-1.5">
         <p className="text-center text-[10px] font-bold uppercase tracking-widest text-amber-200/80">
-          ⚡ Daily Missions & Mystery Cards only progress on Ranked tables!
+          ⚡ Daily Missions only progress on Ranked tables!
         </p>
-      </div>
-
-      {/* Mystery card slot */}
-      <div className="relative rounded-2xl border border-amber-400/25 bg-emerald-950/30 p-3 flex flex-col items-center gap-2">
-        <span className="text-[10px] font-black uppercase tracking-widest text-amber-200/80">
-          🃏 Mystery Card of the Day
-        </span>
-        <MysteryCard card={card} onReveal={onRevealCard} />
-        {card.revealed && card.target > 0 && !card.claimed && (
-          <button
-            onClick={onClaimCard}
-            disabled={!cardDone}
-            className={`w-full max-w-[12rem] py-2 rounded-full text-[11px] font-black uppercase tracking-widest transition disabled:opacity-40 ${
-              cardDone ? "text-emerald-950" : "text-emerald-100/60"
-            }`}
-            style={{ background: cardDone ? "#d4af37" : "rgba(255,255,255,0.08)" }}
-          >
-            {cardDone ? (
-              <span className="flex items-center justify-center gap-1">
-                <Gift className="w-3.5 h-3.5" /> Claim {card.reward} Chips
-              </span>
-            ) : (
-              `${Math.min(progressFor(card.type, daily.counters), card.target)}/${card.target}`
-            )}
-          </button>
-        )}
-        {card.revealed && card.claimed && card.type !== "rank_surge" && (
-          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-300">
-            <Check className="w-3 h-3" /> Reward claimed
-          </span>
-        )}
-        {card.revealed && card.type === "rank_surge" && (
-          <span className="text-[10px] font-bold text-rose-200">
-            Boost active — win Ranked hands for 2× score!
-          </span>
-        )}
       </div>
 
       {/* 3 mission cards */}
@@ -218,7 +102,7 @@ export default function DailyChallengesHub({
                   />
                 </div>
                 <p className="mt-0.5 text-[9px] font-bold uppercase tracking-widest text-amber-200/60">
-                  {prog}/{m.target} · <MiniChipIcon size={9} className="inline -mt-0.5" /> {m.reward} chips
+                  {prog}/{m.target} · {m.reward} chips
                 </p>
               </div>
               {m.claimed ? (
