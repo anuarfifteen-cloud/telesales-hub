@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
-import { Play, Plus, Shield, X, Flame } from "lucide-react";
+import { Play, Plus, Shield, X, Flame, Zap } from "lucide-react";
 import { playClink, playWinFanfare, playPush, playLoss } from "@/lib/sounds";
 import { logChipMovement } from "@/lib/chipLog";
 import {
@@ -28,14 +28,28 @@ import RankedPlayingCard from "./RankedPlayingCard";
 //   Loss              → nothing (wager already deducted at deal)
 const RANKED_MIN = 1;
 const RANKED_MAX = 10;
+const RANKED_MAX_HIGH_ROLLER = 25; // High Roller Pass raises the ceiling to 25
 const DEALER_DRAW_MS = 550;
 
-export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, onClose }) {
+export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, betCapExpiresAt, onClose }) {
   const chips = Number(user?.casinoChips) || 0;
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
-  // The highest legal wager: never more than 10, never more than the balance.
-  const maxBet = Math.min(RANKED_MAX, Math.max(chips, RANKED_MIN));
+  // Live ticking for both active-perk pills.
+  const [pillNow, setPillNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setPillNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const surgeActive = Number(boostExpiresAt || 0) > pillNow;
+  const surgeMs = Math.max(0, Number(boostExpiresAt || 0) - pillNow);
+  const betCapActive = Number(betCapExpiresAt || 0) > pillNow;
+  const betCapMs = Math.max(0, Number(betCapExpiresAt || 0) - pillNow);
+
+  // The table ceiling: 25 while the High Roller Pass is active, else 10.
+  const tableMax = betCapActive ? RANKED_MAX_HIGH_ROLLER : RANKED_MAX;
+  // The highest legal wager: never more than the table ceiling, never more than the balance.
+  const maxBet = Math.min(tableMax, Math.max(chips, RANKED_MIN));
 
   const [bet, setBet] = useState(RANKED_MIN);
   const [committedBet, setCommittedBet] = useState(0);
@@ -47,15 +61,6 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
   const [result, setResult] = useState(null); // { type, detail, natural, chipPayout, chipRefund, bet }
   const [busy, setBusy] = useState(false);
   const [dealerThinking, setDealerThinking] = useState(false);
-
-  // Live 2× Rank Boost countdown, driven by the shared daily-challenge boost.
-  const [boostNow, setBoostNow] = useState(Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setBoostNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  const boostActive = Number(boostExpiresAt || 0) > boostNow;
-  const boostMs = Math.max(0, Number(boostExpiresAt || 0) - boostNow);
 
   const draw = (d) => d.pop();
   const inPlay = phase === "player" || phase === "dealer";
@@ -288,34 +293,35 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
         style={{ boxShadow: "inset 0 0 0 2px rgba(212,175,55,0.25), inset 0 0 24px rgba(212,175,55,0.08)" }}
       />
 
-      {/* Header */}
+      {/* Header + minimal active-perk pills */}
       <div className="relative flex items-center gap-2">
         <span className="text-[11px] font-black uppercase tracking-widest text-amber-300">
-          ⚔️ RANKED TABLE · 1–10 CHIPS
+          ⚔️ RANKED TABLE · 1–{tableMax} CHIPS
         </span>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="ml-auto w-7 h-7 rounded-full bg-emerald-950/50 border border-amber-400/30 text-amber-200 flex items-center justify-center hover:bg-emerald-950/70 transition"
-            title="Close ranked table"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
-
-      {/* Active 2× Rank Boost banner */}
-      {boostActive && (
-        <div className="relative rounded-xl border border-rose-400/50 bg-gradient-to-r from-rose-950/50 to-amber-950/40 px-3 py-1.5 flex items-center gap-2">
-          <Flame className="w-3.5 h-3.5 text-rose-300 animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-amber-200">
-            🔥 2× Rank Boost Active
-          </span>
-          <span className="ml-auto text-xs font-black text-amber-300 tabular-nums">
-            {String(Math.floor(boostMs / 60000)).padStart(2, "0")}:{String(Math.floor((boostMs % 60000) / 1000)).padStart(2, "0")}
-          </span>
+        <div className="ml-auto flex items-center gap-1.5">
+          {surgeActive && (
+            <span className="flex items-center gap-1 rounded-full border border-rose-400/50 bg-rose-950/50 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-rose-200" style={{ boxShadow: "0 0 8px rgba(244,63,94,0.4)" }}>
+              <Flame className="w-3 h-3 animate-pulse" />
+              2× Surge {String(Math.floor(surgeMs / 60000)).padStart(2, "0")}:{String(Math.floor((surgeMs % 60000) / 1000)).padStart(2, "0")}
+            </span>
+          )}
+          {betCapActive && (
+            <span className="flex items-center gap-1 rounded-full border border-amber-400/50 bg-amber-950/50 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-200" style={{ boxShadow: "0 0 8px rgba(245,158,11,0.4)" }}>
+              <Zap className="w-3 h-3" />
+              Max Bet 25 {String(Math.floor(betCapMs / 60000)).padStart(2, "0")}:{String(Math.floor((betCapMs % 60000) / 1000)).padStart(2, "0")}
+            </span>
+          )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-full bg-emerald-950/50 border border-amber-400/30 text-amber-200 flex items-center justify-center hover:bg-emerald-950/70 transition"
+              title="Close ranked table"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Balance */}
       <div className="relative flex items-center gap-2">
@@ -442,7 +448,7 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
               </button>
             </div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-amber-200/60 text-center">
-              Ranked wagers {RANKED_MIN}–{RANKED_MAX} chips
+              Ranked wagers {RANKED_MIN}–{tableMax} chips{betCapActive ? " · High Roller Pass" : ""}
             </p>
           </div>
           <button

@@ -22,21 +22,6 @@
         "type": "object"
       }
     },
-    "mystery_card": {
-      "type": "object",
-      "description": "Today's Mystery Card: { revealed, revealedAt, type, label, desc, target, reward, claimed, claimedAt }. Instant cards (rank_surge, lucky_break) are marked claimed on reveal; objective cards (quick_hands, double_down, streak_hunter) get a Claim action once their objective completes.",
-      "properties": {
-        "revealed": {
-          "type": "boolean"
-        },
-        "type": {
-          "type": "string"
-        },
-        "claimed": {
-          "type": "boolean"
-        }
-      }
-    },
     "counters": {
       "type": "object",
       "description": "Live Ranked-only counters for today: { hands, wins, blackjacks, currentStreak, maxStreak }. Updated only by Ranked hand settlement.",
@@ -58,14 +43,42 @@
         }
       }
     },
+    "daily_mystery_card_status": {
+      "type": "string",
+      "enum": [
+        "unopened",
+        "revealed"
+      ],
+      "default": "unopened",
+      "description": "Whether today's Daily Mystery Card has been revealed. unopened = the first-launch modal should prompt the player; revealed = the card was chosen today and the modal must not reappear this Brunei day."
+    },
+    "daily_mystery_card_selection": {
+      "type": "number",
+      "description": "The card index (0, 1 or 2) the player chose today. -1 before a choice is made.",
+      "default": -1
+    },
+    "daily_mystery_card_reward": {
+      "type": "string",
+      "enum": [
+        "surge_2x",
+        "chips_100",
+        "bet_cap_25"
+      ],
+      "description": "The reward revealed on today's Daily Mystery Card: surge_2x = 30-min 2\u00d7 Rank Surge, bet_cap_25 = 20-min 25-chip Ranked bet cap, chips_100 = 100 chips credited directly (does not count toward seasonal milestone score)."
+    },
     "rank_surge_expires_at": {
       "type": "number",
       "default": 0,
       "description": "UNIX epoch ms when the active 30-minute 2\u00d7 Rank Surge buff expires. 0 = no active boost. While active, Ranked winning payouts count double toward the seasonal \ud83c\udfc6RANK score."
     },
-    "last_daily_popup_date": {
+    "rank_bet_cap_expires_at": {
+      "type": "number",
+      "default": 0,
+      "description": "UNIX epoch ms when the active 20-minute High Roller Pass (25-chip Ranked bet cap) expires. 0 = no active cap. While active, the Ranked table's wager ceiling is raised from 10 to 25 chips."
+    },
+    "last_mystery_popup_date": {
       "type": "string",
-      "description": "Brunei day key of the last first-launch 'Daily Ranked Briefing' popup shown. Reserved for the follow-up briefing phase; core-first does not display the popup."
+      "description": "Brunei day key (YYYY-MM-DD) of the last Daily Mystery Card reveal. Set when the card is revealed so the modal does not pop up again that day on refresh or relaunch."
     }
   },
   "required": [

@@ -52,6 +52,7 @@ import MiniChipIcon from "./MiniChipIcon";
 import MilestoneProgressionView from "./milestone/MilestoneProgressionView";
 import RankClaimPopup from "./milestone/RankClaimPopup";
 import useMilestoneClaim from "./milestone/useMilestoneClaim";
+import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 
 const GAME_TYPE = "blackjack";
 // Chips are the betting currency, but every win pays out straight into tokens.
@@ -182,6 +183,17 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   const [aiRevealed, setAiRevealed] = useState(false); // AI cards stay face-down until its turn ends
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState("game");
+  // Cross-tree "GO TO RANKED NOW": jump straight to the RANK tab. Reacts once
+  // per signal so repeated requests still land here.
+  useEffect(() => {
+    let last = getRankedSignal();
+    return onRankedNavRequest((s) => {
+      if (s > last) {
+        last = s;
+        setView("rank");
+      }
+    });
+  }, []);
   const [flash, setFlash] = useState(null);
   const [dealerThinking, setDealerThinking] = useState(false);
   const queryClient = useQueryClient();

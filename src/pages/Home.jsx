@@ -37,6 +37,8 @@ import DailySpinWheel from "@/components/booking/DailySpinWheel";
 import TokenVoucher from "@/components/booking/MysteryBoxModal";
 import ThemeShop from "@/components/profile/ThemeShop";
 import NewSeasonRewardsPopup from "@/components/casino21/milestone/NewSeasonRewardsPopup";
+import DailyMysteryCardModal from "@/components/casino21/milestone/DailyMysteryCardModal";
+import { onRankedNavRequest } from "@/lib/rankedNav";
 import AvatarInitialsEditor from "@/components/profile/AvatarInitialsEditor";
 import AvatarPhotoEditor from "@/components/profile/AvatarPhotoEditor";
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
@@ -301,6 +303,10 @@ useEffect(() => {
     syncPublicProfile(u);
     return u;
   };
+
+  // Cross-tree "GO TO RANKED NOW": switch to the Tokens tab (which hosts the
+  // Blackjack 21 game). Each deeper level reacts to the same signal itself.
+  useEffect(() => onRankedNavRequest(() => setActiveTab("tokens")), []);
 
   useEffect(() => {
     refreshUser().then((u) => {
@@ -1318,6 +1324,8 @@ useEffect(() => {
       />
 
       <NewSeasonRewardsPopup user={user} onUserUpdate={refreshUser} />
+
+      <DailyMysteryCardModal user={user} onUserUpdate={refreshUser} />
 
       <FeatureUnlockModal
         isOpen={unlockModal.open}

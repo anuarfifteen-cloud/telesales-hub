@@ -1,16 +1,17 @@
-// Ranked Daily Challenges — missions + Mystery Card, reset at Brunei midnight.
+// Ranked Daily Challenges + Daily Mystery Card — reset at Brunei midnight.
 //
-// State is per-user, per-Brunei-day (DailyChallenge entity). A new day creates a
-// fresh record, so challenges and the card reveal reset automatically. Only
+// State is per-user, per-Brunei-day (DailyChallenge entity). A new day creates
+// a fresh record, so challenges and the mystery card reset automatically. Only
 // Ranked hand settlement updates `counters`; Casual play never touches this.
 //
-// Mission/card progress is DERIVED from `counters` by objective type — it is
-// never stored per-mission — so a single counter update advances every
-// objective that depends on it.
+// Mission progress is DERIVED from `counters` by objective type — it is never
+// stored per-mission — so a single counter update advances every objective
+// that depends on it.
 import { base44 } from "@/api/base44Client";
 import { bruneiToday } from "./bruneiDay";
 
-const BOOST_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+const BOOST_DURATION_MS = 30 * 60 * 1000; // 30 minutes (2× Rank Surge)
+const BETCAP_DURATION_MS = 20 * 60 * 1000; // 20 minutes (High Roller Pass)
 
 // ── 10 daily mission combinations ─────────────────────────────────────
 // Each player gets one full combination per Brunei day, chosen at random
@@ -69,15 +70,26 @@ export const MISSION_COMBINATIONS = [
   ],
 ];
 
-// Mystery Card pool. `instant` cards resolve on reveal; objective cards track
-// progress and grant their reward on claim. rank_surge is a rare weighted pick.
-export const CARD_POOL = [
-  { type: "rank_surge", label: "Rank Surge", desc: "30-Minute 2× Rank Boost!", reward: 0, target: 0, instant: true, weight: 1 },
-  { type: "lucky_break", label: "Lucky Break", desc: "+5 Bonus Chips", reward: 5, target: 0, instant: true, weight: 3 },
-  { type: "quick_hands", label: "Quick Hands", desc: "Win 2 Ranked hands today", reward: 10, target: 2, weight: 3 },
-  { type: "double_down", label: "Double Down", desc: "Win 10 Ranked hands today", reward: 15, target: 10, weight: 3 },
-  { type: "streak_hunter", label: "Streak Hunter", desc: "Win 3 consecutive Ranked hands", reward: 10, target: 3, weight: 3 },
+// ── Daily Mystery Card rewards ───────────────────────────────────────
+// The three outcomes shuffled across the three face-down cards each day.
+//   surge_2x   → 30-min 2× Rank Surge (sets rank_surge_expires_at)
+//   bet_cap_25 → 20-min High Roller Pass (sets rank_bet_cap_expires_at)
+//   chips_100  → 100 chips credited directly, no milestone score impact
+export const MYSTERY_REWARDS = [
+  { type: "surge_2x", label: "2× Rank Surge", durationMs: BOOST_DURATION_MS },
+  { type: "bet_cap_25", label: "High Roller Pass", durationMs: BETCAP_DURATION_MS },
+  { type: "chips_100", label: "Direct Drop", durationMs: 0 },
 ];
+
+// Fisher–Yates shuffle of the three rewards into the three card slots.
+export function shuffleRewards() {
+  const arr = [...MYSTERY_REWARDS];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 const EMPTY_COUNTERS = { hands: 0, wins: 0, blackjacks: 0, currentStreak: 0, maxStreak: 0 };
 
@@ -96,18 +108,8 @@ function generateMissions() {
   }));
 }
 
-function pickCard() {
-  const total = CARD_POOL.reduce((s, c) => s + (c.weight || 1), 0);
-  let r = Math.random() * total;
-  for (const c of CARD_POOL) {
-    r -= c.weight || 1;
-    if (r <= 0) return c;
-  }
-  return CARD_POOL[0];
-}
-
 // ── Progress derivation ──────────────────────────────────────────────
-// Mission/card progress is read live from the shared counters.
+// Mission progress is read live from the shared counters.
 export function progressFor(type, counters) {
   const c = counters || EMPTY_COUNTERS;
   switch (type) {
@@ -115,9 +117,6 @@ export function progressFor(type, counters) {
     case "win_ranked": return c.wins || 0;
     case "blackjacks_ranked": return c.blackjacks || 0;
     case "win_streak": return c.maxStreak || 0;
-    case "quick_hands":
-    case "double_down": return c.wins || 0;
-    case "streak_hunter": return c.maxStreak || 0;
     default: return 0;
   }
 }
@@ -128,6 +127,14 @@ export function isBoostActive(daily) {
 
 export function boostMsRemaining(daily) {
   return Math.max(0, Number(daily?.rank_surge_expires_at || 0) - Date.now());
+}
+
+export function isBetCapActive(daily) {
+  return Number(daily?.rank_bet_cap_expires_at || 0) > Date.now();
+}
+
+export function betCapMsRemaining(daily) {
+  return Math.max(0, Number(daily?.rank_bet_cap_expires_at || 0) - Date.now());
 }
 
 // Milliseconds until the next Brunei midnight (UTC+8, no DST).
@@ -174,10 +181,13 @@ export async function ensureDaily(user) {
     user_name: user.full_name || user.email || "",
     day,
     missions: generateMissions(),
-    mystery_card: { revealed: false, type: null, label: null, desc: null, target: 0, reward: 0, claimed: false, revealedAt: 0, claimedAt: 0 },
     counters: { ...EMPTY_COUNTERS },
+    daily_mystery_card_status: "unopened",
+    daily_mystery_card_selection: -1,
+    daily_mystery_card_reward: null,
     rank_surge_expires_at: 0,
-    last_daily_popup_date: "",
+    rank_bet_cap_expires_at: 0,
+    last_mystery_popup_date: "",
   });
 }
 
@@ -216,48 +226,31 @@ export async function claimMission(user, slot) {
   return await base44.entities.DailyChallenge.update(daily.id, { missions });
 }
 
-// ── Reveal today's Mystery Card ──────────────────────────────────────
-// Idempotent: once revealed for the day, returns the existing record.
-export async function revealCard(user) {
+// ── Reveal today's Daily Mystery Card ────────────────────────────────
+// `selection` = chosen card index (0|1|2), `reward` = the reward type at that
+// index. Persists the assignment + reveal status + perk expiry in a single
+// update BEFORE applying any effect, so a crash mid-reveal can never reroll
+// the reward or double-credit chips. Returns the updated daily record.
+//   Idempotent: if already revealed today, returns the existing record.
+//   "Restart Full Duration": a timed perk always overwrites the expiry with a
+//   fresh full-duration window from now, so an already-active same perk resets.
+export async function revealMysteryCard(user, selection, reward) {
   const daily = await ensureDaily(user);
   if (!daily) return null;
-  if (daily.mystery_card?.revealed) return daily;
-  const card = pickCard();
-  const mc = {
-    revealed: true,
-    revealedAt: Date.now(),
-    type: card.type,
-    label: card.label,
-    desc: card.desc,
-    target: card.target || 0,
-    reward: card.reward || 0,
-    claimed: false,
-    claimedAt: 0,
+  if (daily.daily_mystery_card_status === "revealed") return daily;
+  const now = Date.now();
+  const patch = {
+    daily_mystery_card_status: "revealed",
+    daily_mystery_card_selection: selection,
+    daily_mystery_card_reward: reward,
+    last_mystery_popup_date: bruneiToday(),
   };
-  const patch = { mystery_card: mc };
-  // Instant effects resolve on reveal.
-  if (card.type === "lucky_break") {
-    await creditChips(user, card.reward, `Mystery Card — Lucky Break (+${card.reward} chips)`);
-    mc.claimed = true;
-    mc.claimedAt = Date.now();
-  } else if (card.type === "rank_surge") {
-    patch.rank_surge_expires_at = Date.now() + BOOST_DURATION_MS;
-    mc.claimed = true; // effect applied; no separate claim
-    mc.claimedAt = Date.now();
+  if (reward === "surge_2x") patch.rank_surge_expires_at = now + BOOST_DURATION_MS;
+  else if (reward === "bet_cap_25") patch.rank_bet_cap_expires_at = now + BETCAP_DURATION_MS;
+  const updated = await base44.entities.DailyChallenge.update(daily.id, patch);
+  // chips_100 effect: credit +100 chips. Does NOT touch the milestone score.
+  if (reward === "chips_100") {
+    await creditChips(user, 100, "Daily Mystery Card — Direct Drop (+100 chips)");
   }
-  return await base44.entities.DailyChallenge.update(daily.id, patch);
-}
-
-// ── Claim an objective Mystery Card's reward ─────────────────────────
-// Only for objective cards (quick_hands, double_down, streak_hunter) once done.
-export async function claimCardReward(user) {
-  const daily = await ensureDaily(user);
-  if (!daily) return null;
-  const mc = daily.mystery_card;
-  if (!mc?.revealed || mc.claimed) return daily;
-  if (progressFor(mc.type, daily.counters) < (mc.target || 0)) return daily;
-  await creditChips(user, mc.reward, `Mystery Card — ${mc.label} (+${mc.reward} chips)`);
-  return await base44.entities.DailyChallenge.update(daily.id, {
-    mystery_card: { ...mc, claimed: true, claimedAt: Date.now() },
-  });
+  return updated;
 }

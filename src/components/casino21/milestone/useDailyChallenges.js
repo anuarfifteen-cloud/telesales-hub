@@ -4,14 +4,14 @@ import {
   ensureDaily,
   recordRankedHand as recordRankedHandLib,
   claimMission as claimMissionLib,
-  revealCard as revealCardLib,
-  claimCardReward as claimCardRewardLib,
+  revealMysteryCard as revealMysteryCardLib,
 } from "@/lib/dailyChallenges";
 
-// Single source of truth for a player's Ranked daily challenges. Loads today's
-// record, subscribes to live changes, and exposes the Ranked-only progress +
-// claim/reveal actions. `recordRankedHand` is passed down to the Ranked table
-// so settlement is the only thing that advances counters.
+// Single source of truth for a player's Ranked daily challenges + Daily
+// Mystery Card. Loads today's record, subscribes to live changes, and exposes
+// the Ranked-only progress + claim/reveal actions. `recordRankedHand` is passed
+// down to the Ranked table so settlement is the only thing that advances
+// counters.
 export default function useDailyChallenges(user, onUserUpdate) {
   const [daily, setDaily] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -63,24 +63,11 @@ export default function useDailyChallenges(user, onUserUpdate) {
     }
   }, []);
 
-  const revealCard = useCallback(async () => {
+  const revealMysteryCard = useCallback(async (selection, reward) => {
     const u = userRef.current;
     if (!u?.id) return null;
     try {
-      const d = await revealCardLib(u);
-      setDaily(d);
-      await onUpdateRef.current?.();
-      return d;
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const claimCardReward = useCallback(async () => {
-    const u = userRef.current;
-    if (!u?.id) return null;
-    try {
-      const d = await claimCardRewardLib(u);
+      const d = await revealMysteryCardLib(u, selection, reward);
       setDaily(d);
       await onUpdateRef.current?.();
       return d;
@@ -95,7 +82,6 @@ export default function useDailyChallenges(user, onUserUpdate) {
     reload,
     recordRankedHand,
     claimMission,
-    revealCard,
-    claimCardReward,
+    revealMysteryCard,
   };
 }

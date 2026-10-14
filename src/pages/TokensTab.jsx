@@ -14,9 +14,24 @@ import TapVaultCard from "@/components/tokens/TapVaultCard";
 import Blackjack21Game from "@/components/casino21/Blackjack21Game";
 import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
 import DailyChipGiftModal, { chipGiftClaimedToday } from "@/components/casino21/DailyChipGiftModal";
+import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true }) {
   const [innerTab, setInnerTab] = useState("milestones");
+  // Cross-tree "GO TO RANKED NOW": land on the Blackjack 21 sub-tab. Reacts
+  // once per signal (checks on mount for a signal fired before this tab
+  // mounted, then subscribes for later ones).
+  useEffect(() => {
+    let last = getRankedSignal();
+    const react = (s) => {
+      if (s > last) {
+        last = s;
+        setInnerTab("blackjack21");
+      }
+    };
+    react(getRankedSignal());
+    return onRankedNavRequest(react);
+  }, []);
   // tabs: milestones | vip | ninja | coinflip | perfect10 | supertap | blindvoucher | flappy | blackjack21 | scratchcard | diamondsmash
   const tokens = user?.earlyAccessTokens ?? 0;
 

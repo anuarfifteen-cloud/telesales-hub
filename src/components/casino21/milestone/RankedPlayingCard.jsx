@@ -36,7 +36,7 @@ function Crest({ rank }) {
   );
 }
 
-function RankedCardBack() {
+export function RankedCardBack() {
   return (
     <div
       className="absolute inset-0 overflow-hidden"

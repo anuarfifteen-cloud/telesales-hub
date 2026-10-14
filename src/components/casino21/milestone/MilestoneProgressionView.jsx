@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Crown, Trophy, Gem, Lock, Check } from "lucide-react";
+import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 import {
   RANKS,
   RANK_10_THRESHOLD,
@@ -34,6 +35,22 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
   const [busy, setBusy] = useState(false);
   const [showRanked, setShowRanked] = useState(false);
   const [subTab, setSubTab] = useState("milestones"); // milestones | leaderboard
+
+  // Cross-tree "GO TO RANKED NOW" — opens the Ranked table felt, including when
+  // the user is already in the RANK area. Reacts exactly once per signal.
+  const lastSignal = useRef(0);
+  useEffect(() => {
+    const react = () => {
+      const s = getRankedSignal();
+      if (s > lastSignal.current) {
+        lastSignal.current = s;
+        setSubTab("milestones");
+        setShowRanked(true);
+      }
+    };
+    react();
+    return onRankedNavRequest(react);
+  }, []);
 
   const score = Number(progress?.score) || 0;
   const claimed = Array.isArray(progress?.claimed_ranks) ? progress.claimed_ranks : [];
@@ -186,9 +203,7 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
           <DailyChallengesHub
             daily={challenges.daily}
             loading={challenges.loading}
-            onRevealCard={challenges.revealCard}
             onClaimMission={challenges.claimMission}
-            onClaimCard={challenges.claimCardReward}
           />
 
           {/* Ranked play panel — the only hands that feed this score */}
@@ -199,6 +214,7 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
               recordWin={recordWin}
               onRankedHand={challenges.recordRankedHand}
               boostExpiresAt={challenges.daily?.rank_surge_expires_at || 0}
+              betCapExpiresAt={challenges.daily?.rank_bet_cap_expires_at || 0}
               onClose={() => setShowRanked(false)}
             />
           ) : (
