@@ -22,7 +22,7 @@ const REWARD_META = {
   bet_cap_25: {
     icon: Zap,
     label: "High Roller Pass",
-    sub: "20-Min 25-Chip Bet Cap",
+    sub: "20-MIN 25-CHIP RANK BET CAP",
     color: "#f59e0b",
     durationMs: 20 * 60 * 1000,
     pill: "⚡ Max Bet 25",
@@ -43,15 +43,13 @@ function fmtMMSS(ms) {
 }
 
 // ── Single flip card ────────────────────────────────────────────────
-// Face-down uses the Ranked ruby-red card back. On reveal the chosen card
-// flips to a glowing reward face; the two unchosen cards flip to a dimmed
-// reveal of what was behind them.
+// Face-down uses the Ranked ruby-red card back. Only the chosen card flips
+// to its reward face; the two unchosen cards stay fully face-down.
 function MysteryCard({ index, reward, selected, revealed, onPick, busy }) {
   const meta = REWARD_META[reward.type];
   const Icon = meta.icon;
   const isChosen = selected === index;
-  const isDim = revealed && !isChosen;
-  const flipped = selected !== null;
+  const flipped = isChosen;
 
   return (
     <button
@@ -88,14 +86,8 @@ function MysteryCard({ index, reward, selected, revealed, onPick, busy }) {
             borderRadius: 10,
             background:
               "linear-gradient(160deg, #1a1209 0%, #0c0a06 100%)",
-            border: isChosen
-              ? `1.5px solid ${meta.color}`
-              : "1px solid rgba(212,175,55,0.25)",
-            boxShadow: isChosen
-              ? `0 0 18px ${meta.color}99, inset 0 0 12px ${meta.color}33`
-              : "0 4px 10px rgba(0,0,0,0.4)",
-            opacity: isDim ? 0.42 : 1,
-            filter: isDim ? "grayscale(0.6)" : "none",
+            border: `1.5px solid ${meta.color}`,
+            boxShadow: `0 0 18px ${meta.color}99, inset 0 0 12px ${meta.color}33`,
           }}
         >
           {/* gold inner trim */}
@@ -125,11 +117,6 @@ function MysteryCard({ index, reward, selected, revealed, onPick, busy }) {
           <p className="relative text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-amber-100/70 mt-0.5 leading-tight">
             {meta.sub}
           </p>
-          {isDim && (
-            <span className="relative mt-1 text-[8px] font-black uppercase tracking-widest text-slate-400">
-              Not yours
-            </span>
-          )}
         </div>
       </motion.div>
     </button>
@@ -324,7 +311,7 @@ export default function DailyMysteryCardModal({ user, onUserUpdate }) {
                     onClick={dismiss}
                     className="text-[10px] font-bold uppercase tracking-widest text-amber-200/50 hover:text-amber-200/80 transition"
                   >
-                    Play later (timer will keep running)
+                    PLAY LATER
                   </button>
                 </motion.div>
               )}
