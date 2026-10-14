@@ -12,30 +12,61 @@ import { bruneiToday } from "./bruneiDay";
 
 const BOOST_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 
-// ── Objective definitions ────────────────────────────────────────────
-// Slot 1 = easy participation; Slot 2 = medium wins; Slot 3 = skill.
-export const MISSION_SLOTS = [
-  {
-    slot: 1,
-    type: "play_ranked",
-    target: 5,
-    reward: 5,
-    label: "Play 5 Ranked hands",
-  },
-  {
-    slot: 2,
-    pool: [
-      { type: "win_ranked", target: 3, reward: 10, label: "Win 3 Ranked hands" },
-      { type: "win_ranked", target: 5, reward: 10, label: "Win 5 Ranked hands" },
-    ],
-  },
-  {
-    slot: 3,
-    pool: [
-      { type: "blackjacks_ranked", target: 5, reward: 15, label: "Hit 5 Natural Blackjacks in Ranked" },
-      { type: "win_streak", target: 2, reward: 15, label: "Reach a 2-game winning streak in Ranked" },
-    ],
-  },
+// ── 10 daily mission combinations ─────────────────────────────────────
+// Each player gets one full combination per Brunei day, chosen at random
+// when their daily record is first created. Slot order is fixed:
+// 1 = play participation, 2 = win target, 3 = skill (streak or blackjacks).
+export const MISSION_COMBINATIONS = [
+  [
+    { type: "play_ranked", target: 10, reward: 10, label: "Play 10 Ranked hands" },
+    { type: "win_ranked", target: 5, reward: 15, label: "Win 5 Ranked hands" },
+    { type: "win_streak", target: 5, reward: 25, label: "Reach a 5-game winning streak" },
+  ],
+  [
+    { type: "play_ranked", target: 15, reward: 15, label: "Play 15 Ranked hands" },
+    { type: "win_ranked", target: 5, reward: 15, label: "Win 5 Ranked hands" },
+    { type: "win_streak", target: 3, reward: 15, label: "Reach a 3-game winning streak" },
+  ],
+  [
+    { type: "play_ranked", target: 12, reward: 12, label: "Play 12 Ranked hands" },
+    { type: "win_ranked", target: 10, reward: 25, label: "Win 10 Ranked hands" },
+    { type: "blackjacks_ranked", target: 1, reward: 15, label: "Hit 1 Natural Blackjack" },
+  ],
+  [
+    { type: "play_ranked", target: 5, reward: 5, label: "Play 5 Ranked hands" },
+    { type: "win_ranked", target: 15, reward: 25, label: "Win 15 Ranked hands" },
+    { type: "blackjacks_ranked", target: 2, reward: 25, label: "Hit 2 Natural Blackjacks" },
+  ],
+  [
+    { type: "play_ranked", target: 15, reward: 15, label: "Play 15 Ranked hands" },
+    { type: "win_ranked", target: 10, reward: 15, label: "Win 10 Ranked hands" },
+    { type: "win_streak", target: 3, reward: 15, label: "Reach a 3-game winning streak" },
+  ],
+  [
+    { type: "play_ranked", target: 5, reward: 5, label: "Play 5 Ranked hands" },
+    { type: "win_ranked", target: 20, reward: 35, label: "Win 20 Ranked hands" },
+    { type: "blackjacks_ranked", target: 3, reward: 30, label: "Hit 3 Natural Blackjacks" },
+  ],
+  [
+    { type: "play_ranked", target: 12, reward: 12, label: "Play 12 Ranked hands" },
+    { type: "win_ranked", target: 5, reward: 15, label: "Win 5 Ranked hands" },
+    { type: "win_streak", target: 2, reward: 10, label: "Reach a 2-game winning streak" },
+  ],
+  [
+    { type: "play_ranked", target: 15, reward: 15, label: "Play 15 Ranked hands" },
+    { type: "win_ranked", target: 3, reward: 5, label: "Win 3 Ranked hands" },
+    { type: "blackjacks_ranked", target: 2, reward: 25, label: "Hit 2 Natural Blackjacks" },
+  ],
+  [
+    { type: "play_ranked", target: 20, reward: 15, label: "Play 20 Ranked hands" },
+    { type: "win_ranked", target: 10, reward: 25, label: "Win 10 Ranked hands" },
+    { type: "blackjacks_ranked", target: 1, reward: 15, label: "Hit 1 Natural Blackjack" },
+  ],
+  [
+    { type: "play_ranked", target: 15, reward: 15, label: "Play 15 Ranked hands" },
+    { type: "win_ranked", target: 5, reward: 15, label: "Win 5 Ranked hands" },
+    { type: "win_streak", target: 5, reward: 25, label: "Reach a 5-game winning streak" },
+  ],
 ];
 
 // Mystery Card pool. `instant` cards resolve on reveal; objective cards track
@@ -52,14 +83,17 @@ const EMPTY_COUNTERS = { hands: 0, wins: 0, blackjacks: 0, currentStreak: 0, max
 
 // ── Generation ───────────────────────────────────────────────────────
 function generateMissions() {
-  const out = [];
-  const s1 = MISSION_SLOTS[0];
-  out.push({ slot: 1, type: s1.type, target: s1.target, reward: s1.reward, label: s1.label, claimed: false, claimedAt: 0 });
-  const m2 = MISSION_SLOTS[1].pool[Math.floor(Math.random() * MISSION_SLOTS[1].pool.length)];
-  out.push({ slot: 2, type: m2.type, target: m2.target, reward: m2.reward, label: m2.label, claimed: false, claimedAt: 0 });
-  const m3 = MISSION_SLOTS[2].pool[Math.floor(Math.random() * MISSION_SLOTS[2].pool.length)];
-  out.push({ slot: 3, type: m3.type, target: m3.target, reward: m3.reward, label: m3.label, claimed: false, claimedAt: 0 });
-  return out;
+  const combo =
+    MISSION_COMBINATIONS[Math.floor(Math.random() * MISSION_COMBINATIONS.length)];
+  return combo.map((m, i) => ({
+    slot: i + 1,
+    type: m.type,
+    target: m.target,
+    reward: m.reward,
+    label: m.label,
+    claimed: false,
+    claimedAt: 0,
+  }));
 }
 
 function pickCard() {
