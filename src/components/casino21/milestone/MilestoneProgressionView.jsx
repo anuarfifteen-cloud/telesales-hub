@@ -223,7 +223,8 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
               className="relative w-full py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40 transition"
               style={{ background: "#d4af37" }}
             >
-              ⚔️ Play Ranked (1–10 chips)
+              ⚔️ Play Ranked (1–
+              {Number(challenges.daily?.rank_bet_cap_expires_at || 0) > Date.now() ? 25 : 10} chips)
             </button>
           )}
 

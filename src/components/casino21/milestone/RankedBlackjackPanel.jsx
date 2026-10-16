@@ -105,7 +105,13 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
           : wager * 2
         : 0;
     const chipRefund = res.type === "push" ? wager : 0;
-    setResult({ ...res, chipPayout, chipRefund, bet: wager });
+    // 2× Rank Surge doubles the Rank points a win earns — never the chips paid.
+    // It is read from the same expiry that drives the on-screen Surge pill, so
+    // whatever the player sees active is exactly what applies to this hand.
+    const surgeOn = Number(boostExpiresAt || 0) > Date.now();
+    const rankEarned =
+      res.type === "win" ? (surgeOn ? chipPayout * 2 : chipPayout) : 0;
+    setResult({ ...res, chipPayout, chipRefund, rankEarned, surge: surgeOn, bet: wager });
     setPhase("resolve");
     if (res.type === "win") setTimeout(burstConfetti, 130);
     try {
@@ -142,15 +148,10 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
       });
       // 🏆RANK + Daily Challenges: record this Ranked hand for daily progress,
       // then feed the (boost-doubled) winning payout to the seasonal score.
-      let dailyAfter = null;
       if (onRankedHand) {
-        try { dailyAfter = await onRankedHand({ result: res.type, natural: res.natural }); } catch {}
+        try { await onRankedHand({ result: res.type, natural: res.natural }); } catch {}
       }
-      const boosted =
-        res.type === "win" && dailyAfter && Number(dailyAfter.rank_surge_expires_at || 0) > Date.now()
-          ? chipPayout * 2
-          : chipPayout;
-      if (res.type === "win" && recordWin) recordWin(boosted);
+      if (res.type === "win" && recordWin) recordWin(rankEarned);
       if (res.type === "win") playWinFanfare();
       else if (res.type === "push") playPush();
       else playLoss();
@@ -184,7 +185,10 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
     playClink();
     const fresh = await base44.auth.me();
     const balance = Number(fresh?.casinoChips) || 0;
-    const b = Math.min(shownBet, balance, RANKED_MAX);
+    // Cap to the table ceiling actually in force: 25 while the High Roller Pass
+    // is active, 10 otherwise. (Was hard-capped to 10, so a 25-chip wager was
+    // charged as 10.)
+    const b = Math.min(shownBet, balance, tableMax);
     if (b < RANKED_MIN) {
       toast.error(`You need at least ${RANKED_MIN} chip to play Ranked.`);
       setBusy(false);
@@ -387,7 +391,24 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
           </p>
           <p className="mt-1 text-[11px] font-bold text-emerald-100/80">
             {result.type === "win" ? (
-              <>+{result.chipPayout} chips added to 🏆RANK</>
+              result.surge ? (
+                <span className="flex flex-col items-center gap-1">
+                  <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-rose-200">
+                    <Flame className="w-3 h-3 animate-pulse" /> 2× Rank Surge
+                  </span>
+                  <span>
+                    <span className="font-black text-amber-200 tabular-nums">{result.chipPayout}</span>{" "}
+                    chips paid ·{" "}
+                    <span className="font-black text-amber-200 tabular-nums">{result.rankEarned}</span>{" "}
+                    Rank points earned
+                  </span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-rose-200/70">
+                    Surge doubles Rank points only
+                  </span>
+                </span>
+              ) : (
+                <>+{result.chipPayout} chips added to 🏆RANK</>
+              )
             ) : result.type === "push" ? (
               <>{result.chipRefund} chips returned</>
             ) : (
