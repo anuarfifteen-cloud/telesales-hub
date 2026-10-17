@@ -873,6 +873,16 @@
   100% { transform: scale(1); }
 }
 
+/* ── Daily Missions: bonus-card "ready to claim" border glow ──
+   The unlocked bonus entry keeps the same dark translucent surface as the
+   locked pill; it only gains a slow gold↔emerald pulse so it reads as
+   actionable without ever becoming a solid yellow block. */
+@keyframes bonus-ready-glow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.45), 0 0 12px rgba(212, 175, 55, 0.22); }
+  50%      { box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.50), 0 0 18px rgba(52, 211, 153, 0.30); }
+}
+.bonus-ready-glow { animation: bonus-ready-glow 2.6s ease-in-out infinite; }
+
 /* ── Multiplayer Blackjack: floating buy-in card (Match/Decline) ── */
 @keyframes mp-card-arrive {
   from { opacity: 0; transform: translateY(10px) scale(.985); }

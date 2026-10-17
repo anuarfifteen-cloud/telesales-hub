@@ -163,7 +163,6 @@ export default function DailyChallengesHub({ daily, loading, onClaimMission, onO
   const boostActive = isBoostActive(daily);
   const missions = Array.isArray(daily.missions) ? daily.missions : [];
   const resetMs = msUntilBruneiMidnight();
-  const claimedCount = missions.filter((m) => m.claimed).length;
   const claimableRewards = missions
     .filter((m) => !m.claimed && progressFor(m.type, daily.counters) >= m.target)
     .reduce((sum, m) => sum + (m.reward || 0), 0);
@@ -250,17 +249,16 @@ export default function DailyChallengesHub({ daily, loading, onClaimMission, onO
             mission has been claimed, then the player taps it to claim. */}
         <BonusMysteryCardEntry daily={daily} onOpen={onOpenBonusCard} />
 
-        {/* Footer summary */}
-        <div className="flex items-center gap-2">
-          <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "rgba(207,239,253,0.5)" }}>
-            Missions done today · {claimedCount}/{missions.length}
-          </span>
-          {claimableRewards > 0 && (
-            <span className="ml-auto flex items-center gap-1 text-[9px] font-black uppercase tracking-widest" style={{ color: "#f7d774" }}>
-              <MiniChipIcon size={10} /> {claimableRewards} ready to claim
+        {/* Only rendered while rewards are waiting — the old "missions done
+            today" line added a whole extra row at the bottom. */}
+        {claimableRewards > 0 && (
+          <div className="flex items-center justify-center gap-1.5">
+            <MiniChipIcon size={10} />
+            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#f7d774" }}>
+              {claimableRewards} ready to claim
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
