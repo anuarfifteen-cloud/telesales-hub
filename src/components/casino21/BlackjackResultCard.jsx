@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import MiniChipIcon from "./MiniChipIcon";
+import BlackjackStreakBadge from "./BlackjackStreakBadge";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
 const BLACKJACK_CHIP_BONUS = 100;
@@ -141,6 +142,16 @@ export default function BlackjackResultCard({ show, result, aiResult, showAi, on
                 Player 2 · {aiResult.detail}
               </p>
             )}
+
+            {/* The player's live win streak — and their best ever — in place of
+                any season tally. */}
+            <BlackjackStreakBadge
+              className="mt-3"
+              streak={result.streak}
+              best={result.best}
+              bonus={result.streakBonus}
+              reached={result.streakReached}
+            />
 
             <button
               onClick={onNewRound}

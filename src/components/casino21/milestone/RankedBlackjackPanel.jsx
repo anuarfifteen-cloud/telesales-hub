@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
-import { Play, Plus, Shield, X, Flame, Zap, Trophy } from "lucide-react";
+import { Play, Plus, Shield, X, Flame, Zap } from "lucide-react";
 import { playClink, playWinFanfare, playPush, playLoss } from "@/lib/sounds";
 import { logChipMovement } from "@/lib/chipLog";
 import {
@@ -15,6 +15,14 @@ import {
 import HandPanel from "../HandPanel";
 import MiniChipIcon from "../MiniChipIcon";
 import RankedPlayingCard from "./RankedPlayingCard";
+import BlackjackStreakBadge from "../BlackjackStreakBadge";
+import {
+  registerWin,
+  registerNonWin,
+  readStreak,
+  currentStreak,
+  bestStreak,
+} from "@/lib/blackjackStreak";
 
 // Ranked Blackjack — a focused, self-contained 1-v-1 table that lives inside the
 // 🏆RANK tab. Wagers are strictly 1–10 casinoChips (capped to the player's
@@ -33,7 +41,7 @@ const RANKED_MAX = 10;
 const RANKED_MAX_HIGH_ROLLER = 25; // High Roller Pass raises the ceiling to 25
 const DEALER_DRAW_MS = 550;
 
-export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, betCapExpiresAt, onClose, seasonScore, onScoreSaved }) {
+export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, betCapExpiresAt, onClose, onScoreSaved }) {
   const chips = Number(user?.casinoChips) || 0;
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
@@ -116,8 +124,39 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
     const surgeOn = Number(boostExpiresAt || 0) > Date.now();
     const rankEarned =
       res.type === "win" ? (surgeOn ? chipPayout * 2 : chipPayout) : 0;
-    setResult({ ...res, chipPayout, chipRefund, rankEarned, surge: surgeOn, bet: wager });
+    // Win streak (shared with the Casual table): a win extends the run, a loss
+    // ends it, a push leaves it alone, and each milestone — 5, 10, 20 wins in a
+    // row — pays a one-off chip bonus that also counts toward 🏆RANK. Resolved
+    // before the banner renders so it always shows the settled run.
+    let run = { streak: currentStreak(user), best: bestStreak(user), bonus: 0, reached: [] };
+    try {
+      run =
+        res.type === "win"
+          ? await registerWin(displayName)
+          : res.type === "loss"
+          ? await registerNonWin()
+          : await readStreak();
+    } catch {
+      toast.error("Your win streak didn't save.");
+    }
+    setResult({
+      ...res,
+      chipPayout,
+      chipRefund,
+      rankEarned,
+      surge: surgeOn,
+      bet: wager,
+      streak: run.streak,
+      best: run.best,
+      streakBonus: run.bonus,
+      streakReached: run.reached,
+    });
     setPhase("resolve");
+    if (run.bonus > 0) {
+      toast.success(
+        `🔥 ${run.streak}-win streak! +${run.bonus} chips and +${run.bonus} 🏆RANK points`
+      );
+    }
     if (res.type === "win") setTimeout(burstConfetti, 130);
     try {
       const fresh = await base44.auth.me();
@@ -432,12 +471,15 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
               <>−{result.bet} chips lost</>
             )}
           </p>
-          {/* Season total inline — no need to scroll up to the milestone panel. */}
-          <p className="mt-2 flex items-center justify-center gap-1 text-[10px] font-black uppercase tracking-widest text-amber-200/70">
-            <Trophy className="w-3 h-3" />
-            Season total
-            <span className="tabular-nums text-amber-200">{Number(seasonScore) || 0}</span>
-          </p>
+          {/* Streak stands in here. The accumulated season total stays in the
+              milestone panel — it no longer appears over the play result. */}
+          <BlackjackStreakBadge
+            className="mt-2.5"
+            streak={result.streak}
+            best={result.best}
+            bonus={result.streakBonus}
+            reached={result.streakReached}
+          />
           <button
             onClick={newRound}
             className="mt-2.5 w-full py-2 rounded-full bg-amber-400 text-emerald-950 text-xs font-black uppercase tracking-widest border border-amber-300 hover:brightness-105 transition"

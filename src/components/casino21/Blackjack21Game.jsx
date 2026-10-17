@@ -52,6 +52,13 @@ import MiniChipIcon from "./MiniChipIcon";
 import MilestoneProgressionView from "./milestone/MilestoneProgressionView";
 import RankClaimPopup from "./milestone/RankClaimPopup";
 import useMilestoneClaim from "./milestone/useMilestoneClaim";
+import {
+  registerWin,
+  registerNonWin,
+  readStreak,
+  currentStreak,
+  bestStreak,
+} from "@/lib/blackjackStreak";
 import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 
 const GAME_TYPE = "blackjack";
@@ -245,8 +252,40 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     const chipRefund = type === "push" ? wager : 0;
     const tokensWon = type === "win" ? tokenWin : null;
     const chipsWon = type === "win" ? wager * 2 : null;
-    setResult({ type, detail, natural, tokenWin, chipBonus, chipRefund, bet: wager });
+    // Win streak (shared with the Ranked table): a win extends the run, a loss
+    // ends it, a push leaves it alone, and each milestone — 5, 10, 20 wins in a
+    // row — pays a one-off chip bonus that also counts toward 🏆RANK. Resolved
+    // before the popup renders so it always shows the settled run.
+    let run = { streak: currentStreak(user), best: bestStreak(user), bonus: 0, reached: [] };
+    try {
+      run =
+        type === "win"
+          ? await registerWin(displayName)
+          : type === "loss"
+          ? await registerNonWin()
+          : await readStreak();
+    } catch {
+      toast.error("Your win streak didn't save.");
+    }
+    setResult({
+      type,
+      detail,
+      natural,
+      tokenWin,
+      chipBonus,
+      chipRefund,
+      bet: wager,
+      streak: run.streak,
+      best: run.best,
+      streakBonus: run.bonus,
+      streakReached: run.reached,
+    });
     setPhase("resolve");
+    if (run.bonus > 0) {
+      toast.success(
+        `🔥 ${run.streak}-win streak! +${run.bonus} chips and +${run.bonus} 🏆RANK points`
+      );
+    }
     // Hold the popup back for a beat so the Dealer's final cards and total stay
     // in view, then land it — with the win/loss flash and fireworks timed to it.
     setResultVisible(false);

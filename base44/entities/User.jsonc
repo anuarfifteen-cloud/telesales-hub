@@ -95,6 +95,23 @@
       "type": "string",
       "description": "YYYY-MM-DD (Brunei timezone) of the user's most recent app session, updated client-side on app load for inactive-user leaderboard filtering"
     },
+    "bj21WinStreak": {
+      "type": "number",
+      "default": 0,
+      "description": "Blackjack 21 win streak \u2014 consecutive winning hands, shared by the Casual and Ranked tables. A win extends the run, a loss resets it to 0, and a push leaves it untouched."
+    },
+    "bj21BestWinStreak": {
+      "type": "number",
+      "default": 0,
+      "description": "The longest Blackjack 21 win streak this player has ever reached. Only ever increases, so it survives a lost hand."
+    },
+    "bj21StreakBonuses": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "Streak milestones (5, 10, 20) already paid during the current run, so each chip bonus is credited once per run. Cleared when the streak is broken."
+    },
     "diamondSmashBoosters": {
       "type": "object",
       "description": "Persistent stock of Diamond Smash boosters purchased by the user",
