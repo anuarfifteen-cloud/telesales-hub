@@ -6,7 +6,9 @@ import { playCardSlide } from "@/lib/sounds";
 //   • Card back: deep ruby crimson with subtle gold filigree lattice.
 //   • Card face: brushed platinum/silver metallic surface, regal Cinzel
 //     serif rank + suit, charcoal Spades/Clubs, metallic ruby
-//     Hearts/Diamonds, ornate central crest on J/Q/K/A.
+//     Hearts/Diamonds. Court cards (J/Q/K) carry NO background ornament — a
+//     faint royal emblem used to sit behind the centre pip and read as an
+//     unwanted pattern bleeding through the middle of the card.
 //   • Smooth 8px rounded corners, soft drop shadow, no thick black outline.
 
 // Ruby crimson back fill with a subtle gold filigree diamond lattice.
@@ -20,21 +22,6 @@ const RUBY_BACK =
 const SILVER_FACE =
   "repeating-linear-gradient(90deg, rgba(255,255,255,0.30) 0 1px, transparent 1px 3px), " +
   "linear-gradient(160deg, #fbfbfd 0%, #ececf1 32%, #dadae2 62%, #c7c7d2 100%)";
-
-// Central crest ornament for court cards (J/Q/K/A) — a silver filigree emblem.
-function Crest({ rank }) {
-  const emblem = rank === "A" ? "✦" : rank === "K" ? "♛" : rank === "Q" ? "♕" : "♟";
-  return (
-    <div
-      className="absolute inset-0 flex items-center justify-center pointer-events-none"
-      style={{ color: "rgba(90,90,110,0.18)" }}
-    >
-      <span className="text-2xl sm:text-3xl" style={{ fontFamily: "Cinzel, serif" }}>
-        {emblem}
-      </span>
-    </div>
-  );
-}
 
 export function RankedCardBack() {
   return (
@@ -74,11 +61,6 @@ export function RankedCardBack() {
 function RankedCardFace({ card }) {
   const isRed = card?.color === "red";
   const suitColor = isRed ? "#9b1b3a" : "#2a2a33"; // metallic ruby / charcoal
-  const isCourt =
-    card?.rank === "A" ||
-    card?.rank === "J" ||
-    card?.rank === "Q" ||
-    card?.rank === "K";
 
   return (
     <div
@@ -94,8 +76,6 @@ function RankedCardFace({ card }) {
         className="absolute inset-0.5"
         style={{ borderRadius: 6, border: "1px solid rgba(160,160,175,0.35)" }}
       />
-
-      {isCourt && <Crest rank={card.rank} />}
 
       {/* Top-left rank + suit */}
       <div
