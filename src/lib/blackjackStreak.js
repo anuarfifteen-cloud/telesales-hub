@@ -5,9 +5,11 @@
 //   bj21<Mode>BestWinStreak the longest run ever reached
 //   bj21<Mode>StreakBonuses the milestones (5, 10, 20) this run has already paid
 //
-// A win extends that mode's run, a loss ends it, a push leaves it untouched, and
-// the two runs never affect each other. Each milestone pays once per run, in
-// chips that also count toward the seasonal 🏆RANK score.
+// A win extends that mode's run; a loss, a push or a draw ends it; the two runs
+// never affect each other. Each milestone pays once per run — chips on both
+// tables, and on the Ranked table that same amount again as seasonal 🏆RANK
+// points. Casual bonuses are deliberately chips only: the Casual table never
+// feeds the season score.
 import { base44 } from "@/api/base44Client";
 import { addWinPayout } from "./milestone";
 
@@ -52,17 +54,6 @@ async function freshUser() {
   return await base44.auth.me();
 }
 
-// A hand that neither won nor lost — the run is read, never changed.
-export async function readStreak(mode = "casual") {
-  const me = await freshUser();
-  return {
-    streak: currentStreak(me, mode),
-    best: bestStreak(me, mode),
-    bonus: 0,
-    reached: [],
-  };
-}
-
 // A won hand: extend that mode's run and pay any milestone reached on this win.
 export async function registerWin(mode = "casual", displayName) {
   const f = fields(mode);
@@ -79,10 +70,11 @@ export async function registerWin(mode = "casual", displayName) {
   };
   if (bonus > 0) patch.casinoChips = num(me?.casinoChips) + bonus;
   await base44.auth.updateMe(patch);
-  if (bonus > 0) {
-    // The bonus counts toward 🏆RANK too, so it pays through the standard
-    // milestone helper that keeps the season score and its public leaderboard
-    // mirror in step.
+  // Ranked bonuses also count toward 🏆RANK, paid through the standard milestone
+  // helper that keeps the season score and its public leaderboard mirror in step.
+  // Casual bonuses stop at the chips credited above — the table is not Ranked,
+  // so its milestone rewards never touch the season score.
+  if (bonus > 0 && mode === "ranked") {
     try {
       await addWinPayout(
         me.id,
@@ -96,8 +88,8 @@ export async function registerWin(mode = "casual", displayName) {
   return { streak, best, bonus, reached: hit.map((b) => b.streak) };
 }
 
-// A lost hand: that mode's run ends, its best-ever mark stays, its milestones
-// re-arm. The other mode's run is untouched.
+// A hand that didn't win — a loss, a push or a draw: that mode's run ends, its
+// best-ever mark stays, its milestones re-arm. The other mode is untouched.
 export async function registerNonWin(mode = "casual") {
   const f = fields(mode);
   const me = await freshUser();

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { bestStreak } from "@/lib/blackjackStreak";
 
 // All-time Blackjack stats, split by mode.
 //   Casual  → detail does NOT start with "Ranked"
@@ -41,7 +42,7 @@ async function loadStats(userId, modeKey) {
   return { total, wins, losses, pushes, blackjacks, net };
 }
 
-export default function BlackjackStats({ userId }) {
+export default function BlackjackStats({ userId, user }) {
   const [mode, setMode] = useState("casual");
 
   const { data, isLoading } = useQuery({
@@ -58,6 +59,10 @@ export default function BlackjackStats({ userId }) {
   const net = data?.net ?? 0;
   const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
 
+  // The longest run of consecutive wins on the table being viewed. Casual and
+  // Ranked each keep their own record on the player's user record.
+  const best = bestStreak(user || {}, mode);
+
   const cells = [
     { label: "Rounds", value: total, color: "text-foreground" },
     { label: "Wins", value: wins, color: "text-emerald-600 dark:text-emerald-400" },
@@ -66,6 +71,7 @@ export default function BlackjackStats({ userId }) {
     { label: "Blackjacks", value: blackjacks, color: "text-amber-600 dark:text-amber-400" },
     { label: "Win rate", value: total > 0 ? `${winRate}%` : "—", color: "text-blue-600 dark:text-blue-400" },
     { label: "Net tokens", value: net > 0 ? `+${net}` : net, color: net >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400" },
+    { label: "Best streak", value: best > 0 ? best : "—", color: "text-amber-600 dark:text-amber-400" },
   ];
 
   return (
@@ -106,7 +112,8 @@ export default function BlackjackStats({ userId }) {
       )}
 
       <p className="text-[10px] text-center text-muted-foreground px-2">
-        All-time {mode === "ranked" ? "Ranked" : "Casual"} totals across every recorded round.
+        All-time {mode === "ranked" ? "Ranked" : "Casual"} totals across every recorded round. Best
+        streak is the longest run of consecutive wins on this table.
       </p>
     </div>
   );

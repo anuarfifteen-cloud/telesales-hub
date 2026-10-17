@@ -19,7 +19,6 @@ import BlackjackStreakBadge from "../BlackjackStreakBadge";
 import {
   registerWin,
   registerNonWin,
-  readStreak,
   currentStreak,
   bestStreak,
 } from "@/lib/blackjackStreak";
@@ -124,11 +123,11 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
     const surgeOn = Number(boostExpiresAt || 0) > Date.now();
     const rankEarned =
       res.type === "win" ? (surgeOn ? chipPayout * 2 : chipPayout) : 0;
-    // Ranked win streak — its own run, kept separate from the Casual table's: a
-    // win extends it, a loss ends it, a push leaves it alone, and each milestone
-    // — 5, 10, 20 wins in a row — pays a one-off chip bonus that also counts
-    // toward 🏆RANK. Resolved before the banner renders so it always shows the
-    // settled run.
+    // Ranked win streak — its own run, kept separate from the Casual table's. Only
+    // consecutive wins keep it going: a loss, a push or a draw ends it. Each
+    // milestone — 5, 10, 20 wins in a row — pays a one-off chip bonus that also
+    // counts toward 🏆RANK. Resolved before the banner renders so it always shows
+    // the settled run.
     let run = {
       streak: currentStreak(user, "ranked"),
       best: bestStreak(user, "ranked"),
@@ -139,9 +138,7 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
       run =
         res.type === "win"
           ? await registerWin("ranked", displayName)
-          : res.type === "loss"
-          ? await registerNonWin("ranked")
-          : await readStreak("ranked");
+          : await registerNonWin("ranked");
     } catch {
       toast.error("Your win streak didn't save.");
     }

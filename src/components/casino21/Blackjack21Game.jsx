@@ -55,7 +55,6 @@ import useMilestoneClaim from "./milestone/useMilestoneClaim";
 import {
   registerWin,
   registerNonWin,
-  readStreak,
   currentStreak,
   bestStreak,
 } from "@/lib/blackjackStreak";
@@ -252,11 +251,11 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     const chipRefund = type === "push" ? wager : 0;
     const tokensWon = type === "win" ? tokenWin : null;
     const chipsWon = type === "win" ? wager * 2 : null;
-    // Casual win streak — its own run, kept separate from the Ranked table's: a
-    // win extends it, a loss ends it, a push leaves it alone, and each milestone
-    // — 5, 10, 20 wins in a row — pays a one-off chip bonus that also counts
-    // toward 🏆RANK. Resolved before the popup renders so it always shows the
-    // settled run.
+    // Casual win streak — its own run, kept separate from the Ranked table's. Only
+    // consecutive wins keep it going: a loss, a push or a draw ends it. Each
+    // milestone — 5, 10, 20 wins in a row — pays a one-off chip bonus, chips only,
+    // since the Casual table never feeds the season score. Resolved before the
+    // popup renders so it always shows the settled run.
     let run = {
       streak: currentStreak(user, "casual"),
       best: bestStreak(user, "casual"),
@@ -267,9 +266,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       run =
         type === "win"
           ? await registerWin("casual", displayName)
-          : type === "loss"
-          ? await registerNonWin("casual")
-          : await readStreak("casual");
+          : await registerNonWin("casual");
     } catch {
       toast.error("Your win streak didn't save.");
     }
@@ -288,9 +285,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     });
     setPhase("resolve");
     if (run.bonus > 0) {
-      toast.success(
-        `🔥 ${run.streak}-win streak! +${run.bonus} chips and +${run.bonus} 🏆RANK points`
-      );
+      toast.success(`🔥 ${run.streak}-win streak! +${run.bonus} chips`);
     }
     // Hold the popup back for a beat so the Dealer's final cards and total stay
     // in view, then land it — with the win/loss flash and fireworks timed to it.
@@ -731,7 +726,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         />
       )}
 
-      {view === "stats" && <BlackjackStats userId={user?.id} />}
+      {view === "stats" && <BlackjackStats userId={user?.id} user={user} />}
       {view === "history" && <BlackjackHistory userId={user?.id} />}
 
       <ChipCashierModal
