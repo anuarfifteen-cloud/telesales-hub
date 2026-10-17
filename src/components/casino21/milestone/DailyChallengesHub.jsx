@@ -7,6 +7,7 @@ import {
   msUntilBruneiMidnight,
 } from "@/lib/dailyChallenges";
 import MiniChipIcon from "../MiniChipIcon";
+import BonusMysteryCardEntry from "./BonusMysteryCardEntry";
 
 function fmtReset(ms) {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -144,7 +145,7 @@ function MissionTicket({ mission, progress, done, onClaim }) {
   );
 }
 
-export default function DailyChallengesHub({ daily, loading, onClaimMission }) {
+export default function DailyChallengesHub({ daily, loading, onClaimMission, onOpenBonusCard }) {
   const [, setNow] = useState(Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -244,6 +245,10 @@ export default function DailyChallengesHub({ daily, loading, onClaimMission }) {
             />
           ))}
         </div>
+
+        {/* Bonus Mystery Card — never opens itself. Locked until every daily
+            mission has been claimed, then the player taps it to claim. */}
+        <BonusMysteryCardEntry daily={daily} onOpen={onOpenBonusCard} />
 
         {/* Footer summary */}
         <div className="flex items-center gap-2">

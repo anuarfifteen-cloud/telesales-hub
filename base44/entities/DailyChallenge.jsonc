@@ -64,7 +64,30 @@
         "chips_100",
         "bet_cap_25"
       ],
-      "description": "The reward revealed on today's Daily Mystery Card: surge_2x = 30-min 2\u00d7 Rank Surge, bet_cap_25 = 20-min 25-chip Ranked bet cap, chips_100 = 100 chips credited directly (does not count toward seasonal milestone score)."
+      "description": "The reward revealed on today's Daily Mystery Card: surge_2x = 30-min 2\u00d7 Rank Surge, bet_cap_25 = 20-min 25-chip Ranked bet cap, chips_100 = 100 chips credited directly plus 100 seasonal \ud83c\udfc6RANK points."
+    },
+    "bonus_mystery_card_status": {
+      "type": "string",
+      "enum": [
+        "locked",
+        "revealed"
+      ],
+      "default": "locked",
+      "description": "The BONUS Mystery Card for this day. It is claimable only once every daily mission has been claimed, and is never opened automatically \u2014 the player taps the bonus button. locked = not yet revealed; revealed = the bonus card was chosen today and cannot be rerolled or re-credited."
+    },
+    "bonus_mystery_card_selection": {
+      "type": "number",
+      "description": "The bonus card index (0, 1 or 2) the player chose today. -1 before a choice is made.",
+      "default": -1
+    },
+    "bonus_mystery_card_reward": {
+      "type": "string",
+      "enum": [
+        "surge_2x",
+        "chips_100",
+        "bet_cap_25"
+      ],
+      "description": "The reward revealed on today's BONUS Mystery Card: surge_2x = 30-min 2\u00d7 Rank Surge, bet_cap_25 = 20-min 25-chip Ranked bet cap, chips_100 = 100 chips credited directly plus 100 seasonal \ud83c\udfc6RANK points."
     },
     "rank_surge_expires_at": {
       "type": "number",

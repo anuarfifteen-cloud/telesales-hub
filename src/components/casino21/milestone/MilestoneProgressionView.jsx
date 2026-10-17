@@ -14,6 +14,7 @@ import {
 import useMilestoneData from "./useMilestoneData";
 import useDailyChallenges from "./useDailyChallenges";
 import DailyChallengesHub from "./DailyChallengesHub";
+import BonusMysteryCardModal from "./BonusMysteryCardModal";
 import RankedBlackjackPanel from "./RankedBlackjackPanel";
 import MilestoneLeaderboard from "./MilestoneLeaderboard";
 import MiniChipIcon from "../MiniChipIcon";
@@ -35,6 +36,7 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
   const [busy, setBusy] = useState(false);
   const [showRanked, setShowRanked] = useState(false);
   const [subTab, setSubTab] = useState("milestones"); // milestones | leaderboard
+  const [showBonusCard, setShowBonusCard] = useState(false);
 
   // Cross-tree "GO TO RANKED NOW" — opens the Ranked table felt, including when
   // the user is already in the RANK area. Reacts exactly once per signal.
@@ -204,6 +206,7 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
             daily={challenges.daily}
             loading={challenges.loading}
             onClaimMission={challenges.claimMission}
+            onOpenBonusCard={() => setShowBonusCard(true)}
           />
 
           {/* Ranked play panel — the only hands that feed this score */}
@@ -330,6 +333,14 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
           </p>
         </>
       )}
+
+      {/* Bonus Mystery Card — only ever opened by the player's bonus button */}
+      <BonusMysteryCardModal
+        user={user}
+        open={showBonusCard}
+        onClose={() => setShowBonusCard(false)}
+        onUserUpdate={onUserUpdate}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import {
   recordRankedHand as recordRankedHandLib,
   claimMission as claimMissionLib,
   revealMysteryCard as revealMysteryCardLib,
+  revealBonusMysteryCard as revealBonusMysteryCardLib,
 } from "@/lib/dailyChallenges";
 
 // Single source of truth for a player's Ranked daily challenges + Daily
@@ -76,6 +77,19 @@ export default function useDailyChallenges(user, onUserUpdate) {
     }
   }, []);
 
+  const revealBonusMysteryCard = useCallback(async (selection, reward) => {
+    const u = userRef.current;
+    if (!u?.id) return null;
+    try {
+      const d = await revealBonusMysteryCardLib(u, selection, reward);
+      setDaily(d);
+      await onUpdateRef.current?.();
+      return d;
+    } catch {
+      return null;
+    }
+  }, []);
+
   return {
     daily,
     loading,
@@ -83,5 +97,6 @@ export default function useDailyChallenges(user, onUserUpdate) {
     recordRankedHand,
     claimMission,
     revealMysteryCard,
+    revealBonusMysteryCard,
   };
 }

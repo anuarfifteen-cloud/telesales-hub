@@ -9,9 +9,12 @@
 // that depends on it.
 import { base44 } from "@/api/base44Client";
 import { bruneiToday } from "./bruneiDay";
+import { addWinPayout } from "./milestone";
 
 const BOOST_DURATION_MS = 30 * 60 * 1000; // 30 minutes (2× Rank Surge)
 const BETCAP_DURATION_MS = 20 * 60 * 1000; // 20 minutes (High Roller Pass)
+const DIRECT_DROP_CHIPS = 100; // chips credited by the Direct Drop card
+const DIRECT_DROP_RANK_POINTS = 100; // seasonal 🏆RANK points it also grants
 
 // ── 10 daily mission combinations ─────────────────────────────────────
 // Each player gets one full combination per Brunei day, chosen at random
@@ -74,7 +77,7 @@ export const MISSION_COMBINATIONS = [
 // The three outcomes shuffled across the three face-down cards each day.
 //   surge_2x   → 30-min 2× Rank Surge (sets rank_surge_expires_at)
 //   bet_cap_25 → 20-min High Roller Pass (sets rank_bet_cap_expires_at)
-//   chips_100  → 100 chips credited directly, no milestone score impact
+//   chips_100  → 100 chips credited directly, plus 100 seasonal 🏆RANK points
 export const MYSTERY_REWARDS = [
   { type: "surge_2x", label: "2× Rank Surge", durationMs: BOOST_DURATION_MS },
   { type: "bet_cap_25", label: "High Roller Pass", durationMs: BETCAP_DURATION_MS },
@@ -145,8 +148,9 @@ export function msUntilBruneiMidnight() {
 }
 
 // ── Chip credit helper ──────────────────────────────────────────────
-// Rewards go straight to casinoChips as playable balance. They are NOT added
-// to the seasonal winning-payout score (that only comes from Ranked wins).
+// Mission rewards go straight to casinoChips as playable balance. They are NOT
+// added to the seasonal winning-payout score (only the Direct Drop below and
+// real Ranked wins are).
 async function creditChips(user, amount, detail) {
   if (!user?.id || amount <= 0) return;
   const fresh = await base44.auth.me();
@@ -164,6 +168,21 @@ async function creditChips(user, amount, detail) {
       timestamp: new Date().toISOString(),
     });
   } catch {}
+}
+
+// ── Direct Drop helper ──────────────────────────────────────────────
+// The Mystery Card's 100-chip Direct Drop credits 100 playable chips AND 100
+// seasonal 🏆RANK points, using the standard milestone helper so the seasonal
+// score and the public leaderboard mirror stay consistent with Ranked wins.
+async function creditDirectDrop(user, source) {
+  await creditChips(user, DIRECT_DROP_CHIPS, `${source} — Direct Drop (+100 chips)`);
+  try {
+    const fresh = await base44.auth.me();
+    const name = fresh?.full_name || user?.full_name || user?.email || "";
+    await addWinPayout(user.id, name, DIRECT_DROP_RANK_POINTS);
+  } catch {
+    /* best-effort — a milestone hiccup must never block the chip credit */
+  }
 }
 
 // ── Ensure today's record exists ─────────────────────────────────────
@@ -185,6 +204,9 @@ export async function ensureDaily(user) {
     daily_mystery_card_status: "unopened",
     daily_mystery_card_selection: -1,
     daily_mystery_card_reward: null,
+    bonus_mystery_card_status: "locked",
+    bonus_mystery_card_selection: -1,
+    bonus_mystery_card_reward: null,
     rank_surge_expires_at: 0,
     rank_bet_cap_expires_at: 0,
     last_mystery_popup_date: "",
@@ -248,9 +270,40 @@ export async function revealMysteryCard(user, selection, reward) {
   if (reward === "surge_2x") patch.rank_surge_expires_at = now + BOOST_DURATION_MS;
   else if (reward === "bet_cap_25") patch.rank_bet_cap_expires_at = now + BETCAP_DURATION_MS;
   const updated = await base44.entities.DailyChallenge.update(daily.id, patch);
-  // chips_100 effect: credit +100 chips. Does NOT touch the milestone score.
+  // chips_100 effect: +100 chips AND +100 seasonal 🏆RANK points.
   if (reward === "chips_100") {
-    await creditChips(user, 100, "Daily Mystery Card — Direct Drop (+100 chips)");
+    await creditDirectDrop(user, "Daily Mystery Card");
   }
+  return updated;
+}
+
+// ── Bonus Mystery Card (unlocked by claiming every mission) ──────────
+// Eligibility is derived, never stored: the bonus card exists only once every
+// daily mission has been claimed today, and it never opens automatically.
+export function bonusCardUnlocked(daily) {
+  const missions = Array.isArray(daily?.missions) ? daily.missions : [];
+  return missions.length > 0 && missions.every((m) => m.claimed);
+}
+
+// Reveal today's BONUS card. Gated twice: nothing is written unless every
+// mission is claimed, and nothing is written if the bonus card was already
+// revealed today (so repeated taps or a refresh can never reroll it). The
+// assignment + perk expiry are persisted BEFORE any effect is applied.
+export async function revealBonusMysteryCard(user, selection, reward) {
+  const daily = await ensureDaily(user);
+  if (!daily) return null;
+  if (daily.bonus_mystery_card_status === "revealed") return daily;
+  if (!bonusCardUnlocked(daily)) return daily;
+  const now = Date.now();
+  const patch = {
+    bonus_mystery_card_status: "revealed",
+    bonus_mystery_card_selection: selection,
+    bonus_mystery_card_reward: reward,
+  };
+  if (reward === "surge_2x") patch.rank_surge_expires_at = now + BOOST_DURATION_MS;
+  else if (reward === "bet_cap_25") patch.rank_bet_cap_expires_at = now + BETCAP_DURATION_MS;
+  const updated = await base44.entities.DailyChallenge.update(daily.id, patch);
+  // chips_100 effect: +100 chips AND +100 seasonal 🏆RANK points.
+  if (reward === "chips_100") await creditDirectDrop(user, "Bonus Mystery Card");
   return updated;
 }
