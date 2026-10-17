@@ -106,7 +106,9 @@ function resolveRound(playerHand, aiHand, dealerHand, difficulty) {
 
   if (pBust) {
     type = "loss";
-    if (topHands.length === 0) detail = "ALL BUST";
+    // You busted, so the wager is lost — even when the Dealer busted too.
+    // Nobody wins that hand, and a bust never refunds the bet.
+    if (topHands.length === 0) detail = "BOTH BUST — NO WINNER";
     else if (topHands.length > 1) detail = `${winnerLabel(topHands)} TIE`;
     else if (topHands[0].who === "ai") detail = "PLAYER 2 WINS";
     else detail = "DEALER WINS";

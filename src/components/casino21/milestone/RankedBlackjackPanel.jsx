@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
-import { Play, Plus, Shield, X, Flame, Zap } from "lucide-react";
+import { Play, Plus, Shield, X, Flame, Zap, Trophy } from "lucide-react";
 import { playClink, playWinFanfare, playPush, playLoss } from "@/lib/sounds";
 import { logChipMovement } from "@/lib/chipLog";
 import {
@@ -25,14 +25,15 @@ import RankedPlayingCard from "./RankedPlayingCard";
 //   Win (1:1)         → wager * 2 returned
 //   Natural BJ (3:2)  → floor(wager * 2.5) returned
 //   Push              → wager refunded
-//   Both bust         → tie: wager refunded, shown as "BOTH BUST — NO WINNER"
+//   Both bust         → no winner ("BOTH BUST — NO WINNER") and the wager is
+//                       still lost, never refunded
 //   Loss              → nothing (wager already deducted at deal)
 const RANKED_MIN = 1;
 const RANKED_MAX = 10;
 const RANKED_MAX_HIGH_ROLLER = 25; // High Roller Pass raises the ceiling to 25
 const DEALER_DRAW_MS = 550;
 
-export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, betCapExpiresAt, onClose }) {
+export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, betCapExpiresAt, onClose, seasonScore }) {
   const chips = Number(user?.casinoChips) || 0;
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
@@ -87,9 +88,9 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
     const pNatural = isBlackjack(playerHand);
     const dNatural = isBlackjack(dealerHand);
 
-    // Both hands over 21 → nobody wins. Treated as a tie (push) so the wager
-    // is refunded instead of the player being charged for a bust.
-    if (pBust && dBust) return { type: "push", detail: "BOTH BUST — NO WINNER", natural: false };
+    // Both hands over 21 → nobody wins the hand, but the bust still costs the
+    // player: the wager is a loss and is never refunded.
+    if (pBust && dBust) return { type: "loss", detail: "BOTH BUST — NO WINNER", natural: false };
     if (pBust) return { type: "loss", detail: "BUST — DEALER WINS", natural: false };
     if (pNatural && dNatural) return { type: "push", detail: "PUSH — BOTH BLACKJACK", natural: false };
     if (pNatural) return { type: "win", detail: "BLACKJACK! YOU WIN", natural: true };
@@ -418,6 +419,12 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
             ) : (
               <>−{result.bet} chips lost</>
             )}
+          </p>
+          {/* Season total inline — no need to scroll up to the milestone panel. */}
+          <p className="mt-2 flex items-center justify-center gap-1 text-[10px] font-black uppercase tracking-widest text-amber-200/70">
+            <Trophy className="w-3 h-3" />
+            Season total
+            <span className="tabular-nums text-amber-200">{Number(seasonScore) || 0}</span>
           </p>
           <button
             onClick={newRound}
