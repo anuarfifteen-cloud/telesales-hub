@@ -25,6 +25,7 @@ import RankedPlayingCard from "./RankedPlayingCard";
 //   Win (1:1)         → wager * 2 returned
 //   Natural BJ (3:2)  → floor(wager * 2.5) returned
 //   Push              → wager refunded
+//   Both bust         → tie: wager refunded, shown as "BOTH BUST — NO WINNER"
 //   Loss              → nothing (wager already deducted at deal)
 const RANKED_MIN = 1;
 const RANKED_MAX = 10;
@@ -86,6 +87,9 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
     const pNatural = isBlackjack(playerHand);
     const dNatural = isBlackjack(dealerHand);
 
+    // Both hands over 21 → nobody wins. Treated as a tie (push) so the wager
+    // is refunded instead of the player being charged for a bust.
+    if (pBust && dBust) return { type: "push", detail: "BOTH BUST — NO WINNER", natural: false };
     if (pBust) return { type: "loss", detail: "BUST — DEALER WINS", natural: false };
     if (pNatural && dNatural) return { type: "push", detail: "PUSH — BOTH BLACKJACK", natural: false };
     if (pNatural) return { type: "win", detail: "BLACKJACK! YOU WIN", natural: true };
