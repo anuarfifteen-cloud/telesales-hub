@@ -252,18 +252,24 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
     const chipRefund = type === "push" ? wager : 0;
     const tokensWon = type === "win" ? tokenWin : null;
     const chipsWon = type === "win" ? wager * 2 : null;
-    // Win streak (shared with the Ranked table): a win extends the run, a loss
-    // ends it, a push leaves it alone, and each milestone — 5, 10, 20 wins in a
-    // row — pays a one-off chip bonus that also counts toward 🏆RANK. Resolved
-    // before the popup renders so it always shows the settled run.
-    let run = { streak: currentStreak(user), best: bestStreak(user), bonus: 0, reached: [] };
+    // Casual win streak — its own run, kept separate from the Ranked table's: a
+    // win extends it, a loss ends it, a push leaves it alone, and each milestone
+    // — 5, 10, 20 wins in a row — pays a one-off chip bonus that also counts
+    // toward 🏆RANK. Resolved before the popup renders so it always shows the
+    // settled run.
+    let run = {
+      streak: currentStreak(user, "casual"),
+      best: bestStreak(user, "casual"),
+      bonus: 0,
+      reached: [],
+    };
     try {
       run =
         type === "win"
-          ? await registerWin(displayName)
+          ? await registerWin("casual", displayName)
           : type === "loss"
-          ? await registerNonWin()
-          : await readStreak();
+          ? await registerNonWin("casual")
+          : await readStreak("casual");
     } catch {
       toast.error("Your win streak didn't save.");
     }

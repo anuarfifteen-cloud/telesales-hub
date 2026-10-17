@@ -1,16 +1,28 @@
-// Blackjack 21 win streaks — shared by the Casual and the Ranked table.
+// Blackjack 21 win streaks — the Casual and Ranked tables each keep their own.
 //
-// The run lives on the player's own user record, so one streak follows them
-// across both games and every device:
-//   bj21WinStreak     the current run of consecutive winning hands
-//   bj21BestWinStreak the longest run ever reached
-//   bj21StreakBonuses the milestones (5, 10, 20) this run has already paid
+// Every mode owns three fields on the player's user record:
+//   bj21<Mode>WinStreak     the current run of consecutive winning hands
+//   bj21<Mode>BestWinStreak the longest run ever reached
+//   bj21<Mode>StreakBonuses the milestones (5, 10, 20) this run has already paid
 //
-// A win extends the run, a loss ends it, a push leaves it untouched. Each
-// milestone pays once per run, in chips that also count toward the seasonal
-// 🏆RANK score.
+// A win extends that mode's run, a loss ends it, a push leaves it untouched, and
+// the two runs never affect each other. Each milestone pays once per run, in
+// chips that also count toward the seasonal 🏆RANK score.
 import { base44 } from "@/api/base44Client";
 import { addWinPayout } from "./milestone";
+
+const FIELDS = {
+  casual: {
+    streak: "bj21CasualWinStreak",
+    best: "bj21CasualBestWinStreak",
+    bonuses: "bj21CasualStreakBonuses",
+  },
+  ranked: {
+    streak: "bj21RankedWinStreak",
+    best: "bj21RankedBestWinStreak",
+    bonuses: "bj21RankedStreakBonuses",
+  },
+};
 
 export const STREAK_BONUSES = [
   { streak: 5, chips: 50 },
@@ -19,17 +31,19 @@ export const STREAK_BONUSES = [
 ];
 
 const num = (v) => Math.max(0, Number(v) || 0);
+const fields = (mode) => FIELDS[mode] || FIELDS.casual;
 
-export function currentStreak(user) {
-  return num(user?.bj21WinStreak);
+export function currentStreak(user, mode = "casual") {
+  return num(user?.[fields(mode).streak]);
 }
 
-export function bestStreak(user) {
-  return num(user?.bj21BestWinStreak);
+export function bestStreak(user, mode = "casual") {
+  return num(user?.[fields(mode).best]);
 }
 
-function paidMilestones(user) {
-  return Array.isArray(user?.bj21StreakBonuses) ? user.bj21StreakBonuses : [];
+function paidMilestones(user, mode) {
+  const paid = user?.[fields(mode).bonuses];
+  return Array.isArray(paid) ? paid : [];
 }
 
 // Every write reads the run back off the record first, so a user object that has
@@ -39,22 +53,29 @@ async function freshUser() {
 }
 
 // A hand that neither won nor lost — the run is read, never changed.
-export async function readStreak() {
+export async function readStreak(mode = "casual") {
   const me = await freshUser();
-  return { streak: currentStreak(me), best: bestStreak(me), bonus: 0, reached: [] };
+  return {
+    streak: currentStreak(me, mode),
+    best: bestStreak(me, mode),
+    bonus: 0,
+    reached: [],
+  };
 }
 
-// A won hand: extend the run and pay any milestone reached on this win.
-export async function registerWin(displayName) {
+// A won hand: extend that mode's run and pay any milestone reached on this win.
+export async function registerWin(mode = "casual", displayName) {
+  const f = fields(mode);
   const me = await freshUser();
-  const streak = currentStreak(me) + 1;
-  const paid = paidMilestones(me);
+  const streak = currentStreak(me, mode) + 1;
+  const paid = paidMilestones(me, mode);
   const hit = STREAK_BONUSES.filter((b) => streak >= b.streak && !paid.includes(b.streak));
   const bonus = hit.reduce((sum, b) => sum + b.chips, 0);
+  const best = Math.max(bestStreak(me, mode), streak);
   const patch = {
-    bj21WinStreak: streak,
-    bj21BestWinStreak: Math.max(bestStreak(me), streak),
-    bj21StreakBonuses: [...paid, ...hit.map((b) => b.streak)],
+    [f.streak]: streak,
+    [f.best]: best,
+    [f.bonuses]: [...paid, ...hit.map((b) => b.streak)],
   };
   if (bonus > 0) patch.casinoChips = num(me?.casinoChips) + bonus;
   await base44.auth.updateMe(patch);
@@ -72,19 +93,16 @@ export async function registerWin(displayName) {
       /* the chips are already credited — a score hiccup must not undo them */
     }
   }
-  return {
-    streak,
-    best: patch.bj21BestWinStreak,
-    bonus,
-    reached: hit.map((b) => b.streak),
-  };
+  return { streak, best, bonus, reached: hit.map((b) => b.streak) };
 }
 
-// A lost hand: the run ends, the best-ever mark stays, milestones re-arm.
-export async function registerNonWin() {
+// A lost hand: that mode's run ends, its best-ever mark stays, its milestones
+// re-arm. The other mode's run is untouched.
+export async function registerNonWin(mode = "casual") {
+  const f = fields(mode);
   const me = await freshUser();
-  if (currentStreak(me) > 0 || paidMilestones(me).length) {
-    await base44.auth.updateMe({ bj21WinStreak: 0, bj21StreakBonuses: [] });
+  if (currentStreak(me, mode) > 0 || paidMilestones(me, mode).length) {
+    await base44.auth.updateMe({ [f.streak]: 0, [f.bonuses]: [] });
   }
-  return { streak: 0, best: bestStreak(me), bonus: 0, reached: [] };
+  return { streak: 0, best: bestStreak(me, mode), bonus: 0, reached: [] };
 }

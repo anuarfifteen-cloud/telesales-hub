@@ -95,22 +95,39 @@
       "type": "string",
       "description": "YYYY-MM-DD (Brunei timezone) of the user's most recent app session, updated client-side on app load for inactive-user leaderboard filtering"
     },
-    "bj21WinStreak": {
+    "bj21CasualWinStreak": {
       "type": "number",
       "default": 0,
-      "description": "Blackjack 21 win streak \u2014 consecutive winning hands, shared by the Casual and Ranked tables. A win extends the run, a loss resets it to 0, and a push leaves it untouched."
+      "description": "Casual Blackjack 21 win streak \u2014 consecutive winning hands on the Casual table only. Kept completely separate from the Ranked table's streak."
     },
-    "bj21BestWinStreak": {
+    "bj21CasualBestWinStreak": {
       "type": "number",
       "default": 0,
-      "description": "The longest Blackjack 21 win streak this player has ever reached. Only ever increases, so it survives a lost hand."
+      "description": "The longest Casual Blackjack 21 win streak this player has ever reached. Only ever increases, so it survives a lost hand."
     },
-    "bj21StreakBonuses": {
+    "bj21CasualStreakBonuses": {
       "type": "array",
       "items": {
         "type": "number"
       },
-      "description": "Streak milestones (5, 10, 20) already paid during the current run, so each chip bonus is credited once per run. Cleared when the streak is broken."
+      "description": "Casual streak milestones (5, 10, 20) already paid during the current Casual run, so each chip bonus is credited once per run. Cleared when that run is broken."
+    },
+    "bj21RankedWinStreak": {
+      "type": "number",
+      "default": 0,
+      "description": "Ranked Blackjack 21 win streak \u2014 consecutive winning hands on the Ranked table only. Kept completely separate from the Casual table's streak."
+    },
+    "bj21RankedBestWinStreak": {
+      "type": "number",
+      "default": 0,
+      "description": "The longest Ranked Blackjack 21 win streak this player has ever reached. Only ever increases, so it survives a lost hand."
+    },
+    "bj21RankedStreakBonuses": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "Ranked streak milestones (5, 10, 20) already paid during the current Ranked run, so each chip bonus is credited once per run. Cleared when that run is broken."
     },
     "diamondSmashBoosters": {
       "type": "object",

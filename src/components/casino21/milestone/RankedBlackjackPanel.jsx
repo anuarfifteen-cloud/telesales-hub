@@ -124,18 +124,24 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
     const surgeOn = Number(boostExpiresAt || 0) > Date.now();
     const rankEarned =
       res.type === "win" ? (surgeOn ? chipPayout * 2 : chipPayout) : 0;
-    // Win streak (shared with the Casual table): a win extends the run, a loss
-    // ends it, a push leaves it alone, and each milestone — 5, 10, 20 wins in a
-    // row — pays a one-off chip bonus that also counts toward 🏆RANK. Resolved
-    // before the banner renders so it always shows the settled run.
-    let run = { streak: currentStreak(user), best: bestStreak(user), bonus: 0, reached: [] };
+    // Ranked win streak — its own run, kept separate from the Casual table's: a
+    // win extends it, a loss ends it, a push leaves it alone, and each milestone
+    // — 5, 10, 20 wins in a row — pays a one-off chip bonus that also counts
+    // toward 🏆RANK. Resolved before the banner renders so it always shows the
+    // settled run.
+    let run = {
+      streak: currentStreak(user, "ranked"),
+      best: bestStreak(user, "ranked"),
+      bonus: 0,
+      reached: [],
+    };
     try {
       run =
         res.type === "win"
-          ? await registerWin(displayName)
+          ? await registerWin("ranked", displayName)
           : res.type === "loss"
-          ? await registerNonWin()
-          : await readStreak();
+          ? await registerNonWin("ranked")
+          : await readStreak("ranked");
     } catch {
       toast.error("Your win streak didn't save.");
     }
@@ -475,6 +481,7 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
               milestone panel — it no longer appears over the play result. */}
           <BlackjackStreakBadge
             className="mt-2.5"
+            mode="Ranked"
             streak={result.streak}
             best={result.best}
             bonus={result.streakBonus}

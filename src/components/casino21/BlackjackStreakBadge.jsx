@@ -4,20 +4,24 @@ const PILL =
   "flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest";
 
 /**
- * The player's Blackjack 21 win streak, shown in the result of both tables: the
- * run they are on right now and their best ever. On the win that reached 5, 10
- * or 20 in a row it also names the chip bonus just paid — which counts toward
- * the seasonal 🏆RANK score as well as the chip balance.
+ * The win streak of the table the player is on — Casual and Ranked each keep
+ * their own run — shown in the result: the run they are on right now and their
+ * best ever for that table. On the win that reached 5, 10 or 20 in a row it also
+ * names the chip bonus just paid, which counts toward the seasonal 🏆RANK score
+ * as well as the chip balance.
  */
 export default function BlackjackStreakBadge({
   streak = 0,
   best = 0,
   bonus = 0,
   reached = [],
+  mode = "",
   className = "",
 }) {
   const run = Math.max(0, Number(streak) || 0);
   const top = Math.max(run, Number(best) || 0);
+  const tag = mode ? ` · ${mode}` : "";
+  const runLabel = run > 0 ? `${run} Win Streak${tag}` : `Streak broken${tag}`;
   return (
     <div className={`flex flex-col items-center gap-1.5 ${className}`}>
       <div className="flex items-center justify-center gap-2">
@@ -30,7 +34,7 @@ export default function BlackjackStreakBadge({
           }}
         >
           <Flame className="w-3 h-3" />
-          {run > 0 ? `${run} Win Streak` : "Streak broken"}
+          {runLabel}
         </span>
         <span
           className={PILL}

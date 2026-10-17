@@ -147,6 +147,7 @@ export default function BlackjackResultCard({ show, result, aiResult, showAi, on
                 any season tally. */}
             <BlackjackStreakBadge
               className="mt-3"
+              mode="Casual"
               streak={result.streak}
               best={result.best}
               bonus={result.streakBonus}
