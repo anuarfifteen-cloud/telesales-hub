@@ -33,22 +33,20 @@ export default function useMilestoneClaim(user) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The score write is deliberately NOT swallowed here: the Ranked table awaits
+  // this call and reports a failure, so a lost update can never pass unnoticed.
   const recordWin = async (chipPayout) => {
     const u = userRef.current;
     if (!u?.id) return;
-    try {
-      const res = await addWinPayout(
-        u.id,
-        u.full_name || u.email || "Player",
-        chipPayout
-      );
-      if (res?.newRanks?.length) {
-        setQueue((q) => [...q, ...res.newRanks]);
-      }
-      await refreshSeason();
-    } catch {
-      /* best-effort — never block a Blackjack win */
+    const res = await addWinPayout(
+      u.id,
+      u.full_name || u.email || "Player",
+      chipPayout
+    );
+    if (res?.newRanks?.length) {
+      setQueue((q) => [...q, ...res.newRanks]);
     }
+    await refreshSeason();
   };
 
   const currentClaim = queue.length

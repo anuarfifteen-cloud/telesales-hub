@@ -216,6 +216,7 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
               onUserUpdate={onUserUpdate}
               recordWin={recordWin}
               seasonScore={score}
+              onScoreSaved={reload}
               onRankedHand={challenges.recordRankedHand}
               boostExpiresAt={challenges.daily?.rank_surge_expires_at || 0}
               betCapExpiresAt={challenges.daily?.rank_bet_cap_expires_at || 0}

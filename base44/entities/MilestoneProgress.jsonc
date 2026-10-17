@@ -33,6 +33,13 @@
         "type": "number"
       },
       "description": "Ranks 1-9 earned but not yet claimed this season. Survives a season reset so unclaimed rewards can still be claimed via the New Season Rewards popup after the reset."
+    },
+    "reconciled_ranked_wins": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Game-history record IDs of Ranked hands whose winning payouts have already been reconciled into the score. A verified hand whose score write was lost is credited exactly once, and its id is stored here so it can never be credited twice."
     }
   },
   "required": [

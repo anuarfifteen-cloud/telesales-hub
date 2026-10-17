@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { getSeason, getMyProgress } from "@/lib/milestone";
+import { getSeason, getMyProgress, reconcileMissedRankedWins } from "@/lib/milestone";
 
 // Loads the active season + the current user's progress and keeps them fresh.
 export default function useMilestoneData(user) {
@@ -13,6 +13,13 @@ export default function useMilestoneData(user) {
     try {
       const s = await getSeason();
       setSeason(s);
+      // Credit any verified Ranked win whose score write was lost, then read the
+      // score fresh so what the player sees is the reconciled total.
+      await reconcileMissedRankedWins(
+        user.id,
+        user.full_name || user.email || "",
+        s.season_number
+      );
       const p = await getMyProgress(
         user.id,
         user.full_name || user.email || "",

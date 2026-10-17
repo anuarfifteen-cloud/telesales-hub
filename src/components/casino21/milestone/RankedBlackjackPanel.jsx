@@ -33,7 +33,7 @@ const RANKED_MAX = 10;
 const RANKED_MAX_HIGH_ROLLER = 25; // High Roller Pass raises the ceiling to 25
 const DEALER_DRAW_MS = 550;
 
-export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, betCapExpiresAt, onClose, seasonScore }) {
+export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, betCapExpiresAt, onClose, seasonScore, onScoreSaved }) {
   const chips = Number(user?.casinoChips) || 0;
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
@@ -156,7 +156,19 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
       if (onRankedHand) {
         try { await onRankedHand({ result: res.type, natural: res.natural }); } catch {}
       }
-      if (res.type === "win" && recordWin) recordWin(rankEarned);
+      // Await the season-score write, then re-read the total so the panel shows
+      // the score that actually landed. A failed write is reported out loud
+      // rather than leaving the player's season total quietly short.
+      if (res.type === "win" && recordWin) {
+        try {
+          await recordWin(rankEarned);
+          await onScoreSaved?.();
+        } catch {
+          toast.error(
+            `Your ${rankEarned} Rank points didn't save — they may be missing from your season total.`
+          );
+        }
+      }
       if (res.type === "win") playWinFanfare();
       else if (res.type === "push") playPush();
       else playLoss();

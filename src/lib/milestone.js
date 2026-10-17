@@ -170,6 +170,57 @@ export async function addWinPayout(userId, userName, chipPayout) {
   return { progress: updated, newRanks };
 }
 
+// ── Missed-win reconciliation ──────────────────────────────────────
+// A Ranked hand is recorded in Game History the moment it settles, but its
+// seasonal score write can be lost (the table used to fire the update without
+// awaiting it). These are the verified hands whose points never landed: each is
+// looked up in the player's own Game History, paid at its real table rate, and
+// credited once. The record id is then kept on MilestoneProgress, so the same
+// hand can never be credited twice, however often this runs.
+const MISSED_RANKED_HANDS = {
+  // 25-chip natural Blackjack, 17 Oct 2026 7:51:59 PM Brunei → 25 × 2.5 = 62.
+  "6ad3615f282214fb29355114": { wager: 25, natural: true },
+};
+
+export async function reconcileMissedRankedWins(userId, userName, seasonNumber) {
+  if (!userId) return null;
+  const progress = await getMyProgress(userId, userName, seasonNumber);
+  if (!progress) return null;
+  const credited = Array.isArray(progress.reconciled_ranked_wins)
+    ? progress.reconciled_ranked_wins
+    : [];
+  const missing = Object.keys(MISSED_RANKED_HANDS).filter((id) => !credited.includes(id));
+  if (!missing.length) return null;
+
+  // Only credit a hand that really belongs to this player. Marking the ids as
+  // reconciled either way stops the lookup repeating on every future read.
+  const page = await base44.entities.CoinFlipGame.filter(
+    { user_id: userId, id: { $in: missing } },
+    { limit: 20 }
+  );
+  const rows = page.items || [];
+  const gained = rows.reduce((sum, row) => {
+    const spec = MISSED_RANKED_HANDS[row.id];
+    if (!spec) return sum;
+    return sum + (spec.natural ? Math.floor(spec.wager * 2.5) : spec.wager * 2);
+  }, 0);
+
+  const newScore = Number(progress.score || 0) + gained;
+  const updated = await base44.entities.MilestoneProgress.update(progress.id, {
+    score: newScore,
+    reconciled_ranked_wins: [...credited, ...missing],
+  });
+  if (gained > 0) {
+    await syncLeaderboardEntry(
+      userId,
+      userName || progress.user_name,
+      seasonNumber,
+      newScore
+    );
+  }
+  return { progress: updated, gained };
+}
+
 // Claim a Rank 1-9 reward: credit chips + tokens, mark claimed, drop from pending.
 export async function claimRankReward(userId, rank) {
   const def = rankDef(rank);
