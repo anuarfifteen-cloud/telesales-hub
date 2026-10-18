@@ -9,7 +9,7 @@
 // that depends on it.
 import { base44 } from "@/api/base44Client";
 import { bruneiToday } from "./bruneiDay";
-import { addWinPayout } from "./milestone";
+import { addWinPayout, fetchSeasonScore } from "./milestone";
 
 const BOOST_DURATION_MS = 30 * 60 * 1000; // 30 minutes (2× Rank Surge)
 const BETCAP_DURATION_MS = 20 * 60 * 1000; // 20 minutes (High Roller Pass)
@@ -151,7 +151,7 @@ export function msUntilBruneiMidnight() {
 // Mission rewards go straight to casinoChips as playable balance. They are NOT
 // added to the seasonal winning-payout score (only the Direct Drop below and
 // real Ranked wins are).
-async function creditChips(user, amount, detail) {
+async function creditChips(user, amount, detail, rankAfter) {
   if (!user?.id || amount <= 0) return;
   const fresh = await base44.auth.me();
   const bal = Number(fresh?.casinoChips) || 0;
@@ -164,6 +164,7 @@ async function creditChips(user, amount, detail) {
       action_type: "admin_add",
       amount,
       balance_after: bal + amount,
+      ...(rankAfter != null ? { rank_after: Number(rankAfter) || 0 } : {}),
       detail,
       timestamp: new Date().toISOString(),
     });
@@ -175,14 +176,18 @@ async function creditChips(user, amount, detail) {
 // seasonal 🏆RANK points, using the standard milestone helper so the seasonal
 // score and the public leaderboard mirror stay consistent with Ranked wins.
 async function creditDirectDrop(user, source) {
-  await creditChips(user, DIRECT_DROP_CHIPS, `${source} — Direct Drop (+100 chips)`);
+  // The rank points land first so the ledger row can be stamped with the season
+  // total this drop left behind.
+  let rankAfter = null;
   try {
     const fresh = await base44.auth.me();
     const name = fresh?.full_name || user?.full_name || user?.email || "";
     await addWinPayout(user.id, name, DIRECT_DROP_RANK_POINTS);
+    rankAfter = await fetchSeasonScore(user.id);
   } catch {
     /* best-effort — a milestone hiccup must never block the chip credit */
   }
+  await creditChips(user, DIRECT_DROP_CHIPS, `${source} — Direct Drop (+100 chips)`, rankAfter);
 }
 
 // ── Ensure today's record exists ─────────────────────────────────────

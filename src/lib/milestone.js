@@ -81,6 +81,20 @@ export async function resetSeason() {
   });
 }
 
+// The player's score for the season active right now. 0 when they have no
+// progress row yet, or when their row still belongs to a past season.
+export async function fetchSeasonScore(userId) {
+  if (!userId) return null;
+  const season = await getSeason();
+  const page = await base44.entities.MilestoneProgress.filter(
+    { user_id: userId },
+    { limit: 10, fields: ["score", "season_number"] }
+  );
+  const row = (page.items || [])[0];
+  if (!row || Number(row.season_number) !== Number(season?.season_number)) return 0;
+  return Number(row.score) || 0;
+}
+
 // ── Per-user progress ──────────────────────────────────────────────
 
 export async function getMyProgress(userId, userName, seasonNumber) {

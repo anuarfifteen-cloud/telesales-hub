@@ -47,6 +47,10 @@
       "type": "number",
       "description": "Snapshot of the user's casinoChips immediately after this movement"
     },
+    "rank_after": {
+      "type": "number",
+      "description": "Snapshot of the user's seasonal \ud83c\udfc6RANK total immediately after this movement \u2014 the score as it stood at that moment, never today's total. Written by the Ranked table (each hand's bet and settlement) and by the Mystery Card's Direct Drop, the only movements that change the season score. Wallet rows that don't move the score carry no value and History reads their rank from the newest snapshot above them."
+    },
     "tokens_spent": {
       "type": "number",
       "description": "Tokens paid for this movement. Only recorded on cashier_buy entries, where it drives the player's monthly chip conversion cap. Older entries without it are treated as 0."

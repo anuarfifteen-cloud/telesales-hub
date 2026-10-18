@@ -17,10 +17,11 @@ import { base44 } from "@/api/base44Client";
  * @param {number} [opts.tokens_spent] Tokens paid for chips (cashier_buy only).
  * @param {number} [opts.tokens_won]  Tokens credited to the wallet by a win (win only).
  * @param {number} [opts.chips_won]   Chip-equivalent payout of a win (win only).
+ * @param {number} [opts.rank_after]  Seasonal 🏆RANK total after this movement, when the caller knows it (Ranked hands, Direct Drop).
  * @param {string} opts.detail        Human-readable description.
  * @param {Object} [opts.adminUser]   The admin user, for admin_* actions (sets admin_id).
  */
-export async function logChipMovement({ user, action_type, amount, balance_after, tokens_spent, tokens_won, chips_won, detail, mode = "wallet", adminUser = null }) {
+export async function logChipMovement({ user, action_type, amount, balance_after, tokens_spent, tokens_won, chips_won, rank_after, detail, mode = "wallet", adminUser = null }) {
   try {
     await base44.entities.CasinoChipLog.create({
       user_id: user?.id,
@@ -33,6 +34,7 @@ export async function logChipMovement({ user, action_type, amount, balance_after
       ...(tokens_spent != null ? { tokens_spent: Number(tokens_spent) || 0 } : {}),
       ...(tokens_won != null ? { tokens_won: Number(tokens_won) || 0 } : {}),
       ...(chips_won != null ? { chips_won: Number(chips_won) || 0 } : {}),
+      ...(rank_after != null ? { rank_after: Number(rank_after) || 0 } : {}),
       detail: detail || "",
       admin_id: adminUser?.id || null,
       timestamp: new Date().toISOString(),

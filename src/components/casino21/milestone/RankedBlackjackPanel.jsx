@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
@@ -16,6 +16,8 @@ import HandPanel from "../HandPanel";
 import MiniChipIcon from "../MiniChipIcon";
 import RankedPlayingCard from "./RankedPlayingCard";
 import BlackjackStreakBadge from "../BlackjackStreakBadge";
+import useSeasonScore from "../useSeasonScore";
+import { fetchSeasonScore } from "@/lib/milestone";
 import {
   registerWin,
   registerNonWin,
@@ -70,6 +72,26 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
   const [result, setResult] = useState(null); // { type, detail, natural, chipPayout, chipRefund, bet }
   const [busy, setBusy] = useState(false);
   const [dealerThinking, setDealerThinking] = useState(false);
+
+  // The seasonal 🏆RANK total this table stamps onto each ledger entry, so
+  // History can show the rank as it stood after that hand. Seeded with the
+  // current score and re-read after every settled hand.
+  const seasonScore = useSeasonScore(user?.id);
+  const scoreRef = useRef(null);
+  useEffect(() => {
+    if (Number.isFinite(seasonScore)) scoreRef.current = seasonScore;
+  }, [seasonScore]);
+  const knownScore = () =>
+    Number.isFinite(scoreRef.current) ? scoreRef.current : undefined;
+  const refreshScore = async () => {
+    try {
+      const s = await fetchSeasonScore(user?.id);
+      if (Number.isFinite(s)) scoreRef.current = s;
+    } catch {
+      /* keep the last known total rather than stamping a wrong one */
+    }
+    return knownScore();
+  };
 
   const draw = (d) => d.pop();
   const inPlay = phase === "player" || phase === "dealer";
@@ -185,15 +207,6 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
         });
       }
       await onUserUpdate?.();
-      logChipMovement({
-        user,
-        mode: "ranked",
-        action_type: res.type,
-        amount: credit,
-        balance_after: chipBalance + credit,
-        chips_won: chipPayout || null,
-        detail: `Ranked Blackjack — ${res.detail}`,
-      });
       // 🏆RANK + Daily Challenges: record this Ranked hand for daily progress,
       // then feed the (boost-doubled) winning payout to the seasonal score.
       if (onRankedHand) {
@@ -212,6 +225,19 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
           );
         }
       }
+      // The season total standing after this hand, stamped onto the ledger row
+      // so History shows the rank this hand left behind.
+      const rankAfter = await refreshScore();
+      logChipMovement({
+        user,
+        mode: "ranked",
+        action_type: res.type,
+        amount: credit,
+        balance_after: chipBalance + credit,
+        chips_won: chipPayout || null,
+        rank_after: rankAfter,
+        detail: `Ranked Blackjack — ${res.detail}`,
+      });
       if (res.type === "win") playWinFanfare();
       else if (res.type === "push") playPush();
       else playLoss();
@@ -264,6 +290,7 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
       action_type: "bet",
       amount: -b,
       balance_after: balance - b,
+      rank_after: knownScore(),
       detail: `Ranked Blackjack bet ${b}`,
     });
 

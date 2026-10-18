@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, RefreshCw } from "lucide-react";
 import MiniChipIcon from "./MiniChipIcon";
 import useSeasonScore from "./useSeasonScore";
+import { buildRankAfterMap } from "@/lib/ledgerRank";
 
 // Full chip ledger — every chip balance change for a player, in one place.
 // Three ledgers: the Casual table's hands, the Ranked table's hands, and the
@@ -61,7 +62,7 @@ function formatWhen(ts) {
   }
 }
 
-function LedgerRow({ entry, seasonScore }) {
+function LedgerRow({ entry, rank }) {
   const amount = Number(entry.amount) || 0;
   const tokensWon = Number(entry.tokens_won) || 0;
   const tokensSpent = Number(entry.tokens_spent) || 0;
@@ -88,9 +89,14 @@ function LedgerRow({ entry, seasonScore }) {
           {amount > 0 ? `+${amount}` : amount < 0 ? `−${Math.abs(amount)}` : "0"}
           <MiniChipIcon size={12} />
         </span>
-        <span className="ml-auto flex items-center gap-1 text-[11px] font-bold tabular-nums text-amber-600 dark:text-amber-400">
-          <span className="text-muted-foreground/70 font-semibold">Bal</span>
-          {hasBalance ? balance : "—"}
+        <span className="ml-auto flex flex-col items-end leading-tight text-[11px] font-bold tabular-nums text-amber-600 dark:text-amber-400">
+          <span className="flex items-center gap-1">
+            <span className="text-muted-foreground/70 font-semibold">Bal</span>
+            {hasBalance ? balance : "—"}
+          </span>
+          {/* Ranked + Wallet ledgers: the season score as it stood right after
+              this transaction, directly beneath the balance it left behind. */}
+          {Number.isFinite(rank) && <span>Rank {rank}</span>}
         </span>
       </div>
 
@@ -109,20 +115,13 @@ function LedgerRow({ entry, seasonScore }) {
           Tokens spent: {tokensSpent}
         </p>
       )}
-      {/* Ranked + Wallet ledgers: the season score this player is on right now.
-          The Casual table never feeds 🏆RANK, so it stays out of that ledger. */}
-      {Number.isFinite(seasonScore) && (
-        <p className="mt-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
-          🏆RANK this season: {seasonScore}
-        </p>
-      )}
     </div>
   );
 }
 
 export default function ChipLedger({ userId, onTabChange }) {
   const [tab, setTab] = useState("casual");
-  // Ranked + Wallet rows carry the current seasonal 🏆RANK total.
+  // Ranked + Wallet rows carry the season score as it stood after each entry.
   const rankShown = tab !== "casual";
   const seasonScore = useSeasonScore(userId, rankShown);
   const [rows, setRows] = useState([]);
@@ -156,6 +155,12 @@ export default function ChipLedger({ userId, onTabChange }) {
       active = false;
     };
   }, [userId, tab, reloadKey]);
+
+  // Each row's rank as it stood after that transaction.
+  const rankAfter = useMemo(
+    () => (rankShown ? buildRankAfterMap(rows, seasonScore) : null),
+    [rows, seasonScore, rankShown]
+  );
 
   const loadMore = async () => {
     if (!cursor || loadingMore) return;
@@ -218,7 +223,7 @@ export default function ChipLedger({ userId, onTabChange }) {
               <LedgerRow
                 key={entry.id}
                 entry={entry}
-                seasonScore={rankShown ? seasonScore : null}
+                rank={rankAfter ? rankAfter[entry.id] : null}
               />
             ))}
           </div>
