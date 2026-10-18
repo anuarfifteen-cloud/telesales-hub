@@ -14,6 +14,16 @@
       "type": "string",
       "description": "Email of the user"
     },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "casual",
+        "ranked",
+        "wallet"
+      ],
+      "default": "wallet",
+      "description": "Which ledger this entry belongs to. casual = a hand played at the Casual Blackjack 21 table; ranked = a hand played at the Ranked table; wallet = every other chip movement (cashier buy/cash out, Mystery Card and mission chip rewards, daily chip gift, admin adjustments, multiplayer tables). Entries written before this field existed have no mode and are shown in the wallet ledger."
+    },
     "action_type": {
       "type": "string",
       "enum": [
@@ -27,11 +37,11 @@
         "admin_deduct",
         "admin_set"
       ],
-      "description": "What kind of chip movement this entry records. bet = Blackjack 21 bet deducted at deal; win/push/loss = round settlement (loss logs 0 since the bet was already deducted); cashier_buy = chips purchased with tokens; cashier_cashout = chips converted to tokens (service fee noted in detail); admin_add/admin_deduct/admin_set = manual admin adjustment."
+      "description": "What kind of chip movement this entry records. bet = Blackjack 21 bet deducted at deal; win/push/loss = round settlement (loss logs 0 since the bet was already deducted); cashier_buy = chips purchased with tokens; cashier_cashout = chips converted to tokens (service fee noted in detail); admin_add/admin_deduct/admin_set = manual admin adjustment, also used for Mystery Card and mission chip rewards."
     },
     "amount": {
       "type": "number",
-      "description": "Signed net chip change for this entry (+/-). A loss round logs 0. A Blackjack win also logs 0 \u2014 that round pays in tokens, not chips; see tokens_won and chips_won."
+      "description": "Signed net chip change for this entry (+/-). A loss round logs 0. A Casual Blackjack win also logs 0 \u2014 that table pays in tokens, not chips; see tokens_won. A Ranked win logs the chips actually credited."
     },
     "balance_after": {
       "type": "number",
@@ -71,9 +81,16 @@
   ],
   "rls": {
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "create": {},
     "update": {
