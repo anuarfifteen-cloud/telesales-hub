@@ -11,6 +11,7 @@ import { base44 } from "@/api/base44Client";
  * @param {Object} opts
  * @param {Object} opts.user          The user whose chips changed (must have id; email/full_name optional).
  * @param {string} opts.action_type   One of the CasinoChipLog action_type enum values.
+ * @param {string} [opts.mode]        Ledger this entry belongs to: "casual", "ranked" or "wallet" (default).
  * @param {number} opts.amount        Signed net chip change (+/-) for this entry.
  * @param {number} opts.balance_after Snapshot of casinoChips after the move.
  * @param {number} [opts.tokens_spent] Tokens paid for chips (cashier_buy only).
@@ -19,13 +20,14 @@ import { base44 } from "@/api/base44Client";
  * @param {string} opts.detail        Human-readable description.
  * @param {Object} [opts.adminUser]   The admin user, for admin_* actions (sets admin_id).
  */
-export async function logChipMovement({ user, action_type, amount, balance_after, tokens_spent, tokens_won, chips_won, detail, adminUser = null }) {
+export async function logChipMovement({ user, action_type, amount, balance_after, tokens_spent, tokens_won, chips_won, detail, mode = "wallet", adminUser = null }) {
   try {
     await base44.entities.CasinoChipLog.create({
       user_id: user?.id,
       user_name: user?.full_name || user?.email?.split("@")[0] || "Player",
       user_email: user?.email || "",
       action_type,
+      mode,
       amount: Number(amount) || 0,
       balance_after: Number(balance_after) || 0,
       ...(tokens_spent != null ? { tokens_spent: Number(tokens_spent) || 0 } : {}),
