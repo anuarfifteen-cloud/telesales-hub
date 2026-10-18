@@ -187,6 +187,7 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
       await onUserUpdate?.();
       logChipMovement({
         user,
+        mode: "ranked",
         action_type: res.type,
         amount: credit,
         balance_after: chipBalance + credit,
@@ -259,6 +260,7 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
     await onUserUpdate?.();
     logChipMovement({
       user,
+      mode: "ranked",
       action_type: "bet",
       amount: -b,
       balance_after: balance - b,
