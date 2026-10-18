@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, RefreshCw } from "lucide-react";
 import MiniChipIcon from "./MiniChipIcon";
+import RankedSeasonSummary from "./RankedSeasonSummary";
 
 // Full chip ledger — every chip balance change for a player, in one place.
 // Three ledgers: the Casual table's hands, the Ranked table's hands, and the
@@ -112,7 +113,7 @@ function LedgerRow({ entry }) {
   );
 }
 
-export default function ChipLedger({ userId, onTabChange }) {
+export default function ChipLedger({ userId, chipBalance, onTabChange }) {
   const [tab, setTab] = useState("casual");
   const [rows, setRows] = useState([]);
   const [cursor, setCursor] = useState(null);
@@ -190,6 +191,12 @@ export default function ChipLedger({ userId, onTabChange }) {
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
         </button>
       </div>
+
+      {/* Ranked ledger only: chip balance with the current season's 🏆RANK
+          amount beneath it. */}
+      {tab === "ranked" && (
+        <RankedSeasonSummary userId={userId} chipBalance={chipBalance} />
+      )}
 
       {loading ? (
         <div className="flex justify-center py-10">

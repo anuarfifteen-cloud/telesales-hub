@@ -728,7 +728,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       )}
 
       {view === "stats" && <BlackjackStats userId={user?.id} user={user} />}
-      {view === "history" && <BlackjackHistory userId={user?.id} />}
+      {view === "history" && <BlackjackHistory userId={user?.id} user={user} />}
 
       <ChipCashierModal
         user={user}

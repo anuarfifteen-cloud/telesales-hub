@@ -117,7 +117,11 @@ export default function AdminPlayerChipHistory() {
             />
           </div>
 
-          <ChipLedger userId={playerId} onTabChange={setMode} />
+          <ChipLedger
+            userId={playerId}
+            chipBalance={Number(player?.casinoChips) || 0}
+            onTabChange={setMode}
+          />
         </>
       )}
     </div>
