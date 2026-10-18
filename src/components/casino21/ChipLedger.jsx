@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Loader2, RefreshCw } from "lucide-react";
 import MiniChipIcon from "./MiniChipIcon";
-import RankedSeasonSummary from "./RankedSeasonSummary";
+import useSeasonScore from "./useSeasonScore";
 
 // Full chip ledger — every chip balance change for a player, in one place.
 // Three ledgers: the Casual table's hands, the Ranked table's hands, and the
@@ -61,7 +61,7 @@ function formatWhen(ts) {
   }
 }
 
-function LedgerRow({ entry }) {
+function LedgerRow({ entry, seasonScore }) {
   const amount = Number(entry.amount) || 0;
   const tokensWon = Number(entry.tokens_won) || 0;
   const tokensSpent = Number(entry.tokens_spent) || 0;
@@ -109,12 +109,22 @@ function LedgerRow({ entry }) {
           Tokens spent: {tokensSpent}
         </p>
       )}
+      {/* Ranked + Wallet ledgers: the season score this player is on right now.
+          The Casual table never feeds 🏆RANK, so it stays out of that ledger. */}
+      {Number.isFinite(seasonScore) && (
+        <p className="mt-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+          🏆RANK this season: {seasonScore}
+        </p>
+      )}
     </div>
   );
 }
 
-export default function ChipLedger({ userId, chipBalance, onTabChange }) {
+export default function ChipLedger({ userId, onTabChange }) {
   const [tab, setTab] = useState("casual");
+  // Ranked + Wallet rows carry the current seasonal 🏆RANK total.
+  const rankShown = tab !== "casual";
+  const seasonScore = useSeasonScore(userId, rankShown);
   const [rows, setRows] = useState([]);
   const [cursor, setCursor] = useState(null);
   const [hasMore, setHasMore] = useState(false);
@@ -192,12 +202,6 @@ export default function ChipLedger({ userId, chipBalance, onTabChange }) {
         </button>
       </div>
 
-      {/* Ranked ledger only: chip balance with the current season's 🏆RANK
-          amount beneath it. */}
-      {tab === "ranked" && (
-        <RankedSeasonSummary userId={userId} chipBalance={chipBalance} />
-      )}
-
       {loading ? (
         <div className="flex justify-center py-10">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -211,7 +215,11 @@ export default function ChipLedger({ userId, chipBalance, onTabChange }) {
         <>
           <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
             {rows.map((entry) => (
-              <LedgerRow key={entry.id} entry={entry} />
+              <LedgerRow
+                key={entry.id}
+                entry={entry}
+                seasonScore={rankShown ? seasonScore : null}
+              />
             ))}
           </div>
           {hasMore && (

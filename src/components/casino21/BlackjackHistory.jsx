@@ -3,8 +3,8 @@ import ChipLedger from "./ChipLedger";
 // Blackjack 21 History — the player's full chip ledger for the Casual table,
 // the Ranked table, and the wallet. Every entry carries the net chip change and
 // the balance it left behind, so a win shows the chips it actually paid. The
-// Ranked ledger also shows the chip balance with the season's 🏆RANK amount.
-export default function BlackjackHistory({ userId, user }) {
+// Ranked and Wallet ledgers also carry the current seasonal 🏆RANK total.
+export default function BlackjackHistory({ userId }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between px-1">
@@ -15,7 +15,7 @@ export default function BlackjackHistory({ userId, user }) {
           Net change · balance after
         </p>
       </div>
-      <ChipLedger userId={userId} chipBalance={Number(user?.casinoChips) || 0} />
+      <ChipLedger userId={userId} />
     </div>
   );
 }
