@@ -31,11 +31,11 @@ export function streakLeader(rows) {
   return leader;
 }
 
-// A settled Ranked hand: "win" extends the run, "loss" (or a surrender) resets
-// it, "push" leaves it untouched. Setting a new personal best stamps the moment
-// it happened, which is what decides a tie at season end.
+// A settled Ranked hand: "win" extends the run; a loss, a surrender or a push
+// ends it, so a run can never be stitched together across a push. Setting a new
+// personal best stamps the moment it happened, which decides a tie at season end.
 export async function recordSeasonStreak(user, result) {
-  if (!user?.id || result === "push") return null;
+  if (!user?.id) return null;
   const name = user.full_name || user.email || "";
   const season = await getSeason();
   const progress = await getMyProgress(user.id, name, season.season_number);

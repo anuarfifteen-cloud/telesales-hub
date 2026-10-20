@@ -41,9 +41,10 @@ export default function AdminStreakRebuild() {
           🔁 Rebuild Ranked Best Streaks
         </p>
         <p className="text-xs text-slate-500 mt-0.5">
-          Recalculates every player's longest Ranked winning run from their
-          recorded hands and corrects the season record and leaderboard. Saved
-          streaks are never lowered.
+          Recalculates every player's longest Ranked winning run, season by
+          season, from their recorded hands. A loss, push or draw ends a run.
+          Streaks are corrected to the verified record and mirrored to the
+          leaderboard.
         </p>
       </div>
 
@@ -71,8 +72,8 @@ export default function AdminStreakRebuild() {
                 Corrected ({report.corrected.length})
               </p>
               {report.corrected.map((c) => (
-                <p key={c.name} className="text-slate-800">
-                  <span className="font-bold">{c.name}</span> — best{" "}
+                <p key={`${c.name}-${c.season}`} className="text-slate-800">
+                  <span className="font-bold">{c.name}</span> · season {c.season} — best{" "}
                   <span className="font-black text-emerald-700">{c.to} wins</span>
                   {c.from > 0 ? ` (was ${c.from})` : ""}
                 </p>
@@ -111,8 +112,9 @@ export default function AdminStreakRebuild() {
             </h3>
             <p className="text-sm text-slate-600">
               Every player's longest Ranked winning run is recalculated from their
-              saved hands. Higher saved streaks stay as they are. This can take a
-              moment on a large history.
+              saved hands, season by season, with losses and pushes ending a run.
+              Saved streaks are corrected to match. This can take a moment on a
+              large history.
             </p>
             <div className="flex gap-3">
               <button

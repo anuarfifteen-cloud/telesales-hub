@@ -1,19 +1,18 @@
 // Rebuild every player's Ranked best win streak from recorded hand history.
 //
-// The live tracker only advances a streak as hands settle, so hands played
-// before it existed (or while it failed) never made it into the season record.
-// This rebuild walks the Ranked hands the app actually saved in Game History,
-// puts each player's hands in time order, and recalculates their longest run of
+// The live tracker used to let a push slide by without ending a run, so saved
+// season bests could climb past the truth (a 9 built from two runs separated by
+// a push, when the real best was 7). This rebuild walks the Ranked hands the app
+// actually saved in Game History, splits them per season using the season close
+// timestamps the app recorded, and recomputes each season's longest run of
 // consecutive wins. A win extends a run; a loss, a push or a draw ends it.
 //
 // Safety rules:
 //   • Only recorded hands are used — a hand without a saved result ends the run
 //     and is reported, never guessed.
-//   • A higher saved streak is never lowered, so running the rebuild again is
-//     harmless.
-//   • Hand records carry no season stamp, so the recomputed best is credited to
-//     the season that is open right now, and any player whose history reaches
-//     back before the last reset is listed in the report.
+//   • Per season, the recomputed best replaces the saved one only when that
+//     season's history is complete: otherwise a higher saved value is kept.
+//   • Repeatable: running it again changes nothing.
 import { base44 } from "@/api/base44Client";
 import { getSeason } from "./milestone";
 
@@ -45,8 +44,7 @@ async function loadRankedHands(onProgress) {
         fields: ["user_id", "user_email", "result", "created_date"],
       }
     );
-    const rows = page.items || [];
-    hands.push(...rows);
+    hands.push(...(page.items || []));
     pages += 1;
     onProgress?.(hands.length);
     if (!page.has_more || !page.next_cursor) break;
@@ -56,6 +54,52 @@ async function loadRankedHands(onProgress) {
   return { hands, truncated };
 }
 
+// Season windows, read from what the app actually recorded: each closed season
+// carries the moment it ended (its history row), and the live season starts at
+// the latest close or the last reset, whichever is later. Nothing is inferred.
+async function loadSeasonWindows(season) {
+  const page = await base44.entities.MilestoneSeasonHistory.filter(
+    {},
+    { sort: "-season_number", limit: 200, fields: ["season_number", "awarded_at"] }
+  );
+  const closes = (page.items || [])
+    .map((r) => ({
+      season: Number(r.season_number) || 0,
+      at: new Date(r.awarded_at || 0).getTime(),
+    }))
+    .filter((r) => r.season > 0 && Number.isFinite(r.at) && r.at > 0)
+    .sort((a, b) => a.at - b.at);
+
+  const current = Number(season?.season_number) || 1;
+  const lastReset = Number(season?.last_reset_at) || 0;
+
+  const windows = closes.map((c, i) => ({
+    season: c.season,
+    start: i === 0 ? -Infinity : closes[i - 1].at,
+    end: c.at,
+  }));
+
+  const currentStart = Math.max(
+    closes.length ? closes[closes.length - 1].at : -Infinity,
+    lastReset
+  );
+
+  if (windows.length && windows[windows.length - 1].season === current) {
+    // Same season still open (a claimed season that reset is off): keep it whole.
+    windows[windows.length - 1].end = Infinity;
+  } else {
+    windows.push({ season: current, start: currentStart, end: Infinity });
+  }
+  return { windows, currentSeason: current };
+}
+
+function seasonFor(ms, windows) {
+  for (const w of windows) {
+    if (ms >= w.start && ms < w.end) return w.season;
+  }
+  return windows[windows.length - 1]?.season ?? 1;
+}
+
 async function loadProgressRows(userIds, seasonNumber) {
   const out = [];
   for (const ids of chunk(userIds, CHUNK)) {
@@ -63,13 +107,7 @@ async function loadProgressRows(userIds, seasonNumber) {
       { user_id: { $in: ids }, season_number: seasonNumber },
       {
         limit: 1000,
-        fields: [
-          "user_id",
-          "user_name",
-          "season_best_streak",
-          "season_best_streak_at",
-          "score",
-        ],
+        fields: ["user_id", "user_name", "season_best_streak", "season_best_streak_at"],
       }
     );
     out.push(...(page.items || []));
@@ -92,41 +130,14 @@ async function loadBoardRows(userIds, seasonNumber) {
   return out;
 }
 
-// Longest run of consecutive wins, with the moment the record run completed.
-function longestRun(sortedHands) {
-  let run = 0;
-  let best = 0;
-  let bestAt = "";
-  let unknown = 0;
-  for (const h of sortedHands) {
-    const result = String(h.result || "").toLowerCase();
-    if (result === "win") {
-      run += 1;
-      if (run > best) {
-        best = run;
-        bestAt = h.created_date || "";
-      }
-    } else if (result === "loss" || result === "push") {
-      run = 0;
-    } else {
-      // No usable result on the record — the run ends and the hand is reported.
-      run = 0;
-      unknown += 1;
-    }
-  }
-  return { best, bestAt, unknown };
-}
-
 /**
- * Recompute and correct every player's Ranked best streak.
+ * Recompute and correct every player's Ranked best streak, season by season.
  * Returns a report for the admin: what was scanned, what changed, what needs a
  * second look.
  */
 export async function rebuildRankedBestStreaks({ onProgress } = {}) {
   const season = await getSeason();
-  const seasonNumber = Number(season?.season_number) || 1;
-  const resetAt = Number(season?.last_reset_at) || 0;
-
+  const { windows, currentSeason } = await loadSeasonWindows(season);
   const { hands, truncated } = await loadRankedHands(onProgress);
 
   // Group by player, keeping hands in time order.
@@ -146,22 +157,33 @@ export async function rebuildRankedBestStreaks({ onProgress } = {}) {
   }
 
   const userIds = [...groups.keys()];
-  if (!userIds.length) {
-    return {
-      season: seasonNumber,
-      hands: hands.length,
-      players: 0,
-      corrected: [],
-      unchanged: 0,
-      flagged: [],
-      truncated,
-    };
+  const empty = {
+    season: currentSeason,
+    hands: hands.length,
+    players: 0,
+    corrected: [],
+    unchanged: 0,
+    flagged: [],
+    truncated,
+  };
+  if (!userIds.length) return empty;
+
+  const progressByUser = new Map(
+    (await loadProgressRows(userIds, currentSeason)).map((r) => [r.user_id, r])
+  );
+
+  // One leaderboard row exists per player per season, so each season's record
+  // stays readable after the season rolls over.
+  const seasonNumbers = [...new Set(windows.map((w) => w.season))];
+  const boardsBySeason = new Map();
+  for (const s of seasonNumbers) {
+    const rows = await loadBoardRows(userIds, s);
+    boardsBySeason.set(s, new Map(rows.map((r) => [r.user_id, r])));
   }
 
-  const progressRows = await loadProgressRows(userIds, seasonNumber);
-  const progressByUser = new Map(progressRows.map((r) => [r.user_id, r]));
-  const boardRows = await loadBoardRows(userIds, seasonNumber);
-  const boardByUser = new Map(boardRows.map((r) => [r.user_id, r]));
+  // Un-attributable hands anywhere mean the history isn't complete enough to
+  // lower a saved record.
+  const historyIncomplete = truncated || skipped > 0;
 
   const progressUpdates = [];
   const boardUpdates = [];
@@ -174,71 +196,95 @@ export async function rebuildRankedBestStreaks({ onProgress } = {}) {
     entry.hands.sort((a, b) =>
       String(a.created_date).localeCompare(String(b.created_date))
     );
-    const { best, bestAt, unknown } = longestRun(entry.hands);
-    const progress = progressByUser.get(entry.userId);
-    const name = progress?.user_name || entry.email || "Player";
-    const saved = Math.max(0, Number(progress?.season_best_streak) || 0);
 
-    if (!progress) {
-      if (best > 0) {
+    // Longest consecutive-win run per season.
+    const runs = new Map();
+    for (const h of entry.hands) {
+      const ms = new Date(h.created_date).getTime();
+      const seasonNo = seasonFor(ms, windows);
+      const r = runs.get(seasonNo) || { run: 0, best: 0, bestAt: "", count: 0, unknown: 0 };
+      r.count += 1;
+      const result = String(h.result || "").toLowerCase();
+      if (result === "win") {
+        r.run += 1;
+        if (r.run > r.best) {
+          r.best = r.run;
+          r.bestAt = h.created_date;
+        }
+      } else {
+        if (result !== "loss" && result !== "push") r.unknown += 1;
+        r.run = 0; // a loss, a push or a draw ends the run
+      }
+      runs.set(seasonNo, r);
+    }
+
+    for (const [seasonNo, r] of runs) {
+      const isCurrent = seasonNo === currentSeason;
+      const progress = isCurrent ? progressByUser.get(entry.userId) : null;
+      const board = boardsBySeason.get(seasonNo)?.get(entry.userId);
+      const name = progress?.user_name || board?.user_name || entry.email || "Player";
+      if (r.count === 0 || r.best <= 0) continue;
+
+      if (isCurrent && !progress) {
         flagged.push({
           name,
-          reason: `No season record yet — ${best}-win best streak needs one Ranked hand to appear.`,
+          reason: `No season ${seasonNo} record yet — the ${r.best}-win best streak needs one Ranked hand to appear.`,
+        });
+        continue;
+      }
+
+      const saved = isCurrent
+        ? Math.max(0, Number(progress?.season_best_streak) || 0)
+        : Math.max(0, Number(board?.best_streak) || 0);
+
+      // With a complete season history the recomputed run is the truth, so it
+      // can correct a saved value that was too high. Otherwise only raise.
+      const clean = !historyIncomplete && r.unknown === 0;
+      const target = clean ? r.best : Math.max(r.best, saved);
+
+      if (!clean) {
+        flagged.push({
+          name,
+          reason: `Season ${seasonNo} history is incomplete${r.unknown ? ` (${r.unknown} hands without a saved result)` : ""} — kept the higher saved record.`,
         });
       }
-      continue;
-    }
 
-    if (unknown > 0) {
-      flagged.push({
-        name,
-        reason: `${unknown} hand${unknown === 1 ? "" : "s"} without a saved result ended a run.`,
-      });
-    }
-    if (resetAt && entry.hands.some((h) => new Date(h.created_date).getTime() < resetAt)) {
-      flagged.push({
-        name,
-        reason: "History reaches back before the last reset — credited to the current season.",
-      });
-    }
+      if (target === saved) {
+        unchanged += 1;
+        continue;
+      }
 
-    // Never lower a saved record; only restore a missed higher one.
-    if (best <= saved) {
-      unchanged += 1;
-      continue;
-    }
+      corrected.push({ name, season: seasonNo, from: saved, to: target });
+      const at = r.bestAt || new Date().toISOString();
 
-    progressUpdates.push({
-      id: progress.id,
-      season_best_streak: best,
-      season_best_streak_at: bestAt || new Date().toISOString(),
-    });
-    corrected.push({ name, from: saved, to: best });
+      if (isCurrent) {
+        progressUpdates.push({
+          id: progress.id,
+          season_best_streak: target,
+          season_best_streak_at: at,
+        });
+      }
 
-    const board = boardByUser.get(entry.userId);
-    if (board) {
-      boardUpdates.push({
-        id: board.id,
-        best_streak: best,
-        best_streak_at: bestAt || new Date().toISOString(),
-      });
-    } else {
-      boardCreates.push({
-        user_id: entry.userId,
-        user_name: name,
-        season_number: seasonNumber,
-        score: Number(progress.score) || 0,
-        best_streak: best,
-        best_streak_at: bestAt || new Date().toISOString(),
-      });
+      if (board) {
+        boardUpdates.push({ id: board.id, best_streak: target, best_streak_at: at });
+      } else if (isCurrent) {
+        boardCreates.push({
+          user_id: entry.userId,
+          user_name: name,
+          season_number: seasonNo,
+          score: 0,
+          best_streak: target,
+          best_streak_at: at,
+        });
+      }
     }
   }
 
-  for (const ids of chunk(progressUpdates, PAGE)) {
-    await base44.entities.MilestoneProgress.bulkUpdate(ids);
+  for (const batch of chunk(progressUpdates, PAGE)) {
+    await base44.entities.MilestoneProgress.bulkUpdate(batch);
   }
-  for (const ids of chunk(boardUpdates, PAGE)) {
-    await base44.entities.MilestoneLeaderboardEntry.bulkUpdate(ids);
+  for (const batch of chunk(boardUpdates, PAGE)) {
+    await base44.entities.MilestoneLeaderboardEntry.bulkUpdate(batch);
   }
   if (boardCreates.length) {
     try {
@@ -267,7 +313,7 @@ export async function rebuildRankedBestStreaks({ onProgress } = {}) {
   }
 
   return {
-    season: seasonNumber,
+    season: currentSeason,
     hands: hands.length,
     players: groups.size,
     corrected,
