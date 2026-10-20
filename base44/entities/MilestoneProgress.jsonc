@@ -13,7 +13,7 @@
     "season_number": {
       "type": "number",
       "default": 1,
-      "description": "The season this score is for. When the global season advances (Diamond claim or admin reset), this field is rolled over to the new number and the score/claims reset to zero on the user's next read."
+      "description": "The season this score is for. When the global season advances (Diamond claim or admin reset), this field is rolled over to the new number and the score/claims/streaks reset to zero on the user's next read."
     },
     "score": {
       "type": "number",
@@ -40,6 +40,25 @@
         "type": "string"
       },
       "description": "Game-history record IDs of Ranked hands whose winning payouts have already been reconciled into the score. A verified hand whose score write was lost is credited exactly once, and its id is stored here so it can never be credited twice."
+    },
+    "current_streak": {
+      "type": "number",
+      "default": 0,
+      "description": "The player's live run of consecutive winning Ranked hands this season. A win extends it, a loss or surrender resets it to 0, and a push or tie leaves it unchanged. Casual play never touches it."
+    },
+    "season_best_streak": {
+      "type": "number",
+      "default": 0,
+      "description": "The longest Ranked win streak the player has reached this season. It only ever moves up, and the player holding the highest value across the season wins 1 \ud83d\udc8e Diamond at season end."
+    },
+    "season_best_streak_at": {
+      "type": "string",
+      "description": "ISO timestamp of the exact moment the current season_best_streak was set. Used as the season-end tie-breaker: if several players reach the same highest streak, the earliest record wins the Diamond."
+    },
+    "briefing_seen_season": {
+      "type": "number",
+      "default": 0,
+      "description": "The season number whose end-of-season briefing (Season Champion + Streak King) this player has already dismissed, so the briefing modal only appears once per season."
     }
   },
   "required": [

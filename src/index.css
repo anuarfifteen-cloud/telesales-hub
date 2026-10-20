@@ -883,6 +883,16 @@
 }
 .bonus-ready-glow { animation: bonus-ready-glow 2.6s ease-in-out infinite; }
 
+/* ── 🏆RANK leaderboard: 💎 Streak Crown ──
+   Only the player holding the season's highest Ranked win streak (earliest
+   record on a tie) wears this badge, and the slow gold pulse makes it clear
+   they are the one collecting the season-end Diamond. */
+@keyframes streak-crown-glow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.55), 0 0 10px rgba(212, 175, 55, 0.35); }
+  50%      { box-shadow: 0 0 0 1px rgba(254, 241, 201, 0.9), 0 0 16px rgba(212, 175, 55, 0.6); }
+}
+.streak-crown-glow { animation: streak-crown-glow 2.4s ease-in-out infinite; }
+
 /* ── Multiplayer Blackjack: floating buy-in card (Match/Decline) ── */
 @keyframes mp-card-arrive {
   from { opacity: 0; transform: translateY(10px) scale(.985); }

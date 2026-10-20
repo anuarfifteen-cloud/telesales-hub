@@ -18,6 +18,7 @@ import RankedPlayingCard from "./RankedPlayingCard";
 import BlackjackStreakBadge from "../BlackjackStreakBadge";
 import useSeasonScore from "../useSeasonScore";
 import { fetchSeasonScore } from "@/lib/milestone";
+import { recordSeasonStreak } from "@/lib/milestoneStreak";
 import {
   registerWin,
   registerNonWin,
@@ -224,6 +225,14 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
             `Your ${rankEarned} Rank points didn't save — they may be missing from your season total.`
           );
         }
+      }
+      // Season streak record — Ranked only. A win extends the run, a loss (or a
+      // surrender) resets it, a push leaves it untouched. Runs after the score
+      // save so the mirrored leaderboard row carries both values.
+      try {
+        await recordSeasonStreak(user, res.type);
+      } catch {
+        /* the hand is already settled — a streak hiccup must not block it */
       }
       // The season total standing after this hand, stamped onto the ledger row
       // so History shows the rank this hand left behind.

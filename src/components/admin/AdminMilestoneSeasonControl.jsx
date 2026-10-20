@@ -14,6 +14,7 @@ import {
 export default function AdminMilestoneSeasonControl() {
   const [season, setSeason] = useState(null);
   const [leader, setLeader] = useState(null);
+  const [history, setHistory] = useState([]);
   const [busy, setBusy] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
@@ -28,6 +29,12 @@ export default function AdminMilestoneSeasonControl() {
       );
       const rows = page.items || page || [];
       setLeader(rows[0] || null);
+      // Closed-season log: champion + the 💎 Streak Crown winner and payout state.
+      const hp = await base44.entities.MilestoneSeasonHistory.filter(
+        {},
+        { sort: "-season_number", limit: 5 }
+      );
+      setHistory(hp.items || hp || []);
     } catch {
       /* ignore */
     }
@@ -120,6 +127,41 @@ export default function AdminMilestoneSeasonControl() {
           </p>
         </div>
       </div>
+
+      {/* Season history — both winners of every closed season */}
+      {history.length > 0 && (
+        <div className="rounded-xl border border-border bg-slate-50 px-3 py-2.5 space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            Season History
+          </p>
+          {history.map((h) => {
+            const wins = Number(h.streak_wins) || 0;
+            return (
+              <div key={h.id} className="text-[11px] leading-snug">
+                <p className="font-bold text-slate-900">
+                  Season {h.season_number} · 🏆 {h.champion_name || "—"}
+                </p>
+                {wins > 0 ? (
+                  <p className="text-slate-600">
+                    🔥 {h.streak_winner_name || "—"} — {wins} Wins ·{" "}
+                    <span
+                      className={
+                        h.streak_diamond_paid ? "text-emerald-600" : "text-amber-600"
+                      }
+                    >
+                      {h.streak_diamond_paid ? "💎 1 Diamond paid" : "💎 1 Diamond pending"}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-slate-500">
+                    🔥 No Ranked win streak — no streak Diamond awarded.
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Auto-reset toggle */}
       <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-slate-50 px-4 py-3">

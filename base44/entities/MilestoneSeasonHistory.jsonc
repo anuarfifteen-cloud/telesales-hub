@@ -1,0 +1,76 @@
+{
+  "name": "MilestoneSeasonHistory",
+  "type": "object",
+  "properties": {
+    "season_number": {
+      "type": "number",
+      "description": "The season this closed-season record belongs to. One row per season, so the history survives every reset."
+    },
+    "champion_user_id": {
+      "type": "string",
+      "description": "User ID of the player who first claimed Rank 10 and ended the season."
+    },
+    "champion_name": {
+      "type": "string",
+      "description": "Display name of the Season Champion (first to Rank 10)."
+    },
+    "streak_winner_user_id": {
+      "type": "string",
+      "description": "User ID of the player with the highest Ranked win streak this season (earliest record breaks ties). Empty when no streak was recorded."
+    },
+    "streak_winner_name": {
+      "type": "string",
+      "description": "Display name of the Streak King who won the season-end \ud83d\udc8e Diamond."
+    },
+    "streak_wins": {
+      "type": "number",
+      "default": 0,
+      "description": "The winning streak length that took the season. 0 means no Ranked win streak was recorded and no streak Diamond was awarded."
+    },
+    "streak_achieved_at": {
+      "type": "string",
+      "description": "ISO timestamp the winning streak was set, kept for the record after the season resets."
+    },
+    "streak_diamond_paid": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the \ud83d\udc8e 1 Diamond has been credited to the streak winner. Persisted so a reload or a repeated season-end run can never pay the same award twice."
+    },
+    "streak_diamond_paid_at": {
+      "type": "string",
+      "description": "ISO timestamp the streak Diamond was credited."
+    },
+    "summary": {
+      "type": "string",
+      "description": "The admin-log line for this season, e.g. '[Player Name] won \ud83d\udc8e 1 Diamond for Highest Season Streak (5 Wins)'."
+    },
+    "awarded_at": {
+      "type": "string",
+      "description": "ISO timestamp the season closed and its winners were recorded."
+    }
+  },
+  "required": [
+    "season_number"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {
+      "$or": [
+        {
+          "data.streak_winner_user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

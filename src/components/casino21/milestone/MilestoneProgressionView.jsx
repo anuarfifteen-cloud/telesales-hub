@@ -17,6 +17,9 @@ import DailyChallengesHub from "./DailyChallengesHub";
 import BonusMysteryCardModal from "./BonusMysteryCardModal";
 import RankedBlackjackPanel from "./RankedBlackjackPanel";
 import MilestoneLeaderboard from "./MilestoneLeaderboard";
+import SeasonBriefingModal from "./SeasonBriefingModal";
+import StreakDiamondClaim from "./StreakDiamondClaim";
+import { finalizeStreakAward, payPendingStreakDiamond } from "@/lib/milestoneStreak";
 import MiniChipIcon from "../MiniChipIcon";
 
 const TOKEN_IMG =
@@ -97,6 +100,18 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
     try {
       const res = await claimDiamond(user.id, user.full_name || user.email || "Player");
       if (res?.claimed) {
+        // Close the season: record both winners and pay the Streak Crown. If this
+        // player also holds the highest streak, the pickup credits their Diamond
+        // right here instead of waiting for their next visit.
+        try {
+          await finalizeStreakAward(Number(res.season?.season_number) || 0, {
+            id: user.id,
+            name: user.full_name || user.email || "Player",
+          });
+          await payPendingStreakDiamond(user);
+        } catch {
+          /* best-effort — the history row stays claimable on the next visit */
+        }
         await onUserUpdate?.();
         await reload();
         toast.success("👑 You claimed the Emperor of 21 Diamond! The season has reset.");
@@ -334,6 +349,11 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
           </p>
         </>
       )}
+
+      {/* Season-end briefing for the closed season + the 💎 Streak Crown pickup.
+          Keyed on the season so a reset remounts the claim check. */}
+      <SeasonBriefingModal user={user} />
+      <StreakDiamondClaim key={season?.season_number} user={user} onUserUpdate={onUserUpdate} />
 
       {/* Bonus Mystery Card — only ever opened by the player's bonus button */}
       <BonusMysteryCardModal

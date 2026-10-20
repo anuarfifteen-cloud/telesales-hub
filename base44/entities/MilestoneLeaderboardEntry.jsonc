@@ -19,6 +19,15 @@
       "type": "number",
       "default": 0,
       "description": "Total winning chip payouts accumulated in the current season. Mirrored from the private MilestoneProgress row \u2014 only leaderboard-safe fields live here; claimed_ranks and pending_rank_rewards never do."
+    },
+    "best_streak": {
+      "type": "number",
+      "default": 0,
+      "description": "The player's longest Ranked win streak this season, mirrored from their private progress row so it can be shown under their name on the public leaderboard."
+    },
+    "best_streak_at": {
+      "type": "string",
+      "description": "ISO timestamp of the moment this season-best streak was set. The earliest record among tied top streaks holds the \ud83d\udc8e Streak Crown and wins the season-end Diamond."
     }
   },
   "required": [

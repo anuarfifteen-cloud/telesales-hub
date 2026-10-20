@@ -113,6 +113,11 @@ export async function getMyProgress(userId, userName, seasonNumber) {
         season_number: seasonNumber,
         score: 0,
         claimed_ranks: [],
+        // A fresh season starts a fresh streak — past season bests stay on the
+        // closed season's leaderboard rows and history record.
+        current_streak: 0,
+        season_best_streak: 0,
+        season_best_streak_at: "",
       });
     }
     return p;
@@ -124,6 +129,10 @@ export async function getMyProgress(userId, userName, seasonNumber) {
     score: 0,
     claimed_ranks: [],
     pending_rank_rewards: [],
+    current_streak: 0,
+    season_best_streak: 0,
+    season_best_streak_at: "",
+    briefing_seen_season: 0,
   });
 }
 

@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { getSeason } from "@/lib/milestone";
+import { streakLeader } from "@/lib/milestoneStreak";
 import MiniChipIcon from "../MiniChipIcon";
 
 // 🏆RANK live seasonal leaderboard. Reads the open-read MilestoneLeaderboardEntry
 // rows for the active season, sorted by score desc. Only Ranked wins add to
 // `score`, so the ranking reflects pure Ranked-hand seasonal payouts. The
 // private MilestoneProgress records (claims/rewards) stay owner-only.
+//
+// Each row also carries the player's season-best Ranked win streak, shown
+// directly beneath their name. The single top streak with the earliest record
+// wears the 💎 Streak Crown and takes the season-end Diamond; anyone who merely
+// matches that number later is labelled as a later tie, with no crown or glow.
 export default function MilestoneLeaderboard({ user }) {
   const [rows, setRows] = useState([]);
   const [seasonNumber, setSeasonNumber] = useState(null);
@@ -40,6 +46,11 @@ export default function MilestoneLeaderboard({ user }) {
   const myRow = rows.find((r) => r.user_id === myId);
   const myPosition = myRow ? rows.indexOf(myRow) + 1 : null;
   const myScore = Number(myRow?.score) || 0;
+
+  // The Streak Crown: highest season-best streak, earliest record breaking ties.
+  const leader = streakLeader(rows);
+  const crownId = leader?.user_id || null;
+  const topWins = leader?.wins || 0;
 
   if (loading) {
     return (
@@ -110,6 +121,9 @@ export default function MilestoneLeaderboard({ user }) {
             {rows.map((r, i) => {
               const pos = i + 1;
               const isMe = r.user_id === myId;
+              const streakWins = Math.max(0, Number(r.best_streak) || 0);
+              const isCrown = r.user_id === crownId;
+              const isTiedLater = !isCrown && streakWins > 0 && streakWins === topWins;
               return (
                 <div
                   key={r.id || i}
@@ -120,9 +134,31 @@ export default function MilestoneLeaderboard({ user }) {
                   <span className="text-xs font-black text-amber-200 tabular-nums">
                     {medal(pos) || `#${pos}`}
                   </span>
-                  <span className={`text-xs font-bold truncate ${isMe ? "text-amber-200" : "text-emerald-100/90"}`}>
-                    {r.user_name || "Player"}{isMe && " (You)"}
-                  </span>
+                  <div className="min-w-0">
+                    <p
+                      className={`text-xs font-bold truncate ${
+                        isMe ? "text-amber-200" : "text-emerald-100/90"
+                      }`}
+                    >
+                      {r.user_name || "Player"}
+                      {isMe && " (You)"}
+                    </p>
+                    {isCrown ? (
+                      <span className="streak-crown-glow mt-1 inline-flex items-center gap-1 rounded-full border border-amber-300/70 bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-100 whitespace-nowrap">
+                        👑 💎 Streak Crown · {streakWins} Wins
+                      </span>
+                    ) : (
+                      <p
+                        className={`text-[9px] font-bold leading-tight ${
+                          isTiedLater ? "text-amber-200/80" : "text-emerald-100/45"
+                        }`}
+                      >
+                        {isTiedLater
+                          ? `🔥 ${streakWins} Wins (Tied · Achieved Later)`
+                          : `🔥 Best: ${streakWins} Wins`}
+                      </p>
+                    )}
+                  </div>
                   <span className="flex items-center justify-end gap-1 text-xs font-black text-amber-300 tabular-nums">
                     <MiniChipIcon size={12} />
                     {Number(r.score) || 0}
@@ -137,6 +173,9 @@ export default function MilestoneLeaderboard({ user }) {
       <p className="relative text-[9px] leading-relaxed text-emerald-100/40 text-center">
         Leaderboard ranks seasonal winning payouts from Ranked hands only
         (1–10 chip wagers). Standard Casual play does not count.
+      </p>
+      <p className="relative text-[9px] leading-relaxed text-emerald-100/40 text-center">
+        ℹ️ 1 💎 awarded at Season End to the highest Ranked win streak. Earliest record breaks ties.
       </p>
     </div>
   );
