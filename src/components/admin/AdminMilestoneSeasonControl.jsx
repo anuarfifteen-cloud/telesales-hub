@@ -8,6 +8,7 @@ import {
   resetSeason,
   RANK_10_THRESHOLD,
 } from "@/lib/milestone";
+import AdminStreakRebuild from "./AdminStreakRebuild";
 
 // Admin "Milestone Season Control" panel: season status, auto-reset toggle,
 // and manual reset.
@@ -162,6 +163,9 @@ export default function AdminMilestoneSeasonControl() {
           })}
         </div>
       )}
+
+      {/* Rebuild every player's best Ranked streak from saved hand history */}
+      <AdminStreakRebuild />
 
       {/* Auto-reset toggle */}
       <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-slate-50 px-4 py-3">
