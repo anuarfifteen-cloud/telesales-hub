@@ -22,9 +22,10 @@ export default function AdminStreakRebuild() {
         onProgress: (n) => setScanned(n),
       });
       setReport(result);
+      const changed = result.corrected.length + (result.allTimeCorrected?.length || 0);
       toast.success(
-        result.corrected.length
-          ? `${result.corrected.length} player${result.corrected.length === 1 ? "" : "s"} corrected.`
+        changed
+          ? `${changed} record${changed === 1 ? "" : "s"} corrected.`
           : "Every saved best streak already matches the hand history."
       );
     } catch {
@@ -41,10 +42,9 @@ export default function AdminStreakRebuild() {
           🔁 Rebuild Ranked Best Streaks
         </p>
         <p className="text-xs text-slate-500 mt-0.5">
-          Recalculates every player's longest Ranked winning run, season by
-          season, from their recorded hands. A loss, push or draw ends a run.
-          Streaks are corrected to the verified record and mirrored to the
-          leaderboard.
+          Recalculates every player's longest Ranked winning run from their
+          recorded hands — both the all-time best shown on the Ranked badge and
+          Stats, and each season's record. A loss, push or draw ends a run.
         </p>
       </div>
 
@@ -65,6 +65,26 @@ export default function AdminStreakRebuild() {
             <span className="font-bold text-slate-900">{report.players}</span> players
             · season {report.season}.
           </p>
+
+          {report.allTimeCorrected?.length ? (
+            <div className="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-2 space-y-1">
+              <p className="font-bold uppercase tracking-widest text-[9px] text-sky-700">
+                All-time best corrected ({report.allTimeCorrected.length})
+              </p>
+              {report.allTimeCorrected.map((c) => (
+                <p key={`all-${c.name}`} className="text-slate-800">
+                  <span className="font-bold">{c.name}</span> —{" "}
+                  <span className="font-black text-sky-700">{c.to} wins</span>
+                  {c.from > 0 ? ` (was ${c.from})` : ""}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-slate-500">
+              All-time best streaks verified — {report.allTimeUnchanged || 0} already
+              match the hand history.
+            </p>
+          )}
 
           {report.corrected.length > 0 ? (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 space-y-1">
@@ -108,12 +128,13 @@ export default function AdminStreakRebuild() {
             style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}
           >
             <h3 className="font-bold text-slate-900 text-lg">
-              Rebuild Best Streaks?
+              Rebuild All-Time Best Streaks?
             </h3>
             <p className="text-sm text-slate-600">
               Every player's longest Ranked winning run is recalculated from their
-              saved hands, season by season, with losses and pushes ending a run.
-              Saved streaks are corrected to match. This can take a moment on a
+              saved hands, all-time and season by season, with losses and pushes
+              ending a run. Saved streaks are corrected to match — this changes
+              what the Ranked badge and Stats display. This can take a moment on a
               large history.
             </p>
             <div className="flex gap-3">

@@ -130,8 +130,17 @@ async function loadBoardRows(userIds, seasonNumber) {
   return out;
 }
 
+// A player's all-time Ranked best lives on their user record — the value the
+// Ranked badge and the Stats tab read. Loaded once per rebuild.
+async function loadUsers() {
+  const page = await base44.entities.User.list({ limit: 500 });
+  const rows = page?.items || (Array.isArray(page) ? page : []);
+  return new Map(rows.map((u) => [u.id, u]));
+}
+
 /**
- * Recompute and correct every player's Ranked best streak, season by season.
+ * Recompute and correct every player's Ranked best streak — the all-time record
+ * on their user record, plus the current and past seasonal records.
  * Returns a report for the admin: what was scanned, what changed, what needs a
  * second look.
  */
@@ -163,6 +172,8 @@ export async function rebuildRankedBestStreaks({ onProgress } = {}) {
     players: 0,
     corrected: [],
     unchanged: 0,
+    allTimeCorrected: [],
+    allTimeUnchanged: 0,
     flagged: [],
     truncated,
   };
@@ -171,6 +182,7 @@ export async function rebuildRankedBestStreaks({ onProgress } = {}) {
   const progressByUser = new Map(
     (await loadProgressRows(userIds, currentSeason)).map((r) => [r.user_id, r])
   );
+  const usersById = await loadUsers();
 
   // One leaderboard row exists per player per season, so each season's record
   // stays readable after the season rolls over.
@@ -191,14 +203,21 @@ export async function rebuildRankedBestStreaks({ onProgress } = {}) {
   const corrected = [];
   const flagged = [];
   let unchanged = 0;
+  const userUpdates = [];
+  const allTimeCorrected = [];
+  let allTimeUnchanged = 0;
 
   for (const entry of groups.values()) {
     entry.hands.sort((a, b) =>
       String(a.created_date).localeCompare(String(b.created_date))
     );
 
-    // Longest consecutive-win run per season.
+    // Longest consecutive-win run per season, and across the whole history.
     const runs = new Map();
+    let allRun = 0;
+    let allBest = 0;
+    let allAt = "";
+    let allUnknown = 0;
     for (const h of entry.hands) {
       const ms = new Date(h.created_date).getTime();
       const seasonNo = seasonFor(ms, windows);
@@ -207,13 +226,22 @@ export async function rebuildRankedBestStreaks({ onProgress } = {}) {
       const result = String(h.result || "").toLowerCase();
       if (result === "win") {
         r.run += 1;
+        allRun += 1;
         if (r.run > r.best) {
           r.best = r.run;
           r.bestAt = h.created_date;
         }
+        if (allRun > allBest) {
+          allBest = allRun;
+          allAt = h.created_date;
+        }
       } else {
-        if (result !== "loss" && result !== "push") r.unknown += 1;
+        if (result !== "loss" && result !== "push") {
+          r.unknown += 1;
+          allUnknown += 1;
+        }
         r.run = 0; // a loss, a push or a draw ends the run
+        allRun = 0;
       }
       runs.set(seasonNo, r);
     }
@@ -278,6 +306,35 @@ export async function rebuildRankedBestStreaks({ onProgress } = {}) {
         });
       }
     }
+
+    // The all-time record on the player's user record — the number the Ranked
+    // badge and Stats show. Same rule: a complete history is the truth, an
+    // incomplete one may only raise the saved record.
+    const user = usersById.get(entry.userId);
+    const displayName =
+      user?.full_name || entry.email || "Player";
+    if (!user) {
+      flagged.push({
+        name: displayName,
+        reason: `No user record found — the all-time best of ${allBest} wins could not be written.`,
+      });
+    } else {
+      const savedAll = Math.max(0, Number(user.bj21RankedBestWinStreak) || 0);
+      const cleanAll = !historyIncomplete && allUnknown === 0;
+      const targetAll = cleanAll ? allBest : Math.max(allBest, savedAll);
+      if (!cleanAll) {
+        flagged.push({
+          name: displayName,
+          reason: `All-time history is incomplete${allUnknown ? ` (${allUnknown} hands without a saved result)` : ""} — kept the higher saved record.`,
+        });
+      }
+      if (targetAll !== savedAll) {
+        allTimeCorrected.push({ name: displayName, from: savedAll, to: targetAll, at: allAt });
+        userUpdates.push({ id: user.id, value: targetAll });
+      } else {
+        allTimeUnchanged += 1;
+      }
+    }
   }
 
   for (const batch of chunk(progressUpdates, PAGE)) {
@@ -299,6 +356,25 @@ export async function rebuildRankedBestStreaks({ onProgress } = {}) {
     }
   }
 
+  let userWriteFailures = 0;
+  for (const batch of chunk(userUpdates, 20)) {
+    await Promise.all(
+      batch.map(async (u) => {
+        try {
+          await base44.entities.User.update(u.id, { bj21RankedBestWinStreak: u.value });
+        } catch {
+          userWriteFailures += 1;
+        }
+      })
+    );
+  }
+  if (userWriteFailures > 0) {
+    flagged.push({
+      name: "All-time best",
+      reason: `${userWriteFailures} player record${userWriteFailures === 1 ? "" : "s"} couldn't be saved — run the rebuild again.`,
+    });
+  }
+
   if (skipped > 0) {
     flagged.push({
       name: "History",
@@ -318,6 +394,8 @@ export async function rebuildRankedBestStreaks({ onProgress } = {}) {
     players: groups.size,
     corrected,
     unchanged,
+    allTimeCorrected,
+    allTimeUnchanged,
     flagged,
     truncated,
   };
