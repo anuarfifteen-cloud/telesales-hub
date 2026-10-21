@@ -91,6 +91,7 @@ export default function AdminDashboard({ onBack }) {
   const [voucherFeedEnabled, setVoucherFeedEnabled] = useState(true);
   const [ninjaEnabled, setNinjaEnabled] = useState(true);
   const [onlineBlackjackEnabled, setOnlineBlackjackEnabled] = useState(true);
+  const [mysteryCardsEnabled, setMysteryCardsEnabled] = useState(true);
   const [showForceResetConfirm, setShowForceResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
 
@@ -102,9 +103,22 @@ export default function AdminDashboard({ onBack }) {
         setVoucherFeedEnabled(s.voucher_feed_enabled !== false);
         setNinjaEnabled(s.ninja_enabled !== false);
         setOnlineBlackjackEnabled(s.online_blackjack_enabled !== false);
+        setMysteryCardsEnabled(s.mystery_cards_enabled !== false);
       }
     });
   }, []);
+
+  const handleToggleMysteryCards = async (val) => {
+    setMysteryCardsEnabled(val);
+    const payload = { mystery_cards_enabled: val };
+    if (settingsId) {
+      await base44.entities.AppSettings.update(settingsId, payload);
+    } else {
+      const created = await base44.entities.AppSettings.create(payload);
+      setSettingsId(created.id);
+    }
+    toast.success(val ? "Mystery Cards enabled." : "Mystery Cards disabled app-wide.");
+  };
 
   const handleToggleVoucherFeed = async (val) => {
     setVoucherFeedEnabled(val);
@@ -513,6 +527,26 @@ export default function AdminDashboard({ onBack }) {
             style={{ width: "52px" }}
           >
             <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${ninjaEnabled ? "translate-x-7" : "translate-x-1"}`} />
+          </button>
+        </div>
+
+        {/* 🃏 Daily Mystery Card System Toggle */}
+        <div className="bg-white rounded-2xl border border-border p-5 flex items-center justify-between gap-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+          <div>
+            <h3 className="font-bold text-slate-900 text-base">🃏 Daily Mystery Card System</h3>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Enable or disable first-launch mystery cards and mission bonus cards across the entire app.
+            </p>
+            <p className={`text-xs font-semibold mt-1 ${mysteryCardsEnabled ? "text-emerald-600" : "text-slate-400"}`}>
+              {mysteryCardsEnabled ? "Currently ON" : "Currently OFF"}
+            </p>
+          </div>
+          <button
+            onClick={() => handleToggleMysteryCards(!mysteryCardsEnabled)}
+            className={`relative inline-flex h-7 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${mysteryCardsEnabled ? "bg-emerald-500" : "bg-slate-300"}`}
+            style={{ width: "52px" }}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${mysteryCardsEnabled ? "translate-x-7" : "translate-x-1"}`} />
           </button>
         </div>
 

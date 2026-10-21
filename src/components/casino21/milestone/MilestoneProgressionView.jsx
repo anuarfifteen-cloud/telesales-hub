@@ -10,7 +10,10 @@ import {
   rankDef,
   claimRankReward,
   claimDiamond,
+  isOffSeason,
 } from "@/lib/milestone";
+import useMysteryCardsEnabled from "@/hooks/useMysteryCardsEnabled";
+import OffSeasonCard from "./OffSeasonCard";
 import useMilestoneData from "./useMilestoneData";
 import useDailyChallenges from "./useDailyChallenges";
 import DailyChallengesHub from "./DailyChallengesHub";
@@ -35,6 +38,7 @@ function rewardLabel(def) {
 export default function MilestoneProgressionView({ user, onUserUpdate, recordWin }) {
   const { season, progress, loading, reload } = useMilestoneData(user);
   const challenges = useDailyChallenges(user, onUserUpdate);
+  const mysteryCardsEnabled = useMysteryCardsEnabled();
   const [busy, setBusy] = useState(false);
   const [showRanked, setShowRanked] = useState(false);
   const [subTab, setSubTab] = useState("milestones"); // milestones | leaderboard
@@ -74,8 +78,8 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
       )
     : 100;
   const diamondClaimed = !!season?.diamond_claimed;
-  const canClaimDiamond =
-    score >= RANK_10_THRESHOLD && !diamondClaimed && season?.status !== "completed";
+  const offSeason = isOffSeason(season);
+  const canClaimDiamond = score >= RANK_10_THRESHOLD && !diamondClaimed && !offSeason;
 
   const handleClaimRank = async (rank) => {
     if (busy) return;
@@ -110,7 +114,7 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
         }
         await onUserUpdate?.();
         await reload();
-        toast.success("👑 You claimed the Emperor of 21 Diamond! The season has reset.");
+        toast.success("👑 You claimed the Emperor of 21 Diamond! The season has ended.");
       } else if (res?.already) {
         toast.error(
           res.by ? `Already claimed by ${res.by}.` : "Diamond already claimed."
@@ -149,7 +153,7 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
           🏆 RANK · MILESTONE PROGRESSION
         </span>
         <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-emerald-100/70">
-          Season {season.season_number}
+          Season {season.season_month || season.season_number}
         </span>
       </div>
 
@@ -216,12 +220,17 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
           <DailyChallengesHub
             daily={challenges.daily}
             loading={challenges.loading}
+            mysteryCardsEnabled={mysteryCardsEnabled}
             onClaimMission={challenges.claimMission}
             onOpenBonusCard={() => setShowBonusCard(true)}
           />
 
-          {/* Ranked play panel — the only hands that feed this score */}
-          {showRanked ? (
+          {/* Ranked play — the only hands that feed this score. Once the season
+              is over the lobby is replaced by the off-season break card and no
+              Ranked table can be opened; Casual stays playable. */}
+          {offSeason ? (
+            <OffSeasonCard season={season} />
+          ) : showRanked ? (
             <RankedBlackjackPanel
               user={user}
               onUserUpdate={onUserUpdate}
@@ -246,7 +255,7 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
           {/* Season notice banner */}
           <div className="relative rounded-xl border border-rose-400/30 bg-rose-950/30 px-3 py-2">
             <p className="text-center text-[11px] font-bold text-rose-200 leading-snug">
-              ⚡ Only Ranked hands count. Race to Rank 10 — the season resets when 1 Diamond is claimed!
+              ⚡ Only Ranked hands count. The season ends when 1 Diamond is claimed — Ranked reopens on the 1st of next month!
             </p>
           </div>
 
@@ -341,7 +350,8 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
           </div>
 
           <p className="relative text-[9px] leading-relaxed text-emerald-100/50 text-center">
-            Claiming the Rank 10 Diamond instantly wins the grand prize and triggers the end of the season!
+            Claiming the Rank 10 Diamond wins the grand prize and ends the season. Ranked reopens on
+            the 1st of the next month at Brunei Midnight.
           </p>
         </>
       )}
@@ -352,7 +362,7 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
       {/* Bonus Mystery Card — only ever opened by the player's bonus button */}
       <BonusMysteryCardModal
         user={user}
-        open={showBonusCard}
+        open={showBonusCard && mysteryCardsEnabled}
         onClose={() => setShowBonusCard(false)}
         onUserUpdate={onUserUpdate}
       />

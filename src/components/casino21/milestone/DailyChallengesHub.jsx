@@ -145,7 +145,7 @@ function MissionTicket({ mission, progress, done, onClaim }) {
   );
 }
 
-export default function DailyChallengesHub({ daily, loading, onClaimMission, onOpenBonusCard }) {
+export default function DailyChallengesHub({ daily, loading, mysteryCardsEnabled = true, onClaimMission, onOpenBonusCard }) {
   const [, setNow] = useState(Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -246,8 +246,11 @@ export default function DailyChallengesHub({ daily, loading, onClaimMission, onO
         </div>
 
         {/* Bonus Mystery Card — never opens itself. Locked until every daily
-            mission has been claimed, then the player taps it to claim. */}
-        <BonusMysteryCardEntry daily={daily} onOpen={onOpenBonusCard} />
+            mission has been claimed, then the player taps it to claim. Hidden
+            entirely while the admin has the Mystery Card system switched off. */}
+        {mysteryCardsEnabled && (
+          <BonusMysteryCardEntry daily={daily} onOpen={onOpenBonusCard} />
+        )}
 
         {/* Only rendered while rewards are waiting — the old "missions done
             today" line added a whole extra row at the bottom. */}

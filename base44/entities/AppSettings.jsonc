@@ -52,6 +52,11 @@
       "description": "Whether the live voucher activity feed is shown in the Blind Voucher shop",
       "default": true
     },
+    "mystery_cards_enabled": {
+      "type": "boolean",
+      "description": "Global switch for the \ud83c\udccf Mystery Card system. When false, the first-launch Daily Mystery Card picker and the Daily Missions bonus card are suppressed across the whole app and no new cards can be claimed. Already-running perk timers (2\u00d7 Rank Surge, Max Bet 25) are never cleared \u2014 they simply expire naturally.",
+      "default": true
+    },
     "defending_champ_supertap_ids": {
       "type": "array",
       "items": {

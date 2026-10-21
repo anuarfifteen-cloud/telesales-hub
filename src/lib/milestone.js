@@ -6,6 +6,7 @@
 // Diamond for the first player to claim it. A Diamond claim (when auto-reset
 // is on) or an admin manual reset rolls the season forward.
 import { base44 } from "@/api/base44Client";
+import { bruneiMonthKey } from "./seasonWindow";
 
 export const RANKS = [
   { rank: 1, name: "Chip Apprentice", threshold: 100, chips: 10, tokens: 0 },
@@ -44,41 +45,111 @@ export function rankDef(rank) {
 }
 
 // ── Season singleton ───────────────────────────────────────────────
+// A season is one Brunei calendar month. `season_month` ("YYYY-MM") is its
+// identity: the off-season countdown targets 00:00 Brunei on the 1st of the
+// month after it, and the first session to load after that boundary rolls the
+// season forward exactly once.
+
+export function isOffSeason(season) {
+  return season?.status === "ended" || season?.status === "completed";
+}
+
+// The filter carries the state the caller believes is current, so a second
+// client acting on stale state matches nothing and changes nothing.
+function seasonFilter(season, extra = {}) {
+  const filter = { id: season.id, ...extra };
+  if (season.season_month) filter.season_month = season.season_month;
+  return filter;
+}
 
 export async function getSeason() {
   const page = await base44.entities.MilestoneSeason.filter({}, { limit: 10 });
   const rows = page.items || page || [];
-  if (rows.length) return rows[0];
-  return await base44.entities.MilestoneSeason.create({
-    season_number: 1,
-    status: "active",
-    diamond_claimed: false,
-    diamond_claimed_by: "",
-    diamond_claimed_by_name: "",
-    diamond_claimed_at: 0,
-    auto_reset_enabled: true,
-    last_reset_at: 0,
-  });
+  if (!rows.length) {
+    return await base44.entities.MilestoneSeason.create({
+      season_number: 1,
+      season_month: bruneiMonthKey(),
+      status: "active",
+      diamond_claimed: false,
+      diamond_claimed_by: "",
+      diamond_claimed_by_name: "",
+      diamond_claimed_at: 0,
+      season_winner_id: "",
+      season_winner_name: "",
+      ended_by: "",
+      ended_at: 0,
+      last_reset_at: 0,
+    });
+  }
+
+  let season = rows[0];
+  // A row written before monthly seasons existed carries no month. Stamp the
+  // current Brunei month once so the countdown and rollover have a window.
+  if (!season.season_month) {
+    season = await base44.entities.MilestoneSeason.update(season.id, {
+      season_month: bruneiMonthKey(),
+    });
+  }
+
+  // First session of a later Brunei month: reopen Ranked. Each player's points
+  // and streak reset lazily on their next read (getMyProgress sees the new
+  // season_number).
+  if (isOffSeason(season) && bruneiMonthKey() > season.season_month) {
+    const started = await startNewSeason(season);
+    if (started) season = started;
+  }
+  return season;
 }
 
 export async function updateSeason(id, patch) {
   return await base44.entities.MilestoneSeason.update(id, patch);
 }
 
-// Roll the season forward. Per-user progress resets lazily on next read
-// (getMyProgress detects the season_number mismatch).
-export async function resetSeason() {
-  const season = await getSeason();
-  const newNumber = Number(season.season_number) + 1;
-  return await base44.entities.MilestoneSeason.update(season.id, {
-    season_number: newNumber,
-    status: "active",
-    diamond_claimed: false,
-    diamond_claimed_by: "",
-    diamond_claimed_by_name: "",
-    diamond_claimed_at: 0,
-    last_reset_at: Date.now(),
-  });
+// Open a fresh season for the current Brunei month and bump the identifier so
+// every player's progress resets on their next load. Safe to call from several
+// sessions at once: only the first write matches the season's current state.
+export async function startNewSeason(season) {
+  if (!season) return null;
+  await base44.entities.MilestoneSeason.updateMany(
+    seasonFilter(season, { status: season.status }),
+    {
+      $set: {
+        season_number: Number(season.season_number || 1) + 1,
+        season_month: bruneiMonthKey(),
+        status: "active",
+        diamond_claimed: false,
+        diamond_claimed_by: "",
+        diamond_claimed_by_name: "",
+        diamond_claimed_at: 0,
+        season_winner_id: "",
+        season_winner_name: "",
+        ended_by: "",
+        ended_at: 0,
+        last_reset_at: Date.now(),
+      },
+    }
+  );
+  return await base44.entities.MilestoneSeason.get(season.id);
+}
+
+// Close the season and freeze it. Ranked stays locked until 00:00 Brunei on the
+// 1st of the next month, or until an admin starts the next season early.
+export async function endSeason(season, { winnerId = "", winnerName = "", byDiamond = false } = {}) {
+  if (!season) return null;
+  const patch = {
+    status: "ended",
+    ended_at: Date.now(),
+    ended_by: byDiamond ? "diamond" : "admin",
+  };
+  if (winnerId) {
+    patch.season_winner_id = winnerId;
+    patch.season_winner_name = winnerName || "";
+  }
+  await base44.entities.MilestoneSeason.updateMany(
+    seasonFilter(season, { status: season.status }),
+    { $set: patch }
+  );
+  return await base44.entities.MilestoneSeason.get(season.id);
 }
 
 // The player's score for the season active right now. 0 when they have no
@@ -298,21 +369,36 @@ export async function claimRankReward(userId, rank) {
   });
 }
 
-// Claim the Rank 10 Diamond. Best-effort first-claim-wins: update the season,
-// re-read, and only the player whose id sticks as diamond_claimed_by gets the
-// Diamond (and triggers the reset when auto_reset_enabled).
+// Claim the Rank 10 Diamond. The claim itself ENDS the season: the conditional
+// write only lands while the season is still active and unclaimed, then the
+// claimant is re-read to confirm they hold it before any Diamond is credited.
 export async function claimDiamond(userId, userName) {
   if (!userId) return { error: "no user" };
   const season = await getSeason();
+  if (isOffSeason(season)) {
+    return {
+      already: true,
+      by: season.season_winner_name || season.diamond_claimed_by_name,
+    };
+  }
   if (season.diamond_claimed) return { already: true, by: season.diamond_claimed_by_name };
 
-  await base44.entities.MilestoneSeason.update(season.id, {
-    diamond_claimed: true,
-    diamond_claimed_by: userId,
-    diamond_claimed_by_name: userName || "",
-    diamond_claimed_at: Date.now(),
-    status: "completed",
-  });
+  await base44.entities.MilestoneSeason.updateMany(
+    seasonFilter(season, { status: "active", diamond_claimed: false }),
+    {
+      $set: {
+        status: "ended",
+        diamond_claimed: true,
+        diamond_claimed_by: userId,
+        diamond_claimed_by_name: userName || "",
+        diamond_claimed_at: Date.now(),
+        season_winner_id: userId,
+        season_winner_name: userName || "",
+        ended_at: Date.now(),
+        ended_by: "diamond",
+      },
+    }
+  );
 
   // Confirm we are the recorded claimant (handles a simultaneous race).
   const fresh = await base44.entities.MilestoneSeason.get(season.id);
@@ -334,8 +420,5 @@ export async function claimDiamond(userId, userName) {
     });
   } catch {}
 
-  if (season.auto_reset_enabled) {
-    await resetSeason();
-  }
   return { claimed: true, season: fresh };
 }

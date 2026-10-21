@@ -5,16 +5,21 @@
     "season_number": {
       "type": "number",
       "default": 1,
-      "description": "Current milestone season number. Increments on each reset (Diamond claim with auto-reset, or admin manual reset)."
+      "description": "Current milestone season number. Increments when a new season starts (monthly rollover on the 1st, or an admin force start). It is the key per-player progress rows are compared against, so every player's score and streak reset lazily the next time they load."
+    },
+    "season_month": {
+      "type": "string",
+      "description": "The Asia/Brunei calendar month this season belongs to, as YYYY-MM. It defines the season's window: the off-season countdown targets 00:00 Brunei on the 1st of the month AFTER this one."
     },
     "status": {
       "type": "string",
       "enum": [
         "active",
+        "ended",
         "completed"
       ],
       "default": "active",
-      "description": "active = season in progress; completed = a Diamond was claimed but the season has not yet reset (only when auto_reset_enabled is false)."
+      "description": "active = season in progress and Ranked is open; ended = the season is over and Ranked is locked until the next Brunei month (or an admin force start); completed = legacy value from before monthly seasons, treated exactly like ended."
     },
     "diamond_claimed": {
       "type": "boolean",
@@ -34,15 +39,31 @@
       "default": 0,
       "description": "UNIX epoch ms when the Diamond was claimed."
     },
-    "auto_reset_enabled": {
-      "type": "boolean",
-      "default": true,
-      "description": "If true, claiming the Rank 10 Diamond automatically triggers a global season reset. If false, the season stays completed until an admin manually resets it."
+    "season_winner_id": {
+      "type": "string",
+      "description": "User ID of the season champion shown on the off-season card. Set to the Diamond claimant when the season ends on a Rank 10 claim, or to the points leader when an admin ends it manually."
+    },
+    "season_winner_name": {
+      "type": "string",
+      "description": "Display name of the season champion."
+    },
+    "ended_by": {
+      "type": "string",
+      "enum": [
+        "diamond",
+        "admin"
+      ],
+      "description": "How the season ended: diamond = a player claimed the Rank 10 Diamond; admin = an admin forced the season to end. Empty while the season is still active."
+    },
+    "ended_at": {
+      "type": "number",
+      "default": 0,
+      "description": "UNIX epoch ms when the season ended. 0 while the season is still active."
     },
     "last_reset_at": {
       "type": "number",
       "default": 0,
-      "description": "UNIX epoch ms of the last season reset."
+      "description": "UNIX epoch ms of the last new-season start."
     }
   },
   "required": [

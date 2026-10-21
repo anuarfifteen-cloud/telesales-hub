@@ -3,9 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { ensureDaily, revealMysteryCard, shuffleRewards } from "@/lib/dailyChallenges";
 import { requestGoToRanked } from "@/lib/rankedNav";
+import useMysteryCardsEnabled from "@/hooks/useMysteryCardsEnabled";
 import { REWARD_META, fmtMMSS, MysteryCardFlip } from "./mysteryCardKit";
 
 export default function DailyMysteryCardModal({ user, onUserUpdate }) {
+  // Global admin switch — when off the first-launch picker never appears and no
+  // card can be revealed. Running perk timers are left alone to expire.
+  const mysteryCardsEnabled = useMysteryCardsEnabled();
   const [open, setOpen] = useState(false);
   const [layout, setLayout] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -21,7 +25,12 @@ export default function DailyMysteryCardModal({ user, onUserUpdate }) {
   }, []);
 
   // First-launch trigger: load today's record; if the card is unopened, prompt.
+  // Skipped completely while the admin has the Mystery Card system switched off.
   useEffect(() => {
+    if (!mysteryCardsEnabled) {
+      setOpen(false);
+      return;
+    }
     let active = true;
     (async () => {
       const d = await ensureDaily(user).catch(() => null);
@@ -34,7 +43,7 @@ export default function DailyMysteryCardModal({ user, onUserUpdate }) {
     return () => {
       active = false;
     };
-  }, [user?.id]);
+  }, [user?.id, mysteryCardsEnabled]);
 
   const handlePick = async (idx) => {
     if (busy || selected !== null) return;
