@@ -1,4 +1,4 @@
-// Ranked season win streaks + the season-end 💎 Streak Crown.
+// Ranked season win streaks + the Streak Crown (display only, no Diamond).
 //
 // Streak records are season-scoped: they live on the player's MilestoneProgress
 // row and are mirrored onto their public leaderboard row so the 🏆RANK board can
@@ -118,61 +118,14 @@ export async function finalizeStreakAward(seasonNumber, champion) {
     streak_wins: leader?.wins || 0,
     streak_achieved_at: leader?.at || "",
     summary: leader
-      ? `${leader.user_name || "A player"} won 💎 1 Diamond for Highest Season Streak (${leader.wins} Wins)`
-      : "No Ranked win streak was recorded — no streak Diamond awarded.",
+      ? `${leader.user_name || "A player"} recorded the highest Ranked win streak of the season (${leader.wins} Wins)`
+      : "No Ranked win streak was recorded this season.",
     streak_diamond_paid: false,
     streak_diamond_paid_at: "",
     awarded_at: new Date().toISOString(),
   });
 }
 
-// The Streak King collects their Diamond the next time they open the RANK
-// area. The paid marker is written first and read back, so only the writer that
-// still sees its own stamp credits the Diamond — a reload or a second device
-// can't pay it again.
-export async function payPendingStreakDiamond(user) {
-  if (!user?.id) return null;
-  const season = await getSeason();
-  const seasonNumber = Number(season?.season_number) || 0;
-
-  const page = await base44.entities.MilestoneSeasonHistory.filter(
-    { streak_winner_user_id: user.id, streak_diamond_paid: false },
-    { limit: 10 }
-  );
-  const rows = (page.items || page || []).filter((r) => {
-    if (Number(r.streak_wins) <= 0) return false;
-    const n = Number(r.season_number) || 0;
-    // A closed season: either the season has rolled on, or the claim ended it
-    // while auto-reset is off.
-    return n < seasonNumber || (n === seasonNumber && season?.status === "completed");
-  });
-  if (!rows.length) return null;
-
-  const row = rows.sort((a, b) => Number(a.season_number) - Number(b.season_number))[0];
-  const stamp = new Date().toISOString();
-
-  await base44.entities.MilestoneSeasonHistory.update(row.id, {
-    streak_diamond_paid: true,
-    streak_diamond_paid_at: stamp,
-  });
-  const confirm = await base44.entities.MilestoneSeasonHistory.get(row.id);
-  if (!confirm?.streak_diamond_paid || confirm.streak_diamond_paid_at !== stamp) {
-    return null;
-  }
-
-  try {
-    const me = await base44.auth.me();
-    await base44.auth.updateMe({ diamonds: (Number(me?.diamonds) || 0) + 1 });
-  } catch (err) {
-    // Put the marker back so a later visit can retry the award.
-    try {
-      await base44.entities.MilestoneSeasonHistory.update(row.id, {
-        streak_diamond_paid: false,
-        streak_diamond_paid_at: "",
-      });
-    } catch {}
-    throw err;
-  }
-
-  return { season: Number(row.season_number), wins: Number(row.streak_wins) };
-}
+// No Diamond is paid for the highest streak any more — the crown and the win
+// count are shown on the leaderboard only. The Rank 10 grand-prize Diamond
+// (first to claim) is untouched.

@@ -18,8 +18,7 @@ import BonusMysteryCardModal from "./BonusMysteryCardModal";
 import RankedBlackjackPanel from "./RankedBlackjackPanel";
 import MilestoneLeaderboard from "./MilestoneLeaderboard";
 import SeasonBriefingModal from "./SeasonBriefingModal";
-import StreakDiamondClaim from "./StreakDiamondClaim";
-import { finalizeStreakAward, payPendingStreakDiamond } from "@/lib/milestoneStreak";
+import { finalizeStreakAward } from "@/lib/milestoneStreak";
 import MiniChipIcon from "../MiniChipIcon";
 
 const TOKEN_IMG =
@@ -100,15 +99,12 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
     try {
       const res = await claimDiamond(user.id, user.full_name || user.email || "Player");
       if (res?.claimed) {
-        // Close the season: record both winners and pay the Streak Crown. If this
-        // player also holds the highest streak, the pickup credits their Diamond
-        // right here instead of waiting for their next visit.
+        // Close the season: record the champion and the season's highest streak.
         try {
           await finalizeStreakAward(Number(res.season?.season_number) || 0, {
             id: user.id,
             name: user.full_name || user.email || "Player",
           });
-          await payPendingStreakDiamond(user);
         } catch {
           /* best-effort — the history row stays claimable on the next visit */
         }
@@ -350,10 +346,8 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
         </>
       )}
 
-      {/* Season-end briefing for the closed season + the 💎 Streak Crown pickup.
-          Keyed on the season so a reset remounts the claim check. */}
+      {/* Season-end briefing for the closed season (champion + highest streak). */}
       <SeasonBriefingModal user={user} />
-      <StreakDiamondClaim key={season?.season_number} user={user} onUserUpdate={onUserUpdate} />
 
       {/* Bonus Mystery Card — only ever opened by the player's bonus button */}
       <BonusMysteryCardModal

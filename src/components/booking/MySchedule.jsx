@@ -102,7 +102,7 @@ function SlotRow({ slot, bookings, globalRankMap }) {
                     ? "🔮 1-Hour VIP Plus 🔮" 
                     : item.vip_used 
                       ? "👑 VIP Booking Pass 👑" 
-                      : `#${item.globalRank}${item.booked_at ? ` · ${item.booked_at.replace(/:\d{2}\.\d{3}/, "")}` : ""}`}
+                      : `#${item.globalRank}${item.booked_at ? ` · ${item.booked_at}` : ""}`}
                 </span>
               )}
             </div>

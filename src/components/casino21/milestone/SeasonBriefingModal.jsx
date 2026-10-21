@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Trophy, Flame, Gem } from "lucide-react";
+import { Trophy, Flame } from "lucide-react";
 import { getSeason, getMyProgress } from "@/lib/milestone";
 
 // End-of-season briefing: announces the Season Champion (first to Rank 10) and
-// the Streak King (highest Ranked win streak, awarded 1 💎). Shown once per
+// the Streak King (highest Ranked win streak). Shown once per
 // season per player — the dismissal is stamped on their own progress row.
 export default function SeasonBriefingModal({ user }) {
   const [brief, setBrief] = useState(null);
@@ -99,8 +99,7 @@ export default function SeasonBriefingModal({ user }) {
               <p className="text-sm font-bold text-amber-100 leading-tight mt-0.5">
                 {row.streak_winner_name || "—"}{" "}
                 <span className="text-[10px] font-semibold text-emerald-100/60">
-                  (Highest Streak: {wins} Wins — Awarded{" "}
-                  <Gem className="inline w-3 h-3 text-amber-300" /> 1 Diamond!)
+                  (Highest Streak: {wins} Wins)
                 </span>
               </p>
               {row.summary && (
@@ -111,7 +110,7 @@ export default function SeasonBriefingModal({ user }) {
             </>
           ) : (
             <p className="text-sm font-bold text-emerald-100/70 leading-tight mt-0.5">
-              No Ranked win streak recorded — no streak Diamond awarded.
+              No Ranked win streak recorded this season.
             </p>
           )}
         </div>

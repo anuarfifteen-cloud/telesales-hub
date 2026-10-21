@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { SLOTS, getBookableDates, formatDate, getUnlockTime, getAmSlots } from "@/lib/slots";
+import { SLOTS, getBookableDates, formatDate, getUnlockTime, getAmSlots, todayInBrunei } from "@/lib/slots";
+import { bookingOrder, slotLimits, excessBookings } from "@/lib/bookingCapacity";
+import { checkBookingMilestones } from "@/lib/bookingMilestones";
 import { format as tzFormat } from "date-fns-tz";
 const TZ = "Asia/Brunei";
 import { useBruneiClock } from "@/hooks/useBruneiClock";
@@ -111,169 +113,12 @@ export default function Home() {
   }, []);
 
 
-  const checkMilestones = async (totalCount) => {
-    // Dark mode unlock at 5 bookings
-    if (totalCount >= 5 && !localStorage.getItem("hasSeenDarkModeModal")) {
-      localStorage.setItem("hasSeenDarkModeModal", "true");
-      setUnlockModal({
-        open: true,
-        title: "🎉 Achievement Unlocked!",
-        message: "Congratulations! You just hit 5 successful bookings and unlocked Dark Mode. You can now toggle your app theme in the Profile tab. Keep up the great work!"
-      });
-    }
+  const checkMilestones = async (totalCount) =>
+    checkBookingMilestones(totalCount, {
+      refreshUser,
+      showUnlock: (title, message) => setUnlockModal({ open: true, title, message }),
+    });
 
-    // Token milestone at 15 bookings: award 3 tokens
-    if (totalCount >= 15) {
-      const freshUser = await base44.auth.me();
-      const awarded = freshUser?.milestoneTokensAwarded || {};
-      if (!awarded["15"]) {
-        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
-        await base44.auth.updateMe({
-          earlyAccessTokens: currentTokens + 3,
-          milestoneTokensAwarded: { ...awarded, "15": true }
-        });
-        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 3, source: "Booking Milestone — 15 Bookings", timestamp: new Date().toISOString() });
-        await refreshUser();
-        setUnlockModal({
-          open: true,
-          title: "🏆 Early Access Unlocked!",
-          message: "Amazing! You've hit 15 bookings and earned 3 Early Access tokens. Spend a token to book your breaks 30 minutes early for 24 hours. Keep booking to earn more!"
-        });
-        return;
-      }
-    }
-
-    // Token milestone at 30 bookings: award 5 additional tokens
-    if (totalCount >= 30) {
-      const freshUser = await base44.auth.me();
-      const awarded = freshUser?.milestoneTokensAwarded || {};
-      if (!awarded["30"]) {
-        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
-        await base44.auth.updateMe({
-          earlyAccessTokens: currentTokens + 5,
-          milestoneTokensAwarded: { ...awarded, "30": true }
-        });
-        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 5, source: "Booking Milestone — 30 Bookings", timestamp: new Date().toISOString() });
-        await refreshUser();
-        setUnlockModal({
-          open: true,
-          title: "🌟 Bonus Tokens Awarded!",
-          message: "Incredible! You've hit 30 bookings and earned 5 extra Early Access tokens on top of your remaining balance. Keep it up!"
-        });
-        return;
-      }
-    }
-
-    // Token milestone at 50 bookings: award 10 tokens
-    if (totalCount >= 50) {
-      const freshUser = await base44.auth.me();
-      const awarded = freshUser?.milestoneTokensAwarded || {};
-      if (!awarded["50"]) {
-        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
-        await base44.auth.updateMe({
-          earlyAccessTokens: currentTokens + 10,
-          milestoneTokensAwarded: { ...awarded, "50": true }
-        });
-        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 10, source: "Booking Milestone — 50 Bookings", timestamp: new Date().toISOString() });
-        await refreshUser();
-        setUnlockModal({
-          open: true,
-          title: "💎 Elite Milestone!",
-          message: "Wow! You've hit 50 bookings and earned 10 Early Access tokens! You're on fire — keep going!"
-        });
-        return;
-      }
-    }
-
-    // Token milestone at 100 bookings: award 20 tokens
-    if (totalCount >= 100) {
-      const freshUser = await base44.auth.me();
-      const awarded = freshUser?.milestoneTokensAwarded || {};
-      if (!awarded["100"]) {
-        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
-        await base44.auth.updateMe({
-          earlyAccessTokens: currentTokens + 20,
-          milestoneTokensAwarded: { ...awarded, "100": true }
-        });
-        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 20, source: "Booking Milestone — 100 Bookings", timestamp: new Date().toISOString() });
-        await refreshUser();
-        setUnlockModal({
-          open: true,
-          title: "🚀 Legend Status!",
-          message: "INCREDIBLE! 100 bookings! You've earned a massive 20 Early Access tokens. You are a true Telesales legend!"
-        });
-        return;
-      }
-    }
-
-    // Combined milestone at 250 bookings: award 1 diamond + 25 tokens
-    if (totalCount >= 250) {
-      const freshUser = await base44.auth.me();
-      const awarded = freshUser?.milestoneTokensAwarded || {};
-      if (!awarded["250"]) {
-        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
-        const currentDiamonds = freshUser?.diamonds ?? 0;
-        await base44.auth.updateMe({
-          earlyAccessTokens: currentTokens + 25,
-          diamonds: currentDiamonds + 1,
-          milestoneTokensAwarded: { ...awarded, "250": true }
-        });
-        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 25, source: "Booking Milestone — 250 Bookings", timestamp: new Date().toISOString() });
-        await refreshUser();
-        setUnlockModal({
-          open: true,
-          title: "💠 250 Bookings Milestone!",
-          message: "Phenomenal! You've hit 250 bookings and earned 1 Diamond + 25 Early Access tokens!"
-        });
-        return;
-      }
-    }
-
-    // Combined milestone at 500 bookings: award 3 diamonds + 30 tokens
-    if (totalCount >= 500) {
-      const freshUser = await base44.auth.me();
-      const awarded = freshUser?.milestoneTokensAwarded || {};
-      if (!awarded["500"]) {
-        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
-        const currentDiamonds = freshUser?.diamonds ?? 0;
-        await base44.auth.updateMe({
-          earlyAccessTokens: currentTokens + 30,
-          diamonds: currentDiamonds + 3,
-          milestoneTokensAwarded: { ...awarded, "500": true }
-        });
-        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 30, source: "Booking Milestone — 500 Bookings", timestamp: new Date().toISOString() });
-        await refreshUser();
-        setUnlockModal({
-          open: true,
-          title: "🔷 500 Bookings Milestone!",
-          message: "Outstanding! You've hit 500 bookings and earned 3 Diamonds + 30 Early Access tokens!"
-        });
-        return;
-      }
-    }
-
-    // Combined milestone at 1000 bookings: award 5 diamonds + 50 tokens
-    if (totalCount >= 1000) {
-      const freshUser = await base44.auth.me();
-      const awarded = freshUser?.milestoneTokensAwarded || {};
-      if (!awarded["1000"]) {
-        const currentTokens = freshUser?.earlyAccessTokens ?? 0;
-        const currentDiamonds = freshUser?.diamonds ?? 0;
-        await base44.auth.updateMe({
-          earlyAccessTokens: currentTokens + 50,
-          diamonds: currentDiamonds + 5,
-          milestoneTokensAwarded: { ...awarded, "1000": true }
-        });
-        await base44.entities.TokenTransaction.create({ user_id: freshUser.id, user_name: freshUser.full_name || freshUser.email, amount: 50, source: "Booking Milestone — 1000 Bookings", timestamp: new Date().toISOString() });
-        await refreshUser();
-        setUnlockModal({
-          open: true,
-          title: "🏆 1000 Bookings Milestone!",
-          message: "LEGENDARY! You've hit 1000 bookings and earned 5 Diamonds + 50 Early Access tokens!"
-        });
-      }
-    }
-  };
   const [seenAnnouncementIds, setSeenAnnouncementIds] = useState(() => {
     try {return JSON.parse(localStorage.getItem("seenAnnouncements") || "[]");} catch {return [];}
   });
@@ -457,10 +302,10 @@ useEffect(() => {
       // Re-fetch ALL bookings for this slot now that we've written
       const allSlotBookings = await base44.entities.Booking.filter({ date: selectedDate, slot_id: slot.id });
 
-      // Sort by database creation timestamp ascending (earliest = winner)
-      const sorted = [...allSlotBookings].sort((a, b) =>
-      new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
-      );
+      // Order by database-created time, the record id breaking an exact tie, so
+      // every client agrees on who holds a seat. Anyone past the limit voids
+      // their own booking — no pass or early-access tier raises the limit.
+      const sorted = [...allSlotBookings].sort(bookingOrder);
 
       const myIndex = sorted.findIndex((b) => b.id === newBooking.id);
 
@@ -592,6 +437,30 @@ useEffect(() => {
   bookings.find((b) => b.slot_id === slotId && b.user_email === user?.email);
 
   const isMutating = createMutation.isPending || cancelMutation.isPending;
+
+  // Capacity guard: on a date that hasn't passed, a slot may never keep more
+  // bookings than its limit. The earliest bookings keep their seats and any
+  // later extra is removed here, whoever booked it and whatever pass they used.
+  useEffect(() => {
+    if (!selectedDate) return;
+    const real = bookings.filter((b) => b.id !== "__optimistic__");
+    if (!real.length) return;
+    if (selectedDate < todayInBrunei(bruneiNow)) return;
+    const excess = excessBookings(real, slotLimits([...amSlots, ...pmSlots]));
+    if (!excess.length) return;
+    (async () => {
+      for (const b of excess) {
+        try {
+          await base44.entities.Booking.delete(b.id);
+        } catch {
+          /* already gone — the next load re-checks */
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
+      toast.error("Over-booked slot corrected — the latest extra booking was removed.");
+    })();
+  }, [bookings, selectedDate, customSlots]);
 
   const myBookings = weekBookings.filter((b) => b.user_email === user?.email);
   const totalBookingCount = myBookings.length;

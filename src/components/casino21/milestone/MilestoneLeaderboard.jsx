@@ -11,8 +11,8 @@ import MiniChipIcon from "../MiniChipIcon";
 //
 // Each row also carries the player's season-best Ranked win streak, shown
 // directly beneath their name. The single top streak with the earliest record
-// wears the 💎 Streak Crown and takes the season-end Diamond; anyone who merely
-// matches that number later is labelled as a later tie, with no crown or glow.
+// wears the Streak Crown; anyone who merely matches that number later is
+// labelled as a later tie, with no crown or glow. No Diamond is paid for it.
 export default function MilestoneLeaderboard({ user }) {
   const [rows, setRows] = useState([]);
   const [seasonNumber, setSeasonNumber] = useState(null);
@@ -145,7 +145,7 @@ export default function MilestoneLeaderboard({ user }) {
                     </p>
                     {isCrown ? (
                       <span className="streak-crown-glow mt-1 inline-flex items-center gap-1 rounded-full border border-amber-300/70 bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-100 whitespace-nowrap">
-                        👑 💎 Streak Crown · {streakWins} Wins
+                        👑 Streak Crown · {streakWins} Wins
                       </span>
                     ) : (
                       <p
@@ -175,7 +175,8 @@ export default function MilestoneLeaderboard({ user }) {
         (1–10 chip wagers). Standard Casual play does not count.
       </p>
       <p className="relative text-[9px] leading-relaxed text-emerald-100/40 text-center">
-        ℹ️ 1 💎 awarded at Season End to the highest Ranked win streak. Earliest record breaks ties.
+        🔥 Streak shown is the player's best consecutive Ranked win run. Highest streak holds the
+        crown; the earliest record breaks a tie.
       </p>
     </div>
   );

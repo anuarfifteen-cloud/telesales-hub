@@ -30,7 +30,7 @@ export default function AdminMilestoneSeasonControl() {
       );
       const rows = page.items || page || [];
       setLeader(rows[0] || null);
-      // Closed-season log: champion + the 💎 Streak Crown winner and payout state.
+      // Closed-season log: champion + the season's highest Ranked win streak.
       const hp = await base44.entities.MilestoneSeasonHistory.filter(
         {},
         { sort: "-season_number", limit: 5 }
@@ -144,18 +144,11 @@ export default function AdminMilestoneSeasonControl() {
                 </p>
                 {wins > 0 ? (
                   <p className="text-slate-600">
-                    🔥 {h.streak_winner_name || "—"} — {wins} Wins ·{" "}
-                    <span
-                      className={
-                        h.streak_diamond_paid ? "text-emerald-600" : "text-amber-600"
-                      }
-                    >
-                      {h.streak_diamond_paid ? "💎 1 Diamond paid" : "💎 1 Diamond pending"}
-                    </span>
+                    🔥 Highest streak: {h.streak_winner_name || "—"} — {wins} Wins
                   </p>
                 ) : (
                   <p className="text-slate-500">
-                    🔥 No Ranked win streak — no streak Diamond awarded.
+                    🔥 No Ranked win streak recorded this season.
                   </p>
                 )}
               </div>
