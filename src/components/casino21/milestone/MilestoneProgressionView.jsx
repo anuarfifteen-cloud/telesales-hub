@@ -13,7 +13,7 @@ import {
   isOffSeason,
 } from "@/lib/milestone";
 import useMysteryCardsEnabled from "@/hooks/useMysteryCardsEnabled";
-import OffSeasonCard from "./OffSeasonCard";
+import SeasonCountdownCard from "./SeasonCountdownCard";
 import useMilestoneData from "./useMilestoneData";
 import useDailyChallenges from "./useDailyChallenges";
 import DailyChallengesHub from "./DailyChallengesHub";
@@ -181,6 +181,12 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
         <MilestoneLeaderboard user={user} />
       ) : (
         <>
+          {/* Off-season: the season payout total and Daily Missions are hidden
+              so the next-season countdown is the first thing a player sees. */}
+          {offSeason ? (
+            <SeasonCountdownCard season={season} onExpire={reload} />
+          ) : (
+          <>
           {/* Score + current rank */}
           <div className="relative rounded-2xl border border-amber-400/30 bg-emerald-950/40 p-3">
             <div className="flex items-center justify-between">
@@ -224,13 +230,13 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
             onClaimMission={challenges.claimMission}
             onOpenBonusCard={() => setShowBonusCard(true)}
           />
+          </>
+          )}
 
           {/* Ranked play — the only hands that feed this score. Once the season
               is over the lobby is replaced by the off-season break card and no
               Ranked table can be opened; Casual stays playable. */}
-          {offSeason ? (
-            <OffSeasonCard season={season} />
-          ) : showRanked ? (
+          {!offSeason && (showRanked ? (
             <RankedBlackjackPanel
               user={user}
               onUserUpdate={onUserUpdate}
@@ -250,7 +256,7 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
               ⚔️ Play Ranked (1–
               {Number(challenges.daily?.rank_bet_cap_expires_at || 0) > Date.now() ? 25 : 10} chips)
             </button>
-          )}
+          ))}
 
           {/* Season notice banner */}
           <div className="relative rounded-xl border border-rose-400/30 bg-rose-950/30 px-3 py-2">
