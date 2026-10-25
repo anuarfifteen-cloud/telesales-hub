@@ -8,6 +8,7 @@ import DiamondSmashMysteryMode from "@/components/games/DiamondSmashMysteryMode"
 import Board from "@/components/games/diamond-smash/Board";
 import BoosterShop from "@/components/games/diamond-smash/BoosterShop";
 import BoosterHUD from "@/components/games/diamond-smash/BoosterHUD";
+import EndGameConversionBonus from "@/components/games/diamond-smash/EndGameConversionBonus";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   AlertDialog,
@@ -35,6 +36,9 @@ import { useUserMap } from "@/hooks/useUserMap";
 import { useChampionTitles } from "@/hooks/useChampionTitles";
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+
+// End-Game Conversion payout: points earned per leftover move at game over.
+const CONVERSION_POINTS_PER_MOVE = 100;
 
 // ── Leaderboard (unchanged) ──────────────────────────────────────────────────
 const DS_TAB_ACTIVE = "bg-fuchsia-500/15 border-fuchsia-500 text-fuchsia-300 shadow-[0_0_10px_rgba(217,70,239,0.5)]";
@@ -269,6 +273,8 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   // same tick the booster is armed (timer or final move), before React commits
   // the state update, so the game-over handler must never read a stale value.
   const endGameConversionRef = useRef(false);
+  // Staged End-Game Conversion payout shown over the game-over card.
+  const [conversionResult, setConversionResult] = useState(null); // { moves, per, total, done }
   const [boosterBusy, setBoosterBusy] = useState(false);
   const [frozen, setFrozen] = useState(false);
   const frozenRef = useRef(false);
@@ -418,17 +424,22 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     busyRef.current = false;
     playGameOver();
     stopMusic();
-    // End-Game Conversion booster: leftover moves → +250 pts each, applied once
+    // End-Game Conversion booster: leftover moves → +100 pts each, applied once
     let score = finalScore;
     const leftoverMoves = Math.max(0, movesRef.current);
     if (endGameConversionRef.current) {
       endGameConversionRef.current = false; // consume — never pay out twice
-      const bonus = leftoverMoves * 250;
+      const bonus = leftoverMoves * CONVERSION_POINTS_PER_MOVE;
       if (bonus > 0) {
         score += bonus;
         scoreRef.current = score;
         setScore(score);
-        toast.success(`End-Game Conversion: ${leftoverMoves} moves × 250 = +${bonus} points!`);
+        setConversionResult({
+          moves: leftoverMoves,
+          per: CONVERSION_POINTS_PER_MOVE,
+          total: bonus,
+          done: false,
+        });
       }
     }
     setPhase("over");
@@ -447,6 +458,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setActivatedBooster(null);
     setBoosterUsedThisGame(false);
     endGameConversionRef.current = false;
+    setConversionResult(null);
     setBoosterBusy(false);
     frozenRef.current = false;
     freezeRemainingRef.current = 0;
@@ -507,6 +519,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     setActivatedBooster(null);
     setBoosterUsedThisGame(false);
     endGameConversionRef.current = false;
+    setConversionResult(null);
     setBoosterBusy(false);
     setBlastFlash(null);
     setLegendary(null);
@@ -695,7 +708,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         setMoves(movesRef.current);
         toast.success("⚡ Move Boost! +10 moves added.");
       } else if (boosterId === "end_game") {
-        toast.success("💰 End-Game Conversion equipped! Leftover moves × 250 at game over.");
+        toast.success("💰 End-Game Conversion equipped! Leftover moves × 100 at game over.");
       }
     } catch (e) {
       if (boosterId === "end_game") endGameConversionRef.current = false;
@@ -710,6 +723,15 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   return (
     <div className="ds-game-root bg-gradient-to-br from-slate-100 via-purple-50 to-slate-200 dark:from-slate-900 dark:via-purple-900/30 dark:to-slate-900 flex flex-col items-center gap-5 pb-6 p-4 sm:p-6 rounded-3xl">
       <style>{`
+        @keyframes dsBonusTick {
+          0% { transform: scale(1.3); opacity: 0.7; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes dsBonusTotal {
+          0% { transform: scale(0.7); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+
         @keyframes dsComboPop {
           0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
           25% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
@@ -990,25 +1012,48 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
             <p className="font-black text-2xl tracking-[0.3em] uppercase text-fuchsia-600 dark:text-fuchsia-300 drop-shadow-[0_0_15px_rgba(217,70,239,0.4)] text-center mt-4">
               Smash<br />Complete
             </p>
-            <div className="rounded-xl px-10 py-5 flex flex-col items-center gap-1 bg-white/70 dark:bg-slate-800/80 border border-white/80 dark:border-slate-700 shadow-lg">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-600 dark:text-fuchsia-300">Final Score</p>
-              <p className="font-black text-5xl tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-pink-500 dark:from-amber-300 dark:to-pink-400 drop-shadow-[0_0_15px_rgba(255,215,0,0.5)]">{score}</p>
-              {saving ? (
-                <p className="text-[10px] text-purple-600 dark:text-slate-200 mt-1 animate-pulse">Saving score...</p>
-              ) : saveFailed ? (
-                <button onClick={() => saveScore(score)} className="text-[10px] text-red-500 dark:text-red-400 mt-1 font-bold underline animate-pulse">⚠ Save failed — tap to retry</button>
-              ) : (
-                <p className="text-[10px] text-purple-600 dark:text-slate-300 mt-1">Score saved ✓</p>
-              )}
-            </div>
-            <button
-              onClick={startGame}
-              disabled={saving}
-              className="mt-3 mb-4 w-full max-w-[220px] px-4 py-3 rounded-lg font-black text-sm tracking-widest uppercase bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white shadow-[0_0_15px_rgba(217,70,239,0.5)] hover:scale-105 transition-transform flex items-center justify-center gap-2"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
-              {saving ? "SAVING..." : "Play Again"}
-            </button>
+            {conversionResult && !conversionResult.done ? (
+              /* Staged bonus: +100 per leftover move → total bonus, then the final score */
+              <div className="rounded-xl px-8 py-4 flex flex-col items-center gap-1.5 bg-white/70 dark:bg-slate-800/80 border border-white/80 dark:border-slate-700 shadow-lg">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-600 dark:text-fuchsia-300">Score</p>
+                <p className="font-black text-3xl tabular-nums text-fuchsia-600 dark:text-fuchsia-300">
+                  {score - conversionResult.total}
+                </p>
+                <EndGameConversionBonus
+                  moves={conversionResult.moves}
+                  perMove={conversionResult.per}
+                  total={conversionResult.total}
+                  onDone={() => setConversionResult((c) => (c ? { ...c, done: true } : c))}
+                />
+              </div>
+            ) : (
+              <>
+                <div className="rounded-xl px-10 py-5 flex flex-col items-center gap-1 bg-white/70 dark:bg-slate-800/80 border border-white/80 dark:border-slate-700 shadow-lg">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-600 dark:text-fuchsia-300">Final Score</p>
+                  <p className="font-black text-5xl tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-pink-500 dark:from-amber-300 dark:to-pink-400 drop-shadow-[0_0_15px_rgba(255,215,0,0.5)]">{score}</p>
+                  {conversionResult && (
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-300">
+                      incl. End-Game Conversion +{conversionResult.total}
+                    </p>
+                  )}
+                  {saving ? (
+                    <p className="text-[10px] text-purple-600 dark:text-slate-200 mt-1 animate-pulse">Saving score...</p>
+                  ) : saveFailed ? (
+                    <button onClick={() => saveScore(score)} className="text-[10px] text-red-500 dark:text-red-400 mt-1 font-bold underline animate-pulse">⚠ Save failed — tap to retry</button>
+                  ) : (
+                    <p className="text-[10px] text-purple-600 dark:text-slate-300 mt-1">Score saved ✓</p>
+                  )}
+                </div>
+                <button
+                  onClick={startGame}
+                  disabled={saving}
+                  className="mt-3 mb-4 w-full max-w-[220px] px-4 py-3 rounded-lg font-black text-sm tracking-widest uppercase bg-gradient-to-r from-fuchsia-500 to-amber-400 text-white shadow-[0_0_15px_rgba(217,70,239,0.5)] hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                  {saving ? "SAVING..." : "Play Again"}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

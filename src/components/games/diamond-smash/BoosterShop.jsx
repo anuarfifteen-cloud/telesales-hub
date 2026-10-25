@@ -6,7 +6,7 @@ import { toast } from "sonner";
 // Buying adds +1 to the booster's stock; no per-game limit.
 export const BOOSTER_DEFS = [
   { id: "time_freeze", icon: "❄️", name: "Time Freeze", desc: "Pauses the timer 15s", accent: "from-cyan-400 to-blue-500" },
-  { id: "end_game", icon: "💰", name: "End-Game Conversion", desc: "Leftover moves → +250 pts", accent: "from-amber-400 to-orange-500" },
+  { id: "end_game", icon: "💰", name: "End-Game Conversion", desc: "Leftover moves → +100 pts each", accent: "from-amber-400 to-orange-500" },
   { id: "move_boost", icon: "⚡", name: "Move Boost", desc: "Adds +10 moves", accent: "from-fuchsia-400 to-pink-500" },
 ];
 
