@@ -265,7 +265,10 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
   // ── Booster system ──
   const [activatedBooster, setActivatedBooster] = useState(null); // null | 'time_freeze' | 'end_game' | 'move_boost'
   const [boosterUsedThisGame, setBoosterUsedThisGame] = useState(false);
-  const [endGameConversion, setEndGameConversion] = useState(false);
+  // End-Game Conversion lives in a ref, not state: a run can end in the very
+  // same tick the booster is armed (timer or final move), before React commits
+  // the state update, so the game-over handler must never read a stale value.
+  const endGameConversionRef = useRef(false);
   const [boosterBusy, setBoosterBusy] = useState(false);
   const [frozen, setFrozen] = useState(false);
   const frozenRef = useRef(false);
@@ -415,15 +418,17 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     busyRef.current = false;
     playGameOver();
     stopMusic();
-    // End-Game Conversion booster: leftover moves → +250 pts each
+    // End-Game Conversion booster: leftover moves → +250 pts each, applied once
     let score = finalScore;
-    if (endGameConversion) {
-      const bonus = Math.max(0, movesRef.current) * 250;
+    const leftoverMoves = Math.max(0, movesRef.current);
+    if (endGameConversionRef.current) {
+      endGameConversionRef.current = false; // consume — never pay out twice
+      const bonus = leftoverMoves * 250;
       if (bonus > 0) {
         score += bonus;
         scoreRef.current = score;
         setScore(score);
-        toast.success(`End-Game Conversion: +${bonus} points!`);
+        toast.success(`End-Game Conversion: ${leftoverMoves} moves × 250 = +${bonus} points!`);
       }
     }
     setPhase("over");
@@ -441,7 +446,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     // Booster state reset
     setActivatedBooster(null);
     setBoosterUsedThisGame(false);
-    setEndGameConversion(false);
+    endGameConversionRef.current = false;
     setBoosterBusy(false);
     frozenRef.current = false;
     freezeRemainingRef.current = 0;
@@ -501,7 +506,7 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
     stopMusic();
     setActivatedBooster(null);
     setBoosterUsedThisGame(false);
-    setEndGameConversion(false);
+    endGameConversionRef.current = false;
     setBoosterBusy(false);
     setBlastFlash(null);
     setLegendary(null);
@@ -669,6 +674,9 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
       return;
     }
     setBoosterBusy(true);
+    // Arm End-Game Conversion before the network write — the timer or the last
+    // move can end the run while that write is still in flight.
+    if (boosterId === "end_game") endGameConversionRef.current = true;
     try {
       await base44.auth.updateMe({
         diamondSmashBoosters: { ...stock, [boosterId]: owned - 1 },
@@ -687,10 +695,10 @@ export default function DiamondSmashGame({ user, onUserUpdate }) {
         setMoves(movesRef.current);
         toast.success("⚡ Move Boost! +10 moves added.");
       } else if (boosterId === "end_game") {
-        setEndGameConversion(true);
         toast.success("💰 End-Game Conversion equipped! Leftover moves × 250 at game over.");
       }
     } catch (e) {
+      if (boosterId === "end_game") endGameConversionRef.current = false;
       toast.error("Activation failed. Try again.");
     } finally {
       setBoosterBusy(false);
