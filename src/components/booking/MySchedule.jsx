@@ -84,27 +84,29 @@ function SlotRow({ slot, bookings, globalRankMap }) {
                 {item.vip_used && !item.vip_plus_used && !item.priority_used && <span className="text-amber-500 text-[11px]">👑</span>}
                 {item.name}
               </span>
+              {/* Rank + exact booking time — shown for every booking type so
+                  slot capacity order is always verifiable. */}
+              <span
+                className={`text-[10px] leading-tight mt-0.5 font-semibold tabular-nums ${
+                  item.globalRank === 1 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground/85"
+                }`}
+              >
+                #{item.globalRank}
+                {item.booked_at ? ` · ${item.booked_at}` : ""}
+              </span>
               {item.priority_used ? (
                 <span className="priority-badge text-[10px] leading-tight mt-0.5 font-bold px-1.5 py-0.5 rounded-full inline-block">
                   💎 7-Day Priority Access
                 </span>
-              ) : (
-                <span className={`text-[10px] leading-tight mt-0.5 font-semibold 
-                  ${item.globalRank === 1 
-                    ? "text-emerald-600 dark:text-emerald-400" 
-                    : item.vip_plus_used 
-                      ? "text-purple-600 dark:text-purple-400 font-bold" // Purple sub-label style
-                      : item.vip_used 
-                        ? "text-amber-600 dark:text-amber-400" 
-                        : "text-foreground/85"}`}
-                >
-                  {item.vip_plus_used 
-                    ? "🔮 1-Hour VIP Plus 🔮" 
-                    : item.vip_used 
-                      ? "👑 VIP Booking Pass 👑" 
-                      : `#${item.globalRank}${item.booked_at ? ` · ${item.booked_at}` : ""}`}
+              ) : item.vip_plus_used ? (
+                <span className="text-[10px] leading-tight mt-0.5 font-bold text-purple-600 dark:text-purple-400">
+                  🔮 1-Hour VIP Plus 🔮
                 </span>
-              )}
+              ) : item.vip_used ? (
+                <span className="text-[10px] leading-tight mt-0.5 font-semibold text-amber-600 dark:text-amber-400">
+                  👑 VIP Booking Pass 👑
+                </span>
+              ) : null}
             </div>
           ) : (
             <span key={idx} className="text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
