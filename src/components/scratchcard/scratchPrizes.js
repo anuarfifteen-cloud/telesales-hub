@@ -16,6 +16,10 @@ export const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b
 // wherever the ticket itself is pictured.
 export const SCRATCH_CARD_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/42559215e_Gemini_Generated_Image_tkxkqttkxkqttkxk.jpg";
 
+// Compact gold ticket artwork used as the Scratch Card icon in the Tokens
+// sub-tab, so it sits at the same weight as the neighbouring tab icons.
+export const SCRATCH_TAB_ICON = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/eeed802ad_Screenshot2026-10-31232903.png";
+
 // Black-and-gold casino chip used for every chip visual on the Scratch Card —
 // the chip symbols on the ticket, the win celebration, the result card and the
 // live activity feed. Cropped to a circle so its square backdrop disappears.
