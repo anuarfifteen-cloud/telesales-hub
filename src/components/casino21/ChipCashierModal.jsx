@@ -40,9 +40,21 @@ const BUNDLES = [
 const DIAMOND_CHIPS = 1000;
 const DIAMOND_COST = 1;
 
+// The diamond offer wears the same casino chip as the token bundles, minted in
+// gold: gold face, white outer rim, pale dashed ring, dark inner ring and star.
+const GOLD_CHIP = {
+  id: "gold",
+  color: "#d4af37",
+  accent: "rgba(255,248,220,0.75)",
+  gold: true,
+  inner: "#2a2a2a",
+  star: "#2a2a2a",
+  label: "Gold",
+};
+
 // ── Pure-CSS casino chip ──
 function ChipIcon({ bundle, size = 56 }) {
-  const { color, accent, gold } = bundle;
+  const { color, accent, gold, inner, star } = bundle;
   return (
     <div
       className="relative rounded-full flex-shrink-0"
@@ -60,12 +72,15 @@ function ChipIcon({ bundle, size = 56 }) {
       />
       <div
         className="absolute inset-[10px] rounded-full border-2"
-        style={{ borderColor: gold ? "#d4af37" : "rgba(255,255,255,0.3)" }}
+        style={{ borderColor: inner || (gold ? "#d4af37" : "rgba(255,255,255,0.3)") }}
       />
       <div className="absolute inset-0 flex items-center justify-center">
         <span
           className="text-[13px] font-black leading-none"
-          style={{ color: gold ? "#d4af37" : "#ffffff", textShadow: gold ? "0 1px 2px rgba(0,0,0,0.6)" : "none" }}
+          style={{
+            color: star || (gold ? "#d4af37" : "#ffffff"),
+            textShadow: star ? "0 1px 2px rgba(255,255,255,0.4)" : gold ? "0 1px 2px rgba(0,0,0,0.6)" : "none",
+          }}
         >
           ★
         </span>
@@ -431,18 +446,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate, on
                         : "border-emerald-400/20 bg-emerald-950/30 hover:border-emerald-400/40"
                     }`}
                   >
-                    <div
-                      className="flex-shrink-0 flex items-center justify-center rounded-full text-2xl"
-                      style={{
-                        width: 52,
-                        height: 52,
-                        background: "radial-gradient(circle at 35% 30%, #67e8f9, #0891b2 65%)",
-                        border: "3px solid #ffffff",
-                        boxShadow: "0 3px 10px rgba(0,0,0,0.45), inset 0 0 6px rgba(0,0,0,0.35)",
-                      }}
-                    >
-                      💎
-                    </div>
+                    <ChipIcon bundle={GOLD_CHIP} size={52} />
                     <div className="flex-1 text-left">
                       <p className="font-black text-amber-200 text-sm uppercase tracking-wider">
                         {DIAMOND_CHIPS.toLocaleString()} Chips
