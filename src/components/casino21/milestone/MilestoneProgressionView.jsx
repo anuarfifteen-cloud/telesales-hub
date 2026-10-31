@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { base44 } from "@/api/base44Client";
 import { Crown, Trophy, Gem, Lock, Check } from "lucide-react";
 import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 import {
@@ -10,6 +11,7 @@ import {
   rankDef,
   claimRankReward,
   claimDiamond,
+  claimChampionRank10,
   isOffSeason,
 } from "@/lib/milestone";
 import useMysteryCardsEnabled from "@/hooks/useMysteryCardsEnabled";
@@ -83,7 +85,27 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
     : 100;
   const diamondClaimed = !!season?.diamond_claimed;
   const offSeason = isOffSeason(season);
-  const canClaimDiamond = score >= RANK_10_THRESHOLD && !diamondClaimed && !offSeason;
+  // 1-season Reigning Champion cooldown: last season's Diamond winner still
+  // plays Ranked and claims Ranks 1-9, but Rank 10 pays 1,000 chips instead of
+  // the Diamond and never ends the season.
+  const isChampion = !!user?.reigning_champion;
+  const championClaimed = claimed.includes(10);
+  const canClaimDiamond =
+    score >= RANK_10_THRESHOLD && !diamondClaimed && !offSeason && !isChampion;
+  const canClaimChampion =
+    isChampion && score >= RANK_10_THRESHOLD && !championClaimed && !offSeason;
+
+  // The previous champion clears their own flag as soon as a new champion is
+  // crowned — a session can only ever write its own user row.
+  const crownHolder = season?.reigning_champion_id || "";
+  useEffect(() => {
+    if (!user?.id || !user?.reigning_champion || !crownHolder) return;
+    if (crownHolder === user.id) return;
+    base44.auth
+      .updateMe({ reigning_champion: false })
+      .then(() => onUserUpdate?.())
+      .catch(() => {});
+  }, [crownHolder, user?.id, user?.reigning_champion, onUserUpdate]);
 
   const handleClaimRank = async (rank) => {
     if (busy) return;
@@ -105,6 +127,22 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
     if (busy) return;
     setBusy(true);
     try {
+      // Reigning champion: the cooldown prize pays chips and leaves the season
+      // (and its Diamond) open for the first eligible challenger.
+      if (isChampion) {
+        const res = await claimChampionRank10(user.id);
+        if (res?.championReward) {
+          await onUserUpdate?.();
+          await reload();
+          toast.success(
+            `👑 Champion cooldown prize: +${res.chips} chips. The 💎 Diamond stays open for the next challenger.`
+          );
+        } else if (res?.already) {
+          toast.error("Champion Rank 10 prize already claimed this season.");
+          await reload();
+        }
+        return;
+      }
       const res = await claimDiamond(user.id, user.full_name || user.email || "Player");
       if (res?.claimed) {
         // Close the season: record the champion and the season's highest streak.
@@ -119,6 +157,9 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
         await onUserUpdate?.();
         await reload();
         toast.success("👑 You claimed the Emperor of 21 Diamond! The season has ended.");
+      } else if (res?.championBlocked) {
+        toast.error("Reigning champions can't claim the Diamond during their cooldown.");
+        await reload();
       } else if (res?.already) {
         toast.error(
           res.by ? `Already claimed by ${res.by}.` : "Diamond already claimed."
@@ -312,12 +353,16 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] font-bold text-amber-100 leading-tight">
                       {isDiamond
-                        ? "Rank 10: Emperor of 21 (100,000 Chips)"
+                        ? isChampion
+                          ? "Rank 10: Emperor of 21 · Champion Cooldown"
+                          : "Rank 10: Emperor of 21 (100,000 Chips)"
                         : `Rank ${r.rank}: ${r.name}`}
                     </p>
                     <p className="text-[10px] text-emerald-100/60 leading-tight">
                       {isDiamond
-                        ? "Grand Prize: 1 💎 Diamond"
+                        ? isChampion
+                          ? "Cooldown Prize: 1,000 Chips · 💎 Diamond stays open"
+                          : "Grand Prize: 1 💎 Diamond"
                         : `${r.threshold.toLocaleString()} chips · ${rewardLabel(r)}`}
                     </p>
                     {isDiamond && (
@@ -325,11 +370,17 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
                         className={`mt-1 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
                           diamondClaimed
                             ? "bg-rose-500/30 text-rose-200 border border-rose-400/40"
+                            : isChampion
+                            ? "bg-amber-400/20 text-amber-100 border border-amber-300/50"
                             : "bg-emerald-500/20 text-emerald-200 border border-emerald-400/40"
                         }`}
                       >
-                        <Gem className="w-3 h-3" />
-                        {diamondClaimed
+                        {isChampion ? <Crown className="w-3 h-3" /> : <Gem className="w-3 h-3" />}
+                        {isChampion
+                          ? championClaimed
+                            ? "Cooldown Prize Claimed — Season Stays Open"
+                            : "👑 Champion Cooldown · 1,000 Chips"
+                          : diamondClaimed
                           ? `Diamond Claimed — Season Complete${season.diamond_claimed_by_name ? ` · ${season.diamond_claimed_by_name}` : ""}`
                           : "1 Diamond Available"}
                       </span>
@@ -342,11 +393,14 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
                   ) : isDiamond ? (
                     <button
                       onClick={handleClaimDiamond}
-                      disabled={busy || !canClaimDiamond}
+                      disabled={busy || (isChampion ? !canClaimChampion : !canClaimDiamond)}
                       className="flex-shrink-0 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full text-emerald-950 disabled:opacity-40 transition"
-                      style={{ background: canClaimDiamond ? "#d4af37" : "#5a5247" }}
+                      style={{
+                        background:
+                          (isChampion ? canClaimChampion : canClaimDiamond) ? "#d4af37" : "#5a5247",
+                      }}
                     >
-                      Claim 💎
+                      {isChampion ? (championClaimed ? "Claimed" : "Claim 1K Chips") : "Claim 💎"}
                     </button>
                   ) : isPending ? (
                     <button

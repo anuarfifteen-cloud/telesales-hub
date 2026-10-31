@@ -47,6 +47,14 @@
       "type": "string",
       "description": "Display name of the season champion."
     },
+    "reigning_champion_id": {
+      "type": "string",
+      "description": "User ID of the player currently serving the 1-season Reigning Champion cooldown. Set when a Diamond claim ends a season and deliberately carried forward into the next season, so the cooldown lasts exactly one season. Overwritten when the next champion is crowned."
+    },
+    "reigning_champion_name": {
+      "type": "string",
+      "description": "Display name of the Reigning Champion, used for the crown badge on the seasonal leaderboard."
+    },
     "ended_by": {
       "type": "string",
       "enum": [

@@ -16,6 +16,9 @@ import MiniChipIcon from "../MiniChipIcon";
 export default function MilestoneLeaderboard({ user }) {
   const [rows, setRows] = useState([]);
   const [seasonNumber, setSeasonNumber] = useState(null);
+  // The player serving their 1-season Reigning Champion cooldown — carried on
+  // the season row so every player sees the crown, whoever won it.
+  const [champion, setChampion] = useState({ id: "", name: "" });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,6 +28,10 @@ export default function MilestoneLeaderboard({ user }) {
         const season = await getSeason();
         if (cancelled) return;
         setSeasonNumber(Number(season.season_number));
+        setChampion({
+          id: season.reigning_champion_id || "",
+          name: season.reigning_champion_name || "",
+        });
         const page = await base44.entities.MilestoneLeaderboardEntry.filter(
           { season_number: Number(season.season_number) },
           { sort: "-score", limit: 50 }
@@ -105,6 +112,16 @@ export default function MilestoneLeaderboard({ user }) {
         </p>
       </div>
 
+      {/* Reigning Champion — shown even when the champ has no row here yet */}
+      {!!champion.id && !rows.some((r) => r.user_id === champion.id) && (
+        <div className="relative flex items-center justify-center gap-2 rounded-2xl border border-amber-300/60 bg-gradient-to-r from-amber-400/25 via-amber-300/10 to-amber-400/25 px-3 py-2 reigning-champ-glow">
+          <span className="text-sm">👑</span>
+          <p className="text-[10px] font-black uppercase tracking-widest text-amber-100">
+            Reigning Champ (Cooldown) · {champion.name || "Last Season's Winner"}
+          </p>
+        </div>
+      )}
+
       {/* Ranked table */}
       <div className="relative rounded-2xl border border-amber-400/20 bg-emerald-950/30 overflow-hidden">
         <div className="grid grid-cols-[2.5rem_1fr_auto] gap-2 px-3 py-2 bg-emerald-950/50 border-b border-amber-400/20">
@@ -123,6 +140,7 @@ export default function MilestoneLeaderboard({ user }) {
               const isMe = r.user_id === myId;
               const streakWins = Math.max(0, Number(r.best_streak) || 0);
               const isCrown = r.user_id === crownId;
+              const isChamp = !!champion.id && r.user_id === champion.id;
               const isTiedLater = !isCrown && streakWins > 0 && streakWins === topWins;
               return (
                 <div
@@ -143,6 +161,11 @@ export default function MilestoneLeaderboard({ user }) {
                       {r.user_name || "Player"}
                       {isMe && " (You)"}
                     </p>
+                    {isChamp && (
+                      <span className="reigning-champ-glow mt-1 mb-1 inline-flex items-center gap-1 rounded-full border border-amber-300/70 bg-gradient-to-r from-amber-400/30 to-amber-200/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-100 whitespace-nowrap">
+                        👑 Reigning Champ (Cooldown)
+                      </span>
+                    )}
                     {isCrown ? (
                       <span className="streak-crown-glow mt-1 inline-flex items-center gap-1 rounded-full border border-amber-300/70 bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-100 whitespace-nowrap">
                         👑 Streak Crown · {streakWins} Wins

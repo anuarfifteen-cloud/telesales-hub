@@ -23,6 +23,9 @@ export const RANKS = [
 
 export const RANK_10_THRESHOLD = 100000;
 
+// Alternate Rank 10 prize for a player serving their Reigning Champion cooldown.
+export const CHAMPION_RANK_10_CHIPS = 1000;
+
 // Highest rank reached for a given score (0 if none yet).
 export function rankForScore(score) {
   let current = 0;
@@ -382,6 +385,11 @@ export async function claimDiamond(userId, userName) {
     };
   }
   if (season.diamond_claimed) return { already: true, by: season.diamond_claimed_by_name };
+  // A reigning champion can never take the Diamond or close the season: their
+  // Rank 10 pays 1,000 chips and the Diamond waits for the next challenger.
+  if (season.reigning_champion_id && season.reigning_champion_id === userId) {
+    return { championBlocked: true };
+  }
 
   await base44.entities.MilestoneSeason.updateMany(
     seasonFilter(season, { status: "active", diamond_claimed: false }),
@@ -394,6 +402,10 @@ export async function claimDiamond(userId, userName) {
         diamond_claimed_at: Date.now(),
         season_winner_id: userId,
         season_winner_name: userName || "",
+        // Carried into the NEXT season by startNewSeason (which never clears
+        // these two fields), so the champion's cooldown lasts one season.
+        reigning_champion_id: userId,
+        reigning_champion_name: userName || "",
         ended_at: Date.now(),
         ended_by: "diamond",
       },
@@ -404,6 +416,14 @@ export async function claimDiamond(userId, userName) {
   const fresh = await base44.entities.MilestoneSeason.get(season.id);
   if (fresh.diamond_claimed_by !== userId) {
     return { already: true, by: fresh.diamond_claimed_by_name, lost: true };
+  }
+
+  // Flag the new champion: their own record only (a player may always update
+  // their own row), and the previous champion clears their own flag lazily.
+  try {
+    await base44.auth.updateMe({ reigning_champion: true });
+  } catch {
+    /* best-effort — the season is already closed */
   }
 
   // Credit 1 Diamond to the wallet.
@@ -421,4 +441,48 @@ export async function claimDiamond(userId, userName) {
   } catch {}
 
   return { claimed: true, season: fresh };
+}
+
+// Rank 10 while serving the 1-season champion cooldown: pays 1,000 chips
+// instead of the Diamond and NEVER closes the season — the Diamond stays on the
+// table for the first eligible non-champion to claim and end the season. Ranks
+// 1-9 are untouched; this only replaces the Rank 10 prize.
+export async function claimChampionRank10(userId) {
+  if (!userId) return { error: "no user" };
+  const season = await getSeason();
+  if (isOffSeason(season)) {
+    return { already: true, by: season.season_winner_name || season.diamond_claimed_by_name };
+  }
+
+  const me = await base44.auth.me();
+  if (!me?.reigning_champion) return { notChampion: true };
+
+  const progress = await getMyProgress(userId, me.full_name || me.email || "", season.season_number);
+  if (!progress) return null;
+  const claimed = Array.isArray(progress.claimed_ranks) ? progress.claimed_ranks : [];
+  // Rank 10 is marked in claimed_ranks so the cooldown prize pays once per season.
+  if (Number(progress.score || 0) < RANK_10_THRESHOLD || claimed.includes(10)) {
+    return { already: true };
+  }
+
+  const chipBal = Number(me?.casinoChips) || 0;
+  const name = me?.full_name || me?.email || "";
+  await base44.auth.updateMe({ casinoChips: chipBal + CHAMPION_RANK_10_CHIPS });
+  try {
+    await base44.entities.CasinoChipLog.create({
+      user_id: userId,
+      user_name: name,
+      user_email: me?.email || "",
+      action_type: "admin_add",
+      amount: CHAMPION_RANK_10_CHIPS,
+      balance_after: chipBal + CHAMPION_RANK_10_CHIPS,
+      detail: `Reigning Champion Rank 10 — ${CHAMPION_RANK_10_CHIPS} chips (season stays open)`,
+      timestamp: new Date().toISOString(),
+    });
+  } catch {}
+
+  const updated = await base44.entities.MilestoneProgress.update(progress.id, {
+    claimed_ranks: [...claimed, 10],
+  });
+  return { championReward: true, chips: CHAMPION_RANK_10_CHIPS, progress: updated };
 }

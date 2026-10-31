@@ -893,6 +893,15 @@
 }
 .streak-crown-glow { animation: streak-crown-glow 2.4s ease-in-out infinite; }
 
+/* ── 🏆RANK leaderboard: 👑 Reigning Champion (Cooldown) ──
+   The player who won last season's Diamond wears this premium gold badge for
+   one season, while the Diamond itself stays open to everyone else. */
+@keyframes reigning-champ-glow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(247, 194, 90, 0.75), 0 0 12px rgba(247, 194, 90, 0.45); }
+  50%      { box-shadow: 0 0 0 1px rgba(255, 244, 200, 1), 0 0 20px rgba(247, 194, 90, 0.8); }
+}
+.reigning-champ-glow { animation: reigning-champ-glow 2.2s ease-in-out infinite; }
+
 /* ── Multiplayer Blackjack: floating buy-in card (Match/Decline) ── */
 @keyframes mp-card-arrive {
   from { opacity: 0; transform: translateY(10px) scale(.985); }

@@ -179,6 +179,11 @@
     "ranked_cap_date": {
       "type": "string",
       "description": "YYYY-MM-DD (Asia/Brunei) that daily_ranked_hands_played belongs to. When a Ranked deal begins on a later Brunei date the counter resets to 0 and this date advances, so the cap refills at Brunei Midnight."
+    },
+    "reigning_champion": {
+      "type": "boolean",
+      "default": false,
+      "description": "True while this player is serving their 1-season Reigning Champion cooldown after claiming the Rank 10 Diamond. They still play Ranked and claim Ranks 1-9 normally, but Rank 10 pays 1,000 chips instead of the Diamond and never ends the season. Cleared lazily once a new champion is crowned."
     }
   },
   "rls": {
