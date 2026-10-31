@@ -50,9 +50,14 @@ export default function MilestoneLeaderboard({ user }) {
   }, []);
 
   const myId = user?.id;
-  const myRow = rows.find((r) => r.user_id === myId);
-  const myPosition = myRow ? rows.indexOf(myRow) + 1 : null;
-  const myScore = Number(myRow?.score) || 0;
+  // The Reigning Champion sits out the Diamond race, so they are lifted out of
+  // the numbered rows entirely and shown in their own card above the list.
+  const championRow = champion.id ? rows.find((r) => r.user_id === champion.id) : null;
+  const rankedRows = champion.id ? rows.filter((r) => r.user_id !== champion.id) : rows;
+  const iAmChampion = !!champion.id && champion.id === myId;
+  const myRow = rankedRows.find((r) => r.user_id === myId);
+  const myPosition = myRow ? rankedRows.indexOf(myRow) + 1 : null;
+  const myScore = Number(myRow?.score ?? championRow?.score) || 0;
 
   // The Streak Crown: highest season-best streak, earliest record breaking ties.
   const leader = streakLeader(rows);
@@ -108,30 +113,55 @@ export default function MilestoneLeaderboard({ user }) {
           </span>
         </div>
         <p className="text-center text-[10px] font-bold uppercase tracking-widest text-amber-200/60">
-          {myPosition ? `Ranked ${myPosition} of ${rows.length} player${rows.length === 1 ? "" : "s"}` : "Play a Ranked hand to enter the board"}
+          {myPosition
+            ? `Ranked ${myPosition} of ${rankedRows.length} player${rankedRows.length === 1 ? "" : "s"}`
+            : iAmChampion
+            ? "Sitting out the Diamond race this season"
+            : "Play a Ranked hand to enter the board"}
         </p>
       </div>
 
-      {/* Ranked table — crown + streak status ride inline on each row, so no
-          separate champion banner is needed. */}
+      {/* 👑 Reigning Champion — last season's Rank 10 💎 winner. Kept out of the
+          numbered rows (they are not competing for this season's Diamond) and
+          shown here in one tight, gold-trimmed card. */}
+      {!!champion.id && (
+        <div className="relative rounded-2xl border border-amber-300/60 bg-gradient-to-r from-amber-400/20 via-emerald-950/40 to-amber-400/10 px-3 py-2 reigning-champ-glow">
+          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-300">
+            👑 Reigning Champion
+          </p>
+          <div className="mt-0.5 flex items-center gap-2">
+            <p className="min-w-0 flex-1 truncate text-xs font-black uppercase tracking-wider text-amber-100">
+              {championRow?.user_name || champion.name || "Last Season's Winner"}
+            </p>
+            <span className="flex flex-shrink-0 items-center gap-1 text-xs font-black text-amber-300 tabular-nums">
+              <MiniChipIcon size={12} />
+              {Number(championRow?.score) || 0}
+            </span>
+          </div>
+          <p className="mt-0.5 truncate text-[9px] font-bold leading-tight text-amber-100/60">
+            Diamond Cooldown: Sitting out the Diamond race this season.
+          </p>
+        </div>
+      )}
+
+      {/* Ranked table */}
       <div className="relative rounded-2xl border border-amber-400/20 bg-emerald-950/30 overflow-hidden">
         <div className="grid grid-cols-[2.5rem_1fr_auto] gap-2 px-3 py-2 bg-emerald-950/50 border-b border-amber-400/20">
           <span className="text-[9px] font-black uppercase tracking-widest text-amber-200/70">#</span>
           <span className="text-[9px] font-black uppercase tracking-widest text-amber-200/70">Player</span>
           <span className="text-[9px] font-black uppercase tracking-widest text-amber-200/70 text-right">Payouts</span>
         </div>
-        {rows.length === 0 ? (
+        {rankedRows.length === 0 ? (
           <p className="px-3 py-6 text-center text-[11px] font-bold text-emerald-100/50">
             No Ranked hands played this season yet. Be the first!
           </p>
         ) : (
           <div className="max-h-72 overflow-y-auto">
-            {rows.map((r, i) => {
+            {rankedRows.map((r, i) => {
               const pos = i + 1;
               const isMe = r.user_id === myId;
               const streakWins = Math.max(0, Number(r.best_streak) || 0);
               const isCrown = r.user_id === crownId;
-              const isChamp = !!champion.id && r.user_id === champion.id;
               const isTiedLater = !isCrown && streakWins > 0 && streakWins === topWins;
               return (
                 <div
@@ -152,29 +182,21 @@ export default function MilestoneLeaderboard({ user }) {
                       {r.user_name || "Player"}
                       {isMe && " (You)"}
                     </p>
-                    {(isChamp || streakWins > 0) && (
-                      <p className="mt-0.5 truncate text-[9px] font-bold leading-tight">
-                        {isChamp && <span className="text-amber-300">👑 Reigning Champ</span>}
-                        {isChamp && streakWins > 0 && (
-                          <span className="text-emerald-100/40"> • </span>
-                        )}
-                        {streakWins > 0 && (
-                          <span
-                            className={
-                              isCrown
-                                ? "text-amber-300"
-                                : isTiedLater
-                                ? "text-amber-200/70"
-                                : "text-emerald-100/45"
-                            }
-                          >
-                            {isCrown
-                              ? `🔥 Streak Crown (${streakWins})`
-                              : isTiedLater
-                              ? `🔥 ${streakWins} Wins (Tied · Later)`
-                              : `🔥 Best: ${streakWins} Wins`}
-                          </span>
-                        )}
+                    {streakWins > 0 && (
+                      <p
+                        className={`mt-0.5 truncate text-[9px] font-bold leading-tight ${
+                          isCrown
+                            ? "text-amber-300"
+                            : isTiedLater
+                            ? "text-amber-200/70"
+                            : "text-emerald-100/45"
+                        }`}
+                      >
+                        {isCrown
+                          ? `🔥 Streak Crown (${streakWins})`
+                          : isTiedLater
+                          ? `🔥 ${streakWins} Wins (Tied · Later)`
+                          : `🔥 Best: ${streakWins} Wins`}
                       </p>
                     )}
                   </div>
