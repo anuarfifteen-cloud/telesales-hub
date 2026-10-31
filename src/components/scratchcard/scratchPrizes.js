@@ -12,6 +12,10 @@ export const ENTRY_COST = 5;
 // symbols, the balance header, the win celebration, the result card and the feed.
 export const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
 
+// Gold "Premium Scratch Card" artwork used as the scratch card's ticket icon
+// wherever the ticket itself is pictured.
+export const SCRATCH_CARD_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/42559215e_Gemini_Generated_Image_tkxkqttkxkqttkxk.jpg";
+
 // Black-and-gold casino chip used for every chip visual on the Scratch Card —
 // the chip symbols on the ticket, the win celebration, the result card and the
 // live activity feed. Cropped to a circle so its square backdrop disappears.

@@ -7,7 +7,7 @@ import { audioReady, playP10Jackpot, playTicketFlourish, playWin, playWinFanfare
 import ScratchCardTicket from "./ScratchCardTicket";
 import ScratchCardLiveFeed from "./ScratchCardLiveFeed";
 import ScratchResultModal from "./ScratchResultModal";
-import { ENTRY_COST, TOKEN_IMG, buildGrid, prizeTier, rollScratchOutcome } from "./scratchPrizes";
+import { ENTRY_COST, SCRATCH_CARD_IMG, TOKEN_IMG, buildGrid, prizeTier, rollScratchOutcome } from "./scratchPrizes";
 import {
   CARDS_PER_BATCH,
   batchNumber,
@@ -329,7 +329,19 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
               className="flex flex-col items-center justify-center rounded-2xl"
               style={{ padding: "38px 20px", background: "rgba(255,255,255,0.05)", border: "2px dashed rgba(255,215,106,0.4)" }}
             >
-              <span style={{ fontSize: 44, lineHeight: 1 }}>🎫</span>
+              <img
+                src={SCRATCH_CARD_IMG}
+                alt="Premium Scratch Card"
+                style={{
+                  display: "block",
+                  width: "100%",
+                  maxWidth: 210,
+                  height: "auto",
+                  borderRadius: 10,
+                  border: "2px solid #a9761c",
+                  boxShadow: "0 10px 24px rgba(0,0,0,0.45)",
+                }}
+              />
               <p style={{ margin: "14px 0 0", fontSize: 14, fontWeight: 800, color: "#ffffff", textAlign: "center" }}>
                 {ENTRY_COST} tokens per ticket
               </p>
