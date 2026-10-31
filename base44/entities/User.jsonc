@@ -170,6 +170,15 @@
         "month": "",
         "amount": 0
       }
+    },
+    "daily_ranked_hands_played": {
+      "type": "number",
+      "default": 0,
+      "description": "Ranked Blackjack hands dealt today toward the shared 500-hand daily cap. One counter across every Ranked table; Casual/practice and Chips Arena tables never touch it."
+    },
+    "ranked_cap_date": {
+      "type": "string",
+      "description": "YYYY-MM-DD (Asia/Brunei) that daily_ranked_hands_played belongs to. When a Ranked deal begins on a later Brunei date the counter resets to 0 and this date advances, so the cap refills at Brunei Midnight."
     }
   },
   "rls": {

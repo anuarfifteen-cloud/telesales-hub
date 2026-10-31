@@ -19,6 +19,7 @@ import BlackjackStreakBadge from "../BlackjackStreakBadge";
 import useSeasonScore from "../useSeasonScore";
 import { fetchSeasonScore } from "@/lib/milestone";
 import { recordSeasonStreak } from "@/lib/milestoneStreak";
+import { RANKED_CAP_MESSAGE } from "@/lib/rankedCap";
 import {
   registerWin,
   registerNonWin,
@@ -43,7 +44,7 @@ const RANKED_MAX = 10;
 const RANKED_MAX_HIGH_ROLLER = 25; // High Roller Pass raises the ceiling to 25
 const DEALER_DRAW_MS = 550;
 
-export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, betCapExpiresAt, onClose, onScoreSaved }) {
+export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, betCapExpiresAt, capped = false, beginRankedHand, onClose, onScoreSaved }) {
   const chips = Number(user?.casinoChips) || 0;
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
@@ -271,12 +272,19 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
   };
 
   const handleDeal = async () => {
-    if (busy) return;
+    if (busy || capped) return;
     if (chips < RANKED_MIN) {
       toast.error(`You need at least ${RANKED_MIN} chip to play Ranked.`);
       return;
     }
     setBusy(true);
+    // Claim this hand from the shared daily Ranked allowance before any chips
+    // move. False means today's 500 hands are gone — leave the table untouched.
+    const allowed = await beginRankedHand?.();
+    if (allowed === false) {
+      setBusy(false);
+      return;
+    }
     playClink();
     const fresh = await base44.auth.me();
     const balance = Number(fresh?.casinoChips) || 0;
@@ -581,7 +589,7 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
           </div>
           <button
             onClick={handleDeal}
-            disabled={busy || chips < RANKED_MIN}
+            disabled={busy || capped || chips < RANKED_MIN}
             className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm bg-emerald-700/60 text-emerald-100 border border-emerald-400/30 disabled:opacity-40 hover:bg-emerald-600/70 transition"
           >
             <Play className="inline mr-1 w-4 h-4" /> Deal Ranked
@@ -589,6 +597,11 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
           {chips < RANKED_MIN && (
             <p className="w-full text-center text-[11px] font-bold uppercase tracking-widest text-amber-300/80">
               You need chips to play Ranked — top up in the Cashier.
+            </p>
+          )}
+          {capped && (
+            <p className="w-full text-center text-[11px] font-bold leading-snug text-rose-300">
+              {RANKED_CAP_MESSAGE}
             </p>
           )}
         </>

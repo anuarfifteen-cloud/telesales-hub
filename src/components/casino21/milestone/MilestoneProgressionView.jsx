@@ -22,6 +22,7 @@ import RankedBlackjackPanel from "./RankedBlackjackPanel";
 import MilestoneLeaderboard from "./MilestoneLeaderboard";
 import SeasonBriefingModal from "./SeasonBriefingModal";
 import { finalizeStreakAward } from "@/lib/milestoneStreak";
+import useRankedCap, { RANKED_CAP_MESSAGE } from "@/lib/rankedCap";
 import MiniChipIcon from "../MiniChipIcon";
 
 const TOKEN_IMG =
@@ -41,6 +42,9 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
   const mysteryCardsEnabled = useMysteryCardsEnabled();
   const [busy, setBusy] = useState(false);
   const [showRanked, setShowRanked] = useState(false);
+  // Shared 500-hands-per-Brunei-day Ranked allowance — one counter for every
+  // Ranked table. Casual/practice and Chips Arena never consult it.
+  const rankedCap = useRankedCap(user);
   const [subTab, setSubTab] = useState("milestones"); // milestones | leaderboard
   const [showBonusCard, setShowBonusCard] = useState(false);
 
@@ -245,17 +249,27 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
               onRankedHand={challenges.recordRankedHand}
               boostExpiresAt={challenges.daily?.rank_surge_expires_at || 0}
               betCapExpiresAt={challenges.daily?.rank_bet_cap_expires_at || 0}
+              capped={rankedCap.capped}
+              beginRankedHand={rankedCap.beginHand}
               onClose={() => setShowRanked(false)}
             />
           ) : (
-            <button
-              onClick={() => setShowRanked(true)}
-              className="relative w-full py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40 transition"
-              style={{ background: "#d4af37" }}
-            >
-              ⚔️ Play Ranked (1–
-              {Number(challenges.daily?.rank_bet_cap_expires_at || 0) > Date.now() ? 25 : 10} chips)
-            </button>
+            <>
+              <button
+                onClick={() => setShowRanked(true)}
+                disabled={rankedCap.capped}
+                className="relative w-full py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                style={{ background: rankedCap.capped ? "#5a5247" : "#d4af37" }}
+              >
+                ⚔️ Play Ranked (1–
+                {Number(challenges.daily?.rank_bet_cap_expires_at || 0) > Date.now() ? 25 : 10} chips)
+              </button>
+              {rankedCap.capped && (
+                <p className="relative text-center text-[11px] font-bold leading-snug text-rose-300">
+                  {RANKED_CAP_MESSAGE}
+                </p>
+              )}
+            </>
           ))}
 
           {/* Season notice banner */}
