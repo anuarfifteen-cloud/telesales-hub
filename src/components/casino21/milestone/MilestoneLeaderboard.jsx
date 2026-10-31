@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Crown } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { getSeason } from "@/lib/milestone";
 import { streakLeader } from "@/lib/milestoneStreak";
@@ -113,30 +112,8 @@ export default function MilestoneLeaderboard({ user }) {
         </p>
       </div>
 
-      {/* 👑 Reigning Champion — last season's Rank 10 💎 winner, serving a
-          one-season Diamond cooldown. Always sits above the player list so
-          everyone notices the crown, whether or not they have played today. */}
-      {!!champion.id && (
-        <div className="relative overflow-hidden rounded-2xl border border-amber-300/70 bg-gradient-to-r from-amber-400/30 via-amber-300/10 to-amber-400/30 px-3 py-2.5 reigning-champ-glow">
-          <div className="flex items-center gap-2">
-            <Crown className="w-5 h-5 flex-shrink-0 text-amber-200" />
-            <div className="min-w-0">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-200/80">
-                Reigning Champion · 💎 Diamond Cooldown
-              </p>
-              <p className="truncate text-xs font-black uppercase tracking-widest text-amber-100">
-                {champion.name || "Last Season's Winner"}
-              </p>
-            </div>
-          </div>
-          <p className="mt-1 text-[9px] font-bold leading-snug text-amber-100/70">
-            Won last season's Rank 10 💎 Diamond. Sits out the Diamond this season — the 💎 stays
-            open for everyone else.
-          </p>
-        </div>
-      )}
-
-      {/* Ranked table */}
+      {/* Ranked table — crown + streak status ride inline on each row, so no
+          separate champion banner is needed. */}
       <div className="relative rounded-2xl border border-amber-400/20 bg-emerald-950/30 overflow-hidden">
         <div className="grid grid-cols-[2.5rem_1fr_auto] gap-2 px-3 py-2 bg-emerald-950/50 border-b border-amber-400/20">
           <span className="text-[9px] font-black uppercase tracking-widest text-amber-200/70">#</span>
@@ -175,24 +152,29 @@ export default function MilestoneLeaderboard({ user }) {
                       {r.user_name || "Player"}
                       {isMe && " (You)"}
                     </p>
-                    {isChamp && (
-                      <span className="reigning-champ-glow mt-1 mb-1 inline-flex items-center gap-1 rounded-full border border-amber-300/70 bg-gradient-to-r from-amber-400/40 to-amber-200/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-100 whitespace-nowrap">
-                        <Crown className="w-2.5 h-2.5" /> Reigning Champ · 💎 Cooldown
-                      </span>
-                    )}
-                    {isCrown ? (
-                      <span className="streak-crown-glow mt-1 inline-flex items-center gap-1 rounded-full border border-amber-300/70 bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-100 whitespace-nowrap">
-                        👑 Streak Crown · {streakWins} Wins
-                      </span>
-                    ) : (
-                      <p
-                        className={`text-[9px] font-bold leading-tight ${
-                          isTiedLater ? "text-amber-200/80" : "text-emerald-100/45"
-                        }`}
-                      >
-                        {isTiedLater
-                          ? `🔥 ${streakWins} Wins (Tied · Achieved Later)`
-                          : `🔥 Best: ${streakWins} Wins`}
+                    {(isChamp || streakWins > 0) && (
+                      <p className="mt-0.5 truncate text-[9px] font-bold leading-tight">
+                        {isChamp && <span className="text-amber-300">👑 Reigning Champ</span>}
+                        {isChamp && streakWins > 0 && (
+                          <span className="text-emerald-100/40"> • </span>
+                        )}
+                        {streakWins > 0 && (
+                          <span
+                            className={
+                              isCrown
+                                ? "text-amber-300"
+                                : isTiedLater
+                                ? "text-amber-200/70"
+                                : "text-emerald-100/45"
+                            }
+                          >
+                            {isCrown
+                              ? `🔥 Streak Crown (${streakWins})`
+                              : isTiedLater
+                              ? `🔥 ${streakWins} Wins (Tied · Later)`
+                              : `🔥 Best: ${streakWins} Wins`}
+                          </span>
+                        )}
                       </p>
                     )}
                   </div>
