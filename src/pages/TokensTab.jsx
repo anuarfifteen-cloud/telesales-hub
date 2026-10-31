@@ -13,7 +13,6 @@ import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
 import TapVaultCard from "@/components/tokens/TapVaultCard";
 import Blackjack21Game from "@/components/casino21/Blackjack21Game";
 import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
-import { SCRATCH_CARD_IMG } from "@/components/scratchcard/scratchPrizes";
 import DailyChipGiftModal, { chipGiftClaimedToday } from "@/components/casino21/DailyChipGiftModal";
 import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 
@@ -206,21 +205,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
                   : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               }`}
             >
-              <img
-                src={SCRATCH_CARD_IMG}
-                alt=""
-                style={{
-                  height: "1.2em",
-                  width: "1.2em",
-                  objectFit: "cover",
-                  objectPosition: "center",
-                  verticalAlign: "-0.125em",
-                  marginRight: "8px",
-                  borderRadius: "4px",
-                  flexShrink: 0,
-                }}
-              />{" "}
-              Scratch Card
+              🎫 Scratch Card
             </button>
           ) : (
             <div />
