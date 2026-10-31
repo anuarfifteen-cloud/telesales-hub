@@ -148,29 +148,7 @@ export default function TokenVoucher({ user, onUserUpdate }) {
         const freshTokens = freshUser?.earlyAccessTokens ?? 0;
         const freshChips = Number(freshUser?.casinoChips) || 0;
 
-        if (rewardType === "diamond") {
-          // Diamond path
-          const currentDiamonds = freshUser?.diamonds ?? 0;
-          await Promise.all([
-            base44.auth.updateMe({ diamonds: currentDiamonds + 1 }),
-            base44.entities.Voucher.update(voucher.id, redemptionPatch),
-            base44.entities.TokenTransaction.create({
-              user_id: user.id,
-              user_name: user.full_name || user.email?.split("@")[0] || "Unknown",
-              amount: 0,
-              source: `Blind Voucher Redemption — DIAMOND (${voucher.code})`,
-              timestamp: new Date().toISOString(),
-            }),
-          ]);
-          setVoucherStatus({
-            text: "💎 JACKPOT! You won a VIP Diamond!",
-            color: "text-cyan-600 dark:text-cyan-400"
-          });
-          setClaimCode("");
-          await onUserUpdate();
-          toast.success("💎 JACKPOT! You won a VIP Diamond!");
-          return;
-        } else if (rewardType === "chips") {
+        if (rewardType === "chips") {
           // Chips path — deposits straight into the Blackjack 21 chip balance
           await Promise.all([
             base44.auth.updateMe({ casinoChips: freshChips + rewardAmount }),

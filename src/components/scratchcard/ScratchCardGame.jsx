@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { logChipMovement } from "@/lib/chipLog";
@@ -8,6 +8,15 @@ import ScratchCardTicket from "./ScratchCardTicket";
 import ScratchCardLiveFeed from "./ScratchCardLiveFeed";
 import ScratchResultModal from "./ScratchResultModal";
 import { ENTRY_COST, TOKEN_IMG, buildGrid, prizeTier, rollScratchOutcome } from "./scratchPrizes";
+import {
+  CARDS_PER_BATCH,
+  batchNumber,
+  bruneiBatch,
+  consumeScratchCard,
+  formatCountdown,
+  loadAllocation,
+  msToNextBatch,
+} from "@/lib/scratchAllocation";
 
 /** Human-readable prize label for the admin history. */
 function prizeLabel(prize) {
@@ -35,6 +44,9 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
   const [scratched, setScratched] = useState(0);
   const [ticketKey, setTicketKey] = useState(0);
   const [busy, setBusy] = useState(false);
+  // Daily allowance: 10 cards per Brunei half-day batch (00:00-11:59 / 12:00-23:59).
+  const [allocation, setAllocation] = useState(null);
+  const [now, setNow] = useState(Date.now());
   // True while a settled ticket's balances and logs are still being written.
   const [settling, setSettling] = useState(false);
   const logIdRef = useRef(null);
@@ -43,6 +55,24 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
   const tokens = user?.earlyAccessTokens ?? 0;
   const canAfford = tokens >= ENTRY_COST;
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Player";
+
+  const batch = bruneiBatch(now);
+  const remaining = allocation ? Number(allocation.scratch_cards_remaining) || 0 : CARDS_PER_BATCH;
+  const exhausted = remaining <= 0;
+
+  // One-second tick keeps the exhausted countdown live, and re-keying the
+  // allocation load on the batch refreshes the allowance the moment the Brunei
+  // clock crosses noon or midnight — no page reload needed.
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    loadAllocation(user).then(setAllocation);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, batch.date, batch.period]);
 
   /** What the ticket actually pays, decided against the freshly-read user record. */
   const resolveGrant = (won, fresh) => {
@@ -102,6 +132,15 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
     if (busy || phase !== "idle") return;
     setBusy(true);
 
+    // Re-read the allowance first so a fast double tap can never spend past the batch.
+    const current = await loadAllocation(user);
+    setAllocation(current);
+    if ((Number(current?.scratch_cards_remaining) || 0) <= 0) {
+      toast.error("No scratch cards left in this batch. Come back when the next 10 drop.");
+      setBusy(false);
+      return;
+    }
+
     const fresh = await base44.auth.me();
     const balance = Number(fresh?.earlyAccessTokens) || 0;
     if (balance < ENTRY_COST) {
@@ -111,6 +150,7 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
     }
 
     await base44.auth.updateMe({ earlyAccessTokens: balance - ENTRY_COST });
+    setAllocation(await consumeScratchCard(current));
 
     // The ticket is dealt the moment the tokens are taken; the transaction and
     // ticket records are written while the player is scratching.
@@ -217,6 +257,38 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
 
         {/* Ticket body */}
         <div className="p-4">
+          {/* Daily batch allowance */}
+          <div style={{ marginBottom: cells ? 12 : 0 }}>
+            <p
+              style={{
+                margin: 0,
+                textAlign: "center",
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: 0.4,
+                color: exhausted ? "#fda4af" : "#ffd76a",
+              }}
+            >
+              🎟️ Remaining: {remaining}/{CARDS_PER_BATCH} (Batch {batchNumber(batch.period)}/2)
+            </p>
+            {exhausted && (
+              <div
+                style={{
+                  marginTop: 8,
+                  borderRadius: 12,
+                  padding: "10px 12px",
+                  textAlign: "center",
+                  background: "rgba(244,63,94,0.15)",
+                  border: "2px solid rgba(244,63,94,0.5)",
+                }}
+              >
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 900, color: "#fecdd3" }}>
+                  🎟️ Batch Exhausted · Next 10 Cards In: {formatCountdown(msToNextBatch(now))}
+                </p>
+              </div>
+            )}
+          </div>
+
           {cells ? (
             <>
               <style>{`
@@ -270,7 +342,7 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
           {(phase === "idle" || phase === "result") && (
             <button
               onClick={buyTicket}
-              disabled={!canAfford || busy || settling}
+              disabled={!canAfford || busy || settling || exhausted}
               style={{
                 marginTop: 14,
                 width: "100%",
@@ -283,8 +355,8 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
                 background: "linear-gradient(180deg,#ffd76a,#f0a92b)",
                 border: "3px solid #7c4a06",
                 boxShadow: "0 6px 0 #7c4a06",
-                cursor: !canAfford || busy || settling ? "not-allowed" : "pointer",
-                opacity: !canAfford || busy || settling ? 0.5 : 1,
+                cursor: !canAfford || busy || settling || exhausted ? "not-allowed" : "pointer",
+                opacity: !canAfford || busy || settling || exhausted ? 0.5 : 1,
               }}
             >
               {phase === "result" ? "NEW TICKET" : "BUY TICKET"}

@@ -123,80 +123,9 @@ function RevealOverlay({ phase, reward, onDone }) {
   );
 }
 
-// Overlay shown during redeem reveal
-function RedeemOverlay({ phase, reward, onDone }) {
-  const confetti = ["🎊", "🎉", "✨", "⭐", "🌟", "💫"];
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm overflow-hidden">
-      <style>{`
-        @keyframes confettiFall {
-          0% { transform: translateY(-30px) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(80px) rotate(720deg); opacity: 0; }
-        }
-        @keyframes popIn {
-          0% { transform: scale(0.5); opacity: 0; }
-          70% { transform: scale(1.08); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-      `}</style>
-
-      {/* Confetti particles */}
-      {phase === "shake" && Array.from({ length: 12 }).map((_, i) => (
-        <span
-          key={i}
-          style={{
-            position: "absolute",
-            top: `${Math.random() * 40}%`,
-            left: `${Math.random() * 100}%`,
-            fontSize: 28 + Math.random() * 20,
-            animation: `confettiFall ${0.8 + Math.random() * 0.8}s ease-in ${Math.random() * 0.5}s infinite`,
-          }}
-        >
-          {confetti[i % confetti.length]}
-        </span>
-      ))}
-
-      {phase === "shake" && (
-        <div className="flex flex-col items-center gap-4 z-10">
-          <span style={{ fontSize: 90 }}>🎊</span>
-          <p className="text-white font-bold text-lg tracking-wide">Redeeming voucher…</p>
-        </div>
-      )}
-
-      {phase === "reveal" && (
-        <div
-          className="bg-white dark:bg-card rounded-3xl p-8 flex flex-col items-center gap-4 mx-6 text-center shadow-2xl z-10"
-          style={{ animation: "popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards" }}
-        >
-          <span style={{ fontSize: 60 }}>{reward === 999 ? "💎" : "🎉"}</span>
-          <h2 className="font-black text-2xl text-foreground">{reward === 999 ? "JACKPOT! 💎" : "Redeemed!"}</h2>
-          <div className={`flex items-center gap-2 border rounded-2xl px-6 py-3 ${reward === 999 ? "bg-purple-50 border-purple-200" : "bg-emerald-50 border-emerald-200"}`}>
-            {reward === 999 ? (
-              <>
-                <span className="font-black text-3xl text-purple-600">+1 💎</span>
-                <span className="font-bold text-lg text-purple-700">VIP Diamond</span>
-              </>
-            ) : (
-              <>
-                <span className="font-black text-3xl text-emerald-600">+{reward}</span>
-                <span className="font-bold text-lg text-emerald-700">token{reward !== 1 ? "s" : ""}</span>
-              </>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground">{reward === 999 ? "Added to your Diamond balance!" : "Added to your balance!"}</p>
-          <Button onClick={onDone} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black w-full">
-            Close
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function BlindVoucherShop({ user, onUserUpdate }) {
   const [purchasing, setPurchasing] = useState(false);
   const [purchaseOverlay, setPurchaseOverlay] = useState(null); // null | { phase, reward }
-  const [redeemOverlay, setRedeemOverlay] = useState(null); // null | { phase, reward }
   const [copied, setCopied] = useState(null);
   const [activeVouchers, setActiveVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
@@ -269,13 +198,6 @@ export default function BlindVoucherShop({ user, onUserUpdate }) {
           phase={purchaseOverlay.phase}
           reward={purchaseOverlay.reward}
           onDone={() => setPurchaseOverlay(null)}
-        />
-      )}
-      {redeemOverlay && (
-        <RedeemOverlay
-          phase={redeemOverlay.phase}
-          reward={redeemOverlay.reward}
-          onDone={() => setRedeemOverlay(null)}
         />
       )}
 

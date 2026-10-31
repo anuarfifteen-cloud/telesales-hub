@@ -52,13 +52,8 @@ export default function VoucherActivityFeed() {
         <AnimatePresence initial={false}>
           {redeemed.map((v, i) => {
             const { type, amount } = resolveVoucherReward(v);
-            const isDiamond = type === "diamond";
             const isChips = type === "chips";
-            const fomo = isDiamond
-              ? "just claimed a VIP Diamond! 💎"
-              : isChips
-              ? "just claimed casino chips!"
-              : FOMO_LINES[i % FOMO_LINES.length];
+            const fomo = isChips ? "just claimed casino chips!" : FOMO_LINES[i % FOMO_LINES.length];
             const name = v.user_name?.split(" ")[0] || "Someone";
             return (
               <motion.div
@@ -72,24 +67,22 @@ export default function VoucherActivityFeed() {
                 {isChips ? (
                   <BlackChipIcon size={20} className="flex-shrink-0" />
                 ) : (
-                  <span className="text-lg flex-shrink-0">{isDiamond ? "💎" : (REWARD_EMOJI[amount] ?? "🎟️")}</span>
+                  <span className="text-lg flex-shrink-0">{REWARD_EMOJI[amount] ?? "🎟️"}</span>
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 truncate">
                     <span className="font-black">{name}</span> {fomo}
                   </p>
                   <p className="text-[10px] text-emerald-600 dark:text-emerald-500 font-medium">
-                    Won <span className="font-black">{isDiamond ? "1 💎 Diamond" : `${amount} ${isChips ? `chip${amount !== 1 ? "s" : ""}` : `token${amount !== 1 ? "s" : ""}`}`}</span> · {timeAgo(v.updated_date || v.created_at)}
+                    Won <span className="font-black">{`${amount} ${isChips ? `chip${amount !== 1 ? "s" : ""}` : `token${amount !== 1 ? "s" : ""}`}`}</span> · {timeAgo(v.updated_date || v.created_at)}
                   </p>
                 </div>
                 <span className={`flex-shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full ${
-                  isDiamond
-                    ? "bg-cyan-200 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200"
-                    : isChips
+                  isChips
                     ? "bg-violet-200 dark:bg-violet-900 text-violet-800 dark:text-violet-200"
                     : "bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200"
                 }`}>
-                  {isDiamond ? "+1 💎" : `+${amount}`}
+                  +{amount}
                 </span>
               </motion.div>
             );

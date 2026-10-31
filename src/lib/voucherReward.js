@@ -1,18 +1,21 @@
 /**
- * Blind Vouchers pay out in one of three currencies: tokens, Blackjack 21
- * chips, or a VIP Diamond. New vouchers store an explicit reward_type +
- * reward_amount. Vouchers written before those fields existed only carry
- * reward_tokens (1-5 tokens, or the 999 diamond sentinel), so every reader
- * goes through these helpers instead of guessing from the number.
+ * Blind Vouchers pay out in tokens or Blackjack 21 chips — never diamonds.
+ * New vouchers store an explicit reward_type + reward_amount. Vouchers written
+ * before those fields existed only carry reward_tokens (1-5 tokens, or the 999
+ * diamond sentinel used by the old table and by admin-issued diamond gift
+ * vouchers), so every reader goes through these helpers instead of guessing
+ * from the number.
  */
 
-/** The Blind Voucher allocation, re-rolled whenever a BV- voucher is redeemed. */
+/**
+ * The Blind Voucher allocation, re-rolled whenever a BV- voucher is redeemed.
+ * Diamonds are not part of the Blind Voucher pool — the weights below total 100.
+ */
 export function rollBlindVoucherReward() {
   const roll = Math.random() * 100;
-  if (roll < 1) return { type: "diamond", amount: 1 };   // 1% — VIP Diamond
-  if (roll < 36) return { type: "tokens", amount: 1 };   // 35%
-  if (roll < 61) return { type: "tokens", amount: 2 };   // 25%
-  if (roll < 76) return { type: "chips", amount: 25 };   // 15%
+  if (roll < 35) return { type: "tokens", amount: 1 };   // 35%
+  if (roll < 60) return { type: "tokens", amount: 2 };   // 25%
+  if (roll < 76) return { type: "chips", amount: 25 };   // 16%
   if (roll < 88) return { type: "tokens", amount: 3 };   // 12%
   if (roll < 94) return { type: "tokens", amount: 4 };   // 6%
   if (roll < 98) return { type: "chips", amount: 50 };   // 4%

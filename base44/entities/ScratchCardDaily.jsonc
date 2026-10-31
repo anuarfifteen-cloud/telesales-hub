@@ -1,0 +1,71 @@
+{
+  "name": "ScratchCardDaily",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the player this daily scratch allocation belongs to. One record per player."
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the player"
+    },
+    "scratch_batch_date": {
+      "type": "string",
+      "description": "Asia/Brunei calendar date (YYYY-MM-DD) the stored batch belongs to."
+    },
+    "scratch_batch_period": {
+      "type": "string",
+      "enum": [
+        "AM",
+        "PM"
+      ],
+      "description": "Which half-day batch the stored balance is for. AM = 00:00-11:59 Brunei, PM = 12:00-23:59 Brunei. Batch 1 of the day is AM, batch 2 is PM."
+    },
+    "scratch_cards_remaining": {
+      "type": "number",
+      "default": 10,
+      "description": "Scratch cards left in the current batch window. Refills to 10 when the Brunei clock enters a new date or half-day period; unused cards never roll over."
+    }
+  },
+  "required": [
+    "user_id",
+    "scratch_batch_date",
+    "scratch_batch_period",
+    "scratch_cards_remaining"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
