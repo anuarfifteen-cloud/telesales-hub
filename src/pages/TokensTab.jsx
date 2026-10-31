@@ -211,10 +211,9 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
                 alt=""
                 style={{
                   height: "1.2em",
-                  width: "1.2em",
-                  objectFit: "cover",
+                  width: "auto",
                   borderRadius: "2px",
-                  verticalAlign: "middle",
+                  verticalAlign: "-0.125em",
                   marginRight: "8px",
                   flexShrink: 0,
                 }}
