@@ -206,7 +206,20 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
                   : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               }`}
             >
-              <img src={SCRATCH_CARD_IMG} alt="" className="h-3.5 w-3.5 rounded-[3px] object-cover flex-shrink-0" /> Scratch Card
+              <img
+                src={SCRATCH_CARD_IMG}
+                alt=""
+                style={{
+                  height: "1.2em",
+                  width: "1.2em",
+                  objectFit: "cover",
+                  borderRadius: "2px",
+                  verticalAlign: "middle",
+                  marginRight: "8px",
+                  flexShrink: 0,
+                }}
+              />{" "}
+              Scratch Card
             </button>
           ) : (
             <div />
