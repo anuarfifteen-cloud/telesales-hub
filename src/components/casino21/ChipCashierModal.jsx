@@ -36,6 +36,10 @@ const BUNDLES = [
   { id: "black", chips: 525, tokens: 50, bonus: 25, color: "#1a1a1a", accent: "#d4af37", label: "Black / Gold", gold: true },
 ];
 
+// Fixed diamond offer — 1 💎 buys 1,000 chips outright, no token math involved.
+const DIAMOND_CHIPS = 1000;
+const DIAMOND_COST = 1;
+
 // ── Pure-CSS casino chip ──
 function ChipIcon({ bundle, size = 56 }) {
   const { color, accent, gold } = bundle;
@@ -73,6 +77,8 @@ function ChipIcon({ bundle, size = 56 }) {
 export default function ChipCashierModal({ user, open, onClose, onUserUpdate, onOpenGuide }) {
   const [mode, setMode] = useState("buy"); // buy | cashout
   const [buyTokens, setBuyTokens] = useState(BUNDLES[0].tokens);
+  // Which currency the Buy Chips tab is spending: "tokens" | "diamond".
+  const [payWith, setPayWith] = useState("tokens");
   const [cashAmount, setCashAmount] = useState(0);
   const [busy, setBusy] = useState(false);
   const [usedToday, setUsedToday] = useState(0);
@@ -92,6 +98,11 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate, on
   const totalChips = matchedBundle ? matchedBundle.chips : totalTokens * CHIPS_PER_TOKEN;
   const bonusChips = matchedBundle?.bonus || 0;
   const canAfford = tokens >= totalTokens;
+
+  // Diamond purchase: fixed price, one diamond at a time.
+  const diamonds = Number(user?.diamonds) || 0;
+  const payingDiamond = payWith === "diamond";
+  const canBuyDiamond = diamonds >= DIAMOND_COST;
 
   // Daily cash-out cap (Brunei day) — sum chips already converted today from logs.
   const remaining = Math.max(0, dailyCap - usedToday);
@@ -173,6 +184,28 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate, on
 
   const handleBuy = async () => {
     if (busy) return;
+    if (payingDiamond) {
+      if (!canBuyDiamond) {
+        toast.error("Not enough diamonds.");
+        return;
+      }
+      setBusy(true);
+      try {
+        await base44.auth.updateMe({
+          diamonds: diamonds - DIAMOND_COST,
+          casinoChips: chips + DIAMOND_CHIPS,
+        });
+        await onUserUpdate?.();
+        logChipMovement({ user, action_type: "cashier_buy", amount: DIAMOND_CHIPS, tokens_spent: 0, balance_after: chips + DIAMOND_CHIPS, detail: `Cashier buy ${DIAMOND_CHIPS} chips for ${DIAMOND_COST} diamond` });
+        toast.success(`Bought ${DIAMOND_CHIPS.toLocaleString()} chips for ${DIAMOND_COST} diamond!`);
+        onClose();
+      } catch (e) {
+        toast.error("Purchase failed. Please try again.");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     if (!canAfford) {
       toast.error("Not enough tokens.");
       return;
@@ -326,6 +359,10 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate, on
                 <img src={TOKEN_IMG} alt="token" className="w-3 h-3 object-contain" />
                 <span className="text-amber-300 font-bold text-xs tabular-nums">{tokens}</span>
               </div>
+              <div className="flex items-center gap-1.5 bg-emerald-950/40 rounded-full px-3 py-1 border border-amber-400/30">
+                <span className="text-xs leading-none">💎</span>
+                <span className="text-amber-200 font-bold text-xs tabular-nums">{diamonds}</span>
+              </div>
             </div>
 
             {mode === "buy" && (
@@ -349,11 +386,14 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate, on
                 {/* Bundle selection — tapping a card fills the token field */}
                 <div className="px-5 space-y-2.5">
                   {BUNDLES.map((b) => {
-                    const isActive = totalTokens === b.tokens;
+                    const isActive = !payingDiamond && totalTokens === b.tokens;
                     return (
                       <button
                         key={b.id}
-                        onClick={() => setBuyTokens(b.tokens)}
+                        onClick={() => {
+                          setPayWith("tokens");
+                          setBuyTokens(b.tokens);
+                        }}
                         className={`cashier-bundle relative w-full flex items-center gap-3 rounded-2xl p-3 border transition-all text-amber-200 ${
                           isActive
                             ? "border-amber-400 bg-amber-400/10 shadow-[0_0_12px_rgba(212,175,55,0.25)]"
@@ -381,9 +421,45 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate, on
                       </button>
                     );
                   })}
+
+                  {/* Fixed diamond offer — 1 💎 = 1,000 chips */}
+                  <button
+                    onClick={() => setPayWith("diamond")}
+                    className={`cashier-bundle relative w-full flex items-center gap-3 rounded-2xl p-3 border transition-all text-amber-200 ${
+                      payingDiamond
+                        ? "border-amber-400 bg-amber-400/10 shadow-[0_0_12px_rgba(212,175,55,0.25)]"
+                        : "border-emerald-400/20 bg-emerald-950/30 hover:border-emerald-400/40"
+                    }`}
+                  >
+                    <div
+                      className="flex-shrink-0 flex items-center justify-center rounded-full text-2xl"
+                      style={{
+                        width: 52,
+                        height: 52,
+                        background: "radial-gradient(circle at 35% 30%, #67e8f9, #0891b2 65%)",
+                        border: "3px solid #ffffff",
+                        boxShadow: "0 3px 10px rgba(0,0,0,0.45), inset 0 0 6px rgba(0,0,0,0.35)",
+                      }}
+                    >
+                      💎
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="font-black text-amber-200 text-sm uppercase tracking-wider">
+                        {DIAMOND_CHIPS.toLocaleString()} Chips
+                      </p>
+                      <p className="flex items-center gap-1 text-emerald-100/70 text-xs">
+                        for <span className="font-bold text-amber-300">{DIAMOND_COST}</span> 💎
+                      </p>
+                    </div>
+                    {payingDiamond && (
+                      <span className="text-amber-300 text-xs font-black uppercase tracking-widest">✓</span>
+                    )}
+                  </button>
                 </div>
 
-                {/* Custom token amount — chips follow at 10 per token */}
+                {/* Custom token amount — chips follow at 10 per token. Hidden while
+                    the fixed diamond offer is selected. */}
+                {!payingDiamond && (
                 <div className="px-5 pt-4 pb-2">
                   <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-100/60 mb-2">
                     Tokens to spend
@@ -407,6 +483,7 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate, on
                     {bonusChips > 0 ? `Bundle bonus applied — +${bonusChips} extra chips` : "1 token = 10 chips"}
                   </p>
                 </div>
+                )}
 
                 {/* Total + confirm */}
                 <div className="px-5 pb-5 pt-3">
@@ -415,32 +492,43 @@ export default function ChipCashierModal({ user, open, onClose, onUserUpdate, on
                     <span className="flex items-center gap-1.5">
                       <span className="flex items-center gap-1 text-amber-200 font-black tabular-nums">
                         <MiniChipIcon size={12} />
-                        {totalChips}
+                        {payingDiamond ? DIAMOND_CHIPS.toLocaleString() : totalChips}
                       </span>
                       <span className="text-emerald-100/40">for</span>
-                      <span className="flex items-center gap-1 text-amber-300 font-black tabular-nums">
-                        {totalTokens}
-                        <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain" />
-                      </span>
+                      {payingDiamond ? (
+                        <span className="flex items-center gap-1 text-amber-300 font-black tabular-nums">
+                          {DIAMOND_COST} 💎
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-amber-300 font-black tabular-nums">
+                          {totalTokens}
+                          <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain" />
+                        </span>
+                      )}
                     </span>
                   </div>
                   <button
                     onClick={handleBuy}
-                    disabled={busy || !canAfford || monthLimitReached}
+                    disabled={busy || (payingDiamond ? !canBuyDiamond : !canAfford || monthLimitReached)}
                     className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm bg-amber-400 text-emerald-950 border border-amber-300 disabled:opacity-40 hover:brightness-105 transition flex items-center justify-center gap-2"
                   >
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Purchase"}
                   </button>
-                  {monthLimitReached ? (
+                  {payingDiamond && !canBuyDiamond && (
+                    <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
+                      You need {DIAMOND_COST} 💎 Diamond
+                    </p>
+                  )}
+                  {!payingDiamond && monthLimitReached ? (
                     <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
                       Monthly limit reached — resets next month
                     </p>
-                  ) : exceedsMonthRemaining ? (
+                  ) : !payingDiamond && exceedsMonthRemaining ? (
                     <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
                       Only {monthRemaining.toLocaleString()} tokens left this month
                     </p>
                   ) : null}
-                  {!canAfford && (
+                  {!payingDiamond && !canAfford && (
                     <p className="text-center text-[10px] text-rose-300/80 mt-2 font-bold uppercase tracking-widest">
                       Not enough tokens
                     </p>
