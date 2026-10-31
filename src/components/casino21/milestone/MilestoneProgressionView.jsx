@@ -291,6 +291,7 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
               boostExpiresAt={challenges.daily?.rank_surge_expires_at || 0}
               betCapExpiresAt={challenges.daily?.rank_bet_cap_expires_at || 0}
               capped={rankedCap.capped}
+              played={rankedCap.played}
               beginRankedHand={rankedCap.beginHand}
               onClose={() => setShowRanked(false)}
             />

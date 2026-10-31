@@ -19,7 +19,7 @@ import BlackjackStreakBadge from "../BlackjackStreakBadge";
 import useSeasonScore from "../useSeasonScore";
 import { fetchSeasonScore } from "@/lib/milestone";
 import { recordSeasonStreak } from "@/lib/milestoneStreak";
-import { RANKED_CAP_MESSAGE } from "@/lib/rankedCap";
+import { RANKED_CAP_MESSAGE, RANKED_DAILY_CAP } from "@/lib/rankedCap";
 import {
   registerWin,
   registerNonWin,
@@ -44,7 +44,7 @@ const RANKED_MAX = 10;
 const RANKED_MAX_HIGH_ROLLER = 25; // High Roller Pass raises the ceiling to 25
 const DEALER_DRAW_MS = 550;
 
-export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, betCapExpiresAt, capped = false, beginRankedHand, onClose, onScoreSaved }) {
+export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, betCapExpiresAt, capped = false, played = 0, beginRankedHand, onClose, onScoreSaved }) {
   const chips = Number(user?.casinoChips) || 0;
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
@@ -404,9 +404,19 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
 
       {/* Header + minimal active-perk pills */}
       <div className="relative flex items-center gap-2">
-        <span className="text-[11px] font-black uppercase tracking-widest text-amber-300">
-          ⚔️ RANKED TABLE · 1–{tableMax} CHIPS
-        </span>
+        <div className="min-w-0">
+          <span className="block text-[11px] font-black uppercase tracking-widest text-amber-300">
+            ⚔️ RANKED TABLE · 1–{tableMax} CHIPS
+          </span>
+          {/* Live daily allowance — the shared 500-hand Ranked cap, refilled at Brunei midnight */}
+          <span
+            className={`block mt-0.5 text-[9px] font-bold uppercase tracking-widest tabular-nums ${
+              capped ? "text-rose-300" : "text-amber-200/60"
+            }`}
+          >
+            Daily Hands: {played}/{RANKED_DAILY_CAP}
+          </span>
+        </div>
         <div className="ml-auto flex items-center gap-1.5">
           {surgeActive && (
             <span className="flex items-center gap-1 rounded-full border border-rose-400/50 bg-rose-950/50 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-rose-200" style={{ boxShadow: "0 0 8px rgba(244,63,94,0.4)" }}>
