@@ -58,6 +58,7 @@ export default function AdminTaxEngine() {
       return;
     }
     const rows = users
+      .filter((u) => u.lastTaxDate !== currentMonth)
       .map((u) => {
         const tokens = Number(u.earlyAccessTokens) || 0;
         const bill = computeTax(tokens);
@@ -112,6 +113,15 @@ export default function AdminTaxEngine() {
       return;
     }
 
+    // Notices already written for this month, so a re-run never doubles a notice.
+    let alreadyNotified = new Set();
+    try {
+      const existing = await base44.entities.TapTaxNotice.filter({ tax_month: currentMonth });
+      alreadyNotified = new Set((existing || []).map((n) => n.user_id));
+    } catch (e) {
+      console.error("Could not load existing tax notices", e);
+    }
+
     let processed = 0;
     let skipped = 0;
     let totalBurned = 0;
@@ -149,6 +159,27 @@ export default function AdminTaxEngine() {
         processed++;
         totalBurned += treasuryCut;
         totalVaulted += vaultDeposit;
+
+        // Snapshot this month's figures from the run-time values so the player's
+        // notice shows the exact math, never a recalculation from today's balance.
+        if (!alreadyNotified.has(u.id)) {
+          try {
+            await base44.entities.TapTaxNotice.create({
+              user_id: u.id,
+              user_name: u.full_name || u.email?.split("@")[0] || "Member",
+              tax_month: currentMonth,
+              total_tax: totalTaxBill,
+              vault_deposit: vaultDeposit,
+              treasury_share: treasuryCut,
+              pre_tax_balance: tokens,
+              post_tax_balance: tokens - totalTaxBill,
+              acknowledged: false,
+            });
+            alreadyNotified.add(u.id);
+          } catch (err) {
+            console.error("Tax notice write failed for user", u.id, err);
+          }
+        }
       } catch (e) {
         console.error("Tax update failed for user", u.id, e);
       }

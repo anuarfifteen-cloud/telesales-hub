@@ -1,0 +1,97 @@
+{
+  "name": "TapTaxNotice",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the player this monthly tax notice belongs to. One notice per player per tax_month."
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name of the player, kept so admin history reads without a lookup."
+    },
+    "tax_month": {
+      "type": "string",
+      "description": "The month the tax run covered, YYYY-MM. Together with user_id this identifies the notice and prevents a duplicate notice for the same month."
+    },
+    "total_tax": {
+      "type": "number",
+      "description": "Exact tax deducted from the player's active token balance in this run, as calculated and applied at run time."
+    },
+    "vault_deposit": {
+      "type": "number",
+      "description": "The 80% share of the tax that was moved into the player's TAP Savings Vault."
+    },
+    "treasury_share": {
+      "type": "number",
+      "description": "The 20% share of the tax that went to the Hub Treasury."
+    },
+    "pre_tax_balance": {
+      "type": "number",
+      "description": "The player's active token balance immediately before this month's tax was applied."
+    },
+    "post_tax_balance": {
+      "type": "number",
+      "description": "The player's active token balance immediately after this month's tax was applied. Notices always read these saved values, never the current balance."
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the player has dismissed this month's notice. The popup only shows unacknowledged notices; acknowledged ones stay stored as history."
+    },
+    "acknowledged_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the player dismissed the notice."
+    }
+  },
+  "required": [
+    "user_id",
+    "tax_month",
+    "total_tax",
+    "pre_tax_balance",
+    "post_tax_balance"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

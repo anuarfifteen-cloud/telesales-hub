@@ -40,6 +40,7 @@ import TokenVoucher from "@/components/booking/MysteryBoxModal";
 import ThemeShop from "@/components/profile/ThemeShop";
 import NewSeasonRewardsPopup from "@/components/casino21/milestone/NewSeasonRewardsPopup";
 import DailyMysteryCardModal from "@/components/casino21/milestone/DailyMysteryCardModal";
+import TapTaxNoticeModal from "@/components/tax/TapTaxNoticeModal";
 import { onRankedNavRequest } from "@/lib/rankedNav";
 import AvatarInitialsEditor from "@/components/profile/AvatarInitialsEditor";
 import AvatarPhotoEditor from "@/components/profile/AvatarPhotoEditor";
@@ -1195,6 +1196,8 @@ useEffect(() => {
       <NewSeasonRewardsPopup user={user} onUserUpdate={refreshUser} />
 
       <DailyMysteryCardModal user={user} onUserUpdate={refreshUser} />
+
+      <TapTaxNoticeModal user={user} />
 
       <FeatureUnlockModal
         isOpen={unlockModal.open}
