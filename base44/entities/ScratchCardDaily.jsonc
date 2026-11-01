@@ -26,6 +26,11 @@
       "type": "number",
       "default": 10,
       "description": "Scratch cards left in the current batch window. Refills to 10 when the Brunei clock enters a new date or half-day period; unused cards never roll over."
+    },
+    "scratch_cards_remaining_am": {
+      "type": "number",
+      "default": 10,
+      "description": "Cards left in this date's morning (Batch 1) window, frozen at the noon refill so Batch 1 stays visible in the allowance display for the rest of the day."
     }
   },
   "required": [

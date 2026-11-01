@@ -5,12 +5,12 @@ import { logChipMovement } from "@/lib/chipLog";
 import { logScratchTicket, updateScratchTicket } from "@/lib/scratchLog";
 import { audioReady, playP10Jackpot, playTicketFlourish, playWin, playWinFanfare } from "@/lib/sounds";
 import ScratchCardTicket from "./ScratchCardTicket";
+import ScratchBatchAllowance from "./ScratchBatchAllowance";
 import ScratchCardLiveFeed from "./ScratchCardLiveFeed";
 import ScratchResultModal from "./ScratchResultModal";
 import { ENTRY_COST, SCRATCH_CARD_IMG, TOKEN_IMG, buildGrid, prizeTier, rollScratchOutcome } from "./scratchPrizes";
 import {
   CARDS_PER_BATCH,
-  batchNumber,
   bruneiBatch,
   consumeScratchCard,
   formatCountdown,
@@ -259,18 +259,16 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
         <div className="p-4">
           {/* Daily batch allowance */}
           <div style={{ marginBottom: cells ? 12 : 0 }}>
-            <p
-              style={{
-                margin: 0,
-                textAlign: "center",
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: 0.4,
-                color: exhausted ? "#fda4af" : "#ffd76a",
-              }}
-            >
-              🎟️ Remaining: {remaining}/{CARDS_PER_BATCH} (Batch {batchNumber(batch.period)}/2)
-            </p>
+            <ScratchBatchAllowance
+              remaining={remaining}
+              morningRemaining={
+                Number.isFinite(Number(allocation?.scratch_cards_remaining_am))
+                  ? Number(allocation.scratch_cards_remaining_am)
+                  : null
+              }
+              period={batch.period}
+              exhausted={exhausted}
+            />
             {exhausted && (
               <div
                 style={{

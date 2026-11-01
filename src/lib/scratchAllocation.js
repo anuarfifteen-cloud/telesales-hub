@@ -65,14 +65,24 @@ export async function loadAllocation(user) {
       scratch_batch_date: date,
       scratch_batch_period: period,
       scratch_cards_remaining: CARDS_PER_BATCH,
+      // First open of the day is already in the afternoon: nothing was spent in
+      // the morning window, so its full 10 stays on record for display.
+      scratch_cards_remaining_am: CARDS_PER_BATCH,
     });
   }
 
   if (record.scratch_batch_date !== date || record.scratch_batch_period !== period) {
+    // Rolling from this morning into this afternoon freezes the morning count so
+    // Batch 1 stays visible all day. Any other rollover starts a fresh figure.
+    const morningLeft =
+      period === "PM" && record.scratch_batch_date === date && record.scratch_batch_period === "AM"
+        ? Math.max(0, Number(record.scratch_cards_remaining) || 0)
+        : CARDS_PER_BATCH;
     return await base44.entities.ScratchCardDaily.update(record.id, {
       scratch_batch_date: date,
       scratch_batch_period: period,
       scratch_cards_remaining: CARDS_PER_BATCH,
+      scratch_cards_remaining_am: morningLeft,
     });
   }
 
