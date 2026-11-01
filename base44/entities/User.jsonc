@@ -58,7 +58,7 @@
     "is_defending_champ_ninja": {
       "type": "boolean",
       "default": false,
-      "description": "Whether this user is the defending Ninja Slice champion, placed on a one-season prize cooldown"
+      "description": "Whether this user is the defending Ninja Slash champion, placed on a one-season prize cooldown"
     },
     "diamonds": {
       "type": "number",
@@ -72,6 +72,20 @@
     "active_pass_expiry": {
       "type": "string",
       "description": "ISO timestamp of when the user's 7-Day Priority Access pass expires"
+    },
+    "vip_passes_month": {
+      "type": "string",
+      "description": "YYYY-MM (Asia/Brunei) month the two VIP pass purchase counters belong to. When the Brunei month advances both counters read as 0 \u2014 baseline prices \u2014 and the next purchase stamps the new month, so the reset needs no scheduled job."
+    },
+    "token_purchases_this_month": {
+      "type": "number",
+      "default": 0,
+      "description": "How many token VIP passes (30-min or 1-hour) this user bought during vip_passes_month. Shared by both token passes: current price = base \u00d7 2^count."
+    },
+    "diamond_purchases_this_month": {
+      "type": "number",
+      "default": 0,
+      "description": "How many 7-Day Priority (diamond) passes this user bought during vip_passes_month. Independent of the token track: current price = 1 diamond \u00d7 2^count."
     },
     "tapVaultBalance": {
       "type": "number",

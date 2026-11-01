@@ -14,6 +14,7 @@ import {
   AlertDialogTitle } from
 "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { passCounters, escalatedPrice, VIP_PLUS_BASE_PRICE, DIAMOND_PASS_BASE_PRICE } from "@/lib/vipPassPricing";
 
 const MILESTONES = [
 { target: 15, tokens: 3, emoji: "👑", label: "15 Bookings — Earn 3 Tokens", doneColor: "emerald", activeBg: "bg-emerald-50 dark:bg-emerald-950/30", activeBorder: "border-emerald-200 dark:border-emerald-800", barColor: "bg-emerald-500", textColor: "text-emerald-800 dark:text-emerald-300", subColor: "text-emerald-600 dark:text-emerald-400", badgeBg: "bg-emerald-100 dark:bg-emerald-900/40", badgeText: "text-emerald-700 dark:text-emerald-300", badgeBorder: "border-emerald-200 dark:border-emerald-700" },
@@ -106,8 +107,6 @@ function MilestoneRow({ milestone, totalBookingCount, index }) {
 
 }
 
-const VIP_PLUS_PRICE = 5;
-
 export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCount = 0, showMilestones = true }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showPlusConfirm, setShowPlusConfirm] = useState(false);
@@ -134,21 +133,30 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
 
   const tokens = user?.earlyAccessTokens ?? 0;
 
+  // Progressive monthly pricing: both token passes share one counter, the
+  // diamond pass has its own. A stale month key reads as 0 purchases.
+  const { month: passesMonth, tokenCount, diamondCount } = passCounters(user);
+  const vipCurrentPrice = escalatedPrice(vipPrice, tokenCount);
+  const plusCurrentPrice = escalatedPrice(VIP_PLUS_BASE_PRICE, tokenCount);
+  const diamondCurrentPrice = escalatedPrice(DIAMOND_PASS_BASE_PRICE, diamondCount);
+  const tokenTierLabel = tokenCount > 0 ? ` ×${Math.pow(2, tokenCount)} this month` : "";
+  const diamondTierLabel = diamondCount > 0 ? ` ×${Math.pow(2, diamondCount)} this month` : "";
+
   // 30-min pass
   const vipExpiresAt = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
   const isVipActive = vipExpiresAt && vipExpiresAt.getTime() > Date.now();
-  const canActivate = tokens >= vipPrice && !isVipActive;
+  const canActivate = tokens >= vipCurrentPrice && !isVipActive;
 
   // 1-hour pass
   const vipPlusExpiresAt = user?.vipPlusExpiresAt ? new Date(user.vipPlusExpiresAt) : null;
   const isVipPlusActive = vipPlusExpiresAt && vipPlusExpiresAt.getTime() > Date.now();
-  const canActivatePlus = tokens >= VIP_PLUS_PRICE && !isVipPlusActive;
+  const canActivatePlus = tokens >= plusCurrentPrice && !isVipPlusActive;
 
   // 7-day priority pass
   const diamonds = user?.diamonds ?? 0;
   const priorityExpiresAt = user?.active_pass_expiry ? new Date(user.active_pass_expiry) : null;
   const isPriorityActive = priorityExpiresAt && priorityExpiresAt.getTime() > Date.now();
-  const canActivatePriority = diamonds > 0 && !isPriorityActive;
+  const canActivatePriority = diamonds >= diamondCurrentPrice && !isPriorityActive;
 
   const nextMilestone = MILESTONES.find((m) => totalBookingCount < m.target);
   const overallPct = nextMilestone ? Math.round(totalBookingCount / nextMilestone.target * 100) : 100;
@@ -156,11 +164,17 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
   const handleActivate = async () => {
     setSaving(true);
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    await base44.auth.updateMe({ earlyAccessTokens: tokens - vipPrice, vipExpiresAt: expiresAt });
+    await base44.auth.updateMe({
+      earlyAccessTokens: tokens - vipCurrentPrice,
+      vipExpiresAt: expiresAt,
+      token_purchases_this_month: tokenCount + 1,
+      diamond_purchases_this_month: diamondCount,
+      vip_passes_month: passesMonth,
+    });
     await base44.entities.TokenTransaction.create({
       user_id: user.id,
       user_name: user.full_name || user.email,
-      amount: -vipPrice,
+      amount: -vipCurrentPrice,
       source: "VIP Pass Purchase (30-min early)",
       timestamp: new Date().toISOString()
     });
@@ -173,11 +187,17 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
   const handleActivatePlus = async () => {
     setSavingPlus(true);
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    await base44.auth.updateMe({ earlyAccessTokens: tokens - VIP_PLUS_PRICE, vipPlusExpiresAt: expiresAt });
+    await base44.auth.updateMe({
+      earlyAccessTokens: tokens - plusCurrentPrice,
+      vipPlusExpiresAt: expiresAt,
+      token_purchases_this_month: tokenCount + 1,
+      diamond_purchases_this_month: diamondCount,
+      vip_passes_month: passesMonth,
+    });
     await base44.entities.TokenTransaction.create({
       user_id: user.id,
       user_name: user.full_name || user.email,
-      amount: -VIP_PLUS_PRICE,
+      amount: -plusCurrentPrice,
       source: "VIP Plus Pass Purchase (1-hour early)",
       timestamp: new Date().toISOString()
     });
@@ -190,7 +210,13 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
   const handleActivatePriority = async () => {
     setSavingPriority(true);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    await base44.auth.updateMe({ diamonds: diamonds - 1, active_pass_expiry: expiresAt });
+    await base44.auth.updateMe({
+      diamonds: diamonds - diamondCurrentPrice,
+      active_pass_expiry: expiresAt,
+      token_purchases_this_month: tokenCount,
+      diamond_purchases_this_month: diamondCount + 1,
+      vip_passes_month: passesMonth,
+    });
     await onUserUpdate();
     setSavingPriority(false);
     setShowPriorityConfirm(false);
@@ -246,9 +272,9 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
           {/* ── 30-min pass ── */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <Zap className={`w-4 h-4 flex-shrink-0 ${isVipActive ? "text-amber-500" : tokens >= vipPrice ? "text-blue-500" : "text-slate-300 dark:text-slate-600"}`} />
+              <Zap className={`w-4 h-4 flex-shrink-0 ${isVipActive ? "text-amber-500" : tokens >= vipCurrentPrice ? "text-blue-500" : "text-slate-300 dark:text-slate-600"}`} />
               <div className="min-w-0">
-                <p className={`text-sm font-medium ${isVipActive || tokens >= vipPrice ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
+                <p className={`text-sm font-medium ${isVipActive || tokens >= vipCurrentPrice ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
   ACTIVATE EARLY 30-MINS BOOKING ACCESS
 </p>
                 {isVipActive ?
@@ -256,8 +282,8 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                     ⚡ Active — expires {formatExpiry(vipExpiresAt)}
                   </p> :
 
-                <p className={`text-[10px] leading-none mt-0.5 font-semibold ${tokens >= vipPrice ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}>
-                    {vipPrice} token{vipPrice !== 1 ? "s" : ""} — book 30 min early.
+                <p className={`text-[10px] leading-none mt-0.5 font-semibold ${tokens >= vipCurrentPrice ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}>
+                    {vipCurrentPrice} token{vipCurrentPrice !== 1 ? "s" : ""} — book 30 min early.{tokenTierLabel}
                   </p>
                 }
               </div>
@@ -275,10 +301,10 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
           {/* ── 1-hour pass ── */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <Zap className={`w-4 h-4 flex-shrink-0 ${isVipPlusActive ? "text-purple-500" : tokens >= VIP_PLUS_PRICE ? "text-purple-400" : "text-slate-300 dark:text-slate-600"}`} />
+              <Zap className={`w-4 h-4 flex-shrink-0 ${isVipPlusActive ? "text-purple-500" : tokens >= plusCurrentPrice ? "text-purple-400" : "text-slate-300 dark:text-slate-600"}`} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 flex-nowrap max-w-full">
-                  <p className={`text-sm font-medium ${isVipPlusActive || tokens >= VIP_PLUS_PRICE ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
+                  <p className={`text-sm font-medium ${isVipPlusActive || tokens >= plusCurrentPrice ? "text-slate-700 dark:text-gray-300" : "text-slate-400 dark:text-slate-500"}`}>
   ACTIVATE EARLY 1-HRS BOOKING ACCESS
 </p>
 
@@ -290,8 +316,8 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                     🚀 Active — expires {formatExpiry(vipPlusExpiresAt)}
                   </p> :
 
-                <p className={`text-[10px] leading-none mt-1 font-semibold ${tokens >= VIP_PLUS_PRICE ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
-                    {VIP_PLUS_PRICE} tokens — book 1 hour early.
+                <p className={`text-[10px] leading-none mt-1 font-semibold ${tokens >= plusCurrentPrice ? "text-purple-600 dark:text-purple-400" : "text-slate-400 dark:text-slate-500"}`}>
+                    {plusCurrentPrice} tokens — book 1 hour early.{tokenTierLabel}
                   </p>
                 }
               </div>
@@ -332,7 +358,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                   </p> :
 
                 <p className="text-[11px] leading-none mt-1.5 font-semibold text-purple-100/90">
-                    1 💎 Diamond — Unlock booking at <span className="text-white font-black">6:00 PM</span> for 7 days.
+                    {diamondCurrentPrice} 💎 Diamond{diamondCurrentPrice !== 1 ? "s" : ""} — Unlock booking at <span className="text-white font-black">6:00 PM</span> for 7 days.{diamondTierLabel}
                   </p>
                 }
               </div>
@@ -358,7 +384,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
               </div>
               <div>
               <p className="text-[9px] font-bold text-white/50 uppercase tracking-wider">Cost</p>
-              <p className="text-xs font-black text-white">1 💎</p>
+              <p className="text-xs font-black text-white">{diamondCurrentPrice} 💎</p>
               </div>
               </div>
               </div>
@@ -369,7 +395,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
               <AlertDialogHeader>
                 <AlertDialogTitle>⚡ Activate Early 30-Min Access?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will consume <strong>{vipPrice} token{vipPrice !== 1 ? "s" : ""}</strong> ({tokens} remaining) and grant you <strong>30-minute early booking access</strong> for the next <strong>24 hours</strong> or until your next successful booking, whichever comes first.
+                  This will consume <strong>{vipCurrentPrice} token{vipCurrentPrice !== 1 ? "s" : ""}</strong> ({tokens} remaining) and grant you <strong>30-minute early booking access</strong> for the next <strong>24 hours</strong> or until your next successful booking, whichever comes first.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -387,7 +413,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
               <AlertDialogHeader>
                 <AlertDialogTitle>🚀 Activate Early 1-Hour Access?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will consume <strong>{VIP_PLUS_PRICE} tokens</strong> ({tokens} remaining) and grant you <strong>1-hour early booking access</strong> for the next <strong>24 hours</strong> or until your next successful booking, whichever comes first.
+                  This will consume <strong>{plusCurrentPrice} tokens</strong> ({tokens} remaining) and grant you <strong>1-hour early booking access</strong> for the next <strong>24 hours</strong> or until your next successful booking, whichever comes first.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -405,7 +431,7 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
               <AlertDialogHeader>
                 <AlertDialogTitle>💎 Activate 7-Day Priority Access?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will consume <strong>1 diamond</strong> ({diamonds} remaining) and grant you <strong>priority booking access</strong> for the next <strong>7 days</strong>.
+                  This will consume <strong>{diamondCurrentPrice} diamond{diamondCurrentPrice !== 1 ? "s" : ""}</strong> ({diamonds} remaining) and grant you <strong>priority booking access</strong> for the next <strong>7 days</strong>.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
