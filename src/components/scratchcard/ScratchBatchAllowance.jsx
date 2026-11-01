@@ -7,7 +7,10 @@ import { CARDS_PER_BATCH } from "@/lib/scratchAllocation";
  */
 export default function ScratchBatchAllowance({ remaining, morningRemaining, period, exhausted }) {
   const isMorning = period === "AM";
-  const batch1 = isMorning ? remaining : morningRemaining;
+  // In the morning Batch 1 IS the live balance. After noon the frozen morning
+  // figure is used, falling back to a full batch for a record that was already
+  // on Batch 2 before the morning count started being kept.
+  const batch1 = isMorning ? remaining : morningRemaining ?? CARDS_PER_BATCH;
 
   const line = (text, dim) => (
     <p
