@@ -54,7 +54,7 @@ const playTension = () => {
   });
 };
 
-const PRESETS = [1, 2, 5, 10];
+const PRESETS = [25, 50, 100];
 const MAX_STREAK = 5; // auto-cashout after 5 consecutive wins
 const FLIP_FEE = 2;   // tokens charged to double down
 
@@ -69,20 +69,8 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
   const [coinRot, setCoinRot] = useState(0);
   const [outcome, setOutcome] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [wager, setWager] = useState(1); // flexible entry wager
+  const [wager, setWager] = useState(25); // fixed entry wager option
   const coinRotRef = useRef(0);
-
-  const clampWager = (v) => {
-    const n = Math.floor(Number(v));
-    if (!Number.isFinite(n) || n < 1) return 1;
-    if (n > tokens) return tokens;
-    return n;
-  };
-  const handleManualWager = (e) => {
-    const raw = e.target.value;
-    if (raw === "") { setWager(1); return; }
-    setWager(clampWager(raw));
-  };
 
   const userName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
@@ -99,12 +87,8 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
   // ── start a new chain: wager chosen tokens, pot set to wager × 2 ──────────
   const startChain = async () => {
     if (busy) return;
-    const w = clampWager(wager);
-    if (tokens < 1) {
-      toast.error("You need at least 1 token to start a chain.");
-      return;
-    }
-    if (w > tokens) {
+    const w = wager;
+    if (tokens < w) {
       toast.error("Not enough tokens for that wager.");
       return;
     }
@@ -377,9 +361,9 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
                   <button
                     key={p}
                     type="button"
-                    onClick={() => setWager(clampWager(p))}
+                    onClick={() => setWager(p)}
                     disabled={p > tokens}
-                    className={`min-w-[3rem] rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-widest transition ${
+                    className={`min-w-[4.5rem] rounded-full border px-4 py-2 text-sm font-black uppercase tracking-widest transition ${
                       wager === p
                         ? "border-amber-400 bg-amber-500/25 text-amber-600 dark:text-amber-200 ring-2 ring-amber-400/60"
                         : "border-amber-400/40 bg-muted text-amber-600/80 dark:text-amber-400/80 hover:bg-amber-500/15"
@@ -389,28 +373,15 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
                   </button>
                 ))}
               </div>
-              {/* manual input */}
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Or enter tokens</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={tokens}
-                  value={wager}
-                  onChange={handleManualWager}
-                  disabled={tokens < 1}
-                  className="w-24 rounded-lg border border-amber-400/40 bg-muted px-3 py-1.5 text-center text-sm font-black text-amber-600 dark:text-amber-400 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 disabled:opacity-40"
-                />
-              </div>
               <button
                 onClick={startChain}
-                disabled={busy || tokens < 1}
+                disabled={busy || tokens < wager}
                 className="w-full rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500 to-yellow-400 py-3 text-sm font-black uppercase tracking-widest text-emerald-950 shadow-lg shadow-amber-500/30 transition hover:scale-[1.02] active:scale-95 disabled:opacity-40"
               >
                 🎯 Start Chain ({wager} Token{wager === 1 ? "" : "s"})
               </button>
-              {tokens < 1 && (
-                <p className="text-[11px] text-red-500 dark:text-red-400">Not enough tokens to play.</p>
+              {tokens < wager && (
+                <p className="text-[11px] text-red-500 dark:text-red-400">Not enough tokens for this wager.</p>
               )}
             </div>
           )}
