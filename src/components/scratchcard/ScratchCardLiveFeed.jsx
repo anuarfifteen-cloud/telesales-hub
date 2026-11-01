@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
 import { CHIP_IMG, TOKEN_IMG } from "./scratchPrizes";
@@ -17,20 +17,46 @@ function timeAgo(isoString) {
  */
 export default function ScratchCardLiveFeed() {
   const [wins, setWins] = useState([]);
+  // Coalesces realtime pings so a burst of ticket writes triggers one refresh.
+  const pendingRef = useRef(null);
+  const busyRef = useRef(false);
 
   const load = async () => {
-    const rows = await base44.entities.ScratchCardLog.filter(
-      { outcome: "win", collected: true },
-      "-updated_date",
-      5
-    );
-    setWins(rows);
+    if (busyRef.current) return;
+    busyRef.current = true;
+    try {
+      const rows = await base44.entities.ScratchCardLog.filter(
+        { outcome: "win", collected: true },
+        "-updated_date",
+        5
+      );
+      setWins(rows);
+    } finally {
+      busyRef.current = false;
+    }
   };
 
   useEffect(() => {
-    load();
-    const unsub = base44.entities.ScratchCardLog.subscribe(() => load());
-    return unsub;
+    load().catch(() => {});
+    // Every ticket write on the app pings this channel — for every player, at
+    // create and again when it is collected. Reading the feed once per ping
+    // floods the list endpoint, so only finished wins are looked at and the
+    // refreshes are squashed into one at most every few seconds.
+    const schedule = (event) => {
+      const row = event?.data;
+      if (row && (row.outcome !== "win" || !row.collected)) return;
+      if (pendingRef.current) return;
+      pendingRef.current = setTimeout(() => {
+        pendingRef.current = null;
+        load().catch(() => {});
+      }, 4000);
+    };
+    const unsubscribe = base44.entities.ScratchCardLog.subscribe(schedule);
+    return () => {
+      if (pendingRef.current) clearTimeout(pendingRef.current);
+      pendingRef.current = null;
+      unsubscribe();
+    };
   }, []);
 
   if (wins.length === 0) return null;
