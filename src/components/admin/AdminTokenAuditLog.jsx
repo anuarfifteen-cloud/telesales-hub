@@ -26,17 +26,30 @@ export default function AdminTokenAuditLog() {
   const { data: transactions = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ["tokenTransactions"],
     queryFn: async () => {
-      const rows = await base44.entities.TokenTransaction.list("-timestamp", 300);
-      return rows || [];
+      const page = await base44.entities.TokenTransaction.list({ sort: "-timestamp", limit: 300 });
+      return page?.items ?? [];
+    },
+  });
+
+  // Every player who has ever moved tokens, so the dropdown is not limited to
+  // the names on the most recent page of records.
+  const { data: userNames = [] } = useQuery({
+    queryKey: ["tokenTransactionUsers"],
+    queryFn: async () => {
+      const res = await base44.entities.TokenTransaction.list({ distinct: "user_name" });
+      const values = Array.isArray(res) ? res : res?.items ?? [];
+      return values.filter(Boolean);
     },
   });
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["tokenTransactions"] });
+    queryClient.invalidateQueries({ queryKey: ["tokenTransactionUsers"] });
     refetch();
   };
 
-  const uniqueUsers = [...new Set(transactions.map(t => t.user_name).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const uniqueUsers = [...new Set([...userNames, ...transactions.map(t => t.user_name)].filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b));
 
   const filtered = transactions.filter(t => {
     const name = t.user_name || "";
