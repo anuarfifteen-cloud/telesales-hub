@@ -54,7 +54,7 @@ const playTension = () => {
   });
 };
 
-const PRESETS = [25, 50, 100];
+const PRESETS = [1, 3, 5, 10, 25, 50, 100];
 const MAX_STREAK = 5; // auto-cashout after 5 consecutive wins
 const FLIP_FEE = 2;   // tokens charged to double down
 
@@ -372,6 +372,18 @@ export default function CoinFlipStreak({ user, onUserUpdate }) {
                     {p}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setWager(tokens)}
+                  disabled={tokens < 1}
+                  className={`min-w-[4.5rem] rounded-full border px-4 py-2 text-sm font-black uppercase tracking-widest transition ${
+                    wager === tokens && tokens > 0
+                      ? "border-amber-400 bg-amber-500/25 text-amber-600 dark:text-amber-200 ring-2 ring-amber-400/60"
+                      : "border-amber-400/40 bg-muted text-amber-600/80 dark:text-amber-400/80 hover:bg-amber-500/15"
+                  } disabled:opacity-30`}
+                >
+                  Max
+                </button>
               </div>
               <button
                 onClick={startChain}
