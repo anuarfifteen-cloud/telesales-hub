@@ -141,6 +141,10 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
   const diamondCurrentPrice = escalatedPrice(DIAMOND_PASS_BASE_PRICE, diamondCount);
   const tokenTierLabel = tokenCount > 0 ? ` ×${Math.pow(2, tokenCount)} this month` : "";
   const diamondTierLabel = diamondCount > 0 ? ` ×${Math.pow(2, diamondCount)} this month` : "";
+  // What the same track will cost the moment this purchase completes.
+  const nextVipPrice = escalatedPrice(vipPrice, tokenCount + 1);
+  const nextPlusPrice = escalatedPrice(VIP_PLUS_BASE_PRICE, tokenCount + 1);
+  const nextDiamondPrice = escalatedPrice(DIAMOND_PASS_BASE_PRICE, diamondCount + 1);
 
   // 30-min pass
   const vipExpiresAt = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
@@ -269,6 +273,13 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
       {!showMilestones &&
       <>
         <div className="space-y-3">
+          {/* ── Monthly pricing disclaimer ── */}
+          <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5">
+            <p className="text-[10px] font-semibold text-amber-800 dark:text-amber-300 leading-relaxed">
+              Monthly VIP Pricing: Prices double after each purchase. Token and Diamond passes track independently. Prices reset on the 1st of every month.
+            </p>
+          </div>
+
           {/* ── 30-min pass ── */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
@@ -396,6 +407,9 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                 <AlertDialogTitle>⚡ Activate Early 30-Min Access?</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will consume <strong>{vipCurrentPrice} token{vipCurrentPrice !== 1 ? "s" : ""}</strong> ({tokens} remaining) and grant you <strong>30-minute early booking access</strong> for the next <strong>24 hours</strong> or until your next successful booking, whichever comes first.
+                  <span className="block mt-2 font-bold text-amber-600 dark:text-amber-400">
+                    ⚠️ Warning: Your next Token VIP pass this month will cost {nextVipPrice} token{nextVipPrice !== 1 ? "s" : ""} (or {nextPlusPrice} tokens for 1-hour early access).
+                  </span>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -414,6 +428,9 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                 <AlertDialogTitle>🚀 Activate Early 1-Hour Access?</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will consume <strong>{plusCurrentPrice} tokens</strong> ({tokens} remaining) and grant you <strong>1-hour early booking access</strong> for the next <strong>24 hours</strong> or until your next successful booking, whichever comes first.
+                  <span className="block mt-2 font-bold text-amber-600 dark:text-amber-400">
+                    ⚠️ Warning: Your next Token VIP pass this month will cost {nextPlusPrice} tokens (or {nextVipPrice} token{nextVipPrice !== 1 ? "s" : ""} for 30-minute early access).
+                  </span>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -432,6 +449,9 @@ export default function EarlyAccessToggle({ user, onUserUpdate, totalBookingCoun
                 <AlertDialogTitle>💎 Activate 7-Day Priority Access?</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will consume <strong>{diamondCurrentPrice} diamond{diamondCurrentPrice !== 1 ? "s" : ""}</strong> ({diamonds} remaining) and grant you <strong>priority booking access</strong> for the next <strong>7 days</strong>.
+                  <span className="block mt-2 font-bold text-amber-600 dark:text-amber-400">
+                    ⚠️ Warning: Your next Diamond VIP pass this month will cost {nextDiamondPrice} diamond{nextDiamondPrice !== 1 ? "s" : ""}.
+                  </span>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
