@@ -258,7 +258,7 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
         {/* Ticket body */}
         <div className="p-4">
           {/* Daily batch allowance */}
-          <div style={{ marginBottom: cells ? 12 : 0 }}>
+          <div style={{ marginBottom: 16 }}>
             <ScratchBatchAllowance
               remaining={remaining}
               morningRemaining={
