@@ -1,6 +1,6 @@
 const fmt = (n) => Math.round(Number(n) || 0).toLocaleString();
 
-function monthLabel(month) {
+export function monthLabel(month) {
   const [y, m] = (month || "").split("-").map(Number);
   if (!y || !m) return month || "";
   return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
