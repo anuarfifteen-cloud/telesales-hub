@@ -49,6 +49,16 @@ import BlackjackResultCard from "./BlackjackResultCard";
 import HowToPlayButton from "./HowToPlayButton";
 import BlackjackHowToPlayModal from "./BlackjackHowToPlayModal";
 import MiniChipIcon from "./MiniChipIcon";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import MilestoneProgressionView from "./milestone/MilestoneProgressionView";
 import RankClaimPopup from "./milestone/RankClaimPopup";
 import useMilestoneClaim from "./milestone/useMilestoneClaim";
@@ -163,6 +173,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
   // balance strip or the bet screen whenever they want to top up.
   const [showCashier, setShowCashier] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  // Casual table only: MAX is a big wager, so it asks once before it applies.
+  const [showMaxWarning, setShowMaxWarning] = useState(false);
 
   // Admin-controlled difficulty (AppSettings.blackjack_difficulty). Falls back
   // to "normal" when missing. Re-fetched when the Cashier opens so a mid-session
@@ -677,7 +689,14 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           {/* Bet + controls */}
           {phase === "bet" && (
             <>
-              <BetBar bet={bet} maxBet={maxBet} onSet={setBet} onAdjust={adjustBet} chips={chips} />
+              <BetBar
+                bet={bet}
+                maxBet={maxBet}
+                onSet={setBet}
+                onAdjust={adjustBet}
+                chips={chips}
+                onMaxRequest={() => setShowMaxWarning(true)}
+              />
               <button
                 onClick={handleDeal}
                 disabled={busy || chips < MIN_BET}
@@ -740,6 +759,30 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
       <BlackjackHowToPlayModal open={showGuide} onClose={() => setShowGuide(false)} />
 
+      {/* Casual table: confirm MAX before it becomes the wager */}
+      <AlertDialog open={showMaxWarning} onOpenChange={setShowMaxWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ Bet the Maximum?</AlertDialogTitle>
+            <AlertDialogDescription>
+              MAX sets your wager to <strong>{maxBet} chips</strong> — the largest
+              5-chip step your <strong>{chips} chip</strong> balance allows. This is
+              the Max bet for the casual table, so confirm only if that is really
+              what you want to stake.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep My Bet</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => setBet(maxBet)}
+              style={{ background: "#d4af37", color: "#052e22" }}
+            >
+              Yes, Max Bet
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <RankClaimPopup
         claim={milestone.currentClaim}
         onConfirm={async () => {
@@ -754,7 +797,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 }
 
 // ── Bet slider with arrows + MAX ───────────────────────────────────────
-function BetBar({ bet, maxBet, onSet, onAdjust, chips }) {
+function BetBar({ bet, maxBet, onSet, onAdjust, chips, onMaxRequest }) {
   const playable = chips >= MIN_BET;
   const sliderMax = Math.max(maxBet, MIN_BET);
   const shownBet = Math.min(Math.max(bet, MIN_BET), sliderMax);
@@ -792,7 +835,7 @@ function BetBar({ bet, maxBet, onSet, onAdjust, chips }) {
           {shownBet} CHIPS
         </span>
         <button
-          onClick={() => onSet(maxBet)}
+          onClick={() => (onMaxRequest ? onMaxRequest() : onSet(maxBet))}
           disabled={!playable}
           className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest text-emerald-950 disabled:opacity-30"
           style={{ background: "#d4af37" }}
