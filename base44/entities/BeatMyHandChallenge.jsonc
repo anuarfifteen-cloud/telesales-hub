@@ -1,0 +1,113 @@
+{
+  "name": "BeatMyHandChallenge",
+  "type": "object",
+  "properties": {
+    "creator_id": {
+      "type": "string",
+      "description": "User ID of Player 1 \u2014 the player who posted the hand. Their stake is deducted when the challenge is posted."
+    },
+    "creator_name": {
+      "type": "string",
+      "description": "Display name of Player 1, kept so the board reads without a lookup."
+    },
+    "creator_score": {
+      "type": "number",
+      "description": "Player 1's final hand total. Values above 21 are a bust. Hidden from Player 2 on the board until they finish their own hand."
+    },
+    "opponent_id": {
+      "type": "string",
+      "description": "User ID of Player 2 \u2014 the player who accepted the challenge. Empty while it is still open."
+    },
+    "opponent_name": {
+      "type": "string",
+      "description": "Display name of Player 2."
+    },
+    "opponent_score": {
+      "type": "number",
+      "description": "Player 2's final hand total, written when they settle the challenge."
+    },
+    "wager": {
+      "type": "number",
+      "description": "Chips each side staked. The pot is twice this amount."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "settled",
+        "expired"
+      ],
+      "enumColors": [
+        "blue",
+        "green",
+        "gray"
+      ],
+      "default": "open",
+      "description": "open = accepting players; settled = Player 2 finished their hand and the pot was decided; expired = nobody accepted within 90 seconds and Player 1's stake is returned."
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "creator_win",
+        "opponent_win",
+        "push",
+        "house",
+        "expired"
+      ],
+      "enumColors": [
+        "blue",
+        "green",
+        "yellow",
+        "red",
+        "gray"
+      ],
+      "description": "Who won the pot. creator_win = Player 1 took it; opponent_win = Player 2 took it; push = tied valid hands and both stakes returned; house = both busted and the pot is burned; expired = no taker inside the 90-second window."
+    },
+    "creator_payout": {
+      "type": "number",
+      "default": 0,
+      "description": "Chips owed to Player 1 by this challenge (the pot for a win, their stake back for a push or expiry). Collected by Player 1 on their own device, which is the only way a client can credit that wallet."
+    },
+    "opponent_payout": {
+      "type": "number",
+      "default": 0,
+      "description": "Chips owed to Player 2 by this challenge. Credited immediately by the accepting device at settlement."
+    },
+    "creator_claimed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether Player 1 has collected their payout. Prevents paying the same result twice."
+    },
+    "opponent_claimed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether Player 2 has collected (or was directly credited) their payout."
+    },
+    "expires_at": {
+      "type": "number",
+      "description": "UNIX epoch ms when the 90-second acceptance window closes. Swept lazily whenever any player loads the board."
+    },
+    "settled_at": {
+      "type": "string",
+      "description": "ISO timestamp the challenge was settled or expired."
+    }
+  },
+  "required": [
+    "creator_id",
+    "creator_score",
+    "wager",
+    "status"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "data.creator_id": "{{user.id}}"
+    },
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -60,6 +60,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import MilestoneProgressionView from "./milestone/MilestoneProgressionView";
+import BeatMyHandView from "./onevone/BeatMyHandView";
 import RankClaimPopup from "./milestone/RankClaimPopup";
 import useMilestoneClaim from "./milestone/useMilestoneClaim";
 import {
@@ -554,6 +555,7 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
         {[
           ["game", "🎮 CASUAL"],
           ["rank", "🏆RANK"],
+          ["onevone", "⚔️ 1V1"],
           ["stats", "📊 Stats"],
           ["history", "📜 History"],
         ].map(([id, label]) => (
@@ -745,6 +747,8 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
           recordWin={milestone.recordWin}
         />
       )}
+
+      {view === "onevone" && <BeatMyHandView user={user} onUserUpdate={onUserUpdate} />}
 
       {view === "stats" && <BlackjackStats userId={user?.id} user={user} />}
       {view === "history" && <BlackjackHistory userId={user?.id} />}
