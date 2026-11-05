@@ -126,9 +126,16 @@ export default function ShowdownReveal({
     return () => clearTimeout(t);
   }, [revealed, total]);
 
-  // Alternate one card per side so both hands build up together.
-  const theirShown = Math.min(theirs.length, Math.ceil(revealed / 2));
-  const myShown = Math.min(mine.length, Math.floor(revealed / 2));
+  // Alternate one card per side so both hands build up together, then let the
+  // longer hand finish alone — each seat's total appears on its own last card.
+  const order = [];
+  for (let i = 0; i < Math.max(theirs.length, mine.length); i += 1) {
+    if (i < theirs.length) order.push("theirs");
+    if (i < mine.length) order.push("mine");
+  }
+  const dealt = order.slice(0, revealed);
+  const theirShown = dealt.filter((side) => side === "theirs").length;
+  const myShown = dealt.filter((side) => side === "mine").length;
 
   const isCreator = viewerRole === "creator";
   const verdict = verdictFor(outcome, Number(wager) || 0, isCreator);
