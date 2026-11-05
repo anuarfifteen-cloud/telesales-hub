@@ -14,6 +14,13 @@
       "type": "number",
       "description": "Player 1's final hand total. Values above 21 are a bust. Hidden from Player 2 on the board until they finish their own hand."
     },
+    "creator_cards": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "The exact cards Player 1 drew, in order ({ suit, color, rank, value }). Stored so the challenger's showdown can deal the poster's real hand out card by card instead of only showing the total."
+    },
     "opponent_id": {
       "type": "string",
       "description": "User ID of Player 2 \u2014 the player who accepted the challenge. Empty while it is still open."
@@ -25,6 +32,13 @@
     "opponent_score": {
       "type": "number",
       "description": "Player 2's final hand total, written when they settle the challenge."
+    },
+    "opponent_cards": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "The exact cards Player 2 finished on, kept for the showdown reveal and the settled record."
     },
     "wager": {
       "type": "number",

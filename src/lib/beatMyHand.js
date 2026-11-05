@@ -10,6 +10,10 @@ export const WAGER_PRESETS = [5, 10, 25, 50, 100];
 // A challenge sits on the board for exactly 90 seconds.
 export const CHALLENGE_TTL_MS = 90 * 1000;
 
+// Once a wager is locked the challenger gets this long to finish their hand.
+// When the clock runs out the hand is stood as-is and settled.
+export const TURN_SECONDS = 15;
+
 /**
  * Compare the two finished hands and decide the pot.
  *
