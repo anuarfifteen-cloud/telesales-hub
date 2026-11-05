@@ -12,19 +12,46 @@ const TONES = {
   push: { text: "text-amber-300", box: "border-amber-400/40 bg-amber-400/10" },
 };
 
-function verdictFor(outcome, wager) {
-  switch (outcome) {
-    case "opponent_win":
-      return { label: "You win the pot", tone: "win", line: `Your hand takes the ${wager * 2}-chip pot.` };
-    case "creator_win":
-      return { label: "The poster's hand wins", tone: "lose", line: `Their hand beat yours — you lose ${wager} chips.` };
-    case "push":
-      return { label: "Push", tone: "push", line: `Both hands tied — your ${wager} chips come back.` };
-    case "house":
-      return { label: "Both busted", tone: "lose", line: `Neither hand stood — the house keeps the ${wager * 2}-chip pot.` };
-    default:
-      return { label: "Settled", tone: "push", line: "The pot has been decided." };
+// Worded from the viewer's seat — the poster and the challenger read the same
+// hand in opposite directions.
+function verdictFor(outcome, wager, isCreator) {
+  if (outcome === "push") {
+    return { label: "Push", tone: "push", line: `Both hands tied — your ${wager} chips come back.` };
   }
+  if (outcome === "house") {
+    return { label: "Both busted", tone: "lose", line: `Neither hand stood — the house keeps the ${wager * 2}-chip pot.` };
+  }
+  const iWon = isCreator ? outcome === "creator_win" : outcome === "opponent_win";
+  if (iWon) {
+    return { label: "You win the pot", tone: "win", line: `Your hand takes the ${wager * 2}-chip pot.` };
+  }
+  return {
+    label: isCreator ? "The challenger's hand wins" : "The poster's hand wins",
+    tone: "lose",
+    line: `Their hand beat yours — you lose ${wager} chips.`,
+  };
+}
+
+function ActionButton({ primary = false, className = "", children, ...props }) {
+  if (primary) {
+    return (
+      <button
+        {...props}
+        className={`py-2.5 rounded-full font-black uppercase tracking-widest text-xs text-emerald-950 disabled:opacity-40 ${className}`}
+        style={{ background: "#d4af37" }}
+      >
+        {children}
+      </button>
+    );
+  }
+  return (
+    <button
+      {...props}
+      className={`py-2.5 rounded-full font-black uppercase tracking-widest text-xs text-emerald-100 bg-white/10 border border-white/20 hover:bg-white/15 transition disabled:opacity-40 ${className}`}
+    >
+      {children}
+    </button>
+  );
 }
 
 // One side of the showdown. Cards arrive one at a time; the total only shows
@@ -59,10 +86,13 @@ function SeatHand({ name, cards, shown, score, winner }) {
   );
 }
 
+// `viewerRole` decides which seat is labelled "You", so the poster replaying a
+// settled challenge sees their own hand on the left.
 export default function ShowdownReveal({
   creatorName,
   creatorCards,
   creatorScore,
+  opponentName,
   opponentCards,
   opponentScore,
   outcome,
@@ -71,6 +101,10 @@ export default function ShowdownReveal({
   onClose,
   onPlayAgain,
   canPlayAgain = true,
+  viewerRole = "opponent",
+  onCollect,
+  collectLabel,
+  collecting = false,
 }) {
   const theirs = Array.isArray(creatorCards) ? creatorCards : [];
   const mine = Array.isArray(opponentCards) ? opponentCards : [];
@@ -96,8 +130,11 @@ export default function ShowdownReveal({
   const theirShown = Math.min(theirs.length, Math.ceil(revealed / 2));
   const myShown = Math.min(mine.length, Math.floor(revealed / 2));
 
-  const verdict = verdictFor(outcome, Number(wager) || 0);
+  const isCreator = viewerRole === "creator";
+  const verdict = verdictFor(outcome, Number(wager) || 0, isCreator);
   const tone = TONES[verdict.tone];
+  const leftName = isCreator ? "You" : creatorName || "Poster";
+  const rightName = isCreator ? opponentName || "Challenger" : "You";
 
   return (
     <div className="flex flex-col gap-3">
@@ -112,14 +149,14 @@ export default function ShowdownReveal({
 
       <div className="flex gap-2">
         <SeatHand
-          name={creatorName || "Poster"}
+          name={leftName}
           cards={theirs}
           shown={theirShown}
           score={creatorScore}
           winner={outcome === "creator_win"}
         />
         <SeatHand
-          name="You"
+          name={rightName}
           cards={mine}
           shown={myShown}
           score={opponentScore}
@@ -150,21 +187,27 @@ export default function ShowdownReveal({
             </span>
           </div>
 
-          <div className="mt-3 flex gap-2">
-            <button
-              onClick={onPlayAgain}
-              disabled={!canPlayAgain}
-              className="flex-1 py-2.5 rounded-full font-black uppercase tracking-widest text-xs text-emerald-950 disabled:opacity-40"
-              style={{ background: "#d4af37" }}
-            >
-              Play Again · {wager}
-            </button>
-            <button
-              onClick={onClose}
-              className="flex-1 py-2.5 rounded-full font-black uppercase tracking-widest text-xs text-emerald-100 bg-white/10 border border-white/20 hover:bg-white/15 transition"
-            >
-              Back to the board
-            </button>
+          <div className="mt-3 flex flex-col gap-2">
+            {onCollect && (
+              <ActionButton primary onClick={onCollect} disabled={collecting}>
+                {collecting ? "Collecting…" : collectLabel || "Collect chips"}
+              </ActionButton>
+            )}
+            <div className="flex gap-2">
+              {onPlayAgain && (
+                <ActionButton
+                  primary={!onCollect}
+                  onClick={onPlayAgain}
+                  disabled={!canPlayAgain}
+                  className="flex-1"
+                >
+                  Play Again · {wager}
+                </ActionButton>
+              )}
+              <ActionButton onClick={onClose} className="flex-1">
+                Back to the board
+              </ActionButton>
+            </div>
           </div>
           {!canPlayAgain && (
             <p className="text-[10px] text-rose-300/80 mt-2">

@@ -7,7 +7,7 @@ import { outcomeLine, secondsLeft } from "@/lib/beatMyHand";
 //   "board"  → someone else's open challenge, with Accept
 //   "mine"   → your own open challenge, score visible, waiting
 //   "result" → a settled/expired challenge you were part of
-export default function ChallengeCard({ challenge, me, variant, onAccept, onCollect, busy }) {
+export default function ChallengeCard({ challenge, me, variant, onAccept, onCollect, onView, busy }) {
   const isCreator = challenge.creator_id === me;
   const myPayout = Number(isCreator ? challenge.creator_payout : challenge.opponent_payout) || 0;
   const myClaimed = isCreator ? !!challenge.creator_claimed : !!challenge.opponent_claimed;
@@ -77,22 +77,39 @@ export default function ChallengeCard({ challenge, me, variant, onAccept, onColl
         <span className="text-[10px] font-bold text-emerald-100/40 tabular-nums">{left}s left</span>
       )}
 
-      {variant === "result" && myPayout > 0 && !myClaimed && (
+      {/* Settled hands replay the shared showdown; an expired one has nothing
+          to watch, so its stake is refunded straight from the row. */}
+      {variant === "result" && challenge.status === "settled" && onView && (
         <button
-          onClick={() => onCollect(challenge)}
-          disabled={busy}
-          className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-950 disabled:opacity-30"
+          onClick={() => onView(challenge)}
+          className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-950"
           style={{ background: "#d4af37" }}
         >
-          Collect
+          View Results
         </button>
       )}
 
-      {variant === "result" && (myClaimed || myPayout <= 0) && (
-        <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-100/30">
-          {myClaimed ? "Paid" : "Lost"}
-        </span>
-      )}
+      {variant === "result" &&
+        !(challenge.status === "settled" && onView) &&
+        myPayout > 0 &&
+        !myClaimed && (
+          <button
+            onClick={() => onCollect(challenge)}
+            disabled={busy}
+            className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-950 disabled:opacity-30"
+            style={{ background: "#d4af37" }}
+          >
+            Collect
+          </button>
+        )}
+
+      {variant === "result" &&
+        !(challenge.status === "settled" && onView) &&
+        (myClaimed || myPayout <= 0) && (
+          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-100/30">
+            {myClaimed ? "Paid" : "Lost"}
+          </span>
+        )}
     </motion.div>
   );
 }

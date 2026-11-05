@@ -37,6 +37,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const [handCards, setHandCards] = useState([]);
   const [target, setTarget] = useState(null);
   const [showdown, setShowdown] = useState(null);
+  // A finished challenge opened from the board or Recent — replays the showdown.
+  const [resultsFor, setResultsFor] = useState(null);
   const [busy, setBusy] = useState(false);
   const [handKey, setHandKey] = useState(0);
   const [postCountdown, setPostCountdown] = useState(null);
@@ -376,6 +378,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
             : `Beat My Hand — ${challenge.outcome === "push" ? "push refund" : "pot won"} (${amount} chips)`,
       });
       await onUserUpdate?.();
+      setResultsFor(null);
       toast.success(`+${amount} chips collected.`);
       await load();
     } catch {
@@ -418,7 +421,39 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         {/* Balance is always visible, in every step of both flows. */}
         <ChipBalanceStrip chips={chips} />
 
-        {mode === "lobby" && (
+        {mode === "lobby" && resultsFor && (
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => setResultsFor(null)}
+              className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
+            >
+              <ArrowLeft className="w-3 h-3" /> Board
+            </button>
+
+            <ShowdownReveal
+              creatorName={resultsFor.creator_name}
+              creatorCards={resultsFor.creator_cards || []}
+              creatorScore={resultsFor.creator_score}
+              opponentName={resultsFor.opponent_name}
+              opponentCards={resultsFor.opponent_cards || []}
+              opponentScore={resultsFor.opponent_score}
+              outcome={resultsFor.outcome}
+              payout={payoutFor(resultsFor)}
+              wager={resultsFor.wager}
+              viewerRole={resultsFor.creator_id === me ? "creator" : "opponent"}
+              onCollect={
+                payoutFor(resultsFor) > 0 && !claimedFor(resultsFor)
+                  ? () => collect(resultsFor)
+                  : undefined
+              }
+              collectLabel={`Collect ${payoutFor(resultsFor)} chips`}
+              collecting={busy}
+              onClose={() => setResultsFor(null)}
+            />
+          </div>
+        )}
+
+        {mode === "lobby" && !resultsFor && (
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
@@ -459,6 +494,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                     me={me}
                     variant="result"
                     onCollect={collect}
+                    onView={setResultsFor}
                     busy={busy}
                   />
                 ))}
@@ -512,6 +548,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                     me={me}
                     variant="result"
                     onCollect={collect}
+                    onView={setResultsFor}
                     busy={busy}
                   />
                 ))}
