@@ -414,33 +414,28 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         outcome: res.outcome,
         creator_payout: res.creatorPayout,
         opponent_payout: res.opponentPayout,
-        opponent_claimed: true,
+        opponent_claimed: false,
         creator_claimed: false,
         settled_at: new Date().toISOString(),
       });
 
-      if (res.opponentPayout > 0) {
-        const afterPayout = afterStake + res.opponentPayout;
-        await base44.auth.updateMe({ casinoChips: afterPayout });
-        logChipMovement({
-          user,
-          mode: "wallet",
-          action_type: res.outcome === "push" ? "push" : "win",
-          amount: res.opponentPayout,
-          balance_after: afterPayout,
-          detail: `Beat My Hand — ${res.detail}`,
-        });
-      }
-
+      // Nobody is paid at settlement: whichever side won claims the pot from
+      // the showdown, so the poster and the challenger collect the same way.
       setShowdown({
-        creatorName: current.creator_name || "Player",
-        creatorCards: Array.isArray(current.creator_cards) ? current.creator_cards : [],
-        creatorScore: Number(current.creator_score) || 0,
-        opponentCards: Array.isArray(cards) ? cards : [],
-        opponentScore: score,
+        id: target.id,
+        creator_id: current.creator_id,
+        creator_name: current.creator_name || "Player",
+        creator_cards: Array.isArray(current.creator_cards) ? current.creator_cards : [],
+        creator_score: Number(current.creator_score) || 0,
+        opponent_name: myName,
+        opponent_cards: Array.isArray(cards) ? cards : [],
+        opponent_score: score,
         outcome: res.outcome,
-        payout: res.opponentPayout,
         wager: target.wager,
+        creator_payout: res.creatorPayout,
+        opponent_payout: res.opponentPayout,
+        creator_claimed: false,
+        opponent_claimed: false,
       });
       setStep("showdown");
       await onUserUpdate?.();
@@ -482,6 +477,12 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       });
       await onUserUpdate?.();
       setResultsFor(null);
+      // Keep the open showdown in step so its Collect button disappears.
+      setShowdown((s) =>
+        s && s.id === challenge.id
+          ? { ...s, [isCreator ? "creator_claimed" : "opponent_claimed"]: true }
+          : s
+      );
       toast.success(`+${amount} chips collected.`);
       await load();
     } catch {
@@ -853,7 +854,23 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
 
             {step === "showdown" && showdown && (
               <ShowdownReveal
-                {...showdown}
+                creatorName={showdown.creator_name}
+                creatorCards={showdown.creator_cards || []}
+                creatorScore={showdown.creator_score}
+                opponentName={showdown.opponent_name}
+                opponentCards={showdown.opponent_cards || []}
+                opponentScore={showdown.opponent_score}
+                outcome={showdown.outcome}
+                payout={payoutFor(showdown)}
+                wager={showdown.wager}
+                viewerRole="opponent"
+                onCollect={
+                  payoutFor(showdown) > 0 && !claimedFor(showdown)
+                    ? () => collect(showdown)
+                    : undefined
+                }
+                collectLabel={`Collect ${payoutFor(showdown)} chips`}
+                collecting={busy}
                 onClose={backToLobby}
                 onPlayAgain={playAgain}
                 canPlayAgain={chips >= (Number(showdown.wager) || 0)}
