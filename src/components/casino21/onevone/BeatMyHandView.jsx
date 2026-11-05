@@ -505,7 +505,9 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       setPostCountdown(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
       const c = await read();
       if (!c || stopped) return;
-      if (c.status !== "accepted" || chargingRef.current) return;
+      // "settled" is included so a very fast hand can never slip past the stake.
+      const taken = c.status === "accepted" || c.status === "settled";
+      if (!taken || chargingRef.current) return;
 
       stopped = true;
       chargingRef.current = true;
