@@ -12,6 +12,7 @@ import { logChipMovement } from "@/lib/chipLog";
 import {
   AUTO_POST_SECONDS,
   CHALLENGE_TTL_MS,
+  REMATCH_ACCEPT_MS,
   TURN_SECONDS,
   WAGER_PRESETS,
   isExpired,
@@ -41,6 +42,11 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const [handKey, setHandKey] = useState(0);
   const [postCountdown, setPostCountdown] = useState(null);
   const [postFailed, setPostFailed] = useState(false);
+  // Private rematch loop: who the next hand is aimed at, the posted rematch,
+  // and whether this player already staked their chips when accepting.
+  const [rematch, setRematch] = useState(null);
+  const [rematchId, setRematchId] = useState(null);
+  const [targetPaid, setTargetPaid] = useState(false);
   const [, setTick] = useState(0);
   // The challenger's hand can only be settled once, whichever path ended it.
   const settlingRef = useRef(false);
@@ -56,37 +62,42 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   // ── Lazy 90-second expiry ───────────────────────────────────────────
   // Any player loading the board sweeps stale challenges and releases the
   // original stake back to its creator (collected by them on their own device).
-  const sweepExpired = async (rows) => {
-    const stale = rows.filter(isExpired);
-    if (!stale.length) return rows;
-    await Promise.all(
-      stale.map((c) =>
-        base44.entities.BeatMyHandChallenge.update(c.id, {
+  // A stale public challenge refunds the creator's stake. A targeted rematch
+  // never charged anyone, so it is simply cancelled.
+  const expiryPatch = (c) =>
+    c.rematch
+      ? {
+          status: "cancelled",
+          outcome: "cancelled",
+          creator_payout: 0,
+          opponent_payout: 0,
+          creator_claimed: false,
+          settled_at: new Date().toISOString(),
+        }
+      : {
           status: "expired",
           outcome: "expired",
           creator_payout: Number(c.wager) || 0,
           opponent_payout: 0,
           creator_claimed: false,
           settled_at: new Date().toISOString(),
-        })
-      )
+        };
+
+  const sweepExpired = async (rows) => {
+    const stale = rows.filter(isExpired);
+    if (!stale.length) return rows;
+    await Promise.all(
+      stale.map((c) => base44.entities.BeatMyHandChallenge.update(c.id, expiryPatch(c)))
     );
-    return rows.map((c) =>
-      stale.some((s) => s.id === c.id)
-        ? {
-            ...c,
-            status: "expired",
-            outcome: "expired",
-            creator_payout: Number(c.wager) || 0,
-            creator_claimed: false,
-          }
-        : c
-    );
+    return rows.map((c) => {
+      const gone = stale.find((s) => s.id === c.id);
+      return gone ? { ...c, ...expiryPatch(gone) } : c;
+    });
   };
 
   const load = useCallback(async () => {
     try {
-      const [openRes, mineRes] = await Promise.all([
+      const [openRes, mineRes, targetRes] = await Promise.all([
         base44.entities.BeatMyHandChallenge.filter(
           { status: "open" },
           { sort: "-created_date", limit: 40 }
@@ -95,11 +106,17 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
           { $or: [{ creator_id: me }, { opponent_id: me }] },
           { sort: "-created_date", limit: 25 }
         ),
+        base44.entities.BeatMyHandChallenge.filter(
+          { status: "open", target_id: me },
+          { sort: "-created_date", limit: 10 }
+        ),
       ]);
       const byId = new Map();
-      [...(openRes?.items || []), ...(mineRes?.items || [])].forEach((c) =>
-        byId.set(c.id, c)
-      );
+      [
+        ...(openRes?.items || []),
+        ...(mineRes?.items || []),
+        ...(targetRes?.items || []),
+      ].forEach((c) => byId.set(c.id, c));
       const rows = await sweepExpired([...byId.values()]);
       rows.sort((a, b) =>
         String(b.created_date || "").localeCompare(String(a.created_date || ""))
@@ -123,9 +140,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
 
   const myRows = challenges.filter((c) => c.creator_id === me || c.opponent_id === me);
   const board = challenges.filter(
-    (c) => c.status === "open" && c.creator_id !== me && c.opponent_id !== me
+    (c) => c.status === "open" && !c.rematch && c.creator_id !== me && c.opponent_id !== me
   );
-  const myOpen = myRows.filter((c) => c.status === "open");
+  // Targeted rematches aimed at this player — shown above everything else.
+  const incoming = challenges.filter(
+    (c) => c.status === "open" && c.rematch && c.target_id === me && c.creator_id !== me
+  );
+  const myOpen = myRows.filter((c) => c.status === "open" && !c.rematch);
   const myClaims = myRows.filter((c) => c.status !== "open" && payoutFor(c) > 0 && !claimedFor(c));
   const myResults = myRows.filter(
     (c) => c.status !== "open" && !(payoutFor(c) > 0 && !claimedFor(c))
@@ -135,9 +156,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setMode("lobby");
     setStep("wager");
     setTarget(null);
+    setTargetPaid(false);
+    setRematch(null);
+    setRematchId(null);
     setFinalScore(null);
     setHandCards([]);
     setShowdown(null);
+    chargingRef.current = false;
   };
 
   // ── Create ──────────────────────────────────────────────────────────
@@ -259,7 +284,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
 
   const settleAccept = async (score, cards) => {
     if (!target || settlingRef.current) return;
-    if (secondsLeft(target.expires_at) <= 0) {
+    if (!targetPaid && secondsLeft(target.expires_at) <= 0) {
       toast.error("That challenge has expired.");
       backToLobby();
       await load();
@@ -270,31 +295,37 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     try {
       const live = await base44.entities.BeatMyHandChallenge.filter({ id: target.id });
       const current = Array.isArray(live) ? live[0] : live?.items?.[0];
-      if (!current || current.status !== "open") {
+      const stillLive =
+        current && (current.status === "open" || current.status === "accepted");
+      if (!stillLive) {
         toast.error("That challenge is no longer open.");
         backToLobby();
         return;
       }
 
       const fresh = await base44.auth.me();
-      const balance = Number(fresh?.casinoChips) || 0;
-      if (balance < target.wager) {
-        toast.error("Not enough chips to match that wager.");
-        backToLobby();
-        return;
-      }
+      let balance = Number(fresh?.casinoChips) || 0;
 
-      // Match the stake.
-      const afterStake = balance - target.wager;
-      await base44.auth.updateMe({ casinoChips: afterStake });
-      logChipMovement({
-        user,
-        mode: "wallet",
-        action_type: "bet",
-        amount: -target.wager,
-        balance_after: afterStake,
-        detail: `Beat My Hand accepted ${target.creator_name}'s ${target.wager}-chip challenge`,
-      });
+      // A public challenge stakes the chips here. A targeted rematch was
+      // already staked when it was accepted, so only the pot is settled below.
+      if (!targetPaid) {
+        if (balance < target.wager) {
+          toast.error("Not enough chips to match that wager.");
+          backToLobby();
+          return;
+        }
+        const afterStake = balance - target.wager;
+        await base44.auth.updateMe({ casinoChips: afterStake });
+        logChipMovement({
+          user,
+          mode: "wallet",
+          action_type: "bet",
+          amount: -target.wager,
+          balance_after: afterStake,
+          detail: `Beat My Hand accepted ${target.creator_name}'s ${target.wager}-chip challenge`,
+        });
+        balance = afterStake;
+      }
 
       const res = resolveHands(current.creator_score, score, target.wager);
 
@@ -315,7 +346,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       });
 
       if (res.opponentPayout > 0) {
-        const afterPayout = afterStake + res.opponentPayout;
+        const afterPayout = balance + res.opponentPayout;
         await base44.auth.updateMe({ casinoChips: afterPayout });
         logChipMovement({
           user,
@@ -328,6 +359,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       }
 
       setShowdown({
+        opponentId: current.creator_id,
+        opponentName: current.creator_name || "Player",
         creatorName: current.creator_name || "Player",
         creatorCards: Array.isArray(current.creator_cards) ? current.creator_cards : [],
         creatorScore: Number(current.creator_score) || 0,
@@ -385,7 +418,9 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     }
   };
 
-  // Replay at the same stake: skips wager selection and deals straight away.
+  // ── Private rematch loop ────────────────────────────────────────────
+  // Play Again deals straight into a new hand at the same wager against the
+  // player you just faced. Nothing is staked until they accept.
   const playAgain = () => {
     const sameWager = Number(showdown?.wager) || wager;
     if (chips < sameWager) {
@@ -393,15 +428,183 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       return;
     }
     setWager(sameWager);
+    setRematch({
+      opponentId: showdown?.opponentId,
+      opponentName: showdown?.opponentName || "Player",
+      wager: sameWager,
+    });
+    setRematchId(null);
     setTarget(null);
+    setTargetPaid(false);
     setShowdown(null);
     setFinalScore(null);
     setHandCards([]);
     setPostFailed(false);
     setPostCountdown(null);
     setHandKey((k) => k + 1);
-    setMode("create");
+    setMode("rematch");
     setStep("play");
+  };
+
+  const cancelChallenge = (id) =>
+    base44.entities.BeatMyHandChallenge.update(id, {
+      status: "cancelled",
+      outcome: "cancelled",
+      creator_payout: 0,
+      opponent_payout: 0,
+      settled_at: new Date().toISOString(),
+    });
+
+  // The finished hand is offered privately to the previous opponent only.
+  const postRematch = async (score, cards) => {
+    if (!rematch || postingRef.current) return;
+    postingRef.current = true;
+    setBusy(true);
+    try {
+      const created = await base44.entities.BeatMyHandChallenge.create({
+        creator_id: me,
+        creator_name: myName,
+        creator_score: score,
+        creator_cards: cards,
+        wager: rematch.wager,
+        status: "open",
+        rematch: true,
+        target_id: rematch.opponentId,
+        target_name: rematch.opponentName,
+        expires_at: Date.now() + REMATCH_ACCEPT_MS,
+        creator_payout: 0,
+        opponent_payout: 0,
+      });
+      setRematchId(created.id);
+      setPostCountdown(Math.ceil(REMATCH_ACCEPT_MS / 1000));
+      setStep("waiting");
+    } catch {
+      toast.error("Couldn't offer that rematch.");
+      backToLobby();
+    } finally {
+      postingRef.current = false;
+      setBusy(false);
+    }
+  };
+
+  // Watch the offered hand for five seconds: stake in the moment it is
+  // accepted, otherwise withdraw it — nobody is charged either way until then.
+  const chargingRef = useRef(false);
+  useEffect(() => {
+    if (mode !== "rematch" || step !== "waiting" || !rematchId) return undefined;
+    const deadline = Date.now() + REMATCH_ACCEPT_MS;
+    let stopped = false;
+
+    const read = async () => {
+      const rows = await base44.entities.BeatMyHandChallenge.filter({ id: rematchId });
+      return Array.isArray(rows) ? rows[0] : rows?.items?.[0];
+    };
+
+    const poll = setInterval(async () => {
+      if (stopped) return;
+      setPostCountdown(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+      const c = await read();
+      if (!c || stopped) return;
+      if (c.status !== "accepted" || chargingRef.current) return;
+
+      stopped = true;
+      chargingRef.current = true;
+      clearInterval(poll);
+      // Only this device can move this wallet, so the stake is taken here.
+      const fresh = await base44.auth.me();
+      const balance = Number(fresh?.casinoChips) || 0;
+      if (balance < Number(c.wager)) {
+        await cancelChallenge(c.id);
+        toast.error("Rematch cancelled — not enough chips.");
+      } else {
+        const after = balance - Number(c.wager);
+        await base44.auth.updateMe({ casinoChips: after });
+        logChipMovement({
+          user,
+          mode: "wallet",
+          action_type: "bet",
+          amount: -Number(c.wager),
+          balance_after: after,
+          detail: `Beat My Hand rematch accepted by ${c.opponent_name || "opponent"} — ${c.wager} chips`,
+        });
+        toast.success(`${c.opponent_name || "Your opponent"} accepted the rematch.`);
+      }
+      await onUserUpdate?.();
+      backToLobby();
+      await load();
+    }, 600);
+
+    const timeout = setTimeout(async () => {
+      if (stopped) return;
+      stopped = true;
+      clearInterval(poll);
+      const c = await read();
+      if (c && c.status === "open") {
+        await cancelChallenge(c.id);
+        toast.error("Rematch not accepted — cancelled.");
+      }
+      backToLobby();
+      await load();
+    }, REMATCH_ACCEPT_MS + 400);
+
+    return () => {
+      stopped = true;
+      clearInterval(poll);
+      clearTimeout(timeout);
+    };
+  }, [mode, step, rematchId]);
+
+  // One tap on a private rematch: match the stake and deal immediately.
+  const acceptRematch = async (challenge) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (secondsLeft(challenge.expires_at) <= 0) {
+        await cancelChallenge(challenge.id);
+        toast.error("That rematch already expired.");
+        await load();
+        return;
+      }
+      const fresh = await base44.auth.me();
+      const balance = Number(fresh?.casinoChips) || 0;
+      if (balance < Number(challenge.wager)) {
+        await cancelChallenge(challenge.id);
+        toast.error(
+          `Rematch from ${challenge.creator_name || "a player"} cancelled — not enough chips.`
+        );
+        await load();
+        return;
+      }
+      const after = balance - Number(challenge.wager);
+      await base44.auth.updateMe({ casinoChips: after });
+      logChipMovement({
+        user,
+        mode: "wallet",
+        action_type: "bet",
+        amount: -Number(challenge.wager),
+        balance_after: after,
+        detail: `Beat My Hand rematch accepted from ${challenge.creator_name || "opponent"} — ${challenge.wager} chips`,
+      });
+      await base44.entities.BeatMyHandChallenge.update(challenge.id, {
+        status: "accepted",
+        opponent_id: me,
+        opponent_name: myName,
+        accepted_at: Date.now(),
+      });
+      setTarget(challenge);
+      setTargetPaid(true);
+      setFinalScore(null);
+      setHandCards([]);
+      setShowdown(null);
+      setHandKey((k) => k + 1);
+      setMode("accept");
+      setStep("play");
+      await onUserUpdate?.();
+    } catch {
+      toast.error("Couldn't accept that rematch.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -437,6 +640,24 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
             </div>
+
+            {incoming.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-300">
+                  Private rematch · one tap to play
+                </p>
+                {incoming.map((c) => (
+                  <ChallengeCard
+                    key={c.id}
+                    challenge={c}
+                    me={me}
+                    variant="rematch"
+                    onAccept={acceptRematch}
+                    busy={busy}
+                  />
+                ))}
+              </div>
+            )}
 
             <button
               onClick={startCreate}
@@ -577,6 +798,55 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                   </button>
                 )}
               </>
+            )}
+          </div>
+        )}
+
+        {mode === "rematch" && rematch && (
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={backToLobby}
+              className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
+            >
+              <ArrowLeft className="w-3 h-3" /> Board
+            </button>
+
+            <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-amber-300/80">
+                Rematch · {rematch.opponentName} · {rematch.wager} chips
+              </p>
+              <p className="text-[10px] text-emerald-100/60 mt-0.5">
+                {step === "waiting"
+                  ? "Offered privately — nothing staked unless they accept."
+                  : "Nothing staked yet. Finish your hand and it goes straight to them."}
+              </p>
+            </div>
+
+            {step === "play" && (
+              <LocalHand
+                key={handKey}
+                onHandDone={(score, cards) => {
+                  const hand = Array.isArray(cards) ? cards : [];
+                  setFinalScore(score);
+                  setHandCards(hand);
+                  postRematch(score, hand);
+                }}
+                disabled={finalScore != null}
+              />
+            )}
+
+            {step === "waiting" && (
+              <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-3 text-center">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300/80">
+                  Waiting for {rematch.opponentName}
+                </p>
+                <p className="text-3xl font-black text-amber-200 tabular-nums leading-none mt-1">
+                  {postCountdown ?? Math.ceil(REMATCH_ACCEPT_MS / 1000)}
+                </p>
+                <p className="text-[10px] text-emerald-100/60 mt-1 tabular-nums">
+                  Hand {finalScore} · {rematch.wager} chips · cancels at zero
+                </p>
+              </div>
             )}
           </div>
         )}

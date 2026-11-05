@@ -4,9 +4,10 @@ import MiniChipIcon from "../MiniChipIcon";
 import { outcomeLine, secondsLeft } from "@/lib/beatMyHand";
 
 // One row on the board. `variant`:
-//   "board"  → someone else's open challenge, with Accept
-//   "mine"   → your own open challenge, score visible, waiting
-//   "result" → a settled/expired challenge you were part of
+//   "board"   → someone else's open challenge, with Accept
+//   "rematch" → a private rematch aimed at you, one tap to play
+//   "mine"    → your own open challenge, score visible, waiting
+//   "result"  → a settled/expired challenge you were part of
 export default function ChallengeCard({ challenge, me, variant, onAccept, onCollect, busy }) {
   const isCreator = challenge.creator_id === me;
   const myPayout = Number(isCreator ? challenge.creator_payout : challenge.opponent_payout) || 0;
@@ -25,9 +26,15 @@ export default function ChallengeCard({ challenge, me, variant, onAccept, onColl
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-emerald-50 truncate">
-            {variant === "board" ? challenge.creator_name || "Player" : isCreator ? "Your challenge" : challenge.creator_name || "Player"}
+            {variant === "rematch"
+              ? `Rematch from ${challenge.creator_name || "Player"}`
+              : variant === "board"
+                ? challenge.creator_name || "Player"
+                : isCreator
+                  ? "Your challenge"
+                  : challenge.creator_name || "Player"}
           </span>
-          {variant === "board" && (
+          {(variant === "board" || variant === "rematch") && (
             <span className="px-1.5 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/40 text-[8px] font-black uppercase tracking-widest text-amber-300">
               {left}s
             </span>
@@ -39,7 +46,7 @@ export default function ChallengeCard({ challenge, me, variant, onAccept, onColl
           <span className="text-[11px] font-bold text-amber-200 tabular-nums">{challenge.wager}</span>
           <span className="text-[10px] text-emerald-100/50">wager</span>
 
-          {variant === "board" ? (
+          {variant === "board" || variant === "rematch" ? (
             <span className="flex items-center gap-1 text-[10px] text-emerald-100/50">
               <Lock className="w-3 h-3" /> hand locked
             </span>
@@ -62,7 +69,7 @@ export default function ChallengeCard({ challenge, me, variant, onAccept, onColl
         )}
       </div>
 
-      {variant === "board" && (
+      {(variant === "board" || variant === "rematch") && (
         <button
           onClick={() => onAccept(challenge)}
           disabled={busy || left <= 0}

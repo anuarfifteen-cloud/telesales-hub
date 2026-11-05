@@ -4,7 +4,7 @@
   "properties": {
     "creator_id": {
       "type": "string",
-      "description": "User ID of Player 1 \u2014 the player who posted the hand. Their stake is deducted when the challenge is posted."
+      "description": "User ID of Player 1 \u2014 the player who posted the hand. Their stake is deducted when the challenge is posted (public challenges) or when the opponent accepts (targeted rematches)."
     },
     "creator_name": {
       "type": "string",
@@ -44,20 +44,37 @@
       "type": "number",
       "description": "Chips each side staked. The pot is twice this amount."
     },
+    "rematch": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this record is a private targeted rematch from the previous showdown instead of a public board challenge. Targeted rematches never appear on the public board and are only shown to target_id."
+    },
+    "target_id": {
+      "type": "string",
+      "description": "User ID of the only player who may see and accept a targeted rematch \u2014 the previous opponent. Empty for public challenges."
+    },
+    "target_name": {
+      "type": "string",
+      "description": "Display name of the targeted opponent, kept so the rematch card reads without a lookup."
+    },
     "status": {
       "type": "string",
       "enum": [
         "open",
+        "accepted",
         "settled",
-        "expired"
+        "expired",
+        "cancelled"
       ],
       "enumColors": [
         "blue",
+        "purple",
         "green",
-        "gray"
+        "gray",
+        "red"
       ],
       "default": "open",
-      "description": "open = accepting players; settled = Player 2 finished their hand and the pot was decided; expired = nobody accepted within 90 seconds and Player 1's stake is returned."
+      "description": "open = awaiting an acceptance (public board, or the 5-second private rematch window); accepted = the opponent paid and is playing a targeted rematch; settled = Player 2 finished their hand and the pot was decided; expired = a public challenge was not taken within 90 seconds and Player 1's stake is returned; cancelled = a targeted rematch was not accepted within 5 seconds, or was cancelled for insufficient chips \u2014 nothing was staked."
     },
     "outcome": {
       "type": "string",
@@ -66,16 +83,18 @@
         "opponent_win",
         "push",
         "house",
-        "expired"
+        "expired",
+        "cancelled"
       ],
       "enumColors": [
         "blue",
         "green",
         "yellow",
         "red",
+        "gray",
         "gray"
       ],
-      "description": "Who won the pot. creator_win = Player 1 took it; opponent_win = Player 2 took it; push = tied valid hands and both stakes returned; house = both busted and the pot is burned; expired = no taker inside the 90-second window."
+      "description": "Who won the pot. creator_win = Player 1 took it; opponent_win = Player 2 took it; push = tied valid hands and both stakes returned; house = both busted and the pot is burned; expired = no taker inside the window; cancelled = a private rematch was withdrawn before anyone was charged."
     },
     "creator_payout": {
       "type": "number",
@@ -99,11 +118,16 @@
     },
     "expires_at": {
       "type": "number",
-      "description": "UNIX epoch ms when the 90-second acceptance window closes. Swept lazily whenever any player loads the board."
+      "description": "UNIX epoch ms when the acceptance window closes \u2014 90 seconds for a public challenge, 5 seconds for a targeted rematch. Swept lazily whenever any player loads the board."
+    },
+    "accepted_at": {
+      "type": "number",
+      "default": 0,
+      "description": "UNIX epoch ms when the targeted opponent accepted this rematch and both stakes were settled in."
     },
     "settled_at": {
       "type": "string",
-      "description": "ISO timestamp the challenge was settled or expired."
+      "description": "ISO timestamp the challenge was settled, expired or cancelled."
     }
   },
   "required": [
