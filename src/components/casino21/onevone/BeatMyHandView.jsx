@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { ArrowLeft, RefreshCw, Swords } from "lucide-react";
-import { motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import LocalHand from "./LocalHand";
 import HandPanel from "../HandPanel";
 import ChallengeCard from "./ChallengeCard";
+import OpenChallengeCard from "./OpenChallengeCard";
+import NewChallengeAlert from "./NewChallengeAlert";
 import ChipBalanceStrip from "./ChipBalanceStrip";
 import WagerLockCard from "./WagerLockCard";
 import ShowdownReveal from "./ShowdownReveal";
@@ -46,6 +48,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const [postFailed, setPostFailed] = useState(false);
   // The posted challenge the creator is sitting on in the live waiting room.
   const [waiting, setWaiting] = useState(null);
+  // A challenge someone else just posted while this tab is open.
+  const [newChallenge, setNewChallenge] = useState(null);
   const [, setTick] = useState(0);
   // The challenger's hand can only be settled once, whichever path ended it.
   const settlingRef = useRef(false);
@@ -120,6 +124,26 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  // ── Live board listener ─────────────────────────────────────────────
+  // Only runs while the lobby is on screen, so the subscription is torn down
+  // whenever the player leaves the 1V1 tab or steps into a hand.
+  useEffect(() => {
+    if (mode !== "lobby") return undefined;
+    const unsubscribe = base44.entities.BeatMyHandChallenge.subscribe((event) => {
+      if (event?.type !== "create") return;
+      const row = event?.data;
+      if (!row || row.status !== "open" || row.creator_id === me) return;
+      setNewChallenge(row);
+    });
+    return unsubscribe;
+  }, [mode, me]);
+
+  // Dismissing the pop-out pulls the board fresh so the new bet shows up.
+  const dismissNewChallenge = async () => {
+    setNewChallenge(null);
+    await load();
+  };
 
   const payoutFor = (c) =>
     Number(c.creator_id === me ? c.creator_payout : c.opponent_payout) || 0;
@@ -500,6 +524,12 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         {/* Balance is always visible, in every step of both flows. */}
         <ChipBalanceStrip chips={chips} />
 
+        <AnimatePresence>
+          {mode === "lobby" && !resultsFor && newChallenge && (
+            <NewChallengeAlert challenge={newChallenge} onDismiss={dismissNewChallenge} />
+          )}
+        </AnimatePresence>
+
         {mode === "waiting" && waiting && (
           <div className="flex flex-col gap-3">
             <button
@@ -631,23 +661,43 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               </div>
             )}
 
-            <div className="flex flex-col gap-2">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/50">
-                Open board
-              </p>
+            {/* Open board — the loudest thing in the tab: live bets you can take. */}
+            <div
+              className="rounded-2xl px-3 py-3 flex flex-col gap-2.5"
+              style={{
+                background:
+                  "linear-gradient(165deg, rgba(212,175,55,0.13) 0%, rgba(6,38,29,0.62) 58%, rgba(4,26,20,0.78) 100%)",
+                border: "1px solid rgba(212,175,55,0.35)",
+                boxShadow:
+                  "inset 0 1px 0 rgba(255,255,255,0.07), 0 10px 26px rgba(0,0,0,0.3)",
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-300 flex items-center gap-2">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-70 animate-ping" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-300" />
+                  </span>
+                  Open bets
+                </p>
+                {board.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/40 text-[9px] font-black tracking-widest text-amber-200 tabular-nums">
+                    {board.length} live
+                  </span>
+                )}
+              </div>
+
               {loading ? (
                 <p className="text-xs text-emerald-100/50 py-4 text-center">Loading the board…</p>
               ) : board.length === 0 ? (
                 <p className="text-xs text-emerald-100/40 py-4 text-center">
-                  No open challenges right now — post one and wait for a taker.
+                  No open bets right now — post one and wait for a taker.
                 </p>
               ) : (
                 board.map((c) => (
-                  <ChallengeCard
+                  <OpenChallengeCard
                     key={c.id}
                     challenge={c}
-                    me={me}
-                    variant="board"
                     onAccept={startAccept}
                     busy={busy}
                   />
@@ -667,9 +717,9 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
             )}
 
             {myResults.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/50">
-                  Recent
+              <div className="flex flex-col gap-2 opacity-55 hover:opacity-100 transition-opacity">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/35">
+                  History
                 </p>
                 {myResults.slice(0, 6).map((c) => (
                   <ChallengeCard
