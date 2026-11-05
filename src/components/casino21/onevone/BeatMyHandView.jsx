@@ -22,6 +22,10 @@ import {
   secondsLeft,
 } from "@/lib/beatMyHand";
 
+// Silent safety-net poll for the open board — only ever runs while the board
+// is actually on screen, so it costs nothing once the player leaves the tab.
+const BOARD_POLL_MS = 5000;
+
 const FELT = {
   background: "linear-gradient(160deg, #1a4336 0%, #0f2b22 60%, #0a1d17 100%)",
 };
@@ -125,19 +129,41 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     load();
   }, [load]);
 
-  // ── Live board listener ─────────────────────────────────────────────
-  // Only runs while the lobby is on screen, so the subscription is torn down
-  // whenever the player leaves the 1V1 tab or steps into a hand.
+  // ── Live board ──────────────────────────────────────────────────────
+  // Runs only while the open board is on screen: realtime events keep it
+  // current, and a silent 5-second poll covers any missed event. Both are
+  // torn down the instant the player leaves the tab or steps into a hand, and
+  // nothing refreshes while the browser tab itself is hidden.
   useEffect(() => {
     if (mode !== "lobby") return undefined;
+
+    let active = true;
+    const refresh = () => {
+      if (active && !document.hidden) load();
+    };
+
     const unsubscribe = base44.entities.BeatMyHandChallenge.subscribe((event) => {
-      if (event?.type !== "create") return;
-      const row = event?.data;
-      if (!row || row.status !== "open" || row.creator_id === me) return;
-      setNewChallenge(row);
+      if (!event) return;
+      const row = event.data;
+      if (event.type === "create" && row?.status === "open" && row.creator_id !== me) {
+        setNewChallenge(row);
+      }
+      refresh();
     });
-    return unsubscribe;
-  }, [mode, me]);
+
+    const poll = setInterval(refresh, BOARD_POLL_MS);
+    const onVisibilityChange = () => {
+      if (!document.hidden) refresh();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      active = false;
+      unsubscribe();
+      clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [mode, me, load]);
 
   // Dismissing the pop-out pulls the board fresh so the new bet shows up.
   const dismissNewChallenge = async () => {
