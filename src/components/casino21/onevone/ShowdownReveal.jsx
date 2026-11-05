@@ -69,6 +69,8 @@ export default function ShowdownReveal({
   payout,
   wager,
   onClose,
+  onPlayAgain,
+  canPlayAgain = true,
 }) {
   const theirs = Array.isArray(creatorCards) ? creatorCards : [];
   const mine = Array.isArray(opponentCards) ? opponentCards : [];
@@ -148,13 +150,27 @@ export default function ShowdownReveal({
             </span>
           </div>
 
-          <button
-            onClick={onClose}
-            className="mt-3 w-full py-2.5 rounded-full font-black uppercase tracking-widest text-xs text-emerald-950"
-            style={{ background: "#d4af37" }}
-          >
-            Back to the board
-          </button>
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={onPlayAgain}
+              disabled={!canPlayAgain}
+              className="flex-1 py-2.5 rounded-full font-black uppercase tracking-widest text-xs text-emerald-950 disabled:opacity-40"
+              style={{ background: "#d4af37" }}
+            >
+              Play Again · {wager}
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 rounded-full font-black uppercase tracking-widest text-xs text-emerald-100 bg-white/10 border border-white/20 hover:bg-white/15 transition"
+            >
+              Back to the board
+            </button>
+          </div>
+          {!canPlayAgain && (
+            <p className="text-[10px] text-rose-300/80 mt-2">
+              Not enough chips to replay this wager.
+            </p>
+          )}
         </motion.div>
       )}
     </div>

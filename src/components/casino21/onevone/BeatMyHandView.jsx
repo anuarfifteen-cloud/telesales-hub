@@ -10,6 +10,7 @@ import WagerLockCard from "./WagerLockCard";
 import ShowdownReveal from "./ShowdownReveal";
 import { logChipMovement } from "@/lib/chipLog";
 import {
+  AUTO_POST_SECONDS,
   CHALLENGE_TTL_MS,
   TURN_SECONDS,
   WAGER_PRESETS,
@@ -38,9 +39,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const [showdown, setShowdown] = useState(null);
   const [busy, setBusy] = useState(false);
   const [handKey, setHandKey] = useState(0);
+  const [postCountdown, setPostCountdown] = useState(null);
+  const [postFailed, setPostFailed] = useState(false);
   const [, setTick] = useState(0);
   // The challenger's hand can only be settled once, whichever path ended it.
   const settlingRef = useRef(false);
+  // A finished hand can only be posted once, auto or manual.
+  const postingRef = useRef(false);
 
   // Live countdown on the board.
   useEffect(() => {
@@ -139,6 +144,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const startCreate = () => {
     setFinalScore(null);
     setHandCards([]);
+    setPostFailed(false);
+    setPostCountdown(null);
     setStep("wager");
     setMode("create");
   };
@@ -147,6 +154,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const lockCreateWager = () => {
     setFinalScore(null);
     setHandCards([]);
+    setPostFailed(false);
+    setPostCountdown(null);
     setHandKey((k) => k + 1);
     setStep("play");
   };
@@ -157,13 +166,16 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   }, []);
 
   const postChallenge = async () => {
-    if (finalScore == null) return;
+    if (finalScore == null || postingRef.current) return;
+    postingRef.current = true;
     setBusy(true);
+    setPostFailed(false);
     try {
       const fresh = await base44.auth.me();
       const balance = Number(fresh?.casinoChips) || 0;
       if (balance < wager) {
         toast.error("Not enough chips for that wager.");
+        backToLobby();
         return;
       }
       const after = balance - wager;
@@ -194,11 +206,34 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       toast.success("Challenge posted — 90 seconds on the board.");
       await load();
     } catch {
-      toast.error("Couldn't post that challenge.");
+      setPostFailed(true);
+      toast.error("Couldn't post that challenge — tap retry.");
     } finally {
+      postingRef.current = false;
       setBusy(false);
     }
   };
+
+  // Auto-post: the moment the hand ends, count three seconds and submit it.
+  const autoPostRef = useRef(postChallenge);
+  autoPostRef.current = postChallenge;
+
+  useEffect(() => {
+    if (mode !== "create" || finalScore == null) return undefined;
+    const startedAt = Date.now();
+    setPostCountdown(AUTO_POST_SECONDS);
+    const id = setInterval(() => {
+      const left = AUTO_POST_SECONDS - Math.floor((Date.now() - startedAt) / 1000);
+      if (left <= 0) {
+        clearInterval(id);
+        setPostCountdown(0);
+        autoPostRef.current?.();
+      } else {
+        setPostCountdown(left);
+      }
+    }, 200);
+    return () => clearInterval(id);
+  }, [mode, finalScore]);
 
   // ── Accept ──────────────────────────────────────────────────────────
   const startAccept = (challenge) => {
@@ -350,6 +385,25 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     }
   };
 
+  // Replay at the same stake: skips wager selection and deals straight away.
+  const playAgain = () => {
+    const sameWager = Number(showdown?.wager) || wager;
+    if (chips < sameWager) {
+      toast.error("Not enough chips to replay that wager.");
+      return;
+    }
+    setWager(sameWager);
+    setTarget(null);
+    setShowdown(null);
+    setFinalScore(null);
+    setHandCards([]);
+    setPostFailed(false);
+    setPostCountdown(null);
+    setHandKey((k) => k + 1);
+    setMode("create");
+    setStep("play");
+  };
+
   return (
     <div className="relative rounded-b-2xl border border-t-0 border-border p-4" style={FELT}>
       <div
@@ -498,14 +552,28 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                   disabled={finalScore != null}
                 />
 
-                {finalScore != null && (
+                {finalScore != null && !postFailed && (
+                  <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-3 text-center">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300/80">
+                      {busy ? "Posting challenge…" : "Posting automatically"}
+                    </p>
+                    <p className="text-3xl font-black text-amber-200 tabular-nums leading-none mt-1">
+                      {postCountdown ?? AUTO_POST_SECONDS}
+                    </p>
+                    <p className="text-[10px] text-emerald-100/60 mt-1 tabular-nums">
+                      Hand {finalScore} · {wager} chips
+                    </p>
+                  </div>
+                )}
+
+                {finalScore != null && postFailed && (
                   <button
                     onClick={postChallenge}
                     disabled={busy}
                     className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40"
                     style={{ background: "#d4af37" }}
                   >
-                    {busy ? "Posting…" : `Post ${finalScore} for ${wager} chips`}
+                    {busy ? "Posting…" : `Retry post · ${finalScore} for ${wager} chips`}
                   </button>
                 )}
               </>
@@ -567,7 +635,12 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
             )}
 
             {step === "showdown" && showdown && (
-              <ShowdownReveal {...showdown} onClose={backToLobby} />
+              <ShowdownReveal
+                {...showdown}
+                onClose={backToLobby}
+                onPlayAgain={playAgain}
+                canPlayAgain={chips >= (Number(showdown.wager) || 0)}
+              />
             )}
           </div>
         )}
