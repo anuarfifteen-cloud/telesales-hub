@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { base44 } from "@/api/base44Client";
 import { handValue } from "../blackjackDeck";
 import {
   MIN_BET,
@@ -41,8 +42,28 @@ export default function useHostEngine({ table, patch, user }) {
   const ref = useRef({});
   ref.current = { table, patch, user };
   const busyRef = useRef(false);
+  // Set the instant a player queues an action, so the next tick reads the queue
+  // immediately instead of polling it every second.
+  const actionSignalRef = useRef(false);
 
   useEffect(() => {
+    let unsub;
+    try {
+      unsub = base44.entities.TableAction.subscribe((event) => {
+        if (event?.type !== "create") return;
+        if (event?.data?.table_id !== ref.current.table?.id) return;
+        actionSignalRef.current = true;
+      });
+    } catch {
+      /* no realtime — the periodic safety sweep still picks actions up */
+    }
+    return () => {
+      if (typeof unsub === "function") unsub();
+    };
+  }, []);
+
+  useEffect(() => {
+    let tick = 0;
     const iv = setInterval(async () => {
       const current = ref.current;
       if (!current.table || !current.user) return;
@@ -51,8 +72,13 @@ export default function useHostEngine({ table, patch, user }) {
       if (!shouldRunEngine(current.table, current.user, Date.now())) return;
       if (busyRef.current) return;
       busyRef.current = true;
+      tick += 1;
+      // Read the queue when an action just landed, plus a slow safety sweep in
+      // case an event was missed. Phase logic still runs every tick.
+      const pollActions = actionSignalRef.current || tick % 5 === 1;
+      actionSignalRef.current = false;
       try {
-        await runTick(current);
+        await runTick({ ...current, pollActions });
       } catch (e) {
         console.warn("Multiplayer host tick failed:", e);
       } finally {
@@ -63,7 +89,7 @@ export default function useHostEngine({ table, patch, user }) {
   }, []);
 }
 
-async function runTick({ table, patch, user }) {
+async function runTick({ table, patch, user, pollActions = true }) {
   const now = Date.now();
   let latest = table;
 
@@ -80,7 +106,7 @@ async function runTick({ table, patch, user }) {
   // 1. Process the action queue. Each action is applied idempotently, then
   //    deleted so it can never be re-applied. Stale actions (from a previous
   //    round) are just deleted — except HEARTBEAT, which applies across rounds.
-  const actions = await fetchPendingActions(latest.id);
+  const actions = pollActions ? await fetchPendingActions(latest.id) : [];
   for (const action of actions) {
     if (action.action_type !== "HEARTBEAT" && action.round_id !== latest.round_id) {
       await deleteAction(action.id);

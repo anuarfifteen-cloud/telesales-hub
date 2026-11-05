@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { base44 } from "@/api/base44Client";
 import {
   ENTRY_FEE,
   SEAT_COUNT,
@@ -29,8 +30,28 @@ export default function useBlitzHostEngine({ table, patch, user }) {
   const ref = useRef({});
   ref.current = { table, patch, user };
   const busyRef = useRef(false);
+  // Set the instant a player queues an action, so the next tick reads the queue
+  // immediately instead of polling it every second.
+  const actionSignalRef = useRef(false);
 
   useEffect(() => {
+    let unsub;
+    try {
+      unsub = base44.entities.TableAction.subscribe((event) => {
+        if (event?.type !== "create") return;
+        if (event?.data?.table_id !== ref.current.table?.id) return;
+        actionSignalRef.current = true;
+      });
+    } catch {
+      /* no realtime — the periodic safety sweep still picks actions up */
+    }
+    return () => {
+      if (typeof unsub === "function") unsub();
+    };
+  }, []);
+
+  useEffect(() => {
+    let tick = 0;
     const iv = setInterval(async () => {
       const current = ref.current;
       if (!current.table || !current.user) return;
@@ -38,8 +59,11 @@ export default function useBlitzHostEngine({ table, patch, user }) {
       if (!shouldRunEngine(current.table, current.user, Date.now())) return;
       if (busyRef.current) return;
       busyRef.current = true;
+      tick += 1;
+      const pollActions = actionSignalRef.current || tick % 5 === 1;
+      actionSignalRef.current = false;
       try {
-        await runTick(current);
+        await runTick({ ...current, pollActions });
       } catch (e) {
         console.warn("Blitz host tick failed:", e);
       } finally {
@@ -50,7 +74,7 @@ export default function useBlitzHostEngine({ table, patch, user }) {
   }, []);
 }
 
-async function runTick({ table, patch, user }) {
+async function runTick({ table, patch, user, pollActions = true }) {
   const now = Date.now();
   let latest = table;
 
@@ -69,8 +93,9 @@ async function runTick({ table, patch, user }) {
     if (claimed) latest = claimed;
   }
 
-  // 1. Process the action queue.
-  const actions = await fetchPendingActions(latest.id);
+  // 1. Process the action queue — read only when an insert just landed
+  //    (realtime) or on the slow safety sweep, never once per second.
+  const actions = pollActions ? await fetchPendingActions(latest.id) : [];
   for (const action of actions) {
     if (action.action_type !== "HEARTBEAT" && action.round_id !== latest.round_id) {
       await deleteAction(action.id);
