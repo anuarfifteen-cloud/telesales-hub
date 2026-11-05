@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import PlayingCard from "../PlayingCard";
 import { handWinner, stakeLabel } from "@/lib/beatMyHand";
+import ScoreboardRow from "./ScoreboardRow";
 
 // One indexed hand pair at a time: creator's cards land first, then the
 // challenger's, then the hand is called, then the table is swept for the next.
@@ -245,16 +246,13 @@ export default function BestOfThreeShowdown({
             Hand {Math.min(hand + 1, matchHands)} of {matchHands}
           </span>
         </div>
-        <div className="mt-1.5 flex items-center justify-between gap-2">
-          <span className="min-w-0 truncate text-[11px] font-bold text-emerald-50">
-            {creatorName || "Poster"}
-          </span>
-          <span className="text-xl font-black text-amber-200 tabular-nums">
-            {liveCreatorWins} : {liveOpponentWins}
-          </span>
-          <span className="min-w-0 truncate text-right text-[11px] font-bold text-emerald-50">
-            {opponentName || "Challenger"}
-          </span>
+        <div className="mt-1.5">
+          <ScoreboardRow
+            creatorName={creatorName || "Poster"}
+            opponentName={opponentName || "Challenger"}
+            creatorWins={liveCreatorWins}
+            opponentWins={liveOpponentWins}
+          />
         </div>
         <div className="mt-2 flex items-center justify-center gap-1.5">
           {results.map((result, i) => (
