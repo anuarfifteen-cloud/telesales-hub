@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ArrowLeft, RefreshCw, Swords } from "lucide-react";
 import { motion } from "framer-motion";
 import LocalHand from "./LocalHand";
+import HandPanel from "../HandPanel";
 import ChallengeCard from "./ChallengeCard";
 import ChipBalanceStrip from "./ChipBalanceStrip";
 import WagerLockCard from "./WagerLockCard";
@@ -43,6 +44,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const [handKey, setHandKey] = useState(0);
   const [postCountdown, setPostCountdown] = useState(null);
   const [postFailed, setPostFailed] = useState(false);
+  // The posted challenge the creator is sitting on in the live waiting room.
+  const [waiting, setWaiting] = useState(null);
   const [, setTick] = useState(0);
   // The challenger's hand can only be settled once, whichever path ended it.
   const settlingRef = useRef(false);
@@ -140,6 +143,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setFinalScore(null);
     setHandCards([]);
     setShowdown(null);
+    setWaiting(null);
   };
 
   // ── Create ──────────────────────────────────────────────────────────
@@ -182,7 +186,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       }
       const after = balance - wager;
       await base44.auth.updateMe({ casinoChips: after });
-      await base44.entities.BeatMyHandChallenge.create({
+      const created = await base44.entities.BeatMyHandChallenge.create({
         creator_id: me,
         creator_name: myName,
         creator_score: finalScore,
@@ -204,9 +208,17 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         detail: `Beat My Hand challenge posted — ${wager} chips (hand ${finalScore})`,
       });
       await onUserUpdate?.();
-      backToLobby();
-      toast.success("Challenge posted — 90 seconds on the board.");
       await load();
+      // Stay on the felt: cards up, clock running, record watched live.
+      if (created?.id) {
+        setWaiting(created);
+        setStep("posted");
+        setMode("waiting");
+        toast.success("Challenge posted — waiting for an opponent.");
+      } else {
+        backToLobby();
+        toast.success("Challenge posted — 90 seconds on the board.");
+      }
     } catch {
       setPostFailed(true);
       toast.error("Couldn't post that challenge — tap retry.");
@@ -236,6 +248,73 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     }, 200);
     return () => clearInterval(id);
   }, [mode, finalScore]);
+
+  // ── Live waiting room ───────────────────────────────────────────────
+  // Refund the stake the moment the window closes, then drop back to the board.
+  const expireWaiting = async () => {
+    const row = waiting;
+    if (!row) return;
+    const stake = Number(row.wager) || 0;
+    setWaiting(null);
+    backToLobby();
+    try {
+      await base44.entities.BeatMyHandChallenge.update(row.id, {
+        status: "expired",
+        outcome: "expired",
+        creator_payout: stake,
+        opponent_payout: 0,
+        creator_claimed: true,
+        settled_at: new Date().toISOString(),
+      });
+      const fresh = await base44.auth.me();
+      const after = (Number(fresh?.casinoChips) || 0) + stake;
+      await base44.auth.updateMe({ casinoChips: after });
+      logChipMovement({
+        user,
+        mode: "wallet",
+        action_type: "push",
+        amount: stake,
+        balance_after: after,
+        detail: `Beat My Hand — expired challenge, ${stake} chips refunded`,
+      });
+      await onUserUpdate?.();
+      toast.error(`Expired — ${stake} chips refunded.`, { duration: 7000 });
+    } catch {
+      toast.error("Expired — your stake is on the board to collect.", { duration: 7000 });
+    }
+  };
+
+  const expireRef = useRef(expireWaiting);
+  expireRef.current = expireWaiting;
+
+  // Countdown fallback: whoever is watching the screen sees it close out.
+  useEffect(() => {
+    if (mode !== "waiting" || !waiting) return undefined;
+    const id = setInterval(() => {
+      if (secondsLeft(waiting.expires_at) > 0) return;
+      clearInterval(id);
+      expireRef.current?.();
+    }, 500);
+    return () => clearInterval(id);
+  }, [mode, waiting]);
+
+  // The record is watched live: the instant the taker settles, the poster is
+  // pulled straight into the same animated showdown, no button needed.
+  useEffect(() => {
+    if (mode !== "waiting" || !waiting?.id) return undefined;
+    const unsubscribe = base44.entities.BeatMyHandChallenge.subscribe((event) => {
+      const row = event?.data;
+      if (!row || row.id !== waiting.id || row.status !== "settled") return;
+      setResultsFor({
+        ...row,
+        creator_cards: row.creator_cards?.length ? row.creator_cards : waiting.creator_cards,
+      });
+      setWaiting(null);
+      setMode("lobby");
+      load();
+    });
+    return unsubscribe;
+  }, [mode, waiting, load]);
 
   // ── Accept ──────────────────────────────────────────────────────────
   const startAccept = (challenge) => {
@@ -420,6 +499,57 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       <div className="relative flex flex-col gap-3">
         {/* Balance is always visible, in every step of both flows. */}
         <ChipBalanceStrip chips={chips} />
+
+        {mode === "waiting" && waiting && (
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={backToLobby}
+              className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
+            >
+              <ArrowLeft className="w-3 h-3" /> Board
+            </button>
+
+            <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-3 text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300/80">
+                Live waiting room
+              </p>
+              <p className="text-sm font-bold text-amber-100 mt-0.5 animate-pulse">
+                Waiting for opponent to play…
+              </p>
+              <p className="text-3xl font-black text-amber-200 tabular-nums leading-none mt-2">
+                {secondsLeft(waiting.expires_at)}s
+              </p>
+              <div className="mt-2 h-1.5 rounded-full bg-white/15 overflow-hidden">
+                <div
+                  className="h-full bg-amber-400 transition-all duration-500"
+                  style={{
+                    width: `${Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        (secondsLeft(waiting.expires_at) / (CHALLENGE_TTL_MS / 1000)) * 100
+                      )
+                    )}%`,
+                  }}
+                />
+              </div>
+              <p className="text-[10px] text-emerald-100/60 mt-2 tabular-nums">
+                {waiting.wager} chips staked · hand {waiting.creator_score}
+              </p>
+            </div>
+
+            <HandPanel
+              title="YOUR POSTED HAND"
+              value={Number(waiting.creator_score) || finalScore || 0}
+              cards={waiting.creator_cards?.length ? waiting.creator_cards : handCards}
+            />
+
+            <p className="text-[9px] text-emerald-100/35 leading-relaxed text-center">
+              Your hand is locked in. If nobody takes it within the window your stake is
+              refunded automatically.
+            </p>
+          </div>
+        )}
 
         {mode === "lobby" && resultsFor && (
           <div className="flex flex-col gap-3">
