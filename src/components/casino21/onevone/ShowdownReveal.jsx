@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import PlayingCard from "../PlayingCard";
 import { stakeLabel } from "@/lib/beatMyHand";
 
 const CARD_MS = 340;
 const VERDICT_DELAY_MS = 500;
+// The losing side only gets a short window to choose before the table closes.
+const LOSER_SECONDS = 3;
 
 const TONES = {
   win: { text: "text-emerald-300", box: "border-emerald-400/40 bg-emerald-400/10" },
@@ -126,6 +128,7 @@ export default function ShowdownReveal({
 
   const [revealed, setRevealed] = useState(0);
   const [verdictVisible, setVerdictVisible] = useState(false);
+  const [countdown, setCountdown] = useState(null);
 
   useEffect(() => {
     if (total === 0) {
@@ -158,6 +161,37 @@ export default function ShowdownReveal({
   const iWon = isCreator ? outcome === "creator_win" : outcome === "opponent_win";
   const theyWon = isCreator ? outcome === "opponent_win" : outcome === "creator_win";
   const opponentLabel = isCreator ? opponentName || "Challenger" : creatorName || "Poster";
+
+  // Only the losing side is on the clock. Picking an option — or collecting —
+  // cancels the countdown; running out of time takes them back to the board.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const autoCloseRef = useRef(true);
+
+  useEffect(() => {
+    if (!verdictVisible || verdict.tone !== "lose") return undefined;
+    autoCloseRef.current = true;
+    const startedAt = Date.now();
+    setCountdown(LOSER_SECONDS);
+    const id = setInterval(() => {
+      if (!autoCloseRef.current) return;
+      const left = LOSER_SECONDS - Math.floor((Date.now() - startedAt) / 1000);
+      if (left <= 0) {
+        clearInterval(id);
+        setCountdown(0);
+        closeRef.current?.();
+      } else {
+        setCountdown(left);
+      }
+    }, 200);
+    return () => clearInterval(id);
+  }, [verdictVisible, verdict.tone]);
+
+  const choose = (action) => () => {
+    autoCloseRef.current = false;
+    setCountdown(null);
+    action?.();
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -217,7 +251,7 @@ export default function ShowdownReveal({
 
           <div className="mt-3 flex flex-col gap-2">
             {onCollect && (
-              <ActionButton primary onClick={onCollect} disabled={collecting}>
+              <ActionButton primary onClick={choose(onCollect)} disabled={collecting}>
                 {collecting ? "Collecting…" : collectLabel || "Collect"}
               </ActionButton>
             )}
@@ -225,18 +259,23 @@ export default function ShowdownReveal({
               {onPlayAgain && (
                 <ActionButton
                   primary={!onCollect}
-                  onClick={onPlayAgain}
+                  onClick={choose(onPlayAgain)}
                   disabled={!canPlayAgain}
                   className="flex-1"
                 >
                   Play Again · {stakeLabel(Number(wager) || 0, stakeType)}
                 </ActionButton>
               )}
-              <ActionButton onClick={onClose} className="flex-1">
+              <ActionButton onClick={choose(onClose)} className="flex-1">
                 Back to the board
               </ActionButton>
             </div>
           </div>
+          {countdown != null && (
+            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-100/50 mt-2 tabular-nums">
+              Back to the board in {countdown}s
+            </p>
+          )}
           {!canPlayAgain && (
             <p className="text-[10px] text-rose-300/80 mt-2">
               Not enough {stakeType === "diamond" ? "Diamonds" : "chips"} to replay this wager.

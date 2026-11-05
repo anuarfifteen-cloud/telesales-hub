@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // In-tab pop-out: appears the moment another player posts a challenge while any
 // other Blackjack 21 sub-tab is open. Pinned just below the app header and its
-// divider so it is never clipped, and it auto-dismisses two seconds after
+// divider so it is never clipped, and it auto-dismisses three seconds after
 // arriving (View / ✕ close it sooner).
 const STYLES = `
 .nca-toast {
@@ -19,7 +19,7 @@ const STYLES = `
   color: #29271f;
   box-shadow: 0 22px 60px rgba(48,39,21,.18), 0 4px 14px rgba(48,39,21,.08), inset 0 1px #fff;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  animation: nca-arrive .3s cubic-bezier(.2,.8,.2,1) both, nca-fadeout .25s ease-in 1.75s forwards;
+  animation: nca-arrive .3s cubic-bezier(.2,.8,.2,1) both, nca-fadeout .25s ease-in 2.75s forwards;
 }
 .nca-row { display: flex; align-items: center; gap: 12px; }
 .nca-pulse {
@@ -106,7 +106,7 @@ const STYLES = `
   height: 100%;
   transform-origin: left;
   background: linear-gradient(90deg, #c4a15a, #e0cc9d);
-  animation: nca-drain 2s linear forwards;
+  animation: nca-drain 3s linear forwards;
 }
 @keyframes nca-arrive { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
 @keyframes nca-fadeout { to { opacity: 0; } }
@@ -127,11 +127,11 @@ export default function NewChallengeAlert({ challenge, onDismiss }) {
     if (bottom) setTop(Math.round(bottom) + 10);
   }, []);
 
-  // Auto-dismiss two seconds after the toast arrives.
+  // Auto-dismiss three seconds after the toast arrives.
   const dismissRef = useRef(onDismiss);
   dismissRef.current = onDismiss;
   useEffect(() => {
-    const timer = setTimeout(() => dismissRef.current?.(), 2000);
+    const timer = setTimeout(() => dismissRef.current?.(), 3000);
     return () => clearTimeout(timer);
   }, []);
 
