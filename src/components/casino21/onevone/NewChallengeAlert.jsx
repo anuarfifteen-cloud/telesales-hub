@@ -1,65 +1,186 @@
-import { motion } from "framer-motion";
-import { X, Swords } from "lucide-react";
-import MiniChipIcon from "../MiniChipIcon";
+import { useEffect, useRef } from "react";
 
 // In-tab pop-out: appears the moment another player posts a challenge while
-// this tab is open. Dismissing it (either button) refreshes the board.
+// this board is open. Centered so it never clips on mobile, and it auto-
+// dismisses three seconds after arriving (View / ✕ close it sooner).
+const STYLES = `
+.nca-toast {
+  box-sizing: border-box;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: min(420px, calc(100vw - 2rem));
+  transform: translate(-50%, -50%);
+  padding: 18px 17px 15px;
+  border: 1px solid #d8c49b;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #fffdf7, #f7f0e2);
+  color: #29271f;
+  box-shadow: 0 22px 60px rgba(48,39,21,.18), 0 4px 14px rgba(48,39,21,.08), inset 0 1px #fff;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  animation: nca-arrive .42s cubic-bezier(.2,.8,.2,1) both, nca-fadeout .28s ease-in 2.72s forwards;
+}
+.nca-row { display: flex; align-items: center; gap: 12px; }
+.nca-pulse {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: #b18a42;
+  box-shadow: 0 0 0 4px rgba(177,138,66,.13);
+}
+.nca-copy { flex: 1; min-width: 0; }
+.nca-eyebrow {
+  margin: 0 0 4px;
+  color: #96763b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .19em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+.nca-detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #302e27;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.4;
+  white-space: nowrap;
+  min-width: 0;
+}
+.nca-name { overflow: hidden; text-overflow: ellipsis; }
+.nca-chip { width: 15px; height: 15px; flex: none; color: #ad853d; }
+.nca-wager { color: #987438; font-variant-numeric: tabular-nums; }
+.nca-chips {
+  color: #817965;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.nca-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 1px solid #aa843f;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #d8bd7d, #c6a45b);
+  color: #29251b;
+  font: 800 10px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(95,70,23,.14);
+  transition: background .18s, box-shadow .18s, transform .18s;
+}
+.nca-view svg { width: 13px; height: 13px; }
+.nca-dismiss {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: #817965;
+  cursor: pointer;
+  transition: background .18s, color .18s, transform .18s;
+}
+.nca-dismiss svg { width: 15px; height: 15px; }
+.nca-view:hover { background: #e2ca91; box-shadow: 0 4px 9px rgba(95,70,23,.19); }
+.nca-view:active, .nca-dismiss:active { transform: scale(.94); }
+.nca-dismiss:hover { background: #eee5d2; color: #403a2d; }
+.nca-view:focus-visible, .nca-dismiss:focus-visible { outline: 2px solid #987438; outline-offset: 3px; }
+.nca-timer { height: 2px; margin-top: 15px; overflow: hidden; border-radius: 3px; background: #e9dfcb; }
+.nca-timer::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: left;
+  background: linear-gradient(90deg, #c4a15a, #e0cc9d);
+  animation: nca-drain 3s linear forwards;
+}
+@keyframes nca-arrive { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
+@keyframes nca-fadeout { to { opacity: 0; } }
+@keyframes nca-drain { to { transform: scaleX(0); } }
+`;
+
 export default function NewChallengeAlert({ challenge, onDismiss }) {
   const name = challenge?.creator_name || "A player";
   const wager = Number(challenge?.wager) || 0;
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -18, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -14, scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 340, damping: 28 }}
-      className="fixed left-1/2 -translate-x-1/2 top-3 z-[80] w-[min(420px,calc(100vw-1.5rem))] rounded-2xl px-3.5 py-3"
-      style={{
-        background: "linear-gradient(140deg, rgba(20,44,35,0.98) 0%, rgba(7,25,19,0.98) 100%)",
-        border: "1px solid rgba(212,175,55,0.55)",
-        boxShadow:
-          "0 18px 40px rgba(0,0,0,0.55), 0 0 22px rgba(212,175,55,0.22), inset 0 1px 0 rgba(255,255,255,0.06)",
-        backdropFilter: "blur(8px)",
-      }}
-    >
-      <div className="flex items-center gap-2.5">
-        <span className="relative flex h-2 w-2 shrink-0">
-          <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-70 animate-ping" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-300" />
-        </span>
+  // Auto-dismiss three seconds after the toast arrives.
+  const dismissRef = useRef(onDismiss);
+  dismissRef.current = onDismiss;
+  useEffect(() => {
+    const timer = setTimeout(() => dismissRef.current?.(), 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
-        <div className="flex-1 min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-[0.25em] text-amber-300/80">
-            New challenge
-          </p>
-          <p className="text-[13px] font-bold text-emerald-50 truncate flex items-center gap-1.5">
-            {name} wagered
-            <MiniChipIcon size={13} />
-            <span className="tabular-nums" style={{ color: "#f3d98b" }}>
-              {wager}
-            </span>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-100/50">
-              chips
-            </span>
+  return (
+    <div className="nca-toast" role="status">
+      <style>{STYLES}</style>
+
+      <div className="nca-row">
+        <span className="nca-pulse" />
+
+        <div className="nca-copy">
+          <p className="nca-eyebrow">New challenge</p>
+          <p className="nca-detail">
+            <span className="nca-name">{name} wagered</span>
+            <svg className="nca-chip" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="8" cy="8" r="6.2" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="8" cy="8" r="3.8" stroke="currentColor" strokeWidth="1" />
+              <path
+                d="M8 1.8v2M14.2 8h-2M8 14.2v-2M1.8 8h2"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="nca-wager">{wager}</span>
+            <span className="nca-chips">chips</span>
           </p>
         </div>
 
-        <button
-          onClick={onDismiss}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-950"
-          style={{ background: "#d4af37" }}
-        >
-          <Swords className="w-3 h-3" /> View
+        <button type="button" className="nca-view" onClick={onDismiss}>
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path
+              d="M5.1 2.1 2.4 4.8l3.4 3.4 2-2-2.7-4.1ZM10.9 13.9l2.7-2.7-3.4-3.4-2 2 2.7 4.1ZM3 13l10-10"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          View
         </button>
+
         <button
-          onClick={onDismiss}
+          type="button"
+          className="nca-dismiss"
           aria-label="Dismiss"
-          className="p-1 rounded-full text-emerald-100/50 hover:text-emerald-100 hover:bg-white/10 transition"
+          onClick={onDismiss}
         >
-          <X className="w-3.5 h-3.5" />
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path
+              d="m4 4 8 8M12 4l-8 8"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+          </svg>
         </button>
       </div>
-    </motion.div>
+
+      <div className="nca-timer" />
+    </div>
   );
 }
