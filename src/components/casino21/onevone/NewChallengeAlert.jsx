@@ -116,6 +116,7 @@ const STYLES = `
 export default function NewChallengeAlert({ challenge, onDismiss }) {
   const name = challenge?.creator_name || "A player";
   const wager = Number(challenge?.wager) || 0;
+  const isDiamond = challenge?.stake_type === "diamond";
 
   // Auto-dismiss one second after the toast arrives.
   const dismissRef = useRef(onDismiss);
@@ -136,18 +137,24 @@ export default function NewChallengeAlert({ challenge, onDismiss }) {
           <p className="nca-eyebrow">New challenge</p>
           <p className="nca-detail">
             <span className="nca-name">{name} wagered</span>
-            <svg className="nca-chip" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <circle cx="8" cy="8" r="6.2" stroke="currentColor" strokeWidth="1.5" />
-              <circle cx="8" cy="8" r="3.8" stroke="currentColor" strokeWidth="1" />
-              <path
-                d="M8 1.8v2M14.2 8h-2M8 14.2v-2M1.8 8h2"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-              />
-            </svg>
+            {isDiamond ? (
+              <span className="nca-chip" aria-hidden="true">
+                💎
+              </span>
+            ) : (
+              <svg className="nca-chip" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="6.2" stroke="currentColor" strokeWidth="1.5" />
+                <circle cx="8" cy="8" r="3.8" stroke="currentColor" strokeWidth="1" />
+                <path
+                  d="M8 1.8v2M14.2 8h-2M8 14.2v-2M1.8 8h2"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            )}
             <span className="nca-wager">{wager}</span>
-            <span className="nca-chips">chips</span>
+            <span className="nca-chips">{isDiamond ? "diamond" : "chips"}</span>
           </p>
         </div>
 

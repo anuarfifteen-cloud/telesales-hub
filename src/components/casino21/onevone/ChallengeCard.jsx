@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Lock, Swords } from "lucide-react";
 import MiniChipIcon from "../MiniChipIcon";
-import { outcomeLine, secondsLeft } from "@/lib/beatMyHand";
+import { outcomeLine, secondsLeft, stakeTypeOf, stakeLabel } from "@/lib/beatMyHand";
 
 // One row on the board. `variant`:
 //   "board"  → someone else's open challenge, with Accept
@@ -12,6 +12,7 @@ export default function ChallengeCard({ challenge, me, variant, onAccept, onColl
   const myPayout = Number(isCreator ? challenge.creator_payout : challenge.opponent_payout) || 0;
   const myClaimed = isCreator ? !!challenge.creator_claimed : !!challenge.opponent_claimed;
   const left = secondsLeft(challenge.expires_at);
+  const stakeType = stakeTypeOf(challenge);
 
   const myScore = isCreator ? challenge.creator_score : challenge.opponent_score;
   const theirScore = isCreator ? challenge.opponent_score : challenge.creator_score;
@@ -35,9 +36,15 @@ export default function ChallengeCard({ challenge, me, variant, onAccept, onColl
         </div>
 
         <div className="flex items-center gap-1.5 mt-1">
-          <MiniChipIcon size={11} />
+          {stakeType === "diamond" ? (
+            <span className="text-[11px] leading-none">💎</span>
+          ) : (
+            <MiniChipIcon size={11} />
+          )}
           <span className="text-[11px] font-bold text-amber-200 tabular-nums">{challenge.wager}</span>
-          <span className="text-[10px] text-emerald-100/50">wager</span>
+          <span className="text-[10px] text-emerald-100/50">
+            {stakeType === "diamond" ? "diamond" : "chips"}
+          </span>
 
           {variant === "board" ? (
             <span className="flex items-center gap-1 text-[10px] text-emerald-100/50">
@@ -57,7 +64,7 @@ export default function ChallengeCard({ challenge, me, variant, onAccept, onColl
             myPayout > 0 ? "text-emerald-300" : challenge.outcome === "expired" ? "text-amber-300" : "text-emerald-100/50"
           }`}>
             {outcomeLine(challenge, isCreator)}
-            {myPayout > 0 && ` · ${myPayout} chips`}
+            {myPayout > 0 && ` · ${stakeLabel(myPayout, stakeType)}`}
           </p>
         )}
       </div>

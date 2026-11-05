@@ -15,9 +15,13 @@ import {
   CHALLENGE_TTL_MS,
   TURN_SECONDS,
   WAGER_PRESETS,
+  canAffordStake,
   isExpired,
   resolveHands,
   secondsLeft,
+  stakeLabel,
+  stakeTypeOf,
+  walletFieldFor,
 } from "@/lib/beatMyHand";
 
 // Silent safety-net poll for the open board — only ever runs while the board
@@ -32,12 +36,15 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const me = user?.id;
   const myName = user?.full_name || user?.email?.split("@")[0] || "Player";
   const chips = Number(user?.casinoChips) || 0;
+  const diamonds = Number(user?.diamonds) || 0;
 
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState("lobby"); // lobby | create | accept
   const [step, setStep] = useState("wager"); // wager | play | showdown
   const [wager, setWager] = useState(WAGER_PRESETS[0]);
+  // Which wallet the selected stake lives in: "chips" or "diamond".
+  const [stakeType, setStakeType] = useState("chips");
   const [finalScore, setFinalScore] = useState(null);
   const [handCards, setHandCards] = useState([]);
   const [target, setTarget] = useState(null);
@@ -213,21 +220,25 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setBusy(true);
     setPostFailed(false);
     try {
+      const wallet = walletFieldFor(stakeType);
       const fresh = await base44.auth.me();
-      const balance = Number(fresh?.casinoChips) || 0;
+      const balance = Number(fresh?.[wallet]) || 0;
       if (balance < wager) {
-        toast.error("Not enough chips for that wager.");
+        toast.error(
+          `Not enough ${stakeType === "diamond" ? "Diamonds" : "chips"} for that wager.`
+        );
         backToLobby();
         return;
       }
       const after = balance - wager;
-      await base44.auth.updateMe({ casinoChips: after });
+      await base44.auth.updateMe({ [wallet]: after });
       const created = await base44.entities.BeatMyHandChallenge.create({
         creator_id: me,
         creator_name: myName,
         creator_score: finalScore,
         creator_cards: handCards,
         wager,
+        stake_type: stakeType,
         status: "open",
         expires_at: Date.now() + CHALLENGE_TTL_MS,
         creator_payout: 0,
@@ -235,14 +246,17 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         creator_claimed: false,
         opponent_claimed: false,
       });
-      logChipMovement({
-        user,
-        mode: "wallet",
-        action_type: "bet",
-        amount: -wager,
-        balance_after: after,
-        detail: `Beat My Hand challenge posted — ${wager} chips (hand ${finalScore})`,
-      });
+      // The chip ledger tracks chips only — a Diamond stake stays in the wallet.
+      if (stakeType === "chips") {
+        logChipMovement({
+          user,
+          mode: "wallet",
+          action_type: "bet",
+          amount: -wager,
+          balance_after: after,
+          detail: `Beat My Hand challenge posted — ${stakeLabel(wager, "chips")} (hand ${finalScore})`,
+        });
+      }
       await onUserUpdate?.();
       await load();
       // Stay on the felt: cards up, clock running, record watched live.
@@ -291,6 +305,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     const row = waiting;
     if (!row) return;
     const stake = Number(row.wager) || 0;
+    const wallet = walletFieldFor(stakeTypeOf(row));
     setWaiting(null);
     backToLobby();
     try {
@@ -303,18 +318,22 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         settled_at: new Date().toISOString(),
       });
       const fresh = await base44.auth.me();
-      const after = (Number(fresh?.casinoChips) || 0) + stake;
-      await base44.auth.updateMe({ casinoChips: after });
-      logChipMovement({
-        user,
-        mode: "wallet",
-        action_type: "push",
-        amount: stake,
-        balance_after: after,
-        detail: `Beat My Hand — expired challenge, ${stake} chips refunded`,
-      });
+      const after = (Number(fresh?.[wallet]) || 0) + stake;
+      await base44.auth.updateMe({ [wallet]: after });
+      if (stakeTypeOf(row) === "chips") {
+        logChipMovement({
+          user,
+          mode: "wallet",
+          action_type: "push",
+          amount: stake,
+          balance_after: after,
+          detail: `Beat My Hand — expired challenge, ${stakeLabel(stake, "chips")} refunded`,
+        });
+      }
       await onUserUpdate?.();
-      toast.error(`Expired — ${stake} chips refunded.`, { duration: 7000 });
+      toast.error(`Expired — ${stakeLabel(stake, stakeTypeOf(row))} refunded.`, {
+        duration: 7000,
+      });
     } catch {
       toast.error("Expired — your stake is on the board to collect.", { duration: 7000 });
     }
@@ -359,6 +378,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       toast.error("That challenge has expired.");
       return;
     }
+    // Never enter a challenge this wallet cannot cover — the board locks it too.
+    if (!canAffordStake(user, stakeTypeOf(challenge), challenge.wager)) {
+      toast.error(
+        `You need ${stakeLabel(challenge.wager, stakeTypeOf(challenge))} to accept.`
+      );
+      return;
+    }
     setTarget(challenge);
     setFinalScore(null);
     setHandCards([]);
@@ -393,25 +419,31 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         return;
       }
 
+      const stakeTypeForChallenge = stakeTypeOf(current);
+      const wallet = walletFieldFor(stakeTypeForChallenge);
       const fresh = await base44.auth.me();
-      const balance = Number(fresh?.casinoChips) || 0;
+      const balance = Number(fresh?.[wallet]) || 0;
       if (balance < target.wager) {
-        toast.error("Not enough chips to match that wager.");
+        toast.error(
+          `Not enough ${stakeTypeForChallenge === "diamond" ? "Diamonds" : "chips"} to match that wager.`
+        );
         backToLobby();
         return;
       }
 
       // Match the stake.
       const afterStake = balance - target.wager;
-      await base44.auth.updateMe({ casinoChips: afterStake });
-      logChipMovement({
-        user,
-        mode: "wallet",
-        action_type: "bet",
-        amount: -target.wager,
-        balance_after: afterStake,
-        detail: `Beat My Hand accepted ${target.creator_name}'s ${target.wager}-chip challenge`,
-      });
+      await base44.auth.updateMe({ [wallet]: afterStake });
+      if (stakeTypeForChallenge === "chips") {
+        logChipMovement({
+          user,
+          mode: "wallet",
+          action_type: "bet",
+          amount: -target.wager,
+          balance_after: afterStake,
+          detail: `Beat My Hand accepted ${target.creator_name}'s ${stakeLabel(target.wager, "chips")} challenge`,
+        });
+      }
 
       const res = resolveHands(current.creator_score, score, target.wager);
 
@@ -444,6 +476,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         opponent_score: score,
         outcome: res.outcome,
         wager: target.wager,
+        stake_type: stakeTypeForChallenge,
         creator_payout: res.creatorPayout,
         opponent_payout: res.opponentPayout,
         creator_claimed: false,
@@ -472,21 +505,25 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         challenge.id,
         isCreator ? { creator_claimed: true } : { opponent_claimed: true }
       );
+      const stakeTypeForChallenge = stakeTypeOf(challenge);
+      const wallet = walletFieldFor(stakeTypeForChallenge);
       const fresh = await base44.auth.me();
-      const balance = Number(fresh?.casinoChips) || 0;
+      const balance = Number(fresh?.[wallet]) || 0;
       const after = balance + amount;
-      await base44.auth.updateMe({ casinoChips: after });
-      logChipMovement({
-        user,
-        mode: "wallet",
-        action_type: amount > challenge.wager ? "win" : "push",
-        amount,
-        balance_after: after,
-        detail:
-          challenge.outcome === "expired"
-            ? `Beat My Hand — expired challenge refunded (${amount} chips)`
-            : `Beat My Hand — ${challenge.outcome === "push" ? "push refund" : "pot won"} (${amount} chips)`,
-      });
+      await base44.auth.updateMe({ [wallet]: after });
+      if (stakeTypeForChallenge === "chips") {
+        logChipMovement({
+          user,
+          mode: "wallet",
+          action_type: amount > challenge.wager ? "win" : "push",
+          amount,
+          balance_after: after,
+          detail:
+            challenge.outcome === "expired"
+              ? `Beat My Hand — expired challenge refunded (${stakeLabel(amount, "chips")})`
+              : `Beat My Hand — ${challenge.outcome === "push" ? "push refund" : "pot won"} (${stakeLabel(amount, "chips")})`,
+        });
+      }
       await onUserUpdate?.();
       setResultsFor(null);
       // Keep the open showdown in step so its Collect button disappears.
@@ -495,7 +532,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
           ? { ...s, [isCreator ? "creator_claimed" : "opponent_claimed"]: true }
           : s
       );
-      toast.success(`+${amount} chips collected.`);
+      toast.success(`+${stakeLabel(amount, stakeTypeForChallenge)} collected.`);
       await load();
     } catch {
       toast.error("Couldn't collect that payout.");
@@ -506,11 +543,15 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
 
   // Replay at the same stake: skips wager selection and deals straight away.
   const playAgain = () => {
+    const sameType = stakeTypeOf(showdown);
     const sameWager = Number(showdown?.wager) || wager;
-    if (chips < sameWager) {
-      toast.error("Not enough chips to replay that wager.");
+    if (!canAffordStake(user, sameType, sameWager)) {
+      toast.error(
+        `Not enough ${sameType === "diamond" ? "Diamonds" : "chips"} to replay that wager.`
+      );
       return;
     }
+    setStakeType(sameType);
     setWager(sameWager);
     setTarget(null);
     setShowdown(null);
@@ -535,7 +576,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
 
       <div className="relative flex flex-col gap-3">
         {/* Balance is always visible, in every step of both flows. */}
-        <ChipBalanceStrip chips={chips} />
+        <ChipBalanceStrip chips={chips} diamonds={diamonds} />
 
         {mode === "waiting" && waiting && (
           <div className="flex flex-col gap-3">
@@ -571,7 +612,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 />
               </div>
               <p className="text-[10px] text-emerald-100/60 mt-2 tabular-nums">
-                {waiting.wager} chips staked · hand {waiting.creator_score}
+                {stakeLabel(waiting.wager, stakeTypeOf(waiting))} staked · hand{" "}
+                {waiting.creator_score}
               </p>
             </div>
 
@@ -607,13 +649,14 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               outcome={resultsFor.outcome}
               payout={payoutFor(resultsFor)}
               wager={resultsFor.wager}
+              stakeType={stakeTypeOf(resultsFor)}
               viewerRole={resultsFor.creator_id === me ? "creator" : "opponent"}
               onCollect={
                 payoutFor(resultsFor) > 0 && !claimedFor(resultsFor)
                   ? () => collect(resultsFor)
                   : undefined
               }
-              collectLabel={`Collect ${payoutFor(resultsFor)} chips`}
+              collectLabel={`Collect ${stakeLabel(payoutFor(resultsFor), stakeTypeOf(resultsFor))}`}
               collecting={busy}
               onClose={() => setResultsFor(null)}
             />
@@ -642,7 +685,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
 
             <button
               onClick={startCreate}
-              disabled={chips < WAGER_PRESETS[0]}
+              disabled={chips < WAGER_PRESETS[0] && diamonds < 1}
               className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40"
               style={{ background: "#d4af37" }}
             >
@@ -707,6 +750,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                     challenge={c}
                     onAccept={startAccept}
                     busy={busy}
+                    canAfford={canAffordStake(user, stakeTypeOf(c), c.wager)}
                   />
                 ))
               )}
@@ -761,14 +805,25 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
             {step === "wager" ? (
               <WagerLockCard
                 wager={wager}
+                stakeType={stakeType}
                 chips={chips}
-                onChange={setWager}
+                diamonds={diamonds}
+                onChange={(amount, type) => {
+                  setWager(amount);
+                  setStakeType(type);
+                }}
                 onLock={lockCreateWager}
                 hint="Pick your stake and lock it in. Your cards are dealt only after the wager is locked."
               />
             ) : (
               <>
-                <WagerLockCard wager={wager} chips={chips} locked />
+                <WagerLockCard
+                  wager={wager}
+                  stakeType={stakeType}
+                  chips={chips}
+                  diamonds={diamonds}
+                  locked
+                />
 
                 <LocalHand
                   key={handKey}
@@ -785,7 +840,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                       {postCountdown ?? AUTO_POST_SECONDS}
                     </p>
                     <p className="text-[10px] text-emerald-100/60 mt-1 tabular-nums">
-                      Hand {finalScore} · {wager} chips
+                      Hand {finalScore} · {stakeLabel(wager, stakeType)}
                     </p>
                   </div>
                 )}
@@ -797,7 +852,9 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                     className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40"
                     style={{ background: "#d4af37" }}
                   >
-                    {busy ? "Posting…" : `Retry post · ${finalScore} for ${wager} chips`}
+                    {busy
+                      ? "Posting…"
+                      : `Retry post · ${finalScore} for ${stakeLabel(wager, stakeType)}`}
                   </button>
                 )}
               </>
@@ -818,7 +875,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
 
             <div className="rounded-xl border border-white/12 bg-white/[0.06] px-3 py-2">
               <p className="text-[10px] font-black uppercase tracking-widest text-amber-300/80">
-                Beating {target.creator_name || "Player"} · {target.wager} chips
+                Beating {target.creator_name || "Player"} ·{" "}
+                {stakeLabel(target.wager, stakeTypeOf(target))}
               </p>
               <p className="text-[10px] text-emerald-100/50 mt-0.5">
                 {step === "showdown"
@@ -830,10 +888,12 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
             {step === "wager" && (
               <WagerLockCard
                 wager={target.wager}
+                stakeType={stakeTypeOf(target)}
                 chips={chips}
+                diamonds={diamonds}
                 fixed
                 onLock={lockAcceptWager}
-                lockLabel={`Lock in ${target.wager} chips`}
+                lockLabel={`Lock in ${stakeLabel(target.wager, stakeTypeOf(target))}`}
                 hint="Matching the stake locks your wager. Your cards are dealt right after."
               />
             )}
@@ -869,17 +929,22 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 outcome={showdown.outcome}
                 payout={payoutFor(showdown)}
                 wager={showdown.wager}
+                stakeType={stakeTypeOf(showdown)}
                 viewerRole="opponent"
                 onCollect={
                   payoutFor(showdown) > 0 && !claimedFor(showdown)
                     ? () => collect(showdown)
                     : undefined
                 }
-                collectLabel={`Collect ${payoutFor(showdown)} chips`}
+                collectLabel={`Collect ${stakeLabel(payoutFor(showdown), stakeTypeOf(showdown))}`}
                 collecting={busy}
                 onClose={backToLobby}
                 onPlayAgain={playAgain}
-                canPlayAgain={chips >= (Number(showdown.wager) || 0)}
+                canPlayAgain={canAffordStake(
+                  user,
+                  stakeTypeOf(showdown),
+                  Number(showdown.wager) || 0
+                )}
               />
             )}
           </div>

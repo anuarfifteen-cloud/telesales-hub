@@ -1,14 +1,18 @@
 import { motion } from "framer-motion";
 import { Lock, Swords } from "lucide-react";
 import MiniChipIcon from "../MiniChipIcon";
-import { secondsLeft } from "@/lib/beatMyHand";
+import { secondsLeft, stakeTypeOf, stakeLabel } from "@/lib/beatMyHand";
 
 // A live bet on the Open Board — deliberately loud: gold-lit surface, oversized
-// chip figure and a prominent Accept, so it never reads like the muted history.
-export default function OpenChallengeCard({ challenge, onAccept, busy }) {
+// stake figure and a prominent Accept, so it never reads like the muted history.
+// `canAfford` is the viewer's own wallet check: a challenge they cannot cover is
+// locked shut instead of being accepted into an overdraft.
+export default function OpenChallengeCard({ challenge, onAccept, busy, canAfford = true }) {
   const left = secondsLeft(challenge.expires_at);
   const dead = left <= 0;
   const initial = (challenge.creator_name || "P").trim().charAt(0).toUpperCase();
+  const stakeType = stakeTypeOf(challenge);
+  const locked = !dead && !canAfford;
 
   return (
     <motion.div
@@ -33,7 +37,7 @@ export default function OpenChallengeCard({ challenge, onAccept, busy }) {
       {!dead && (
         <span
           className="pointer-events-none absolute -top-12 -right-10 h-28 w-28 rounded-full blur-2xl"
-          style={{ background: "rgba(212,175,55,0.3)" }}
+          style={{ background: stakeType === "diamond" ? "rgba(125,211,252,0.28)" : "rgba(212,175,55,0.3)" }}
         />
       )}
 
@@ -54,20 +58,29 @@ export default function OpenChallengeCard({ challenge, onAccept, busy }) {
             {challenge.creator_name || "Player"}
           </p>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <MiniChipIcon size={17} />
+            {stakeType === "diamond" ? (
+              <span className="text-base leading-none">💎</span>
+            ) : (
+              <MiniChipIcon size={17} />
+            )}
             <span
               className="text-lg font-black tabular-nums leading-none"
-              style={{ color: "#f3d98b" }}
+              style={{ color: stakeType === "diamond" ? "#bae6fd" : "#f3d98b" }}
             >
               {challenge.wager}
             </span>
             <span className="text-[9px] font-black uppercase tracking-widest text-emerald-100/50">
-              chips
+              {stakeType === "diamond" ? "diamond" : "chips"}
             </span>
             <span className="flex items-center gap-1 text-[10px] text-emerald-100/45 ml-1">
               <Lock className="w-3 h-3" /> hand locked
             </span>
           </div>
+          {locked && (
+            <p className="text-[9px] font-bold text-rose-300/90 mt-1">
+              Needs {stakeLabel(challenge.wager, stakeType)} to accept
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col items-end gap-1.5">
@@ -82,11 +95,21 @@ export default function OpenChallengeCard({ challenge, onAccept, busy }) {
           </span>
           <button
             onClick={() => onAccept(challenge)}
-            disabled={busy || dead}
-            className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-950 disabled:opacity-30"
-            style={{ background: "#d4af37" }}
+            disabled={busy || dead || !canAfford}
+            className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest disabled:opacity-30 ${
+              canAfford && !dead ? "text-emerald-950" : "text-emerald-100/50"
+            }`}
+            style={{ background: canAfford && !dead ? "#d4af37" : "rgba(255,255,255,0.12)" }}
           >
-            <Swords className="inline w-3 h-3 mr-1" /> Beat it
+            {canAfford ? (
+              <>
+                <Swords className="inline w-3 h-3 mr-1" /> Beat it
+              </>
+            ) : (
+              <>
+                <Lock className="inline w-3 h-3 mr-1" /> Locked
+              </>
+            )}
           </button>
         </div>
       </div>

@@ -42,7 +42,20 @@
     },
     "wager": {
       "type": "number",
-      "description": "Chips each side staked. The pot is twice this amount."
+      "description": "The stake each side put up, in the currency named by stake_type: a chip count, or 1 for the Diamond tier. The pot is twice this amount, in the same currency."
+    },
+    "stake_type": {
+      "type": "string",
+      "enum": [
+        "chips",
+        "diamond"
+      ],
+      "enumColors": [
+        "yellow",
+        "blue"
+      ],
+      "default": "chips",
+      "description": "Which wallet the stake moves in. chips = the wager is a chip amount paid from casinoChips; diamond = the wager is 1 Diamond paid from diamonds. Diamonds are never converted to chips: the payouts below are in the same currency as the stake. Records created before the Diamond tier existed have no value here and are treated as chips."
     },
     "status": {
       "type": "string",
@@ -80,12 +93,12 @@
     "creator_payout": {
       "type": "number",
       "default": 0,
-      "description": "Chips owed to Player 1 by this challenge (the pot for a win, their stake back for a push or expiry). Collected by Player 1 on their own device, which is the only way a client can credit that wallet."
+      "description": "What is owed to Player 1 by this challenge (the pot for a win, their stake back for a push or expiry), in the challenge's stake currency. Collected by Player 1 on their own device, which is the only way a client can credit that wallet."
     },
     "opponent_payout": {
       "type": "number",
       "default": 0,
-      "description": "Chips owed to Player 2 by this challenge. Credited immediately by the accepting device at settlement."
+      "description": "What is owed to Player 2 by this challenge, in the challenge's stake currency. Credited by the accepting device at settlement."
     },
     "creator_claimed": {
       "type": "boolean",

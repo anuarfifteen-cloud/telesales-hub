@@ -5,7 +5,38 @@
 // scores and writes the payouts. There is no trusted server verification, so
 // this is only suitable for the closed, trusted group the app runs for.
 
-export const WAGER_PRESETS = [5, 10, 25, 50, 100];
+// Chip stakes, including the high-roller tiers. Anything above the player's
+// balance is shown disabled rather than removed, so the ladder never shifts.
+export const WAGER_PRESETS = [5, 10, 25, 50, 100, 250, 500, 1000];
+
+// The Diamond tier: one Diamond is staked by each side and never converted to
+// chips — it is paid out, refunded and collected as Diamonds.
+export const DIAMOND_WAGER = 1;
+
+/** A challenge's stake currency. Records from before the Diamond tier have no
+ *  stake_type and are always chip challenges. */
+export function stakeTypeOf(challenge) {
+  return challenge?.stake_type === "diamond" ? "diamond" : "chips";
+}
+
+/** The user field a stake of this currency is deducted from. */
+export function walletFieldFor(stakeType) {
+  return stakeType === "diamond" ? "diamonds" : "casinoChips";
+}
+
+/** Human label for a stake, e.g. "250 chips" or "1 💎 Diamond". */
+export function stakeLabel(amount, stakeType) {
+  const n = Number(amount) || 0;
+  if (stakeType === "diamond") return `${n} 💎 Diamond${n === 1 ? "" : "s"}`;
+  return `${n} chip${n === 1 ? "" : "s"}`;
+}
+
+/** True when the wallet can cover this exact stake in its own currency. */
+export function canAffordStake(user, stakeType, amount) {
+  const n = Number(amount) || 0;
+  const wallet = Number(user?.[walletFieldFor(stakeType)]) || 0;
+  return wallet >= n;
+}
 
 // A challenge sits on the board for exactly 90 seconds.
 export const CHALLENGE_TTL_MS = 90 * 1000;

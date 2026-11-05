@@ -3,6 +3,10 @@ import { Plus, Shield, Timer } from "lucide-react";
 import HandPanel from "../HandPanel";
 import { createDeck, shuffle, handValue, isBust, isBlackjack } from "../blackjackDeck";
 
+// Matches the Ranked table's deal: cards arrive one at a time, 200ms apart, so
+// each one slides in on its own instead of the opening pair landing together.
+const DEAL_STEP_MS = 200;
+
 // A single local hand against no dealer — Beat My Hand is player vs player, so
 // the only thing that matters is the total you finish on. Remount with a new
 // `key` to deal a fresh hand, and mount it only after the wager is locked.
@@ -10,10 +14,8 @@ import { createDeck, shuffle, handValue, isBust, isBlackjack } from "../blackjac
 // `timeLimit` (seconds) starts a visible turn clock; when it reaches zero the
 // hand is stood as-is. A bust stands and submits immediately either way.
 export default function LocalHand({ onHandDone, disabled = false, timeLimit = null }) {
-  const [state, setState] = useState(() => {
-    const deck = shuffle(createDeck());
-    return { deck, cards: [deck.pop(), deck.pop()] };
-  });
+  const [state, setState] = useState(() => ({ deck: [], cards: [] }));
+  const [dealing, setDealing] = useState(true);
   const [done, setDone] = useState(false);
   const [note, setNote] = useState("");
   const [seconds, setSeconds] = useState(timeLimit ?? 0);
@@ -24,6 +26,26 @@ export default function LocalHand({ onHandDone, disabled = false, timeLimit = nu
   const onDoneRef = useRef(onHandDone);
   onDoneRef.current = onHandDone;
 
+  // Opening hand: two cards, dealt one at a time.
+  useEffect(() => {
+    let cancelled = false;
+    const deal = async () => {
+      const deck = shuffle(createDeck());
+      const first = deck.pop();
+      if (cancelled) return;
+      setState({ deck, cards: [first] });
+      await new Promise((r) => setTimeout(r, DEAL_STEP_MS));
+      if (cancelled) return;
+      const second = deck.pop();
+      setState({ deck, cards: [first, second] });
+      setDealing(false);
+    };
+    deal();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Submits exactly once, whatever path got here (stand, bust or timeout).
   const finish = useCallback((cards, reason) => {
     if (finishedRef.current) return;
@@ -33,9 +55,10 @@ export default function LocalHand({ onHandDone, disabled = false, timeLimit = nu
     onDoneRef.current?.(handValue(cards), cards);
   }, []);
 
-  // Turn clock.
+  // Turn clock. It starts once both opening cards have landed, so the deal
+  // animation never eats into the challenger's turn.
   useEffect(() => {
-    if (!timeLimit) return undefined;
+    if (!timeLimit || dealing) return undefined;
     const deadline = Date.now() + timeLimit * 1000;
     setSeconds(timeLimit);
     const id = setInterval(() => {
@@ -47,12 +70,12 @@ export default function LocalHand({ onHandDone, disabled = false, timeLimit = nu
       }
     }, 250);
     return () => clearInterval(id);
-  }, [timeLimit, finish]);
+  }, [timeLimit, dealing, finish]);
 
   const total = handValue(state.cards);
   const bust = isBust(state.cards);
   const natural = isBlackjack(state.cards);
-  const locked = done || disabled;
+  const locked = done || disabled || dealing;
 
   const hit = () => {
     if (locked) return;
@@ -94,7 +117,7 @@ export default function LocalHand({ onHandDone, disabled = false, timeLimit = nu
       <HandPanel
         title="YOUR HAND"
         tag={natural ? "21" : undefined}
-        value={total}
+        value={state.cards.length ? total : undefined}
         cards={state.cards}
       />
 

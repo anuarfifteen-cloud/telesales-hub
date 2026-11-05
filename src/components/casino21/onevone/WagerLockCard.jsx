@@ -1,12 +1,17 @@
 import MiniChipIcon from "../MiniChipIcon";
 import WagerPresets from "./WagerPresets";
+import { canAffordStake, stakeLabel } from "@/lib/beatMyHand";
 
 // Step one of both flows: pick the stake and lock it in. Cards are only dealt
 // once this card is locked, so nothing is played before the wager is settled.
 // `fixed` is used by the challenger, whose stake must match the posted wager.
+// The stake's currency matters: a Diamond challenge is covered by the Diamond
+// wallet, never by chips.
 export default function WagerLockCard({
   wager,
+  stakeType = "chips",
   chips,
+  diamonds = 0,
   onChange,
   onLock,
   fixed = false,
@@ -14,7 +19,7 @@ export default function WagerLockCard({
   hint,
   lockLabel,
 }) {
-  const affordable = (Number(chips) || 0) >= wager;
+  const affordable = canAffordStake({ casinoChips: chips, diamonds }, stakeType, wager);
   const showAmount = fixed || locked;
 
   return (
@@ -23,8 +28,13 @@ export default function WagerLockCard({
         <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-300/70">
           {locked ? "Wager locked" : "Step 1 · Lock your wager"}
         </p>
-        <span className="flex items-center gap-1 text-[11px] font-bold text-amber-200">
-          <MiniChipIcon size={12} /> {Number(chips) || 0}
+        <span className="flex items-center gap-2 text-[11px] font-bold text-amber-200 tabular-nums">
+          <span className="flex items-center gap-1">
+            <MiniChipIcon size={12} /> {Number(chips) || 0}
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="text-[10px] leading-none">💎</span> {Number(diamonds) || 0}
+          </span>
         </span>
       </div>
 
@@ -34,12 +44,22 @@ export default function WagerLockCard({
             {fixed ? "Matched stake" : "Your stake"}
           </span>
           <span className="flex items-center gap-1.5">
-            <MiniChipIcon size={14} />
+            {stakeType === "diamond" ? (
+              <span className="text-sm leading-none">💎</span>
+            ) : (
+              <MiniChipIcon size={14} />
+            )}
             <span className="text-sm font-black text-amber-200 tabular-nums">{wager}</span>
           </span>
         </div>
       ) : (
-        <WagerPresets value={wager} onChange={onChange} chips={chips} />
+        <WagerPresets
+          value={wager}
+          stakeType={stakeType}
+          onChange={onChange}
+          chips={chips}
+          diamonds={diamonds}
+        />
       )}
 
       {hint && <p className="text-[10px] text-emerald-100/50 leading-relaxed">{hint}</p>}
@@ -51,7 +71,11 @@ export default function WagerLockCard({
           className="w-full py-2.5 rounded-full font-black uppercase tracking-widest text-xs text-emerald-950 disabled:opacity-40"
           style={{ background: "#d4af37" }}
         >
-          {affordable ? lockLabel || `Lock in ${wager} chips` : "Not enough chips"}
+          {affordable
+            ? lockLabel || `Lock in ${stakeLabel(wager, stakeType)}`
+            : stakeType === "diamond"
+              ? "Not enough diamonds"
+              : "Not enough chips"}
         </button>
       )}
     </div>
