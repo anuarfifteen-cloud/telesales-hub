@@ -10,10 +10,6 @@ export const WAGER_PRESETS = [5, 10, 25, 50, 100];
 // A challenge sits on the board for exactly 90 seconds.
 export const CHALLENGE_TTL_MS = 90 * 1000;
 
-// A private rematch only waits this long for the previous opponent to accept.
-// Nobody is charged while it waits, so a miss simply cancels it.
-export const REMATCH_ACCEPT_MS = 5 * 1000;
-
 // Once a wager is locked the challenger gets this long to finish their hand.
 // When the clock runs out the hand is stood as-is and settled.
 export const TURN_SECONDS = 15;
@@ -99,8 +95,6 @@ export function outcomeLine(challenge, isCreator) {
       return "Push — stakes returned";
     case "expired":
       return "Expired — stake returned";
-    case "cancelled":
-      return "Rematch cancelled — no chips staked";
     case "creator_win":
       return isCreator ? "Your hand won the pot" : "Challenger's hand won";
     case "opponent_win":
