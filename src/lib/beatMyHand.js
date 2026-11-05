@@ -38,6 +38,103 @@ export function canAffordStake(user, stakeType, amount) {
   return wallet >= n;
 }
 
+// ── Best of 3 ───────────────────────────────────────────────────────────
+// A match is the same three indexed hands per player. Records written before
+// this existed carry no format and are always read as a standard match.
+export const MATCH_HANDS = 3;
+
+/** The match shape on a record. Absent means a standard single hand. */
+export function formatOf(challenge) {
+  return challenge?.format === "best_of_3" ? "best_of_3" : "standard";
+}
+
+/** One side's ordered hands, falling back to the single-hand fields so a
+ *  standard or legacy record reads as a one-hand list. */
+export function handsOf(challenge, side) {
+  const hands = side === "creator" ? challenge?.creator_hands : challenge?.opponent_hands;
+  if (Array.isArray(hands) && hands.length) return hands;
+  const score = side === "creator" ? challenge?.creator_score : challenge?.opponent_score;
+  const cards = side === "creator" ? challenge?.creator_cards : challenge?.opponent_cards;
+  return [{ score: Number(score) || 0, cards: Array.isArray(cards) ? cards : [] }];
+}
+
+/**
+ * Who takes one indexed hand.
+ *
+ * Both bust           → tie, nobody scores
+ * Player 2 busts      → Player 1 wins the hand
+ * Player 1 busts      → Player 2 wins the hand
+ * Higher valid total  → that player wins the hand
+ * Same valid total    → tie
+ */
+export function handWinner(creatorScore, opponentScore) {
+  const c = Number(creatorScore) || 0;
+  const o = Number(opponentScore) || 0;
+  const creatorBust = c > 21;
+  const opponentBust = o > 21;
+  if (creatorBust && opponentBust) return "tie";
+  if (creatorBust) return "opponent";
+  if (opponentBust) return "creator";
+  if (c > o) return "creator";
+  if (o > c) return "opponent";
+  return "tie";
+}
+
+/**
+ * Decide a Best of 3 match from both sides' three hands, compared by index.
+ * The player with more hand wins takes the pot; equal hand wins (1-1-1,
+ * 0-0-3, 2-2-2…) are a push and return both stakes.
+ *
+ * @returns {{outcome: string, creatorPayout: number, opponentPayout: number,
+ *            creatorHandWins: number, opponentHandWins: number,
+ *            results: string[], detail: string}}
+ */
+export function resolveMatch(creatorHands, opponentHands, wager) {
+  const stake = Number(wager) || 0;
+  const pot = stake * 2;
+  const c = Array.isArray(creatorHands) ? creatorHands : [];
+  const o = Array.isArray(opponentHands) ? opponentHands : [];
+  const total = Math.max(c.length, o.length, MATCH_HANDS);
+  const results = Array.from({ length: total }, (_, i) =>
+    handWinner(c[i]?.score, o[i]?.score)
+  );
+  const creatorHandWins = results.filter((r) => r === "creator").length;
+  const opponentHandWins = results.filter((r) => r === "opponent").length;
+  const line = `${creatorHandWins}–${opponentHandWins} on hands`;
+
+  if (creatorHandWins === opponentHandWins) {
+    return {
+      outcome: "push",
+      creatorPayout: stake,
+      opponentPayout: stake,
+      creatorHandWins,
+      opponentHandWins,
+      results,
+      detail: `${line} — a push, both stakes returned.`,
+    };
+  }
+  if (creatorHandWins > opponentHandWins) {
+    return {
+      outcome: "creator_win",
+      creatorPayout: pot,
+      opponentPayout: 0,
+      creatorHandWins,
+      opponentHandWins,
+      results,
+      detail: `${line} — the poster takes the pot.`,
+    };
+  }
+  return {
+    outcome: "opponent_win",
+    creatorPayout: 0,
+    opponentPayout: pot,
+    creatorHandWins,
+    opponentHandWins,
+    results,
+    detail: `${line} — the challenger takes the pot.`,
+  };
+}
+
 // A challenge sits on the board for exactly 90 seconds.
 export const CHALLENGE_TTL_MS = 90 * 1000;
 
@@ -119,16 +216,19 @@ export function resolveHands(creatorScore, opponentScore, wager) {
 
 // One-line outcome summary, always worded for the viewer.
 export function outcomeLine(challenge, isCreator) {
+  const isMatch = formatOf(challenge) === "best_of_3";
   switch (challenge.outcome) {
     case "house":
       return "Both busted — house won";
     case "push":
-      return "Push — stakes returned";
+      return isMatch ? "Push — match tied, stakes returned" : "Push — stakes returned";
     case "expired":
       return "Expired — stake returned";
     case "creator_win":
+      if (isMatch) return isCreator ? "Your match won the pot" : "Challenger won the match";
       return isCreator ? "Your hand won the pot" : "Challenger's hand won";
     case "opponent_win":
+      if (isMatch) return isCreator ? "You lost the match" : "You won the match";
       return isCreator ? "You were beaten" : "You beat the challenger";
     default:
       return "Settled";

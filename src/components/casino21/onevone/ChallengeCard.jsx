@@ -13,6 +13,9 @@ export default function ChallengeCard({ challenge, me, variant, onAccept, onColl
   const myClaimed = isCreator ? !!challenge.creator_claimed : !!challenge.opponent_claimed;
   const left = secondsLeft(challenge.expires_at);
   const stakeType = stakeTypeOf(challenge);
+  const isMatch = challenge.format === "best_of_3";
+  const myHandWins = isCreator ? challenge.creator_hand_wins : challenge.opponent_hand_wins;
+  const theirHandWins = isCreator ? challenge.opponent_hand_wins : challenge.creator_hand_wins;
 
   const myScore = isCreator ? challenge.creator_score : challenge.opponent_score;
   const theirScore = isCreator ? challenge.opponent_score : challenge.creator_score;
@@ -28,6 +31,11 @@ export default function ChallengeCard({ challenge, me, variant, onAccept, onColl
           <span className="text-sm font-bold text-emerald-50 truncate">
             {variant === "board" ? challenge.creator_name || "Player" : isCreator ? "Your challenge" : challenge.creator_name || "Player"}
           </span>
+          {isMatch && (
+            <span className="px-1.5 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/40 text-[8px] font-black uppercase tracking-widest text-amber-300">
+              Best of 3
+            </span>
+          )}
           {variant === "board" && (
             <span className="px-1.5 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/40 text-[8px] font-black uppercase tracking-widest text-amber-300">
               {left}s
@@ -51,10 +59,14 @@ export default function ChallengeCard({ challenge, me, variant, onAccept, onColl
               <Lock className="w-3 h-3" /> hand locked
             </span>
           ) : variant === "mine" ? (
-            <span className="text-[10px] text-emerald-100/60">your hand: {myScore}</span>
+            <span className="text-[10px] text-emerald-100/60">
+              {isMatch ? "best of 3 · 3 hands locked" : `your hand: ${myScore}`}
+            </span>
           ) : (
             <span className="text-[10px] text-emerald-100/60 tabular-nums">
-              you {myScore ?? "—"} · them {theirScore ?? "—"}
+              {isMatch
+                ? `hands ${Number(myHandWins) || 0}–${Number(theirHandWins) || 0}`
+                : `you ${myScore ?? "—"} · them ${theirScore ?? "—"}`}
             </span>
           )}
         </div>

@@ -10,16 +10,36 @@
       "type": "string",
       "description": "Display name of Player 1, kept so the board reads without a lookup."
     },
+    "format": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "best_of_3"
+      ],
+      "enumColors": [
+        "gray",
+        "purple"
+      ],
+      "default": "standard",
+      "description": "How many hands the match is played over. standard = one hand each, compared exactly as before. best_of_3 = three hands each, compared by index; the most hand wins takes the pot. Records created before Best of 3 existed have no value here and are always treated as standard."
+    },
     "creator_score": {
       "type": "number",
-      "description": "Player 1's final hand total. Values above 21 are a bust. Hidden from Player 2 on the board until they finish their own hand."
+      "description": "Player 1's final hand total. Values above 21 are a bust. On a Best of 3 match this is Player 1's first hand; the full set lives in creator_hands."
     },
     "creator_cards": {
       "type": "array",
       "items": {
         "type": "object"
       },
-      "description": "The exact cards Player 1 drew, in order ({ suit, color, rank, value }). Stored so the challenger's showdown can deal the poster's real hand out card by card instead of only showing the total."
+      "description": "The exact cards Player 1 drew, in order ({ suit, color, rank, value }). On a Best of 3 match these are Player 1's first hand; the full set lives in creator_hands."
+    },
+    "creator_hands": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Best of 3 only: Player 1's three finished hands in order, each { score, cards }. Empty on a standard match, whose single hand stays in creator_score and creator_cards."
     },
     "opponent_id": {
       "type": "string",
@@ -31,18 +51,42 @@
     },
     "opponent_score": {
       "type": "number",
-      "description": "Player 2's final hand total, written when they settle the challenge."
+      "description": "Player 2's final hand total, written when they settle the challenge. On a Best of 3 match this is Player 2's first hand."
     },
     "opponent_cards": {
       "type": "array",
       "items": {
         "type": "object"
       },
-      "description": "The exact cards Player 2 finished on, kept for the showdown reveal and the settled record."
+      "description": "The exact cards Player 2 finished on, kept for the showdown reveal and the settled record. On a Best of 3 match these are their first hand."
+    },
+    "opponent_hands": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Best of 3 only: Player 2's three finished hands in order, each { score, cards }, written when they settle the match."
+    },
+    "hand_results": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Best of 3 only: who took each indexed hand, in order \u2014 'creator', 'opponent' or 'tie'. A hand is a tie when both bust or both finish on the same valid total. Drives the sequential showdown scoreboard."
+    },
+    "creator_hand_wins": {
+      "type": "number",
+      "default": 0,
+      "description": "Best of 3 only: number of indexed hands Player 1 won."
+    },
+    "opponent_hand_wins": {
+      "type": "number",
+      "default": 0,
+      "description": "Best of 3 only: number of indexed hands Player 2 won. The higher of the two takes the pot; equal counts are a push and refund both stakes."
     },
     "wager": {
       "type": "number",
-      "description": "The stake each side put up, in the currency named by stake_type: a chip count, or 1 for the Diamond tier. The pot is twice this amount, in the same currency."
+      "description": "The stake each side put up, in the currency named by stake_type: a chip count, or 1 for the Diamond tier. Staked once per match \u2014 a Best of 3 is still a single stake per player. The pot is twice this amount, in the same currency."
     },
     "stake_type": {
       "type": "string",
@@ -88,7 +132,7 @@
         "red",
         "gray"
       ],
-      "description": "Who won the pot. creator_win = Player 1 took it; opponent_win = Player 2 took it; push = tied valid hands and both stakes returned; house = both busted and the pot is burned; expired = no taker inside the 90-second window."
+      "description": "Who won the pot. creator_win = Player 1 took it; opponent_win = Player 2 took it; push = tied valid hands and both stakes returned; house = both busted and the pot is burned; expired = no taker inside the 90-second window. On a Best of 3 match this is decided by total hand wins, and equal hand wins are always a push."
     },
     "creator_payout": {
       "type": "number",

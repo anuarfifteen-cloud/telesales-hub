@@ -73,7 +73,8 @@ export default function OpenChallengeCard({ challenge, onAccept, busy, canAfford
               {stakeType === "diamond" ? "diamond" : "chips"}
             </span>
             <span className="flex items-center gap-1 text-[10px] text-emerald-100/45 ml-1">
-              <Lock className="w-3 h-3" /> hand locked
+              <Lock className="w-3 h-3" />{" "}
+              {challenge.format === "best_of_3" ? "3 hands locked" : "hand locked"}
             </span>
           </div>
           {locked && (

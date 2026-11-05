@@ -9,6 +9,9 @@ import OpenChallengeCard from "./OpenChallengeCard";
 import ChipBalanceStrip from "./ChipBalanceStrip";
 import WagerLockCard from "./WagerLockCard";
 import ShowdownReveal from "./ShowdownReveal";
+import BestOfThreeShowdown from "./BestOfThreeShowdown";
+import BestOfThreePlay from "./BestOfThreePlay";
+import FormatToggle from "./FormatToggle";
 import { logChipMovement } from "@/lib/chipLog";
 import {
   AUTO_POST_SECONDS,
@@ -16,8 +19,11 @@ import {
   TURN_SECONDS,
   WAGER_PRESETS,
   canAffordStake,
+  formatOf,
+  handsOf,
   isExpired,
   resolveHands,
+  resolveMatch,
   secondsLeft,
   stakeLabel,
   stakeTypeOf,
@@ -45,8 +51,14 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const [wager, setWager] = useState(WAGER_PRESETS[0]);
   // Which wallet the selected stake lives in: "chips" or "diamond".
   const [stakeType, setStakeType] = useState("chips");
+  // The format being posted: one hand, or a three-hand match.
+  const [format, setFormat] = useState("standard");
   const [finalScore, setFinalScore] = useState(null);
   const [handCards, setHandCards] = useState([]);
+  // A Best of 3 player's three finished hands, in order.
+  const [myHands, setMyHands] = useState([]);
+  // The finished hand or match is ready to post (drives the auto-post clock).
+  const [readyToPost, setReadyToPost] = useState(false);
   const [target, setTarget] = useState(null);
   const [showdown, setShowdown] = useState(null);
   // A finished challenge opened from the board or Recent — replays the showdown.
@@ -185,6 +197,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setTarget(null);
     setFinalScore(null);
     setHandCards([]);
+    setMyHands([]);
+    setReadyToPost(false);
     setShowdown(null);
     setWaiting(null);
   };
@@ -193,6 +207,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const startCreate = () => {
     setFinalScore(null);
     setHandCards([]);
+    setMyHands([]);
+    setReadyToPost(false);
     setPostFailed(false);
     setPostCountdown(null);
     setStep("wager");
@@ -203,6 +219,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const lockCreateWager = () => {
     setFinalScore(null);
     setHandCards([]);
+    setMyHands([]);
+    setReadyToPost(false);
     setPostFailed(false);
     setPostCountdown(null);
     setHandKey((k) => k + 1);
@@ -212,10 +230,17 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const handDone = useCallback((score, cards) => {
     setFinalScore(score);
     setHandCards(Array.isArray(cards) ? cards : []);
+    setReadyToPost(true);
+  }, []);
+
+  // Best of 3: all three hands are in, so the match can go on the board.
+  const matchDone = useCallback((hands) => {
+    setMyHands(hands);
+    setReadyToPost(true);
   }, []);
 
   const postChallenge = async () => {
-    if (finalScore == null || postingRef.current) return;
+    if (!readyToPost || postingRef.current) return;
     postingRef.current = true;
     setBusy(true);
     setPostFailed(false);
@@ -232,11 +257,15 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       }
       const after = balance - wager;
       await base44.auth.updateMe({ [wallet]: after });
+      const isMatch = format === "best_of_3";
       const created = await base44.entities.BeatMyHandChallenge.create({
         creator_id: me,
         creator_name: myName,
-        creator_score: finalScore,
-        creator_cards: handCards,
+        // A standard match keeps its single hand in these fields; a Best of 3
+        // keeps hand 1 here and all three in creator_hands.
+        creator_score: isMatch ? Number(myHands[0]?.score) || 0 : finalScore,
+        creator_cards: isMatch ? myHands[0]?.cards || [] : handCards,
+        ...(isMatch ? { format: "best_of_3", creator_hands: myHands } : {}),
         wager,
         stake_type: stakeType,
         status: "open",
@@ -254,7 +283,9 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
           action_type: "bet",
           amount: -wager,
           balance_after: after,
-          detail: `Beat My Hand challenge posted — ${stakeLabel(wager, "chips")} (hand ${finalScore})`,
+          detail: isMatch
+            ? `Beat My Hand Best of 3 posted — ${stakeLabel(wager, "chips")}`
+            : `Beat My Hand challenge posted — ${stakeLabel(wager, "chips")} (hand ${finalScore})`,
         });
       }
       await onUserUpdate?.();
@@ -283,7 +314,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   autoPostRef.current = postChallenge;
 
   useEffect(() => {
-    if (mode !== "create" || finalScore == null) return undefined;
+    if (mode !== "create" || !readyToPost) return undefined;
     const startedAt = Date.now();
     setPostCountdown(AUTO_POST_SECONDS);
     const id = setInterval(() => {
@@ -297,7 +328,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       }
     }, 200);
     return () => clearInterval(id);
-  }, [mode, finalScore]);
+  }, [mode, readyToPost]);
 
   // ── Live waiting room ───────────────────────────────────────────────
   // Refund the stake the moment the window closes, then drop back to the board.
@@ -388,6 +419,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setTarget(challenge);
     setFinalScore(null);
     setHandCards([]);
+    setMyHands([]);
+    setReadyToPost(false);
     setStep("wager");
     setMode("accept");
   };
@@ -396,11 +429,12 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const lockAcceptWager = () => {
     setFinalScore(null);
     setHandCards([]);
+    setMyHands([]);
     setHandKey((k) => k + 1);
     setStep("play");
   };
 
-  const settleAccept = async (score, cards) => {
+  const settleAccept = async (score, cards, hands = null) => {
     if (!target || settlingRef.current) return;
     if (secondsLeft(target.expires_at) <= 0) {
       toast.error("That challenge has expired.");
@@ -445,15 +479,28 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         });
       }
 
-      const res = resolveHands(current.creator_score, score, target.wager);
+      // A Best of 3 compares both sides' hands by index; a standard match
+      // compares the single hand exactly as before.
+      const isMatch = formatOf(current) === "best_of_3" && Array.isArray(hands);
+      const res = isMatch
+        ? resolveMatch(current.creator_hands || [], hands, target.wager)
+        : resolveHands(current.creator_score, score, target.wager);
 
       // Record the settlement before touching the payout, so a failure can
       // never pay the same result twice.
       await base44.entities.BeatMyHandChallenge.update(target.id, {
         opponent_id: me,
         opponent_name: myName,
-        opponent_score: score,
-        opponent_cards: cards,
+        ...(isMatch
+          ? {
+              opponent_score: Number(hands[0]?.score) || 0,
+              opponent_cards: hands[0]?.cards || [],
+              opponent_hands: hands,
+              hand_results: res.results,
+              creator_hand_wins: res.creatorHandWins,
+              opponent_hand_wins: res.opponentHandWins,
+            }
+          : { opponent_score: score, opponent_cards: cards }),
         status: "settled",
         outcome: res.outcome,
         creator_payout: res.creatorPayout,
@@ -467,12 +514,15 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       // the showdown, so the poster and the challenger collect the same way.
       setShowdown({
         id: target.id,
+        format: isMatch ? "best_of_3" : "standard",
         creator_id: current.creator_id,
         creator_name: current.creator_name || "Player",
         creator_cards: Array.isArray(current.creator_cards) ? current.creator_cards : [],
         creator_score: Number(current.creator_score) || 0,
+        creator_hands: Array.isArray(current.creator_hands) ? current.creator_hands : [],
         opponent_name: myName,
         opponent_cards: Array.isArray(cards) ? cards : [],
+        opponent_hands: isMatch ? hands : [],
         opponent_score: score,
         outcome: res.outcome,
         wager: target.wager,
@@ -545,6 +595,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const playAgain = () => {
     const sameType = stakeTypeOf(showdown);
     const sameWager = Number(showdown?.wager) || wager;
+    const sameFormat = formatOf(showdown);
     if (!canAffordStake(user, sameType, sameWager)) {
       toast.error(
         `Not enough ${sameType === "diamond" ? "Diamonds" : "chips"} to replay that wager.`
@@ -553,10 +604,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     }
     setStakeType(sameType);
     setWager(sameWager);
+    setFormat(sameFormat);
     setTarget(null);
     setShowdown(null);
     setFinalScore(null);
     setHandCards([]);
+    setMyHands([]);
+    setReadyToPost(false);
     setPostFailed(false);
     setPostCountdown(null);
     setHandKey((k) => k + 1);
@@ -612,16 +666,31 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 />
               </div>
               <p className="text-[10px] text-emerald-100/60 mt-2 tabular-nums">
-                {stakeLabel(waiting.wager, stakeTypeOf(waiting))} staked · hand{" "}
-                {waiting.creator_score}
+                {stakeLabel(waiting.wager, stakeTypeOf(waiting))} staked ·{" "}
+                {formatOf(waiting) === "best_of_3"
+                  ? `best of 3 · hand 1: ${waiting.creator_score}`
+                  : `hand ${waiting.creator_score}`}
               </p>
             </div>
 
-            <HandPanel
-              title="YOUR POSTED HAND"
-              value={Number(waiting.creator_score) || finalScore || 0}
-              cards={waiting.creator_cards?.length ? waiting.creator_cards : handCards}
-            />
+            {formatOf(waiting) === "best_of_3" ? (
+              <div className="flex flex-col gap-2">
+                {(waiting.creator_hands?.length ? waiting.creator_hands : myHands).map((h, i) => (
+                  <HandPanel
+                    key={i}
+                    title={`YOUR HAND ${i + 1}`}
+                    value={Number(h?.score) || 0}
+                    cards={Array.isArray(h?.cards) ? h.cards : []}
+                  />
+                ))}
+              </div>
+            ) : (
+              <HandPanel
+                title="YOUR POSTED HAND"
+                value={Number(waiting.creator_score) || finalScore || 0}
+                cards={waiting.creator_cards?.length ? waiting.creator_cards : handCards}
+              />
+            )}
 
             <p className="text-[9px] text-emerald-100/35 leading-relaxed text-center">
               Your hand is locked in. If nobody takes it within the window your stake is
@@ -639,27 +708,49 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               <ArrowLeft className="w-3 h-3" /> Board
             </button>
 
-            <ShowdownReveal
-              creatorName={resultsFor.creator_name}
-              creatorCards={resultsFor.creator_cards || []}
-              creatorScore={resultsFor.creator_score}
-              opponentName={resultsFor.opponent_name}
-              opponentCards={resultsFor.opponent_cards || []}
-              opponentScore={resultsFor.opponent_score}
-              outcome={resultsFor.outcome}
-              payout={payoutFor(resultsFor)}
-              wager={resultsFor.wager}
-              stakeType={stakeTypeOf(resultsFor)}
-              viewerRole={resultsFor.creator_id === me ? "creator" : "opponent"}
-              onCollect={
-                payoutFor(resultsFor) > 0 && !claimedFor(resultsFor)
-                  ? () => collect(resultsFor)
-                  : undefined
-              }
-              collectLabel={`Collect ${stakeLabel(payoutFor(resultsFor), stakeTypeOf(resultsFor))}`}
-              collecting={busy}
-              onClose={() => setResultsFor(null)}
-            />
+            {formatOf(resultsFor) === "best_of_3" ? (
+              <BestOfThreeShowdown
+                creatorName={resultsFor.creator_name}
+                creatorHands={handsOf(resultsFor, "creator")}
+                opponentName={resultsFor.opponent_name}
+                opponentHands={handsOf(resultsFor, "opponent")}
+                outcome={resultsFor.outcome}
+                payout={payoutFor(resultsFor)}
+                wager={resultsFor.wager}
+                stakeType={stakeTypeOf(resultsFor)}
+                viewerRole={resultsFor.creator_id === me ? "creator" : "opponent"}
+                onCollect={
+                  payoutFor(resultsFor) > 0 && !claimedFor(resultsFor)
+                    ? () => collect(resultsFor)
+                    : undefined
+                }
+                collectLabel={`Collect ${stakeLabel(payoutFor(resultsFor), stakeTypeOf(resultsFor))}`}
+                collecting={busy}
+                onClose={() => setResultsFor(null)}
+              />
+            ) : (
+              <ShowdownReveal
+                creatorName={resultsFor.creator_name}
+                creatorCards={resultsFor.creator_cards || []}
+                creatorScore={resultsFor.creator_score}
+                opponentName={resultsFor.opponent_name}
+                opponentCards={resultsFor.opponent_cards || []}
+                opponentScore={resultsFor.opponent_score}
+                outcome={resultsFor.outcome}
+                payout={payoutFor(resultsFor)}
+                wager={resultsFor.wager}
+                stakeType={stakeTypeOf(resultsFor)}
+                viewerRole={resultsFor.creator_id === me ? "creator" : "opponent"}
+                onCollect={
+                  payoutFor(resultsFor) > 0 && !claimedFor(resultsFor)
+                    ? () => collect(resultsFor)
+                    : undefined
+                }
+                collectLabel={`Collect ${stakeLabel(payoutFor(resultsFor), stakeTypeOf(resultsFor))}`}
+                collecting={busy}
+                onClose={() => setResultsFor(null)}
+              />
+            )}
           </div>
         )}
 
@@ -787,8 +878,9 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
             )}
 
             <p className="text-[9px] text-emerald-100/35 leading-relaxed mt-1">
-              Highest valid hand wins the pot. A tie returns both stakes; if both bust the
-              house keeps them. Unaccepted challenges refund automatically after 90 seconds.
+              Highest valid hand wins the pot; a tie returns both stakes, and if both bust the
+              house keeps them. Best of 3 goes to the most hand wins — equal hand wins refund
+              both stakes. Unaccepted challenges refund automatically after 90 seconds.
             </p>
           </div>
         )}
@@ -803,18 +895,21 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
             </button>
 
             {step === "wager" ? (
-              <WagerLockCard
-                wager={wager}
-                stakeType={stakeType}
-                chips={chips}
-                diamonds={diamonds}
-                onChange={(amount, type) => {
-                  setWager(amount);
-                  setStakeType(type);
-                }}
-                onLock={lockCreateWager}
-                hint="Pick your stake and lock it in. Your cards are dealt only after the wager is locked."
-              />
+              <>
+                <FormatToggle value={format} onChange={setFormat} />
+                <WagerLockCard
+                  wager={wager}
+                  stakeType={stakeType}
+                  chips={chips}
+                  diamonds={diamonds}
+                  onChange={(amount, type) => {
+                    setWager(amount);
+                    setStakeType(type);
+                  }}
+                  onLock={lockCreateWager}
+                  hint="Pick your stake and lock it in. Your cards are dealt only after the wager is locked."
+                />
+              </>
             ) : (
               <>
                 <WagerLockCard
@@ -825,13 +920,22 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                   locked
                 />
 
-                <LocalHand
-                  key={handKey}
-                  onHandDone={handDone}
-                  disabled={finalScore != null}
-                />
+                {format === "best_of_3" ? (
+                  <BestOfThreePlay
+                    key={handKey}
+                    timeLimit={TURN_SECONDS}
+                    disabled={readyToPost}
+                    onMatchDone={matchDone}
+                  />
+                ) : (
+                  <LocalHand
+                    key={handKey}
+                    onHandDone={handDone}
+                    disabled={readyToPost}
+                  />
+                )}
 
-                {finalScore != null && !postFailed && (
+                {readyToPost && !postFailed && (
                   <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-3 text-center">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300/80">
                       {busy ? "Posting challenge…" : "Posting automatically"}
@@ -840,12 +944,16 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                       {postCountdown ?? AUTO_POST_SECONDS}
                     </p>
                     <p className="text-[10px] text-emerald-100/60 mt-1 tabular-nums">
-                      Hand {finalScore} · {stakeLabel(wager, stakeType)}
+                      {format === "best_of_3"
+                        ? `Best of 3 · ${myHands.map((h) => h.score).join(" / ")}`
+                        : `Hand ${finalScore}`}
+                      {" · "}
+                      {stakeLabel(wager, stakeType)}
                     </p>
                   </div>
                 )}
 
-                {finalScore != null && postFailed && (
+                {readyToPost && postFailed && (
                   <button
                     onClick={postChallenge}
                     disabled={busy}
@@ -854,7 +962,9 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                   >
                     {busy
                       ? "Posting…"
-                      : `Retry post · ${finalScore} for ${stakeLabel(wager, stakeType)}`}
+                      : format === "best_of_3"
+                        ? `Retry post · Best of 3 for ${stakeLabel(wager, stakeType)}`
+                        : `Retry post · ${finalScore} for ${stakeLabel(wager, stakeType)}`}
                   </button>
                 )}
               </>
@@ -881,7 +991,9 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               <p className="text-[10px] text-emerald-100/50 mt-0.5">
                 {step === "showdown"
                   ? "Your hands are revealed below."
-                  : "Their hand stays locked until you finish yours."}
+                  : formatOf(target) === "best_of_3"
+                    ? "3 hands each — theirs stay locked until you finish all three."
+                    : "Their hand stays locked until you finish yours."}
               </p>
             </div>
 
@@ -900,16 +1012,29 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
 
             {step === "play" && (
               <>
-                <LocalHand
-                  key={handKey}
-                  timeLimit={TURN_SECONDS}
-                  onHandDone={(score, cards) => {
-                    setFinalScore(score);
-                    setHandCards(Array.isArray(cards) ? cards : []);
-                    settleAccept(score, Array.isArray(cards) ? cards : []);
-                  }}
-                  disabled={finalScore != null}
-                />
+                {formatOf(target) === "best_of_3" ? (
+                  <BestOfThreePlay
+                    key={handKey}
+                    timeLimit={TURN_SECONDS}
+                    disabled={busy}
+                    onMatchDone={(hands) => {
+                      setMyHands(hands);
+                      const first = hands[0] || { score: 0, cards: [] };
+                      settleAccept(Number(first.score) || 0, first.cards || [], hands);
+                    }}
+                  />
+                ) : (
+                  <LocalHand
+                    key={handKey}
+                    timeLimit={TURN_SECONDS}
+                    onHandDone={(score, cards) => {
+                      setFinalScore(score);
+                      setHandCards(Array.isArray(cards) ? cards : []);
+                      settleAccept(score, Array.isArray(cards) ? cards : []);
+                    }}
+                    disabled={finalScore != null}
+                  />
+                )}
                 {busy && (
                   <p className="text-center text-[11px] font-bold uppercase tracking-widest text-amber-200 animate-pulse">
                     Settling the pot…
@@ -918,7 +1043,35 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               </>
             )}
 
-            {step === "showdown" && showdown && (
+            {step === "showdown" && showdown && formatOf(showdown) === "best_of_3" && (
+              <BestOfThreeShowdown
+                creatorName={showdown.creator_name}
+                creatorHands={showdown.creator_hands || []}
+                opponentName={showdown.opponent_name}
+                opponentHands={showdown.opponent_hands || []}
+                outcome={showdown.outcome}
+                payout={payoutFor(showdown)}
+                wager={showdown.wager}
+                stakeType={stakeTypeOf(showdown)}
+                viewerRole="opponent"
+                onCollect={
+                  payoutFor(showdown) > 0 && !claimedFor(showdown)
+                    ? () => collect(showdown)
+                    : undefined
+                }
+                collectLabel={`Collect ${stakeLabel(payoutFor(showdown), stakeTypeOf(showdown))}`}
+                collecting={busy}
+                onClose={backToLobby}
+                onPlayAgain={playAgain}
+                canPlayAgain={canAffordStake(
+                  user,
+                  stakeTypeOf(showdown),
+                  Number(showdown.wager) || 0
+                )}
+              />
+            )}
+
+            {step === "showdown" && showdown && formatOf(showdown) !== "best_of_3" && (
               <ShowdownReveal
                 creatorName={showdown.creator_name}
                 creatorCards={showdown.creator_cards || []}
