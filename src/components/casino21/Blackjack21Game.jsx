@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import MilestoneProgressionView from "./milestone/MilestoneProgressionView";
 import BeatMyHandView from "./onevone/BeatMyHandView";
+import ChallengeAlertWatcher from "./onevone/ChallengeAlertWatcher";
 import RankClaimPopup from "./milestone/RankClaimPopup";
 import useMilestoneClaim from "./milestone/useMilestoneClaim";
 import {
@@ -749,6 +750,10 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       )}
 
       {view === "onevone" && <BeatMyHandView user={user} onUserUpdate={onUserUpdate} />}
+
+      {/* New 1V1 challenges pop up briefly on every sub-tab except 1V1,
+          where the live open board already lists them. */}
+      <ChallengeAlertWatcher enabled={view !== "onevone"} me={user?.id} />
 
       {view === "stats" && <BlackjackStats userId={user?.id} user={user} />}
       {view === "history" && <BlackjackHistory userId={user?.id} />}

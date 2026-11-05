@@ -2,12 +2,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { ArrowLeft, RefreshCw, Swords } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
 import LocalHand from "./LocalHand";
 import HandPanel from "../HandPanel";
 import ChallengeCard from "./ChallengeCard";
 import OpenChallengeCard from "./OpenChallengeCard";
-import NewChallengeAlert from "./NewChallengeAlert";
 import ChipBalanceStrip from "./ChipBalanceStrip";
 import WagerLockCard from "./WagerLockCard";
 import ShowdownReveal from "./ShowdownReveal";
@@ -52,8 +50,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const [postFailed, setPostFailed] = useState(false);
   // The posted challenge the creator is sitting on in the live waiting room.
   const [waiting, setWaiting] = useState(null);
-  // A challenge someone else just posted while this tab is open.
-  const [newChallenge, setNewChallenge] = useState(null);
   const [, setTick] = useState(0);
   // The challenger's hand can only be settled once, whichever path ended it.
   const settlingRef = useRef(false);
@@ -144,10 +140,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
 
     const unsubscribe = base44.entities.BeatMyHandChallenge.subscribe((event) => {
       if (!event) return;
-      const row = event.data;
-      if (event.type === "create" && row?.status === "open" && row.creator_id !== me) {
-        setNewChallenge(row);
-      }
       refresh();
     });
 
@@ -164,12 +156,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [mode, me, load]);
-
-  // Dismissing the pop-out pulls the board fresh so the new bet shows up.
-  const dismissNewChallenge = async () => {
-    setNewChallenge(null);
-    await load();
-  };
 
   const payoutFor = (c) =>
     Number(c.creator_id === me ? c.creator_payout : c.opponent_payout) || 0;
@@ -550,12 +536,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       <div className="relative flex flex-col gap-3">
         {/* Balance is always visible, in every step of both flows. */}
         <ChipBalanceStrip chips={chips} />
-
-        <AnimatePresence>
-          {mode === "lobby" && !resultsFor && newChallenge && (
-            <NewChallengeAlert challenge={newChallenge} onDismiss={dismissNewChallenge} />
-          )}
-        </AnimatePresence>
 
         {mode === "waiting" && waiting && (
           <div className="flex flex-col gap-3">

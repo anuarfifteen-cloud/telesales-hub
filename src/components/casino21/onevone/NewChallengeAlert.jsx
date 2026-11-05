@@ -1,16 +1,17 @@
 import { useEffect, useRef } from "react";
 
-// In-tab pop-out: appears the moment another player posts a challenge while
-// this board is open. Centered so it never clips on mobile, and it auto-
-// dismisses three seconds after arriving (View / ✕ close it sooner).
+// In-tab pop-out: appears the moment another player posts a challenge while any
+// other Blackjack 21 sub-tab is open. Pinned to the top middle so it never
+// clips on mobile, and it auto-dismisses one second after arriving
+// (View / ✕ close it sooner).
 const STYLES = `
 .nca-toast {
   box-sizing: border-box;
   position: fixed;
   left: 50%;
-  top: 50%;
+  top: 16px;
   width: min(420px, calc(100vw - 2rem));
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, 0);
   padding: 18px 17px 15px;
   border: 1px solid #d8c49b;
   border-radius: 18px;
@@ -18,7 +19,7 @@ const STYLES = `
   color: #29271f;
   box-shadow: 0 22px 60px rgba(48,39,21,.18), 0 4px 14px rgba(48,39,21,.08), inset 0 1px #fff;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  animation: nca-arrive .42s cubic-bezier(.2,.8,.2,1) both, nca-fadeout .28s ease-in 2.72s forwards;
+  animation: nca-arrive .3s cubic-bezier(.2,.8,.2,1) both, nca-fadeout .22s ease-in .78s forwards;
 }
 .nca-row { display: flex; align-items: center; gap: 12px; }
 .nca-pulse {
@@ -105,7 +106,7 @@ const STYLES = `
   height: 100%;
   transform-origin: left;
   background: linear-gradient(90deg, #c4a15a, #e0cc9d);
-  animation: nca-drain 3s linear forwards;
+  animation: nca-drain 1s linear forwards;
 }
 @keyframes nca-arrive { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
 @keyframes nca-fadeout { to { opacity: 0; } }
@@ -116,11 +117,11 @@ export default function NewChallengeAlert({ challenge, onDismiss }) {
   const name = challenge?.creator_name || "A player";
   const wager = Number(challenge?.wager) || 0;
 
-  // Auto-dismiss three seconds after the toast arrives.
+  // Auto-dismiss one second after the toast arrives.
   const dismissRef = useRef(onDismiss);
   dismissRef.current = onDismiss;
   useEffect(() => {
-    const timer = setTimeout(() => dismissRef.current?.(), 3000);
+    const timer = setTimeout(() => dismissRef.current?.(), 1000);
     return () => clearTimeout(timer);
   }, []);
 
