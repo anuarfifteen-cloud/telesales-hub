@@ -144,6 +144,11 @@
       "default": 0,
       "description": "What is owed to Player 2 by this challenge, in the challenge's stake currency. Credited by the accepting device at settlement."
     },
+    "opponent_stake_taken": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the accepting device has already deducted Player 2's matching stake from their wallet. Written only after that wallet write succeeds, so a retried or resumed settlement can never charge the same wager twice."
+    },
     "creator_claimed": {
       "type": "boolean",
       "default": false,

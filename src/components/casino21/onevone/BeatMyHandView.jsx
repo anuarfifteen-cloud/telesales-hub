@@ -77,9 +77,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const postingRef = useRef(false);
   // Why a settlement could not be written — shown in place, never a silent exit.
   const [settleError, setSettleError] = useState(null);
-  // The challenge id whose matching stake this device already took, so a retry
-  // can never charge the same wager twice.
-  const stakeTakenForRef = useRef(null);
+  // Nothing else to hold: the stake-taken flag is stored on the challenge itself.
 
   // Live countdown on the board.
   useEffect(() => {
@@ -106,12 +104,14 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       payingRef.current.add(key);
       try {
         const wallet = walletFieldFor(stakeTypeOf(row));
+        const fresh = await base44.auth.me();
+        const after = (Number(fresh?.[wallet]) || 0) + amount;
+        // Credit the wallet BEFORE marking the payout claimed, so a failed
+        // credit stays collectable instead of being lost for good.
+        await base44.auth.updateMe({ [wallet]: after });
         await base44.entities.BeatMyHandChallenge.update(row.id, {
           [side === "creator" ? "creator_claimed" : "opponent_claimed"]: true,
         });
-        const fresh = await base44.auth.me();
-        const after = (Number(fresh?.[wallet]) || 0) + amount;
-        await base44.auth.updateMe({ [wallet]: after });
         if (stakeTypeOf(row) === "chips") {
           logChipMovement({
             user,
@@ -442,8 +442,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     try {
       // Re-read before expiring: the taker may have settled it in the final
       // second, and an expiry must never overwrite a settled record.
-      const live = await base44.entities.BeatMyHandChallenge.filter({ id: row.id });
-      const current = Array.isArray(live) ? live[0] : live?.items?.[0];
+      const current = await base44.entities.BeatMyHandChallenge.get(row.id);
       if (!current) {
         await loadRef.current?.();
         return;
@@ -522,8 +521,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       if (document.hidden) return;
       let row = null;
       try {
-        const live = await base44.entities.BeatMyHandChallenge.filter({ id: challengeId });
-        row = Array.isArray(live) ? live[0] : live?.items?.[0];
+        row = await base44.entities.BeatMyHandChallenge.get(challengeId);
       } catch {
         return; // a blip simply waits for the next tick
       }
@@ -618,8 +616,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setBusy(true);
     setSettleError(null);
     try {
-      const live = await base44.entities.BeatMyHandChallenge.filter({ id: target.id });
-      const current = Array.isArray(live) ? live[0] : live?.items?.[0];
+      const current = await base44.entities.BeatMyHandChallenge.get(target.id);
       if (!current) {
         setSettleError("That challenge couldn't be found. Nothing was taken — go back to the Lobby.");
         return;
@@ -643,32 +640,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       const stakeTypeForChallenge = stakeTypeOf(current);
       const wallet = walletFieldFor(stakeTypeForChallenge);
 
-      // Match the stake exactly once, so retrying a failed settle never charges
-      // the same wager a second time.
-      if (stakeTakenForRef.current !== target.id) {
-        const fresh = await base44.auth.me();
-        const balance = Number(fresh?.[wallet]) || 0;
-        if (balance < target.wager) {
-          setSettleError(
-            `Not enough ${stakeTypeForChallenge === "diamond" ? "Diamonds" : "chips"} to match that wager.`
-          );
-          return;
-        }
-        const afterStake = balance - target.wager;
-        await base44.auth.updateMe({ [wallet]: afterStake });
-        stakeTakenForRef.current = target.id;
-        if (stakeTypeForChallenge === "chips") {
-          logChipMovement({
-            user,
-            mode: "wallet",
-            action_type: "bet",
-            amount: -target.wager,
-            balance_after: afterStake,
-            detail: `Beat My Hand accepted ${target.creator_name}'s ${stakeLabel(target.wager, "chips")} challenge`,
-          });
-        }
-      }
-
       // A Best of 3 compares both sides' hands by index; a standard match
       // compares the single hand exactly as before.
       const isMatch = formatOf(current) === "best_of_3" && Array.isArray(hands);
@@ -676,8 +647,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         ? resolveMatch(current.creator_hands || [], hands, target.wager)
         : resolveHands(current.creator_score, score, target.wager);
 
-      // Record the settlement before touching the payout, so a failure can
-      // never pay the same result twice.
+      // 1. Write the settled result FIRST. If a wallet write then fails, the
+      //    challenger is never left charged on a still-unsettled challenge.
       await base44.entities.BeatMyHandChallenge.update(target.id, {
         opponent_id: me,
         opponent_name: myName,
@@ -695,10 +666,40 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         outcome: res.outcome,
         creator_payout: res.creatorPayout,
         opponent_payout: res.opponentPayout,
+        opponent_stake_taken: false,
         opponent_claimed: false,
         creator_claimed: false,
         settled_at: new Date().toISOString(),
       });
+
+      // 2. Match the stake once. The flag is stored on the challenge itself, so
+      //    a retry — even after a refresh — can never charge it twice.
+      if (!current.opponent_stake_taken) {
+        const fresh = await base44.auth.me();
+        const balance = Number(fresh?.[wallet]) || 0;
+        if (balance < target.wager) {
+          setSettleError(
+            `Not enough ${stakeTypeForChallenge === "diamond" ? "Diamonds" : "chips"} to match that wager.`
+          );
+          return;
+        }
+        const afterStake = balance - target.wager;
+        await base44.auth.updateMe({ [wallet]: afterStake });
+        // Marked only after the wallet write actually succeeded.
+        await base44.entities.BeatMyHandChallenge.update(target.id, {
+          opponent_stake_taken: true,
+        });
+        if (stakeTypeForChallenge === "chips") {
+          logChipMovement({
+            user,
+            mode: "wallet",
+            action_type: "bet",
+            amount: -target.wager,
+            balance_after: afterStake,
+            detail: `Beat My Hand accepted ${target.creator_name}'s ${stakeLabel(target.wager, "chips")} challenge`,
+          });
+        }
+      }
 
       // The winner is paid automatically — no claim step. This device credits
       // its own side only; the poster's device credits theirs.
@@ -737,13 +738,15 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         opponent_claimed: false,
       });
       setStep("showdown");
-      await onUserUpdate?.();
-      await load();
-    } catch {
-      // Never boot the challenger silently: their hand and stake stay put and
-      // they can retry the write in place.
+      // Refresh the balance and the board best-effort: neither may ever make a
+      // completed settlement look failed.
+      Promise.allSettled([Promise.resolve().then(() => onUserUpdate?.()), load()]);
+    } catch (err) {
+      // Never boot the challenger silently: their hand stays put and they can
+      // retry in place. The real reason is shown so it is actionable.
+      console.error("Beat My Hand settlement failed:", err);
       setSettleError(
-        "Settlement failed — your hand is saved. Check your connection and tap retry."
+        `Settlement failed: ${err?.message || "unknown error"}. Your hand is saved — tap retry.`
       );
     } finally {
       settlingRef.current = false;
