@@ -98,6 +98,7 @@ export default function BestOfThreeShowdown({
   onCollect,
   collectLabel,
   collecting = false,
+  collected = false,
 }) {
   const isCreator = viewerRole === "creator";
   const creatorList = Array.isArray(creatorHands) ? creatorHands : [];
@@ -316,6 +317,16 @@ export default function BestOfThreeShowdown({
               <ActionButton primary onClick={onCollect} disabled={collecting}>
                 {collecting ? "Collecting…" : collectLabel || "Collect"}
               </ActionButton>
+            )}
+            {collected && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.94, y: 6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 320, damping: 22 }}
+                className="rounded-full border border-emerald-400/50 bg-emerald-500/20 py-2.5 text-xs font-black uppercase tracking-widest text-emerald-200"
+              >
+                ✓ Collected · +{stakeLabel(payout, stakeType)}
+              </motion.div>
             )}
             <div className="flex gap-2">
               {onPlayAgain && (

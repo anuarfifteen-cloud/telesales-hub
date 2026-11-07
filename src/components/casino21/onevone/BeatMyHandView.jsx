@@ -564,13 +564,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         });
       }
       await onUserUpdate?.();
-      setResultsFor(null);
-      // Keep the open showdown in step so its Collect button disappears.
-      setShowdown((s) =>
-        s && s.id === challenge.id
-          ? { ...s, [isCreator ? "creator_claimed" : "opponent_claimed"]: true }
-          : s
+      // Stay on the results view: only the claim flag flips, so the payout reads
+      // as collected in place and the Creator can still hit Play Again.
+      const claimKey = isCreator ? "creator_claimed" : "opponent_claimed";
+      setResultsFor((c) =>
+        c && c.id === challenge.id ? { ...c, [claimKey]: true } : c
       );
+      setShowdown((s) => (s && s.id === challenge.id ? { ...s, [claimKey]: true } : s));
       toast.success(`+${stakeLabel(amount, stakeTypeForChallenge)} collected.`);
       await load();
     } catch {
@@ -717,6 +717,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 }
                 collectLabel={`Collect ${stakeLabel(payoutFor(resultsFor), stakeTypeOf(resultsFor))}`}
                 collecting={busy}
+                collected={payoutFor(resultsFor) > 0 && claimedFor(resultsFor)}
                 onClose={() => setResultsFor(null)}
                 onPlayAgain={
                   resultsFor.creator_id === me ? () => playAgain(resultsFor) : undefined
@@ -747,6 +748,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 }
                 collectLabel={`Collect ${stakeLabel(payoutFor(resultsFor), stakeTypeOf(resultsFor))}`}
                 collecting={busy}
+                collected={payoutFor(resultsFor) > 0 && claimedFor(resultsFor)}
                 onClose={() => setResultsFor(null)}
                 onPlayAgain={
                   resultsFor.creator_id === me ? () => playAgain(resultsFor) : undefined
@@ -965,6 +967,24 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               </p>
             </div>
 
+            {/* Challenger only: the live board sits right under the results
+                title so a rematch is visible without scrolling. */}
+            {step === "showdown" && (
+              <div className="flex flex-col gap-2">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/50">
+                  Rematch the board — take any open bet
+                </p>
+                <OpenBetsBoard
+                  challenges={board}
+                  loading={loading}
+                  onAccept={startAccept}
+                  busy={busy}
+                  user={user}
+                  emptyText="No open bets right now — check back in a moment."
+                />
+              </div>
+            )}
+
             {step === "wager" && (
               <WagerLockCard
                 wager={target.wager}
@@ -1029,6 +1049,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 }
                 collectLabel={`Collect ${stakeLabel(payoutFor(showdown), stakeTypeOf(showdown))}`}
                 collecting={busy}
+                collected={payoutFor(showdown) > 0 && claimedFor(showdown)}
                 onClose={backToLobby}
               />
             )}
@@ -1053,27 +1074,11 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 }
                 collectLabel={`Collect ${stakeLabel(payoutFor(showdown), stakeTypeOf(showdown))}`}
                 collecting={busy}
+                collected={payoutFor(showdown) > 0 && claimedFor(showdown)}
                 onClose={backToLobby}
               />
             )}
 
-            {/* Challenger only: the live board sits under the result so a
-                rematch can be taken without going back to the main tab. */}
-            {step === "showdown" && (
-              <div className="flex flex-col gap-2 pt-1">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/50">
-                  Rematch the board — take any open bet
-                </p>
-                <OpenBetsBoard
-                  challenges={board}
-                  loading={loading}
-                  onAccept={startAccept}
-                  busy={busy}
-                  user={user}
-                  emptyText="No open bets right now — check back in a moment."
-                />
-              </div>
-            )}
           </div>
         )}
       </div>
