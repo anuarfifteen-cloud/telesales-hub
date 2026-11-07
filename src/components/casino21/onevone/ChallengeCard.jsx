@@ -73,7 +73,11 @@ export default function ChallengeCard({ challenge, me, variant, onAccept, onColl
 
         {variant === "result" && (
           <p className={`text-[10px] mt-0.5 font-semibold ${
-            myPayout > 0 ? "text-emerald-300" : challenge.outcome === "expired" ? "text-amber-300" : "text-emerald-100/50"
+            myPayout > 0
+              ? "text-emerald-300"
+              : challenge.outcome === "expired" || challenge.outcome === "void"
+                ? "text-amber-300"
+                : "text-emerald-100/50"
           }`}>
             {outcomeLine(challenge, isCreator)}
             {myPayout > 0 && ` · ${stakeLabel(myPayout, stakeType)}`}

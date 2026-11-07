@@ -74,7 +74,7 @@ export default function OpenChallengeCard({ challenge, onAccept, busy, canAfford
             </span>
             <span className="flex items-center gap-1 text-[10px] text-emerald-100/45 ml-1">
               <Lock className="w-3 h-3" />{" "}
-              {challenge.format === "best_of_3" ? "3 hands locked" : "hand locked"}
+              {challenge.format === "best_of_3" ? "3 hands locked" : "playing now"}
             </span>
           </div>
           {locked && (
