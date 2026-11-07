@@ -160,7 +160,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     );
   };
 
+  // Every refresh stamps a sequence number. A slow response that lands after a
+  // newer one must never write its stale snapshot over fresher board data —
+  // that race is what made a newly posted fight flash up and then vanish.
+  const loadSeqRef = useRef(0);
+
   const load = useCallback(async () => {
+    const seq = ++loadSeqRef.current;
     try {
       const [openRes, mineRes, recentRes] = await Promise.all([
         base44.entities.BeatMyHandChallenge.filter(
@@ -176,6 +182,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
           { sort: "-settled_at", limit: 15 }
         ),
       ]);
+      // A newer refresh already answered — drop this older snapshot entirely.
+      if (seq !== loadSeqRef.current) return;
       setRecent(recentRes?.items || []);
       const byId = new Map();
       [...(openRes?.items || []), ...(mineRes?.items || [])].forEach((c) =>
@@ -189,11 +197,18 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       // Pay out anything this player is owed on their own device.
       rows.forEach((row) => autoCredit(row));
     } catch {
-      setChallenges([]);
+      // Never blank the board on a failed refresh: the last good list stays on
+      // screen, so a live fight cannot disappear over one hiccuped query.
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current) setLoading(false);
     }
   }, [me, autoCredit]);
+
+  // Held in a ref so the realtime channel below is never torn down and
+  // re-subscribed just because the player record refreshed — every gap in the
+  // subscription was a missed event, leaving the lobby stale.
+  const loadRef = useRef(load);
+  loadRef.current = load;
 
   useEffect(() => {
     load();
@@ -212,11 +227,24 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
 
     let active = true;
     const refresh = () => {
-      if (active && !document.hidden) load();
+      if (active && !document.hidden) loadRef.current?.();
     };
 
     const unsubscribe = base44.entities.BeatMyHandChallenge.subscribe((event) => {
       if (!event) return;
+      // Apply the change the instant it arrives instead of waiting for a round
+      // trip, so a freshly posted fight shows on the lobby immediately. A
+      // partial update event is merged onto the record already on screen.
+      const row = event.data;
+      if (row?.id) {
+        setChallenges((prev) => {
+          if (event.type === "delete") return prev.filter((c) => c.id !== row.id);
+          const exists = prev.some((c) => c.id === row.id);
+          return exists
+            ? prev.map((c) => (c.id === row.id ? { ...c, ...row } : c))
+            : [row, ...prev];
+        });
+      }
       refresh();
     });
 
@@ -232,7 +260,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       clearInterval(poll);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [mode, step, me, load]);
+  }, [mode, step]);
 
   const payoutFor = (c) =>
     Number(c.creator_id === me ? c.creator_payout : c.opponent_payout) || 0;
