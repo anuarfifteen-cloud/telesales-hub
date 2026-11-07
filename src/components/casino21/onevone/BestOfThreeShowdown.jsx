@@ -326,7 +326,7 @@ export default function BestOfThreeShowdown({
                 </ActionButton>
               )}
               <ActionButton onClick={onClose} className="flex-1">
-                Back to the Room
+                Back to the Lobby
               </ActionButton>
             </div>
           </div>

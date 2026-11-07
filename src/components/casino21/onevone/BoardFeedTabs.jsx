@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, Swords } from "lucide-react";
+import { Clock, Swords, Trophy } from "lucide-react";
 import ChallengeCard from "./ChallengeCard";
 import { formatOf, stakeLabel, stakeTypeOf } from "@/lib/beatMyHand";
 
@@ -15,53 +15,97 @@ function agoLabel(iso) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-// The two stacked lines of a finished match, worded as a result between two
-// colleagues. The winner always sits on top in green, the loser dimmed below.
-function resultLines(row) {
+// A finished match read like a battle record: winner on top, a "defeated"
+// separator, the loser dimmed below, and the final score held on the right.
+// A drawn match (push or double bust) is labelled DRAW with both names neutral.
+function matchSummary(row) {
   const creator = row.creator_name || "Poster";
   const opponent = row.opponent_name || "Challenger";
+  const isMatch = formatOf(row) === "best_of_3";
+  const cScore = Number(row.creator_score) || 0;
+  const oScore = Number(row.opponent_score) || 0;
+  const cWins = Number(row.creator_hand_wins) || 0;
+  const oWins = Number(row.opponent_hand_wins) || 0;
+  // Anything over 21 is a bust and reads as such rather than as a number.
+  const value = (n) => (n > 21 ? "Bust" : String(n));
 
-  if (row.outcome === "creator_win") {
-    return { top: creator, topTone: "text-emerald-300", topIcon: "✓", bottom: opponent };
+  if (row.outcome === "creator_win" || row.outcome === "opponent_win") {
+    const creatorWon = row.outcome === "creator_win";
+    return {
+      label: null,
+      winner: creatorWon ? creator : opponent,
+      loser: creatorWon ? opponent : creator,
+      score: isMatch
+        ? `${creatorWon ? cWins : oWins} – ${creatorWon ? oWins : cWins}`
+        : `${value(creatorWon ? cScore : oScore)} to ${value(creatorWon ? oScore : cScore)}`,
+    };
   }
-  if (row.outcome === "opponent_win") {
-    return { top: opponent, topTone: "text-emerald-300", topIcon: "✓", bottom: creator };
+
+  if (row.outcome === "push" || row.outcome === "house") {
+    return {
+      label: "Draw",
+      winner: creator,
+      loser: opponent,
+      score: isMatch ? `${cWins} – ${oWins}` : `${value(cScore)} vs ${value(oScore)}`,
+    };
   }
-  if (row.outcome === "push") {
-    return { top: `Tie: ${creator}`, topTone: "text-pink-300", topIcon: "", bottom: opponent, bottomTone: "text-pink-200/50" };
-  }
-  if (row.outcome === "house") {
-    return { top: `Both busted: ${creator}`, topTone: "text-rose-300", topIcon: "", bottom: opponent, bottomTone: "text-rose-200/50" };
-  }
-  return { top: `Expired: ${creator}`, topTone: "text-emerald-100/55", topIcon: "", bottom: opponent, bottomTone: "text-emerald-100/35" };
+
+  return { label: "Expired", winner: creator, loser: opponent, score: "—" };
 }
 
 function RecentRow({ row }) {
-  const line = resultLines(row);
+  const match = matchSummary(row);
+  const draw = !!match.label;
+  const isMatch = formatOf(row) === "best_of_3";
+
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
-      {/* Names stack and wrap freely — a long name takes a second line rather
-          than being cut off. */}
-      <div className="flex flex-col gap-0.5">
-        <p
-          className={`whitespace-normal break-words text-[12px] font-black leading-snug ${line.topTone}`}
-        >
-          {line.topIcon && <span className="mr-1">{line.topIcon}</span>}
-          {line.top}
-        </p>
-        <p
-          className={`whitespace-normal break-words text-[11px] font-semibold leading-snug ${
-            line.bottomTone || "text-emerald-100/35"
-          }`}
-        >
-          {line.bottom}
-        </p>
+      <div className="flex items-start gap-2.5">
+        {/* Winner · separator · loser — names wrap rather than truncate. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <p
+            className={`whitespace-normal break-words text-[12px] font-black leading-snug ${
+              draw ? "text-pink-200/90" : "text-emerald-300"
+            }`}
+          >
+            {match.label ? (
+              <span className="mr-1.5 rounded-full border border-white/15 bg-white/10 px-1.5 py-0.5 align-middle text-[8px] font-black uppercase tracking-[0.2em] text-emerald-100/80">
+                {match.label}
+              </span>
+            ) : (
+              <Trophy className="mr-1 inline h-3 w-3 -translate-y-0.5" />
+            )}
+            {match.winner}
+          </p>
+
+          <p className="text-[7px] font-black uppercase tracking-[0.35em] text-emerald-100/25">
+            {draw ? "tied" : "defeated"}
+          </p>
+
+          <p className="whitespace-normal break-words text-[11px] font-semibold leading-snug text-emerald-100/40">
+            {match.loser}
+          </p>
+        </div>
+
+        {/* Final score, held to the right so it scans down the feed. */}
+        <div className="shrink-0 text-right">
+          <p className="text-[7px] font-black uppercase tracking-[0.2em] text-amber-300/50">
+            {isMatch ? "Hands" : "Final score"}
+          </p>
+          <p
+            className={`mt-0.5 whitespace-nowrap text-[13px] font-black leading-tight tabular-nums ${
+              draw ? "text-emerald-100/60" : "text-amber-200"
+            }`}
+          >
+            {match.score}
+          </p>
+        </div>
       </div>
 
-      {/* Metadata sits on its own third row, dimmer and smaller. */}
+      {/* Metadata sits on its own bottom row, dimmer and smaller. */}
       <p className="mt-2 text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-100/30 tabular-nums">
         {stakeLabel(row.wager, stakeTypeOf(row))} each ·{" "}
-        {formatOf(row) === "best_of_3" ? "best of 3" : "single hand"} ·{" "}
+        {isMatch ? "best of 3" : "single hand"} ·{" "}
         {agoLabel(row.settled_at || row.updated_date)}
       </p>
     </div>

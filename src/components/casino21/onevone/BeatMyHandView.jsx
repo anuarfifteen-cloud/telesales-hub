@@ -354,7 +354,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         toast.success("Challenge posted — waiting for an opponent.");
       } else {
         backToLobby();
-        toast.success("Challenge posted — 90 seconds in the Room.");
+        toast.success("Challenge posted — 90 seconds in the Lobby.");
       }
     } catch {
       setPostFailed(true);
@@ -412,7 +412,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         duration: 7000,
       });
     } catch {
-      toast.error("Expired — your stake is in the Room to collect.", { duration: 7000 });
+      toast.error("Expired — your stake is in the Lobby to collect.", { duration: 7000 });
     }
   };
 
@@ -702,7 +702,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               onClick={backToLobby}
               className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
             >
-              <ArrowLeft className="w-3 h-3" /> Room
+              <ArrowLeft className="w-3 h-3" /> Lobby
             </button>
 
             <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-3 text-center">
@@ -769,7 +769,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               onClick={() => setResultsFor(null)}
               className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
             >
-              <ArrowLeft className="w-3 h-3" /> Room
+              <ArrowLeft className="w-3 h-3" /> Lobby
             </button>
 
             {formatOf(resultsFor) === "best_of_3" ? (
@@ -912,7 +912,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               onClick={backToLobby}
               className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
             >
-              <ArrowLeft className="w-3 h-3" /> Room
+              <ArrowLeft className="w-3 h-3" /> Lobby
             </button>
 
             {step === "wager" ? (
@@ -997,7 +997,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 onClick={backToLobby}
                 className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
               >
-                <ArrowLeft className="w-3 h-3" /> Room
+                <ArrowLeft className="w-3 h-3" /> Lobby
               </button>
             )}
 
@@ -1020,7 +1020,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
             {step === "showdown" && (
               <div className="flex flex-col gap-2">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/50">
-                  Rematch in the Room — take any open bet
+                  Rematch in the Lobby — take any open bet
                 </p>
                 <OpenBetsBoard
                   challenges={board}
@@ -1028,7 +1028,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                   onAccept={startAccept}
                   busy={busy}
                   user={user}
-                  emptyText="No open bets right now — check back in a moment."
+                  emptyText="The Lobby is quiet — check back in a moment."
                 />
               </div>
             )}
