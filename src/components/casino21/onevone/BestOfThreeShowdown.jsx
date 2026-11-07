@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import PlayingCard from "../PlayingCard";
 import { handWinner, stakeLabel } from "@/lib/beatMyHand";
@@ -10,6 +10,8 @@ const CARD_MS = 300;
 const PAIR_DONE_MS = 320;
 const RESULT_HOLD_MS = 1500;
 const SWEEP_MS = 620;
+// The losing side only gets a short window to choose before the table closes.
+const LOSER_SECONDS = 3;
 
 const TONES = {
   win: { text: "text-emerald-300", box: "border-emerald-400/40 bg-emerald-400/10" },
@@ -95,6 +97,9 @@ export default function BestOfThreeShowdown({
   onClose,
   onPlayAgain,
   canPlayAgain = true,
+  onCollect,
+  collectLabel,
+  collecting = false,
 }) {
   const isCreator = viewerRole === "creator";
   const creatorList = Array.isArray(creatorHands) ? creatorHands : [];
@@ -112,6 +117,7 @@ export default function BestOfThreeShowdown({
   const [hand, setHand] = useState(0);
   const [phase, setPhase] = useState("deal"); // deal | result | sweep | done
   const [shown, setShown] = useState(0);
+  const [countdown, setCountdown] = useState(null);
 
   const creatorHand = handAt(creatorList, hand);
   const opponentHand = handAt(opponentList, hand);
@@ -190,6 +196,36 @@ export default function BestOfThreeShowdown({
     };
   }
   const tone = TONES[verdict.tone];
+
+  // Only the losing side is on the clock. Choosing anything cancels it.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const autoCloseRef = useRef(true);
+
+  useEffect(() => {
+    if (phase !== "done" || verdict.tone !== "lose") return undefined;
+    autoCloseRef.current = true;
+    const startedAt = Date.now();
+    setCountdown(LOSER_SECONDS);
+    const id = setInterval(() => {
+      if (!autoCloseRef.current) return;
+      const left = LOSER_SECONDS - Math.floor((Date.now() - startedAt) / 1000);
+      if (left <= 0) {
+        clearInterval(id);
+        setCountdown(0);
+        closeRef.current?.();
+      } else {
+        setCountdown(left);
+      }
+    }, 200);
+    return () => clearInterval(id);
+  }, [phase, verdict.tone]);
+
+  const choose = (action) => () => {
+    autoCloseRef.current = false;
+    setCountdown(null);
+    action?.();
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -309,28 +345,33 @@ export default function BestOfThreeShowdown({
           </div>
 
           <div className="mt-3 flex flex-col gap-2">
-            {payout > 0 && (
-              <div className="rounded-full border border-emerald-400/50 bg-emerald-500/15 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-emerald-200">
-                ✓ Winnings automatically credited to your balance
-              </div>
+            {onCollect && (
+              <ActionButton primary onClick={choose(onCollect)} disabled={collecting}>
+                {collecting ? "Collecting…" : collectLabel || "Collect"}
+              </ActionButton>
             )}
             <div className="flex gap-2">
               {onPlayAgain && (
                 <ActionButton
-                  primary
-                  onClick={onPlayAgain}
+                  primary={!onCollect}
+                  onClick={choose(onPlayAgain)}
                   disabled={!canPlayAgain}
                   className="flex-1"
                 >
                   Play Again · Best of 3
                 </ActionButton>
               )}
-              <ActionButton onClick={onClose} className="flex-1">
-                Back to the Lobby
+              <ActionButton onClick={choose(onClose)} className="flex-1">
+                Back to the board
               </ActionButton>
             </div>
           </div>
 
+          {countdown != null && (
+            <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-emerald-100/50 tabular-nums">
+              Back to the board in {countdown}s
+            </p>
+          )}
           {!canPlayAgain && (
             <p className="mt-2 text-[10px] text-rose-300/80">
               Not enough {stakeType === "diamond" ? "Diamonds" : "chips"} to replay this wager.

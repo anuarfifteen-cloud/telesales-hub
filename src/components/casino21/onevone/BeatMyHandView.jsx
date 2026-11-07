@@ -6,17 +6,15 @@ import LocalHand from "./LocalHand";
 import HandPanel from "../HandPanel";
 import ChallengeCard from "./ChallengeCard";
 import OpenBetsBoard from "./OpenBetsBoard";
-import BoardFeedTabs from "./BoardFeedTabs";
 import ChipBalanceStrip from "./ChipBalanceStrip";
 import WagerLockCard from "./WagerLockCard";
 import ShowdownReveal from "./ShowdownReveal";
 import BestOfThreeShowdown from "./BestOfThreeShowdown";
 import BestOfThreePlay from "./BestOfThreePlay";
-import BlindWaitScreen from "./BlindWaitScreen";
 import FormatToggle from "./FormatToggle";
-import useBlindPlay from "./useBlindPlay";
 import { logChipMovement } from "@/lib/chipLog";
 import {
+  AUTO_POST_SECONDS,
   CHALLENGE_TTL_MS,
   TURN_SECONDS,
   WAGER_PRESETS,
@@ -47,8 +45,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const diamonds = Number(user?.diamonds) || 0;
 
   const [challenges, setChallenges] = useState([]);
-  // The global feed of finished matches, shown under Recent.
-  const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState("lobby"); // lobby | create | accept
   const [step, setStep] = useState("wager"); // wager | play | showdown
@@ -69,6 +65,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const [resultsFor, setResultsFor] = useState(null);
   const [busy, setBusy] = useState(false);
   const [handKey, setHandKey] = useState(0);
+  const [postCountdown, setPostCountdown] = useState(null);
   const [postFailed, setPostFailed] = useState(false);
   // The posted challenge the creator is sitting on in the live waiting room.
   const [waiting, setWaiting] = useState(null);
@@ -84,60 +81,11 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     return () => clearInterval(id);
   }, []);
 
-  // ── Automatic payout ────────────────────────────────────────────────
-  // There is no claim step: the winner is paid the moment the match settles.
-  // A client can only move its own wallet, so each device credits its own side
-  // as soon as it sees the settled record — at settlement, from the live
-  // waiting room, and on any later board load.
-  const payingRef = useRef(new Set());
-  const autoCredit = useCallback(
-    async (row) => {
-      if (!row?.id || row.status === "open") return;
-      const side =
-        row.creator_id === me ? "creator" : row.opponent_id === me ? "opponent" : null;
-      if (!side) return;
-      const amount = Number(side === "creator" ? row.creator_payout : row.opponent_payout) || 0;
-      const claimed = side === "creator" ? !!row.creator_claimed : !!row.opponent_claimed;
-      const key = `${row.id}:${side}`;
-      if (amount <= 0 || claimed || payingRef.current.has(key)) return;
-      payingRef.current.add(key);
-      try {
-        const wallet = walletFieldFor(stakeTypeOf(row));
-        await base44.entities.BeatMyHandChallenge.update(row.id, {
-          [side === "creator" ? "creator_claimed" : "opponent_claimed"]: true,
-        });
-        const fresh = await base44.auth.me();
-        const after = (Number(fresh?.[wallet]) || 0) + amount;
-        await base44.auth.updateMe({ [wallet]: after });
-        if (stakeTypeOf(row) === "chips") {
-          logChipMovement({
-            user,
-            mode: "wallet",
-            action_type: amount > (Number(row.wager) || 0) ? "win" : "push",
-            amount,
-            balance_after: after,
-            detail:
-              row.outcome === "expired"
-                ? `Beat My Hand — expired challenge refunded (${stakeLabel(amount, "chips")})`
-                : `Beat My Hand — winnings credited (${stakeLabel(amount, "chips")})`,
-          });
-        }
-        await onUserUpdate?.();
-      } catch {
-        // Left unclaimed so the board's pending list can still pay it out.
-        payingRef.current.delete(key);
-      }
-    },
-    [me, user, onUserUpdate]
-  );
-
   // ── Lazy 90-second expiry ───────────────────────────────────────────
   // Any player loading the board sweeps stale challenges and releases the
   // original stake back to its creator (collected by them on their own device).
   const sweepExpired = async (rows) => {
-    // A match a challenger has already taken is being played, not idle — its
-    // acceptance clock no longer applies, so it is never swept here.
-    const stale = rows.filter((c) => isExpired(c) && !c.opponent_id);
+    const stale = rows.filter(isExpired);
     if (!stale.length) return rows;
     await Promise.all(
       stale.map((c) =>
@@ -166,7 +114,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
 
   const load = useCallback(async () => {
     try {
-      const [openRes, mineRes, recentRes] = await Promise.all([
+      const [openRes, mineRes] = await Promise.all([
         base44.entities.BeatMyHandChallenge.filter(
           { status: "open" },
           { sort: "-created_date", limit: 40 }
@@ -175,12 +123,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
           { $or: [{ creator_id: me }, { opponent_id: me }] },
           { sort: "-created_date", limit: 25 }
         ),
-        base44.entities.BeatMyHandChallenge.filter(
-          { status: "settled" },
-          { sort: "-settled_at", limit: 5 }
-        ),
       ]);
-      setRecent(recentRes?.items || []);
       const byId = new Map();
       [...(openRes?.items || []), ...(mineRes?.items || [])].forEach((c) =>
         byId.set(c.id, c)
@@ -190,14 +133,12 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         String(b.created_date || "").localeCompare(String(a.created_date || ""))
       );
       setChallenges(rows);
-      // Pay out anything this player is owed on their own device.
-      rows.forEach((row) => autoCredit(row));
     } catch {
       setChallenges([]);
     } finally {
       setLoading(false);
     }
-  }, [me, autoCredit]);
+  }, [me]);
 
   useEffect(() => {
     load();
@@ -244,10 +185,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     c.creator_id === me ? !!c.creator_claimed : !!c.opponent_claimed;
 
   const myRows = challenges.filter((c) => c.creator_id === me || c.opponent_id === me);
-  // Only untaken challenges are bettable — one that a challenger already
-  // accepted is being played, so it must never be offered to a second player.
   const board = challenges.filter(
-    (c) => c.status === "open" && c.creator_id !== me && !c.opponent_id
+    (c) => c.status === "open" && c.creator_id !== me && c.opponent_id !== me
   );
   const myOpen = myRows.filter((c) => c.status === "open");
   const myClaims = myRows.filter((c) => c.status !== "open" && payoutFor(c) > 0 && !claimedFor(c));
@@ -265,7 +204,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setReadyToPost(false);
     setShowdown(null);
     setWaiting(null);
-    setBlind(null);
   };
 
   // ── Create ──────────────────────────────────────────────────────────
@@ -275,81 +213,28 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setMyHands([]);
     setReadyToPost(false);
     setPostFailed(false);
+    setPostCountdown(null);
     setStep("wager");
     setMode("create");
   };
 
-  // Standard format only: the stake is deducted and the bet goes on the board
-  // BEFORE a single card is drawn, so a challenger can take it and start their
-  // own hand while the poster is still playing.
-  const postLiveChallenge = async (stakeAmount, stakeCurrency) => {
-    const wallet = walletFieldFor(stakeCurrency);
-    const fresh = await base44.auth.me();
-    const balance = Number(fresh?.[wallet]) || 0;
-    if (balance < stakeAmount) {
-      toast.error(
-        `Not enough ${stakeCurrency === "diamond" ? "Diamonds" : "chips"} for that wager.`
-      );
-      return null;
-    }
-    const after = balance - stakeAmount;
-    await base44.auth.updateMe({ [wallet]: after });
-    const created = await base44.entities.BeatMyHandChallenge.create({
-      creator_id: me,
-      creator_name: myName,
-      format: "standard",
-      creator_score: 0,
-      creator_cards: [],
-      creator_submitted_at: 0,
-      wager: stakeAmount,
-      stake_type: stakeCurrency,
-      status: "open",
-      expires_at: Date.now() + CHALLENGE_TTL_MS,
-      creator_payout: 0,
-      opponent_payout: 0,
-      creator_claimed: false,
-      opponent_claimed: false,
-    });
-    if (stakeCurrency === "chips") {
-      logChipMovement({
-        user,
-        mode: "wallet",
-        action_type: "bet",
-        amount: -stakeAmount,
-        balance_after: after,
-        detail: `Beat My Hand posted — ${stakeLabel(stakeAmount, "chips")} (blind play)`,
-      });
-    }
-    await onUserUpdate?.();
-    setWaiting(created || null);
-    return created;
-  };
-
   // Cards are dealt only after the wager is locked.
-  const lockCreateWager = async () => {
+  const lockCreateWager = () => {
     setFinalScore(null);
     setHandCards([]);
     setMyHands([]);
     setReadyToPost(false);
     setPostFailed(false);
-    if (format === "best_of_3") {
-      setHandKey((k) => k + 1);
-      setStep("play");
-      return;
-    }
-    setBusy(true);
-    try {
-      const created = await postLiveChallenge(wager, stakeType);
-      if (!created) return;
-      setHandKey((k) => k + 1);
-      setStep("play");
-      await load();
-    } catch {
-      toast.error("Couldn't post that challenge.");
-    } finally {
-      setBusy(false);
-    }
+    setPostCountdown(null);
+    setHandKey((k) => k + 1);
+    setStep("play");
   };
+
+  const handDone = useCallback((score, cards) => {
+    setFinalScore(score);
+    setHandCards(Array.isArray(cards) ? cards : []);
+    setReadyToPost(true);
+  }, []);
 
   // Best of 3: all three hands are in, so the match can go on the board.
   const matchDone = useCallback((hands) => {
@@ -416,7 +301,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         toast.success("Challenge posted — waiting for an opponent.");
       } else {
         backToLobby();
-        toast.success("Challenge posted — 90 seconds in the Lobby.");
+        toast.success("Challenge posted — 90 seconds on the board.");
       }
     } catch {
       setPostFailed(true);
@@ -427,15 +312,25 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     }
   };
 
-  // Instant post: the moment the hand ends it goes straight on the board and the
-  // creator lands in the live waiting room — no pre-post countdown.
+  // Auto-post: the moment the hand ends, count three seconds and submit it.
   const autoPostRef = useRef(postChallenge);
   autoPostRef.current = postChallenge;
 
   useEffect(() => {
     if (mode !== "create" || !readyToPost) return undefined;
-    autoPostRef.current?.();
-    return undefined;
+    const startedAt = Date.now();
+    setPostCountdown(AUTO_POST_SECONDS);
+    const id = setInterval(() => {
+      const left = AUTO_POST_SECONDS - Math.floor((Date.now() - startedAt) / 1000);
+      if (left <= 0) {
+        clearInterval(id);
+        setPostCountdown(0);
+        autoPostRef.current?.();
+      } else {
+        setPostCountdown(left);
+      }
+    }, 200);
+    return () => clearInterval(id);
   }, [mode, readyToPost]);
 
   // ── Live waiting room ───────────────────────────────────────────────
@@ -474,7 +369,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         duration: 7000,
       });
     } catch {
-      toast.error("Expired — your stake is in the Lobby to collect.", { duration: 7000 });
+      toast.error("Expired — your stake is on the board to collect.", { duration: 7000 });
     }
   };
 
@@ -505,12 +400,10 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       });
       setWaiting(null);
       setMode("lobby");
-      // Paid the instant the record settles — the poster collects nothing.
-      autoCredit(row);
       load();
     });
     return unsubscribe;
-  }, [mode, waiting, load, autoCredit]);
+  }, [mode, waiting, load]);
 
   // ── Accept ──────────────────────────────────────────────────────────
   const startAccept = (challenge) => {
@@ -535,63 +428,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setMode("accept");
   };
 
-  // Cards are dealt only after the matching stake is locked. On a standard
-  // challenge the stake moves and the seat is claimed right here, so this hand
-  // starts playing immediately instead of waiting on the poster.
-  const lockAcceptWager = async () => {
+  // Cards are dealt only after the matching stake is locked.
+  const lockAcceptWager = () => {
     setFinalScore(null);
     setHandCards([]);
     setMyHands([]);
-    if (formatOf(target) === "best_of_3") {
-      setHandKey((k) => k + 1);
-      setStep("play");
-      return;
-    }
-    setBusy(true);
-    try {
-      const fresh = await base44.entities.BeatMyHandChallenge.get(target.id);
-      if (!fresh || fresh.status !== "open" || fresh.opponent_id) {
-        toast.error("That challenge was already taken.");
-        backToLobby();
-        await load();
-        return;
-      }
-      const stakeCurrency = stakeTypeOf(fresh);
-      const wallet = walletFieldFor(stakeCurrency);
-      const me_ = await base44.auth.me();
-      const balance = Number(me_?.[wallet]) || 0;
-      if (balance < fresh.wager) {
-        toast.error(
-          `Not enough ${stakeCurrency === "diamond" ? "Diamonds" : "chips"} to match that wager.`
-        );
-        return;
-      }
-      const after = balance - fresh.wager;
-      await base44.auth.updateMe({ [wallet]: after });
-      if (stakeCurrency === "chips") {
-        logChipMovement({
-          user,
-          mode: "wallet",
-          action_type: "bet",
-          amount: -fresh.wager,
-          balance_after: after,
-          detail: `Beat My Hand accepted ${fresh.creator_name}'s ${stakeLabel(fresh.wager, "chips")} challenge (blind play)`,
-        });
-      }
-      await base44.entities.BeatMyHandChallenge.update(fresh.id, {
-        opponent_id: me,
-        opponent_name: myName,
-        opponent_submitted_at: 0,
-      });
-      setTarget({ ...fresh, opponent_id: me, opponent_name: myName });
-      await onUserUpdate?.();
-      setHandKey((k) => k + 1);
-      setStep("play");
-    } catch {
-      toast.error("Couldn't take that challenge.");
-    } finally {
-      setBusy(false);
-    }
+    setHandKey((k) => k + 1);
+    setStep("play");
   };
 
   const settleAccept = async (score, cards, hands = null) => {
@@ -670,22 +513,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         settled_at: new Date().toISOString(),
       });
 
-      // The winner is paid automatically — no claim step. This device credits
-      // its own side only; the poster's device credits theirs.
-      autoCredit({
-        id: target.id,
-        status: "settled",
-        outcome: res.outcome,
-        stake_type: stakeTypeForChallenge,
-        wager: target.wager,
-        creator_id: current.creator_id,
-        opponent_id: me,
-        creator_payout: res.creatorPayout,
-        opponent_payout: res.opponentPayout,
-        creator_claimed: false,
-        opponent_claimed: false,
-      });
-
+      // Nobody is paid at settlement: whichever side won claims the pot from
+      // the showdown, so the poster and the challenger collect the same way.
       setShowdown({
         id: target.id,
         format: isMatch ? "best_of_3" : "standard",
@@ -718,30 +547,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     }
   };
 
-  // ── Simultaneous blind play (standard format) ───────────────────────
-  const {
-    blind,
-    setBlind,
-    submitCreatorHand,
-    submitChallengerHand,
-    handleBlindRow,
-    voidBlind,
-  } = useBlindPlay({
-    me,
-    onUserUpdate,
-    autoCredit,
-    load,
-    backToLobby,
-    setBusy,
-    setWaiting,
-    setTarget,
-    setResultsFor,
-    setShowdown,
-    setMode,
-    setStep,
-    toast,
-  });
-
   // ── Collect a settled payout or an expired stake ────────────────────
   const collect = async (challenge) => {
     const amount = payoutFor(challenge);
@@ -773,13 +578,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         });
       }
       await onUserUpdate?.();
-      // Stay on the results view: only the claim flag flips, so the payout reads
-      // as collected in place and the Creator can still hit Play Again.
-      const claimKey = isCreator ? "creator_claimed" : "opponent_claimed";
-      setResultsFor((c) =>
-        c && c.id === challenge.id ? { ...c, [claimKey]: true } : c
+      setResultsFor(null);
+      // Keep the open showdown in step so its Collect button disappears.
+      setShowdown((s) =>
+        s && s.id === challenge.id
+          ? { ...s, [isCreator ? "creator_claimed" : "opponent_claimed"]: true }
+          : s
       );
-      setShowdown((s) => (s && s.id === challenge.id ? { ...s, [claimKey]: true } : s));
       toast.success(`+${stakeLabel(amount, stakeTypeForChallenge)} collected.`);
       await load();
     } catch {
@@ -792,7 +597,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   // Rematch: same wager, currency and format, no results countdown and no wager
   // screen — fresh cards are dealt straight away, and the finished hand is then
   // posted as a brand-new challenge. The old cards are never reused.
-  const playAgain = async (source) => {
+  const playAgain = (source) => {
     const sameType = stakeTypeOf(source);
     const sameWager = Number(source?.wager) || wager;
     const sameFormat = formatOf(source);
@@ -813,29 +618,10 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setMyHands([]);
     setReadyToPost(false);
     setPostFailed(false);
+    setPostCountdown(null);
+    setHandKey((k) => k + 1);
     setMode("create");
-    if (sameFormat === "best_of_3") {
-      setHandKey((k) => k + 1);
-      setStep("play");
-      return;
-    }
-    // Standard: instantly back on the board, cards dealt the moment it posts.
-    setBusy(true);
-    try {
-      const created = await postLiveChallenge(sameWager, sameType);
-      if (!created) {
-        backToLobby();
-        return;
-      }
-      setHandKey((k) => k + 1);
-      setStep("play");
-      await load();
-    } catch {
-      toast.error("Couldn't post that challenge.");
-      backToLobby();
-    } finally {
-      setBusy(false);
-    }
+    setStep("play");
   };
 
   return (
@@ -858,7 +644,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               onClick={backToLobby}
               className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
             >
-              <ArrowLeft className="w-3 h-3" /> Lobby
+              <ArrowLeft className="w-3 h-3" /> Board
             </button>
 
             <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-3 text-center">
@@ -925,7 +711,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               onClick={() => setResultsFor(null)}
               className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
             >
-              <ArrowLeft className="w-3 h-3" /> Lobby
+              <ArrowLeft className="w-3 h-3" /> Board
             </button>
 
             {formatOf(resultsFor) === "best_of_3" ? (
@@ -939,6 +725,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 wager={resultsFor.wager}
                 stakeType={stakeTypeOf(resultsFor)}
                 viewerRole={resultsFor.creator_id === me ? "creator" : "opponent"}
+                onCollect={
+                  payoutFor(resultsFor) > 0 && !claimedFor(resultsFor)
+                    ? () => collect(resultsFor)
+                    : undefined
+                }
+                collectLabel={`Collect ${stakeLabel(payoutFor(resultsFor), stakeTypeOf(resultsFor))}`}
+                collecting={busy}
                 onClose={() => setResultsFor(null)}
                 onPlayAgain={
                   resultsFor.creator_id === me ? () => playAgain(resultsFor) : undefined
@@ -962,6 +755,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 wager={resultsFor.wager}
                 stakeType={stakeTypeOf(resultsFor)}
                 viewerRole={resultsFor.creator_id === me ? "creator" : "opponent"}
+                onCollect={
+                  payoutFor(resultsFor) > 0 && !claimedFor(resultsFor)
+                    ? () => collect(resultsFor)
+                    : undefined
+                }
+                collectLabel={`Collect ${stakeLabel(payoutFor(resultsFor), stakeTypeOf(resultsFor))}`}
+                collecting={busy}
                 onClose={() => setResultsFor(null)}
                 onPlayAgain={
                   resultsFor.creator_id === me ? () => playAgain(resultsFor) : undefined
@@ -990,7 +790,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               <button
                 onClick={load}
                 className="p-2 rounded-full bg-white/10 border border-white/15 text-emerald-100 hover:bg-white/15 transition"
-                title="Refresh room"
+                title="Refresh board"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
@@ -1044,15 +844,24 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               </div>
             )}
 
-            {/* Recent = the global feed of finished matches; History = yours. */}
-            <BoardFeedTabs
-              recent={recent}
-              history={myResults}
-              me={me}
-              onCollect={collect}
-              onView={setResultsFor}
-              busy={busy}
-            />
+            {myResults.length > 0 && (
+              <div className="flex flex-col gap-2 opacity-55 hover:opacity-100 transition-opacity">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/35">
+                  History
+                </p>
+                {myResults.slice(0, 6).map((c) => (
+                  <ChallengeCard
+                    key={c.id}
+                    challenge={c}
+                    me={me}
+                    variant="result"
+                    onCollect={collect}
+                    onView={setResultsFor}
+                    busy={busy}
+                  />
+                ))}
+              </div>
+            )}
 
             <p className="text-[9px] text-emerald-100/35 leading-relaxed mt-1">
               Highest valid hand wins the pot; a tie returns both stakes, and if both bust the
@@ -1068,7 +877,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               onClick={backToLobby}
               className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
             >
-              <ArrowLeft className="w-3 h-3" /> Lobby
+              <ArrowLeft className="w-3 h-3" /> Board
             </button>
 
             {step === "wager" ? (
@@ -1097,21 +906,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                   locked
                 />
 
-                {format === "standard" && waiting && (
-                  <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-center">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300/80">
-                      Live in the Lobby
-                    </p>
-                    <p className="text-[10px] text-emerald-100/60 mt-0.5 tabular-nums">
-                      {stakeLabel(waiting.wager, stakeTypeOf(waiting))} staked ·{" "}
-                      {secondsLeft(waiting.expires_at)}s to accept
-                    </p>
-                    <p className="text-[9px] text-emerald-100/35 mt-1">
-                      Play your hand now — your cards are only saved when you stand.
-                    </p>
-                  </div>
-                )}
-
                 {format === "best_of_3" ? (
                   <BestOfThreePlay
                     key={handKey}
@@ -1122,19 +916,18 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 ) : (
                   <LocalHand
                     key={handKey}
-                    onHandDone={(score, cards) => {
-                      setFinalScore(score);
-                      setHandCards(Array.isArray(cards) ? cards : []);
-                      submitCreatorHand(waiting, score, cards);
-                    }}
-                    disabled={busy}
+                    onHandDone={handDone}
+                    disabled={readyToPost}
                   />
                 )}
 
                 {readyToPost && !postFailed && (
                   <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-3 text-center">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300/80">
-                      Posting to the board…
+                      {busy ? "Posting challenge…" : "Posting automatically"}
+                    </p>
+                    <p className="text-3xl font-black text-amber-200 tabular-nums leading-none mt-1">
+                      {postCountdown ?? AUTO_POST_SECONDS}
                     </p>
                     <p className="text-[10px] text-emerald-100/60 mt-1 tabular-nums">
                       {format === "best_of_3"
@@ -1165,25 +958,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
           </div>
         )}
 
-        {mode === "blind" && blind && (
-          <div className="flex flex-col gap-3">
-            <BlindWaitScreen
-              challenge={blind}
-              myCards={handCards}
-              myScore={finalScore}
-              onSettled={handleBlindRow}
-              onVoid={(row) => {
-                autoCredit(row);
-                toast.error("The match closed — your stake is returned.", { duration: 7000 });
-                setBlind(null);
-                backToLobby();
-                load();
-              }}
-              onTimeout={voidBlind}
-            />
-          </div>
-        )}
-
         {mode === "accept" && target && (
           <div className="flex flex-col gap-3">
             {step !== "showdown" && (
@@ -1191,7 +965,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 onClick={backToLobby}
                 className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
               >
-                <ArrowLeft className="w-3 h-3" /> Lobby
+                <ArrowLeft className="w-3 h-3" /> Board
               </button>
             )}
 
@@ -1205,27 +979,9 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                   ? "Your hands are revealed below."
                   : formatOf(target) === "best_of_3"
                     ? "3 hands each — theirs stay locked until you finish all three."
-                    : "You both play at the same time — scores reveal together."}
+                    : "Their hand stays locked until you finish yours."}
               </p>
             </div>
-
-            {/* Challenger only: the live board sits right under the results
-                title so a rematch is visible without scrolling. */}
-            {step === "showdown" && (
-              <div className="flex flex-col gap-2">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/50">
-                  Rematch in the Lobby — take any open bet
-                </p>
-                <OpenBetsBoard
-                  challenges={board}
-                  loading={loading}
-                  onAccept={startAccept}
-                  busy={busy}
-                  user={user}
-                  emptyText="The Lobby is quiet — check back in a moment."
-                />
-              </div>
-            )}
 
             {step === "wager" && (
               <WagerLockCard
@@ -1260,9 +1016,9 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                     onHandDone={(score, cards) => {
                       setFinalScore(score);
                       setHandCards(Array.isArray(cards) ? cards : []);
-                      submitChallengerHand(target, score, cards);
+                      settleAccept(score, Array.isArray(cards) ? cards : []);
                     }}
-                    disabled={busy}
+                    disabled={finalScore != null}
                   />
                 )}
                 {busy && (
@@ -1284,6 +1040,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 wager={showdown.wager}
                 stakeType={stakeTypeOf(showdown)}
                 viewerRole="opponent"
+                onCollect={
+                  payoutFor(showdown) > 0 && !claimedFor(showdown)
+                    ? () => collect(showdown)
+                    : undefined
+                }
+                collectLabel={`Collect ${stakeLabel(payoutFor(showdown), stakeTypeOf(showdown))}`}
+                collecting={busy}
                 onClose={backToLobby}
               />
             )}
@@ -1301,10 +1064,34 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 wager={showdown.wager}
                 stakeType={stakeTypeOf(showdown)}
                 viewerRole="opponent"
+                onCollect={
+                  payoutFor(showdown) > 0 && !claimedFor(showdown)
+                    ? () => collect(showdown)
+                    : undefined
+                }
+                collectLabel={`Collect ${stakeLabel(payoutFor(showdown), stakeTypeOf(showdown))}`}
+                collecting={busy}
                 onClose={backToLobby}
               />
             )}
 
+            {/* Challenger only: the live board sits under the result so a
+                rematch can be taken without going back to the main tab. */}
+            {step === "showdown" && (
+              <div className="flex flex-col gap-2 pt-1">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/50">
+                  Rematch the board — take any open bet
+                </p>
+                <OpenBetsBoard
+                  challenges={board}
+                  loading={loading}
+                  onAccept={startAccept}
+                  busy={busy}
+                  user={user}
+                  emptyText="No open bets right now — check back in a moment."
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

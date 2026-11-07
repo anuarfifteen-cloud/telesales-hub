@@ -4,7 +4,7 @@
   "properties": {
     "creator_id": {
       "type": "string",
-      "description": "User ID of Player 1 \u2014 the player who posted the hand. Their stake is deducted the moment the challenge is posted."
+      "description": "User ID of Player 1 \u2014 the player who posted the hand. Their stake is deducted when the challenge is posted."
     },
     "creator_name": {
       "type": "string",
@@ -21,23 +21,18 @@
         "purple"
       ],
       "default": "standard",
-      "description": "How many hands the match is played over. standard = one hand each, played simultaneously (blind play) and compared exactly as before. best_of_3 = three hands each, compared by index; the most hand wins takes the pot. Records created before Best of 3 existed have no value here and are always treated as standard."
+      "description": "How many hands the match is played over. standard = one hand each, compared exactly as before. best_of_3 = three hands each, compared by index; the most hand wins takes the pot. Records created before Best of 3 existed have no value here and are always treated as standard."
     },
     "creator_score": {
       "type": "number",
-      "description": "Player 1's final hand total, written when Player 1 stands or busts. Values above 21 are a bust. On a Best of 3 match this is Player 1's first hand; the full set lives in creator_hands."
+      "description": "Player 1's final hand total. Values above 21 are a bust. On a Best of 3 match this is Player 1's first hand; the full set lives in creator_hands."
     },
     "creator_cards": {
       "type": "array",
       "items": {
         "type": "object"
       },
-      "description": "The exact cards Player 1 drew, in order ({ suit, color, rank, value }), written when Player 1 stands or busts. On a Best of 3 match these are Player 1's first hand; the full set lives in creator_hands."
-    },
-    "creator_submitted_at": {
-      "type": "number",
-      "default": 0,
-      "description": "UNIX epoch ms when Player 1 finished their standard-format hand. 0 means Player 1 has not finished yet \u2014 the two sides write only their own score fields, so the two submissions can never overwrite each other."
+      "description": "The exact cards Player 1 drew, in order ({ suit, color, rank, value }). On a Best of 3 match these are Player 1's first hand; the full set lives in creator_hands."
     },
     "creator_hands": {
       "type": "array",
@@ -56,7 +51,7 @@
     },
     "opponent_score": {
       "type": "number",
-      "description": "Player 2's final hand total, written when Player 2 stands or busts. On a Best of 3 match this is Player 2's first hand."
+      "description": "Player 2's final hand total, written when they settle the challenge. On a Best of 3 match this is Player 2's first hand."
     },
     "opponent_cards": {
       "type": "array",
@@ -64,11 +59,6 @@
         "type": "object"
       },
       "description": "The exact cards Player 2 finished on, kept for the showdown reveal and the settled record. On a Best of 3 match these are their first hand."
-    },
-    "opponent_submitted_at": {
-      "type": "number",
-      "default": 0,
-      "description": "UNIX epoch ms when Player 2 finished their standard-format hand. 0 means Player 2 has not finished yet."
     },
     "opponent_hands": {
       "type": "array",
@@ -124,7 +114,7 @@
         "gray"
       ],
       "default": "open",
-      "description": "open = live (accepting a challenger, or being played by both sides); settled = both hands are in and the pot was decided; expired = the acceptance window passed with no taker, or the match was voided after the opponent failed to finish \u2014 both stakes returned."
+      "description": "open = accepting players; settled = Player 2 finished their hand and the pot was decided; expired = nobody accepted within 90 seconds and Player 1's stake is returned."
     },
     "outcome": {
       "type": "string",
@@ -133,23 +123,21 @@
         "opponent_win",
         "push",
         "house",
-        "expired",
-        "void"
+        "expired"
       ],
       "enumColors": [
         "blue",
         "green",
         "yellow",
         "red",
-        "gray",
         "gray"
       ],
-      "description": "Who won the pot. creator_win = Player 1 took it; opponent_win = Player 2 took it; push = tied valid hands and both stakes returned; house = both busted and the pot is burned; expired = no taker inside the 90-second window; void = the opponent never finished their hand in time and both stakes are returned. On a Best of 3 match this is decided by total hand wins, and equal hand wins are always a push."
+      "description": "Who won the pot. creator_win = Player 1 took it; opponent_win = Player 2 took it; push = tied valid hands and both stakes returned; house = both busted and the pot is burned; expired = no taker inside the 90-second window. On a Best of 3 match this is decided by total hand wins, and equal hand wins are always a push."
     },
     "creator_payout": {
       "type": "number",
       "default": 0,
-      "description": "What is owed to Player 1 by this challenge (the pot for a win, their stake back for a push, expiry or void), in the challenge's stake currency. Collected by Player 1 on their own device, which is the only way a client can credit that wallet."
+      "description": "What is owed to Player 1 by this challenge (the pot for a win, their stake back for a push or expiry), in the challenge's stake currency. Collected by Player 1 on their own device, which is the only way a client can credit that wallet."
     },
     "opponent_payout": {
       "type": "number",
@@ -168,16 +156,11 @@
     },
     "expires_at": {
       "type": "number",
-      "description": "UNIX epoch ms when the 90-second acceptance window closes. Swept lazily whenever any player loads the board, and only for challenges no challenger has taken."
-    },
-    "settle_deadline": {
-      "type": "number",
-      "default": 0,
-      "description": "UNIX epoch ms by which the second player must finish. Set when the first standard-format hand is submitted; when it passes with one hand still missing, the match is voided and both stakes are returned. 0 on a match where nobody has finished yet."
+      "description": "UNIX epoch ms when the 90-second acceptance window closes. Swept lazily whenever any player loads the board."
     },
     "settled_at": {
       "type": "string",
-      "description": "ISO timestamp the challenge was settled, expired or voided."
+      "description": "ISO timestamp the challenge was settled or expired."
     }
   },
   "required": [

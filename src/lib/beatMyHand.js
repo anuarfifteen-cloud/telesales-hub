@@ -138,23 +138,13 @@ export function resolveMatch(creatorHands, opponentHands, wager) {
 // A challenge sits on the board for exactly 90 seconds.
 export const CHALLENGE_TTL_MS = 90 * 1000;
 
-// ── Simultaneous blind play (standard format) ───────────────────────────
-// Both players play their own hand at the same time and only write their own
-// score fields, so nothing is saved while cards are drawn. The moment the first
-// hand is submitted the other player has this long to finish; if they don't,
-// the match is voided and both stakes are returned.
-export const BLIND_WAIT_MS = 90 * 1000;
-
-/** Has this side finished their hand yet? */
-export function hasSubmitted(challenge, side) {
-  const at =
-    side === "creator" ? challenge?.creator_submitted_at : challenge?.opponent_submitted_at;
-  return Number(at) > 0;
-}
-
 // Once a wager is locked the challenger gets this long to finish their hand.
 // When the clock runs out the hand is stood as-is and settled.
 export const TURN_SECONDS = 15;
+
+// Grace period between finishing a hand and the challenge being posted, so the
+// player sees their final total land before the hand goes on the board.
+export const AUTO_POST_SECONDS = 3;
 
 /**
  * Compare the two finished hands and decide the pot.
@@ -234,8 +224,6 @@ export function outcomeLine(challenge, isCreator) {
       return isMatch ? "Push — match tied, stakes returned" : "Push — stakes returned";
     case "expired":
       return "Expired — stake returned";
-    case "void":
-      return "Voided — both stakes returned";
     case "creator_win":
       if (isMatch) return isCreator ? "Your match won the pot" : "Challenger won the match";
       return isCreator ? "Your hand won the pot" : "Challenger's hand won";
