@@ -6,6 +6,7 @@ import LocalHand from "./LocalHand";
 import HandPanel from "../HandPanel";
 import ChallengeCard from "./ChallengeCard";
 import OpenBetsBoard from "./OpenBetsBoard";
+import BoardFeedTabs from "./BoardFeedTabs";
 import ChipBalanceStrip from "./ChipBalanceStrip";
 import WagerLockCard from "./WagerLockCard";
 import ShowdownReveal from "./ShowdownReveal";
@@ -44,6 +45,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const diamonds = Number(user?.diamonds) || 0;
 
   const [challenges, setChallenges] = useState([]);
+  // The global feed of finished matches, shown under Recent.
+  const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState("lobby"); // lobby | create | accept
   const [step, setStep] = useState("wager"); // wager | play | showdown
@@ -79,6 +82,53 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     return () => clearInterval(id);
   }, []);
 
+  // ── Automatic payout ────────────────────────────────────────────────
+  // There is no claim step: the winner is paid the moment the match settles.
+  // A client can only move its own wallet, so each device credits its own side
+  // as soon as it sees the settled record — at settlement, from the live
+  // waiting room, and on any later board load.
+  const payingRef = useRef(new Set());
+  const autoCredit = useCallback(
+    async (row) => {
+      if (!row?.id || row.status === "open") return;
+      const side =
+        row.creator_id === me ? "creator" : row.opponent_id === me ? "opponent" : null;
+      if (!side) return;
+      const amount = Number(side === "creator" ? row.creator_payout : row.opponent_payout) || 0;
+      const claimed = side === "creator" ? !!row.creator_claimed : !!row.opponent_claimed;
+      const key = `${row.id}:${side}`;
+      if (amount <= 0 || claimed || payingRef.current.has(key)) return;
+      payingRef.current.add(key);
+      try {
+        const wallet = walletFieldFor(stakeTypeOf(row));
+        await base44.entities.BeatMyHandChallenge.update(row.id, {
+          [side === "creator" ? "creator_claimed" : "opponent_claimed"]: true,
+        });
+        const fresh = await base44.auth.me();
+        const after = (Number(fresh?.[wallet]) || 0) + amount;
+        await base44.auth.updateMe({ [wallet]: after });
+        if (stakeTypeOf(row) === "chips") {
+          logChipMovement({
+            user,
+            mode: "wallet",
+            action_type: amount > (Number(row.wager) || 0) ? "win" : "push",
+            amount,
+            balance_after: after,
+            detail:
+              row.outcome === "expired"
+                ? `Beat My Hand — expired challenge refunded (${stakeLabel(amount, "chips")})`
+                : `Beat My Hand — winnings credited (${stakeLabel(amount, "chips")})`,
+          });
+        }
+        await onUserUpdate?.();
+      } catch {
+        // Left unclaimed so the board's pending list can still pay it out.
+        payingRef.current.delete(key);
+      }
+    },
+    [me, user, onUserUpdate]
+  );
+
   // ── Lazy 90-second expiry ───────────────────────────────────────────
   // Any player loading the board sweeps stale challenges and releases the
   // original stake back to its creator (collected by them on their own device).
@@ -112,7 +162,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
 
   const load = useCallback(async () => {
     try {
-      const [openRes, mineRes] = await Promise.all([
+      const [openRes, mineRes, recentRes] = await Promise.all([
         base44.entities.BeatMyHandChallenge.filter(
           { status: "open" },
           { sort: "-created_date", limit: 40 }
@@ -121,7 +171,12 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
           { $or: [{ creator_id: me }, { opponent_id: me }] },
           { sort: "-created_date", limit: 25 }
         ),
+        base44.entities.BeatMyHandChallenge.filter(
+          { status: "settled" },
+          { sort: "-settled_at", limit: 15 }
+        ),
       ]);
+      setRecent(recentRes?.items || []);
       const byId = new Map();
       [...(openRes?.items || []), ...(mineRes?.items || [])].forEach((c) =>
         byId.set(c.id, c)
@@ -131,12 +186,14 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         String(b.created_date || "").localeCompare(String(a.created_date || ""))
       );
       setChallenges(rows);
+      // Pay out anything this player is owed on their own device.
+      rows.forEach((row) => autoCredit(row));
     } catch {
       setChallenges([]);
     } finally {
       setLoading(false);
     }
-  }, [me]);
+  }, [me, autoCredit]);
 
   useEffect(() => {
     load();
@@ -386,10 +443,12 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       });
       setWaiting(null);
       setMode("lobby");
+      // Paid the instant the record settles — the poster collects nothing.
+      autoCredit(row);
       load();
     });
     return unsubscribe;
-  }, [mode, waiting, load]);
+  }, [mode, waiting, load, autoCredit]);
 
   // ── Accept ──────────────────────────────────────────────────────────
   const startAccept = (challenge) => {
@@ -499,8 +558,22 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
         settled_at: new Date().toISOString(),
       });
 
-      // Nobody is paid at settlement: whichever side won claims the pot from
-      // the showdown, so the poster and the challenger collect the same way.
+      // The winner is paid automatically — no claim step. This device credits
+      // its own side only; the poster's device credits theirs.
+      autoCredit({
+        id: target.id,
+        status: "settled",
+        outcome: res.outcome,
+        stake_type: stakeTypeForChallenge,
+        wager: target.wager,
+        creator_id: current.creator_id,
+        opponent_id: me,
+        creator_payout: res.creatorPayout,
+        opponent_payout: res.opponentPayout,
+        creator_claimed: false,
+        opponent_claimed: false,
+      });
+
       setShowdown({
         id: target.id,
         format: isMatch ? "best_of_3" : "standard",
@@ -710,14 +783,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 wager={resultsFor.wager}
                 stakeType={stakeTypeOf(resultsFor)}
                 viewerRole={resultsFor.creator_id === me ? "creator" : "opponent"}
-                onCollect={
-                  payoutFor(resultsFor) > 0 && !claimedFor(resultsFor)
-                    ? () => collect(resultsFor)
-                    : undefined
-                }
-                collectLabel={`Collect ${stakeLabel(payoutFor(resultsFor), stakeTypeOf(resultsFor))}`}
-                collecting={busy}
-                collected={payoutFor(resultsFor) > 0 && claimedFor(resultsFor)}
                 onClose={() => setResultsFor(null)}
                 onPlayAgain={
                   resultsFor.creator_id === me ? () => playAgain(resultsFor) : undefined
@@ -741,14 +806,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 wager={resultsFor.wager}
                 stakeType={stakeTypeOf(resultsFor)}
                 viewerRole={resultsFor.creator_id === me ? "creator" : "opponent"}
-                onCollect={
-                  payoutFor(resultsFor) > 0 && !claimedFor(resultsFor)
-                    ? () => collect(resultsFor)
-                    : undefined
-                }
-                collectLabel={`Collect ${stakeLabel(payoutFor(resultsFor), stakeTypeOf(resultsFor))}`}
-                collecting={busy}
-                collected={payoutFor(resultsFor) > 0 && claimedFor(resultsFor)}
                 onClose={() => setResultsFor(null)}
                 onPlayAgain={
                   resultsFor.creator_id === me ? () => playAgain(resultsFor) : undefined
@@ -831,24 +888,15 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               </div>
             )}
 
-            {myResults.length > 0 && (
-              <div className="flex flex-col gap-2 opacity-55 hover:opacity-100 transition-opacity">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/35">
-                  History
-                </p>
-                {myResults.slice(0, 6).map((c) => (
-                  <ChallengeCard
-                    key={c.id}
-                    challenge={c}
-                    me={me}
-                    variant="result"
-                    onCollect={collect}
-                    onView={setResultsFor}
-                    busy={busy}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Recent = the global feed of finished matches; History = yours. */}
+            <BoardFeedTabs
+              recent={recent}
+              history={myResults}
+              me={me}
+              onCollect={collect}
+              onView={setResultsFor}
+              busy={busy}
+            />
 
             <p className="text-[9px] text-emerald-100/35 leading-relaxed mt-1">
               Highest valid hand wins the pot; a tie returns both stakes, and if both bust the
@@ -1042,14 +1090,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 wager={showdown.wager}
                 stakeType={stakeTypeOf(showdown)}
                 viewerRole="opponent"
-                onCollect={
-                  payoutFor(showdown) > 0 && !claimedFor(showdown)
-                    ? () => collect(showdown)
-                    : undefined
-                }
-                collectLabel={`Collect ${stakeLabel(payoutFor(showdown), stakeTypeOf(showdown))}`}
-                collecting={busy}
-                collected={payoutFor(showdown) > 0 && claimedFor(showdown)}
                 onClose={backToLobby}
               />
             )}
@@ -1067,14 +1107,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 wager={showdown.wager}
                 stakeType={stakeTypeOf(showdown)}
                 viewerRole="opponent"
-                onCollect={
-                  payoutFor(showdown) > 0 && !claimedFor(showdown)
-                    ? () => collect(showdown)
-                    : undefined
-                }
-                collectLabel={`Collect ${stakeLabel(payoutFor(showdown), stakeTypeOf(showdown))}`}
-                collecting={busy}
-                collected={payoutFor(showdown) > 0 && claimedFor(showdown)}
                 onClose={backToLobby}
               />
             )}
