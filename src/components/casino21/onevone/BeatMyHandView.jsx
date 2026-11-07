@@ -75,6 +75,11 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const settlingRef = useRef(false);
   // A finished hand can only be posted once, auto or manual.
   const postingRef = useRef(false);
+  // Why a settlement could not be written — shown in place, never a silent exit.
+  const [settleError, setSettleError] = useState(null);
+  // The challenge id whose matching stake this device already took, so a retry
+  // can never charge the same wager twice.
+  const stakeTakenForRef = useRef(null);
 
   // Live countdown on the board.
   useEffect(() => {
@@ -284,6 +289,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setReadyToPost(false);
     setShowdown(null);
     setWaiting(null);
+    setSettleError(null);
   };
 
   // ── Create ──────────────────────────────────────────────────────────
@@ -401,6 +407,29 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     return undefined;
   }, [mode, readyToPost]);
 
+  // ── Poster's settlement transition ──────────────────────────────────
+  // The live channel and the 5-second fallback poll apply the exact same
+  // transition, and a per-challenge guard makes whichever arrives second a
+  // no-op — a late poll can never override or double-apply a settlement.
+  const handledSettleRef = useRef(new Set());
+
+  const creatorSettled = (row) => {
+    if (!row?.id || handledSettleRef.current.has(row.id)) return;
+    handledSettleRef.current.add(row.id);
+    setResultsFor({
+      ...row,
+      creator_cards: row.creator_cards?.length ? row.creator_cards : waiting?.creator_cards || [],
+    });
+    setWaiting(null);
+    setMode("lobby");
+    // Paid the instant the record settles — the poster collects nothing.
+    autoCredit(row);
+    loadRef.current?.();
+  };
+
+  const settledRef = useRef(creatorSettled);
+  settledRef.current = creatorSettled;
+
   // ── Live waiting room ───────────────────────────────────────────────
   // Refund the stake the moment the window closes, then drop back to the board.
   const expireWaiting = async () => {
@@ -411,6 +440,19 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setWaiting(null);
     backToLobby();
     try {
+      // Re-read before expiring: the taker may have settled it in the final
+      // second, and an expiry must never overwrite a settled record.
+      const live = await base44.entities.BeatMyHandChallenge.filter({ id: row.id });
+      const current = Array.isArray(live) ? live[0] : live?.items?.[0];
+      if (!current) {
+        await loadRef.current?.();
+        return;
+      }
+      if (current.status !== "open") {
+        if (current.status === "settled") settledRef.current?.(current);
+        else await loadRef.current?.();
+        return;
+      }
       await base44.entities.BeatMyHandChallenge.update(row.id, {
         status: "expired",
         outcome: "expired",
@@ -459,21 +501,47 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   // pulled straight into the same animated showdown, no button needed.
   useEffect(() => {
     if (mode !== "waiting" || !waiting?.id) return undefined;
+    const challengeId = waiting.id;
     const unsubscribe = base44.entities.BeatMyHandChallenge.subscribe((event) => {
       const row = event?.data;
-      if (!row || row.id !== waiting.id || row.status !== "settled") return;
-      setResultsFor({
-        ...row,
-        creator_cards: row.creator_cards?.length ? row.creator_cards : waiting.creator_cards,
-      });
-      setWaiting(null);
-      setMode("lobby");
-      // Paid the instant the record settles — the poster collects nothing.
-      autoCredit(row);
-      load();
+      if (!row || row.id !== challengeId || row.status !== "settled") return;
+      settledRef.current?.(row);
     });
     return unsubscribe;
-  }, [mode, waiting, load, autoCredit]);
+  }, [mode, waiting]);
+
+  // Strict 5-second fallback: the waiting room reads the challenge directly, so
+  // a missed live event can never leave the poster on a stale countdown. An open
+  // record keeps waiting (the countdown owns the 90-second refund), a settled
+  // record opens the showdown, and an already-swept expiry leaves the room.
+  useEffect(() => {
+    if (mode !== "waiting" || !waiting?.id) return undefined;
+    const challengeId = waiting.id;
+    let active = true;
+    const check = async () => {
+      if (document.hidden) return;
+      let row = null;
+      try {
+        const live = await base44.entities.BeatMyHandChallenge.filter({ id: challengeId });
+        row = Array.isArray(live) ? live[0] : live?.items?.[0];
+      } catch {
+        return; // a blip simply waits for the next tick
+      }
+      if (!active || !row) return;
+      if (row.status === "settled") {
+        settledRef.current?.(row);
+      } else if (row.status === "expired") {
+        setWaiting(null);
+        backToLobby();
+        loadRef.current?.();
+      }
+    };
+    const poll = setInterval(check, BOARD_POLL_MS);
+    return () => {
+      active = false;
+      clearInterval(poll);
+    };
+  }, [mode, waiting]);
 
   // ── Accept ──────────────────────────────────────────────────────────
   const startAccept = (challenge) => {
@@ -494,6 +562,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setHandCards([]);
     setMyHands([]);
     setReadyToPost(false);
+    setSettleError(null);
     setStep("wager");
     setMode("accept");
   };
@@ -507,49 +576,97 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setStep("play");
   };
 
+  // Show the result of a record that is already settled, read from its stored
+  // hands — used when a retry finds its own settlement already written.
+  const showSettledFrom = (row) => {
+    const isMatch = formatOf(row) === "best_of_3";
+    setShowdown({
+      id: row.id,
+      format: formatOf(row),
+      creator_id: row.creator_id,
+      creator_name: row.creator_name || "Player",
+      creator_cards: Array.isArray(row.creator_cards) ? row.creator_cards : [],
+      creator_score: Number(row.creator_score) || 0,
+      creator_hands: Array.isArray(row.creator_hands) ? row.creator_hands : [],
+      opponent_name: row.opponent_name || myName,
+      opponent_cards: Array.isArray(row.opponent_cards) ? row.opponent_cards : [],
+      opponent_hands: isMatch && Array.isArray(row.opponent_hands) ? row.opponent_hands : [],
+      opponent_score: Number(row.opponent_score) || 0,
+      outcome: row.outcome,
+      wager: Number(row.wager) || 0,
+      stake_type: stakeTypeOf(row),
+      creator_payout: Number(row.creator_payout) || 0,
+      opponent_payout: Number(row.opponent_payout) || 0,
+      creator_claimed: !!row.creator_claimed,
+      opponent_claimed: !!row.opponent_claimed,
+    });
+    setSettleError(null);
+    setStep("showdown");
+  };
+
   const settleAccept = async (score, cards, hands = null) => {
     if (!target || settlingRef.current) return;
+    // The 90-second window closed while the hand was still being played. The
+    // poster's stake has gone back to them, so nothing is owed either way.
     if (secondsLeft(target.expires_at) <= 0) {
-      toast.error("That challenge has expired.");
-      backToLobby();
-      await load();
+      setSettleError(
+        "The 90-second window closed before your hand finished — nothing was taken from your balance."
+      );
       return;
     }
     settlingRef.current = true;
     setBusy(true);
+    setSettleError(null);
     try {
       const live = await base44.entities.BeatMyHandChallenge.filter({ id: target.id });
       const current = Array.isArray(live) ? live[0] : live?.items?.[0];
-      if (!current || current.status !== "open") {
-        toast.error("That challenge is no longer open.");
-        backToLobby();
+      if (!current) {
+        setSettleError("That challenge couldn't be found. Nothing was taken — go back to the Lobby.");
+        return;
+      }
+      if (current.status !== "open") {
+        // This device already settled it (a retry after a half-finished write):
+        // go straight to the result it wrote instead of starting over.
+        if (current.status === "settled" && current.opponent_id === me) {
+          showSettledFrom(current);
+          await load();
+          return;
+        }
+        setSettleError(
+          current.status === "settled"
+            ? "That challenge was already settled by another player — nothing was taken from you."
+            : "That challenge expired before your hand finished — nothing was taken from your balance."
+        );
         return;
       }
 
       const stakeTypeForChallenge = stakeTypeOf(current);
       const wallet = walletFieldFor(stakeTypeForChallenge);
-      const fresh = await base44.auth.me();
-      const balance = Number(fresh?.[wallet]) || 0;
-      if (balance < target.wager) {
-        toast.error(
-          `Not enough ${stakeTypeForChallenge === "diamond" ? "Diamonds" : "chips"} to match that wager.`
-        );
-        backToLobby();
-        return;
-      }
 
-      // Match the stake.
-      const afterStake = balance - target.wager;
-      await base44.auth.updateMe({ [wallet]: afterStake });
-      if (stakeTypeForChallenge === "chips") {
-        logChipMovement({
-          user,
-          mode: "wallet",
-          action_type: "bet",
-          amount: -target.wager,
-          balance_after: afterStake,
-          detail: `Beat My Hand accepted ${target.creator_name}'s ${stakeLabel(target.wager, "chips")} challenge`,
-        });
+      // Match the stake exactly once, so retrying a failed settle never charges
+      // the same wager a second time.
+      if (stakeTakenForRef.current !== target.id) {
+        const fresh = await base44.auth.me();
+        const balance = Number(fresh?.[wallet]) || 0;
+        if (balance < target.wager) {
+          setSettleError(
+            `Not enough ${stakeTypeForChallenge === "diamond" ? "Diamonds" : "chips"} to match that wager.`
+          );
+          return;
+        }
+        const afterStake = balance - target.wager;
+        await base44.auth.updateMe({ [wallet]: afterStake });
+        stakeTakenForRef.current = target.id;
+        if (stakeTypeForChallenge === "chips") {
+          logChipMovement({
+            user,
+            mode: "wallet",
+            action_type: "bet",
+            amount: -target.wager,
+            balance_after: afterStake,
+            detail: `Beat My Hand accepted ${target.creator_name}'s ${stakeLabel(target.wager, "chips")} challenge`,
+          });
+        }
       }
 
       // A Best of 3 compares both sides' hands by index; a standard match
@@ -623,8 +740,11 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       await onUserUpdate?.();
       await load();
     } catch {
-      toast.error("Couldn't settle that challenge.");
-      backToLobby();
+      // Never boot the challenger silently: their hand and stake stay put and
+      // they can retry the write in place.
+      setSettleError(
+        "Settlement failed — your hand is saved. Check your connection and tap retry."
+      );
     } finally {
       settlingRef.current = false;
       setBusy(false);
@@ -1093,6 +1213,31 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                   <p className="text-center text-[11px] font-bold uppercase tracking-widest text-amber-200 animate-pulse">
                     Settling the pot…
                   </p>
+                )}
+
+                {settleError && !busy && (
+                  <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 px-3 py-3 text-center">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-300">
+                      Settlement failed
+                    </p>
+                    <p className="text-[11px] text-rose-100/80 mt-1 leading-snug">{settleError}</p>
+                    <button
+                      onClick={() => {
+                        const isMatch = formatOf(target) === "best_of_3";
+                        const first = isMatch ? myHands[0] || { score: 0, cards: [] } : null;
+                        settleAccept(
+                          isMatch ? Number(first.score) || 0 : Number(finalScore) || 0,
+                          isMatch ? first.cards || [] : handCards,
+                          isMatch ? myHands : null
+                        );
+                      }}
+                      disabled={busy}
+                      className="mt-2 w-full py-2.5 rounded-full font-black uppercase tracking-widest text-xs text-emerald-950 disabled:opacity-40"
+                      style={{ background: "#d4af37" }}
+                    >
+                      Retry settlement
+                    </button>
+                  </div>
                 )}
               </>
             )}
