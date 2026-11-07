@@ -28,7 +28,7 @@ export default function OpenBetsBoard({
             <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-70 animate-ping" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-300" />
           </span>
-          Open bets
+          Room
         </p>
         {rows.length > 0 && (
           <span className="px-2 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/40 text-[9px] font-black tracking-widest text-amber-200 tabular-nums">
@@ -38,7 +38,7 @@ export default function OpenBetsBoard({
       </div>
 
       {loading ? (
-        <p className="text-xs text-emerald-100/50 py-4 text-center">Loading the board…</p>
+        <p className="text-xs text-emerald-100/50 py-4 text-center">Loading the room…</p>
       ) : rows.length === 0 ? (
         <p className="text-xs text-emerald-100/40 py-4 text-center">{emptyText}</p>
       ) : (
