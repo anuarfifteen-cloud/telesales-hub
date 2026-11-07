@@ -15,30 +15,54 @@ function agoLabel(iso) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-// One line per finished match, worded as a result between two colleagues.
-function resultLine(row) {
+// The two stacked lines of a finished match, worded as a result between two
+// colleagues. The winner always sits on top in green, the loser dimmed below.
+function resultLines(row) {
   const creator = row.creator_name || "Poster";
   const opponent = row.opponent_name || "Challenger";
-  if (row.outcome === "creator_win") return { text: `${creator} beat ${opponent}`, tone: "text-emerald-300" };
-  if (row.outcome === "opponent_win") return { text: `${opponent} beat ${creator}`, tone: "text-emerald-300" };
-  if (row.outcome === "push") return { text: `${creator} tied ${opponent}`, tone: "text-amber-300" };
-  if (row.outcome === "house") return { text: `${creator} vs ${opponent} — both busted`, tone: "text-rose-300" };
-  return { text: `${creator} vs ${opponent} — expired`, tone: "text-emerald-100/50" };
+
+  if (row.outcome === "creator_win") {
+    return { top: creator, topTone: "text-emerald-300", topIcon: "✓", bottom: opponent };
+  }
+  if (row.outcome === "opponent_win") {
+    return { top: opponent, topTone: "text-emerald-300", topIcon: "✓", bottom: creator };
+  }
+  if (row.outcome === "push") {
+    return { top: `Tie: ${creator}`, topTone: "text-pink-300", topIcon: "", bottom: opponent, bottomTone: "text-pink-200/50" };
+  }
+  if (row.outcome === "house") {
+    return { top: `Both busted: ${creator}`, topTone: "text-rose-300", topIcon: "", bottom: opponent, bottomTone: "text-rose-200/50" };
+  }
+  return { top: `Expired: ${creator}`, topTone: "text-emerald-100/55", topIcon: "", bottom: opponent, bottomTone: "text-emerald-100/35" };
 }
 
 function RecentRow({ row }) {
-  const line = resultLine(row);
+  const line = resultLines(row);
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className={`text-[11px] font-bold truncate ${line.tone}`}>{line.text}</p>
-        <span className="shrink-0 text-[9px] font-bold uppercase tracking-widest text-emerald-100/35 tabular-nums">
-          {agoLabel(row.settled_at || row.updated_date)}
-        </span>
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
+      {/* Names stack and wrap freely — a long name takes a second line rather
+          than being cut off. */}
+      <div className="flex flex-col gap-0.5">
+        <p
+          className={`whitespace-normal break-words text-[12px] font-black leading-snug ${line.topTone}`}
+        >
+          {line.topIcon && <span className="mr-1">{line.topIcon}</span>}
+          {line.top}
+        </p>
+        <p
+          className={`whitespace-normal break-words text-[11px] font-semibold leading-snug ${
+            line.bottomTone || "text-emerald-100/35"
+          }`}
+        >
+          {line.bottom}
+        </p>
       </div>
-      <p className="mt-0.5 text-[9px] uppercase tracking-widest text-emerald-100/40 tabular-nums">
+
+      {/* Metadata sits on its own third row, dimmer and smaller. */}
+      <p className="mt-2 text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-100/30 tabular-nums">
         {stakeLabel(row.wager, stakeTypeOf(row))} each ·{" "}
-        {formatOf(row) === "best_of_3" ? "best of 3" : "single hand"}
+        {formatOf(row) === "best_of_3" ? "best of 3" : "single hand"} ·{" "}
+        {agoLabel(row.settled_at || row.updated_date)}
       </p>
     </div>
   );
