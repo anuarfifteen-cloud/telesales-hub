@@ -6,7 +6,7 @@ import LocalHand from "./LocalHand";
 import HandPanel from "../HandPanel";
 import ChallengeCard from "./ChallengeCard";
 import OpenBetsBoard from "./OpenBetsBoard";
-import BoardFeedTabs from "./BoardFeedTabs";
+import GameRecentBracket from "./GameRecentBracket";
 import ChipBalanceStrip from "./ChipBalanceStrip";
 import WagerLockCard from "./WagerLockCard";
 import ShowdownReveal from "./ShowdownReveal";
@@ -245,9 +245,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   );
   const myOpen = myRows.filter((c) => c.status === "open");
   const myClaims = myRows.filter((c) => c.status !== "open" && payoutFor(c) > 0 && !claimedFor(c));
-  const myResults = myRows.filter(
-    (c) => c.status !== "open" && !(payoutFor(c) > 0 && !claimedFor(c))
-  );
 
   const backToLobby = () => {
     setMode("lobby");
@@ -702,7 +699,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               onClick={backToLobby}
               className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
             >
-              <ArrowLeft className="w-3 h-3" /> Board
+              <ArrowLeft className="w-3 h-3" /> Lobby
             </button>
 
             <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-3 text-center">
@@ -769,7 +766,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               onClick={() => setResultsFor(null)}
               className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
             >
-              <ArrowLeft className="w-3 h-3" /> Board
+              <ArrowLeft className="w-3 h-3" /> Lobby
             </button>
 
             {formatOf(resultsFor) === "best_of_3" ? (
@@ -825,16 +822,16 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300/70">
-                  Asynchronous · 90s window
+                  Beat My Hand · asynchronous · 90s window
                 </p>
                 <h3 className="font-display text-base font-bold text-emerald-50 flex items-center gap-1.5">
-                  <Swords className="w-4 h-4 text-amber-300" /> Beat My Hand
+                  <Swords className="w-4 h-4 text-amber-300" /> Lobby
                 </h3>
               </div>
               <button
                 onClick={load}
                 className="p-2 rounded-full bg-white/10 border border-white/15 text-emerald-100 hover:bg-white/15 transition"
-                title="Refresh board"
+                title="Refresh lobby"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
@@ -888,15 +885,8 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               </div>
             )}
 
-            {/* Recent = the global feed of finished matches; History = yours. */}
-            <BoardFeedTabs
-              recent={recent}
-              history={myResults}
-              me={me}
-              onCollect={collect}
-              onView={setResultsFor}
-              busy={busy}
-            />
+            {/* Game Recent = the last five matches settled across all players. */}
+            <GameRecentBracket matches={recent} me={me} onView={setResultsFor} />
 
             <p className="text-[9px] text-emerald-100/35 leading-relaxed mt-1">
               Highest valid hand wins the pot; a tie returns both stakes, and if both bust the
@@ -912,7 +902,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               onClick={backToLobby}
               className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
             >
-              <ArrowLeft className="w-3 h-3" /> Board
+              <ArrowLeft className="w-3 h-3" /> Lobby
             </button>
 
             {step === "wager" ? (
@@ -997,7 +987,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 onClick={backToLobby}
                 className="self-start flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 hover:text-emerald-100"
               >
-                <ArrowLeft className="w-3 h-3" /> Board
+                <ArrowLeft className="w-3 h-3" /> Lobby
               </button>
             )}
 

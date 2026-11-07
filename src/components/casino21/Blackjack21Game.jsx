@@ -43,7 +43,6 @@ function dealerShouldHit(hand, difficulty) {
 import HandPanel from "./HandPanel";
 import { logChipMovement } from "@/lib/chipLog";
 import BlackjackStats from "./BlackjackStats";
-import BlackjackHistory from "./BlackjackHistory";
 import ChipCashierModal from "./ChipCashierModal";
 import BlackjackResultCard from "./BlackjackResultCard";
 import HowToPlayButton from "./HowToPlayButton";
@@ -551,14 +550,13 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
 
   return (
     <div className="w-full max-w-sm mx-auto">
-      {/* Shared Game / Stats / History tab strip */}
+      {/* Shared Game / Rank / 1v1 / Stats tab strip */}
       <div className="flex gap-1 p-1 bg-muted/50 border border-border rounded-t-2xl">
         {[
           ["game", "🎮 CASUAL"],
           ["rank", "🏆RANK"],
           ["onevone", "⚔️ 1V1"],
           ["stats", "📊 Stats"],
-          ["history", "📜 History"],
         ].map(([id, label]) => (
           <button
             key={id}
@@ -756,7 +754,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       <ChallengeAlertWatcher enabled={view !== "onevone"} me={user?.id} />
 
       {view === "stats" && <BlackjackStats userId={user?.id} user={user} />}
-      {view === "history" && <BlackjackHistory userId={user?.id} />}
 
       <ChipCashierModal
         user={user}
