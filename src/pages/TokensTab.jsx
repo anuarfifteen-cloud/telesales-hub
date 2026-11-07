@@ -16,8 +16,13 @@ import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
 import DailyChipGiftModal, { chipGiftClaimedToday } from "@/components/casino21/DailyChipGiftModal";
 import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 
-export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true }) {
+export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true, oneVOneRequest = 0 }) {
   const [innerTab, setInnerTab] = useState("milestones");
+  // "View" on a new-challenge alert: land on the Blackjack 21 sub-tab, which
+  // then opens its 1V1 board.
+  useEffect(() => {
+    if (oneVOneRequest > 0) setInnerTab("blackjack21");
+  }, [oneVOneRequest]);
   // Cross-tree "GO TO RANKED NOW": land on the Blackjack 21 sub-tab. Reacts
   // once per signal (checks on mount for a signal fired before this tab
   // mounted, then subscribes for later ones).
@@ -252,7 +257,11 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
 
       {/* Blackjack 21 */}
       {innerTab === "blackjack21" && (
-        <Blackjack21Game user={user} onUserUpdate={onUserUpdate} />
+        <Blackjack21Game
+          user={user}
+          onUserUpdate={onUserUpdate}
+          oneVOneRequest={oneVOneRequest}
+        />
       )}
 
       {/* Premium Scratch Card */}

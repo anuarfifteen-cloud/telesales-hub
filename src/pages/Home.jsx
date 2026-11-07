@@ -32,6 +32,7 @@ import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminAnnouncement from "@/components/admin/AdminAnnouncement";
 import AnnouncementPanel from "@/components/announcements/AnnouncementPanel";
 import AnnouncementPopup from "@/components/announcements/AnnouncementPopup";
+import ChallengeAlertWatcher from "@/components/casino21/onevone/ChallengeAlertWatcher";
 import RosterView from "@/components/roster/RosterView";
 import { Button } from "@/components/ui/button";
 import FeatureUnlockModal from "@/components/FeatureUnlockModal";
@@ -74,6 +75,13 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [activeTab, setActiveTab] = useState("booking");
+  // Bumped when a new-challenge alert is tapped: Tokens opens Blackjack 21 and
+  // the game opens its 1V1 board.
+  const [oneVOneRequest, setOneVOneRequest] = useState(0);
+  const openOneVOneBoard = () => {
+    setOneVOneRequest((n) => n + 1);
+    setActiveTab("tokens");
+  };
   const [innerTab, setInnerTab] = useState("book");
   const [profileTab, setProfileTab] = useState("profile");
   const [showPinModal, setShowPinModal] = useState(false);
@@ -968,6 +976,7 @@ useEffect(() => {
             isAdmin={isAdmin}
             ninjaEnabled={ninjaEnabled}
             scratchCardEnabled={scratchCardEnabled}
+            oneVOneRequest={oneVOneRequest}
           />
         )}
 
@@ -1192,6 +1201,9 @@ useEffect(() => {
         announcement={activePopup}
         onDismiss={() => setActivePopup(null)} 
       />
+
+      {/* New 1V1 challenges pop up on any tab except the 1V1 board itself. */}
+      <ChallengeAlertWatcher me={user?.id} onView={openOneVOneBoard} />
 
       <NewSeasonRewardsPopup user={user} onUserUpdate={refreshUser} />
 

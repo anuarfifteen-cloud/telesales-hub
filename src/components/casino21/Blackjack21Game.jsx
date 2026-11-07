@@ -60,7 +60,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import MilestoneProgressionView from "./milestone/MilestoneProgressionView";
 import BeatMyHandView from "./onevone/BeatMyHandView";
-import ChallengeAlertWatcher from "./onevone/ChallengeAlertWatcher";
+import { setOneVOneVisible } from "@/lib/oneVOneVisibility";
 import RankClaimPopup from "./milestone/RankClaimPopup";
 import useMilestoneClaim from "./milestone/useMilestoneClaim";
 import {
@@ -164,7 +164,7 @@ function resolveRound(playerHand, aiHand, dealerHand, difficulty) {
   return { type, detail, natural, aiRes };
 }
 
-export default function Blackjack21Game({ user, onUserUpdate }) {
+export default function Blackjack21Game({ user, onUserUpdate, oneVOneRequest = 0 }) {
   const chips = Number(user?.casinoChips) || 0;
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
@@ -215,6 +215,16 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       }
     });
   }, []);
+  // "View" on a new-challenge alert: land straight on the 1V1 board.
+  useEffect(() => {
+    if (oneVOneRequest > 0) setView("onevone");
+  }, [oneVOneRequest]);
+  // Tell the app-wide challenge alert whether the 1V1 board is already on
+  // screen, so it never pops over the board that lists the same challenges.
+  useEffect(() => {
+    setOneVOneVisible(view === "onevone");
+    return () => setOneVOneVisible(false);
+  }, [view]);
   const [flash, setFlash] = useState(null);
   const [dealerThinking, setDealerThinking] = useState(false);
   const queryClient = useQueryClient();
@@ -748,10 +758,6 @@ export default function Blackjack21Game({ user, onUserUpdate }) {
       )}
 
       {view === "onevone" && <BeatMyHandView user={user} onUserUpdate={onUserUpdate} />}
-
-      {/* New 1V1 challenges pop up briefly on every sub-tab except 1V1,
-          where the live open board already lists them. */}
-      <ChallengeAlertWatcher enabled={view !== "onevone"} me={user?.id} />
 
       {view === "stats" && <BlackjackStats userId={user?.id} user={user} />}
 
