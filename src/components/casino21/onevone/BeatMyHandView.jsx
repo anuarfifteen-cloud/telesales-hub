@@ -1242,6 +1242,9 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 footer={
                   <ChallengerResultSwap
                     outcome={showdown.outcome}
+                    wager={showdown.wager}
+                    stakeType={stakeTypeOf(showdown)}
+                    payout={payoutFor(showdown)}
                     challenges={board}
                     loading={loading}
                     onAccept={startAccept}
@@ -1269,6 +1272,9 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 footer={
                   <ChallengerResultSwap
                     outcome={showdown.outcome}
+                    wager={showdown.wager}
+                    stakeType={stakeTypeOf(showdown)}
+                    payout={payoutFor(showdown)}
                     challenges={board}
                     loading={loading}
                     onAccept={startAccept}

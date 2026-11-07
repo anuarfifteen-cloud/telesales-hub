@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import OpenBetsBoard from "./OpenBetsBoard";
+import { stakeLabel } from "@/lib/beatMyHand";
 
 const COUNTDOWN_FROM = 3;
 
@@ -14,6 +15,9 @@ const TONES = {
 // open board in exactly the same spot — no page change, the showdown stays up.
 export default function ChallengerResultSwap({
   outcome,
+  wager,
+  stakeType = "chips",
+  payout = 0,
   challenges,
   loading,
   onAccept,
@@ -46,12 +50,30 @@ export default function ChallengerResultSwap({
     );
   }
 
+  const stake = Number(wager) || 0;
+  const winnings = Number(payout) || 0;
+
   const result =
     outcome === "opponent_win"
-      ? { label: "You win", tone: "win" }
+      ? {
+          label: "You win",
+          tone: "win",
+          detail: `+${stakeLabel(winnings, stakeType)}`,
+          detailTone: "text-emerald-300",
+        }
       : outcome === "push"
-        ? { label: "Draw", tone: "draw" }
-        : { label: "You lose", tone: "lose" };
+        ? {
+            label: "Draw",
+            tone: "draw",
+            detail: `Stake refunded (${stakeLabel(winnings || stake, stakeType)})`,
+            detailTone: "text-emerald-100/70",
+          }
+        : {
+            label: "You lose",
+            tone: "lose",
+            detail: `−${stakeLabel(stake, stakeType)}`,
+            detailTone: "text-rose-300",
+          };
   const tone = TONES[result.tone];
 
   return (
@@ -63,6 +85,9 @@ export default function ChallengerResultSwap({
     >
       <p className={`text-base font-black uppercase tracking-[0.2em] ${tone.text}`}>
         {result.label}
+      </p>
+      <p className={`mt-1 text-sm font-black tabular-nums ${result.detailTone}`}>
+        {result.detail}
       </p>
       <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-100/50 tabular-nums">
         Loading board in {seconds}...
