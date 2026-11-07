@@ -113,9 +113,6 @@ export default function ShowdownReveal({
   onPlayAgain,
   canPlayAgain = true,
   viewerRole = "opponent",
-  onCollect,
-  collectLabel,
-  collecting = false,
 }) {
   const isCreator = viewerRole === "creator";
   const creatorHand = Array.isArray(creatorCards) ? creatorCards : [];
@@ -216,15 +213,15 @@ export default function ShowdownReveal({
           </div>
 
           <div className="mt-3 flex flex-col gap-2">
-            {onCollect && (
-              <ActionButton primary onClick={onCollect} disabled={collecting}>
-                {collecting ? "Collecting…" : collectLabel || "Collect"}
-              </ActionButton>
+            {payout > 0 && (
+              <div className="rounded-full border border-emerald-400/50 bg-emerald-500/15 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-emerald-200">
+                ✓ Winnings automatically credited to your balance
+              </div>
             )}
             <div className="flex gap-2">
               {onPlayAgain && (
                 <ActionButton
-                  primary={!onCollect}
+                  primary
                   onClick={onPlayAgain}
                   disabled={!canPlayAgain}
                   className="flex-1"
