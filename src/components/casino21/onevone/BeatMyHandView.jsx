@@ -6,6 +6,7 @@ import LocalHand from "./LocalHand";
 import HandPanel from "../HandPanel";
 import ChallengeCard from "./ChallengeCard";
 import OpenBetsBoard from "./OpenBetsBoard";
+import ChallengerResultSwap from "./ChallengerResultSwap";
 import GameRecentBracket from "./GameRecentBracket";
 import ChipBalanceStrip from "./ChipBalanceStrip";
 import WagerLockCard from "./WagerLockCard";
@@ -1156,24 +1157,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
               </p>
             </div>
 
-            {/* Challenger only: the live board sits right under the results
-                title so a rematch is visible without scrolling. */}
-            {step === "showdown" && (
-              <div className="flex flex-col gap-2">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/50">
-                  Rematch the board — take any open bet
-                </p>
-                <OpenBetsBoard
-                  challenges={board}
-                  loading={loading}
-                  onAccept={startAccept}
-                  busy={busy}
-                  user={user}
-                  emptyText="No open bets right now — check back in a moment."
-                />
-              </div>
-            )}
-
             {step === "wager" && (
               <WagerLockCard
                 wager={target.wager}
@@ -1256,6 +1239,16 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 wager={showdown.wager}
                 stakeType={stakeTypeOf(showdown)}
                 viewerRole="opponent"
+                footer={
+                  <ChallengerResultSwap
+                    outcome={showdown.outcome}
+                    challenges={board}
+                    loading={loading}
+                    onAccept={startAccept}
+                    busy={busy}
+                    user={user}
+                  />
+                }
                 onClose={backToLobby}
               />
             )}
@@ -1273,6 +1266,16 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 wager={showdown.wager}
                 stakeType={stakeTypeOf(showdown)}
                 viewerRole="opponent"
+                footer={
+                  <ChallengerResultSwap
+                    outcome={showdown.outcome}
+                    challenges={board}
+                    loading={loading}
+                    onAccept={startAccept}
+                    busy={busy}
+                    user={user}
+                  />
+                }
                 onClose={backToLobby}
               />
             )}

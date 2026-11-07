@@ -113,6 +113,9 @@ export default function ShowdownReveal({
   onPlayAgain,
   canPlayAgain = true,
   viewerRole = "opponent",
+  // When given, it replaces the verdict block under the cards — the challenger
+  // shows their own result there and then the live board in its place.
+  footer = null,
 }) {
   const isCreator = viewerRole === "creator";
   const creatorHand = Array.isArray(creatorCards) ? creatorCards : [];
@@ -188,7 +191,9 @@ export default function ShowdownReveal({
         />
       </div>
 
-      {verdictVisible && (
+      {verdictVisible && footer}
+
+      {verdictVisible && !footer && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

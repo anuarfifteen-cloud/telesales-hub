@@ -95,6 +95,8 @@ export default function BestOfThreeShowdown({
   onClose,
   onPlayAgain,
   canPlayAgain = true,
+  // Replaces the verdict block once the match is done — see ShowdownReveal.
+  footer = null,
 }) {
   const isCreator = viewerRole === "creator";
   const creatorList = Array.isArray(creatorHands) ? creatorHands : [];
@@ -282,7 +284,9 @@ export default function BestOfThreeShowdown({
         </AnimatePresence>
       )}
 
-      {phase === "done" && (
+      {phase === "done" && footer}
+
+      {phase === "done" && !footer && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
