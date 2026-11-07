@@ -14,7 +14,6 @@ import BestOfThreePlay from "./BestOfThreePlay";
 import FormatToggle from "./FormatToggle";
 import { logChipMovement } from "@/lib/chipLog";
 import {
-  AUTO_POST_SECONDS,
   CHALLENGE_TTL_MS,
   TURN_SECONDS,
   WAGER_PRESETS,
@@ -65,7 +64,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const [resultsFor, setResultsFor] = useState(null);
   const [busy, setBusy] = useState(false);
   const [handKey, setHandKey] = useState(0);
-  const [postCountdown, setPostCountdown] = useState(null);
   const [postFailed, setPostFailed] = useState(false);
   // The posted challenge the creator is sitting on in the live waiting room.
   const [waiting, setWaiting] = useState(null);
@@ -213,7 +211,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setMyHands([]);
     setReadyToPost(false);
     setPostFailed(false);
-    setPostCountdown(null);
     setStep("wager");
     setMode("create");
   };
@@ -225,7 +222,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setMyHands([]);
     setReadyToPost(false);
     setPostFailed(false);
-    setPostCountdown(null);
     setHandKey((k) => k + 1);
     setStep("play");
   };
@@ -312,25 +308,15 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     }
   };
 
-  // Auto-post: the moment the hand ends, count three seconds and submit it.
+  // Instant post: the moment the hand ends it goes straight on the board and the
+  // creator lands in the live waiting room — no pre-post countdown.
   const autoPostRef = useRef(postChallenge);
   autoPostRef.current = postChallenge;
 
   useEffect(() => {
     if (mode !== "create" || !readyToPost) return undefined;
-    const startedAt = Date.now();
-    setPostCountdown(AUTO_POST_SECONDS);
-    const id = setInterval(() => {
-      const left = AUTO_POST_SECONDS - Math.floor((Date.now() - startedAt) / 1000);
-      if (left <= 0) {
-        clearInterval(id);
-        setPostCountdown(0);
-        autoPostRef.current?.();
-      } else {
-        setPostCountdown(left);
-      }
-    }, 200);
-    return () => clearInterval(id);
+    autoPostRef.current?.();
+    return undefined;
   }, [mode, readyToPost]);
 
   // ── Live waiting room ───────────────────────────────────────────────
@@ -618,7 +604,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setMyHands([]);
     setReadyToPost(false);
     setPostFailed(false);
-    setPostCountdown(null);
     setHandKey((k) => k + 1);
     setMode("create");
     setStep("play");
@@ -924,10 +909,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 {readyToPost && !postFailed && (
                   <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-3 text-center">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300/80">
-                      {busy ? "Posting challenge…" : "Posting automatically"}
-                    </p>
-                    <p className="text-3xl font-black text-amber-200 tabular-nums leading-none mt-1">
-                      {postCountdown ?? AUTO_POST_SECONDS}
+                      Posting to the board…
                     </p>
                     <p className="text-[10px] text-emerald-100/60 mt-1 tabular-nums">
                       {format === "best_of_3"

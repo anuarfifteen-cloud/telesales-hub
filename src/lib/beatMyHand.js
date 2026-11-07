@@ -142,10 +142,6 @@ export const CHALLENGE_TTL_MS = 90 * 1000;
 // When the clock runs out the hand is stood as-is and settled.
 export const TURN_SECONDS = 15;
 
-// Grace period between finishing a hand and the challenge being posted, so the
-// player sees their final total land before the hand goes on the board.
-export const AUTO_POST_SECONDS = 3;
-
 /**
  * Compare the two finished hands and decide the pot.
  *
