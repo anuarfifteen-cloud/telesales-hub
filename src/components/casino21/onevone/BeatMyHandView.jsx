@@ -5,7 +5,7 @@ import { ArrowLeft, RefreshCw, Swords } from "lucide-react";
 import LocalHand from "./LocalHand";
 import HandPanel from "../HandPanel";
 import ChallengeCard from "./ChallengeCard";
-import OpenChallengeCard from "./OpenChallengeCard";
+import OpenBetsBoard from "./OpenBetsBoard";
 import ChipBalanceStrip from "./ChipBalanceStrip";
 import WagerLockCard from "./WagerLockCard";
 import ShowdownReveal from "./ShowdownReveal";
@@ -150,7 +150,10 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   // torn down the instant the player leaves the tab or steps into a hand, and
   // nothing refreshes while the browser tab itself is hidden.
   useEffect(() => {
-    if (mode !== "lobby") return undefined;
+    // Live while the main board is up, and while a settled match shows the
+    // challenger the inline board under their result.
+    const boardOnScreen = mode === "lobby" || (mode === "accept" && step === "showdown");
+    if (!boardOnScreen) return undefined;
 
     let active = true;
     const refresh = () => {
@@ -174,7 +177,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
       clearInterval(poll);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [mode, me, load]);
+  }, [mode, step, me, load]);
 
   const payoutFor = (c) =>
     Number(c.creator_id === me ? c.creator_payout : c.opponent_payout) || 0;
@@ -591,11 +594,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     }
   };
 
-  // Replay at the same stake: skips wager selection and deals straight away.
-  const playAgain = () => {
-    const sameType = stakeTypeOf(showdown);
-    const sameWager = Number(showdown?.wager) || wager;
-    const sameFormat = formatOf(showdown);
+  // Rematch: same wager, currency and format, no results countdown and no wager
+  // screen — fresh cards are dealt straight away, and the finished hand is then
+  // posted as a brand-new challenge. The old cards are never reused.
+  const playAgain = (source) => {
+    const sameType = stakeTypeOf(source);
+    const sameWager = Number(source?.wager) || wager;
+    const sameFormat = formatOf(source);
     if (!canAffordStake(user, sameType, sameWager)) {
       toast.error(
         `Not enough ${sameType === "diamond" ? "Diamonds" : "chips"} to replay that wager.`
@@ -607,6 +612,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
     setFormat(sameFormat);
     setTarget(null);
     setShowdown(null);
+    setResultsFor(null);
     setFinalScore(null);
     setHandCards([]);
     setMyHands([]);
@@ -727,6 +733,14 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 collectLabel={`Collect ${stakeLabel(payoutFor(resultsFor), stakeTypeOf(resultsFor))}`}
                 collecting={busy}
                 onClose={() => setResultsFor(null)}
+                onPlayAgain={
+                  resultsFor.creator_id === me ? () => playAgain(resultsFor) : undefined
+                }
+                canPlayAgain={canAffordStake(
+                  user,
+                  stakeTypeOf(resultsFor),
+                  Number(resultsFor.wager) || 0
+                )}
               />
             ) : (
               <ShowdownReveal
@@ -749,6 +763,14 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 collectLabel={`Collect ${stakeLabel(payoutFor(resultsFor), stakeTypeOf(resultsFor))}`}
                 collecting={busy}
                 onClose={() => setResultsFor(null)}
+                onPlayAgain={
+                  resultsFor.creator_id === me ? () => playAgain(resultsFor) : undefined
+                }
+                canPlayAgain={canAffordStake(
+                  user,
+                  stakeTypeOf(resultsFor),
+                  Number(resultsFor.wager) || 0
+                )}
               />
             )}
           </div>
@@ -803,49 +825,13 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
             )}
 
             {/* Open board — the loudest thing in the tab: live bets you can take. */}
-            <div
-              className="rounded-2xl px-3 py-3 flex flex-col gap-2.5"
-              style={{
-                background:
-                  "linear-gradient(165deg, rgba(212,175,55,0.13) 0%, rgba(6,38,29,0.62) 58%, rgba(4,26,20,0.78) 100%)",
-                border: "1px solid rgba(212,175,55,0.35)",
-                boxShadow:
-                  "inset 0 1px 0 rgba(255,255,255,0.07), 0 10px 26px rgba(0,0,0,0.3)",
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-300 flex items-center gap-2">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-70 animate-ping" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-300" />
-                  </span>
-                  Open bets
-                </p>
-                {board.length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/40 text-[9px] font-black tracking-widest text-amber-200 tabular-nums">
-                    {board.length} live
-                  </span>
-                )}
-              </div>
-
-              {loading ? (
-                <p className="text-xs text-emerald-100/50 py-4 text-center">Loading the board…</p>
-              ) : board.length === 0 ? (
-                <p className="text-xs text-emerald-100/40 py-4 text-center">
-                  No open bets right now — post one and wait for a taker.
-                </p>
-              ) : (
-                board.map((c) => (
-                  <OpenChallengeCard
-                    key={c.id}
-                    challenge={c}
-                    onAccept={startAccept}
-                    busy={busy}
-                    canAfford={canAffordStake(user, stakeTypeOf(c), c.wager)}
-                  />
-                ))
-              )}
-            </div>
+            <OpenBetsBoard
+              challenges={board}
+              loading={loading}
+              onAccept={startAccept}
+              busy={busy}
+              user={user}
+            />
 
             {myOpen.length > 0 && (
               <div className="flex flex-col gap-2">
@@ -1062,12 +1048,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 collectLabel={`Collect ${stakeLabel(payoutFor(showdown), stakeTypeOf(showdown))}`}
                 collecting={busy}
                 onClose={backToLobby}
-                onPlayAgain={playAgain}
-                canPlayAgain={canAffordStake(
-                  user,
-                  stakeTypeOf(showdown),
-                  Number(showdown.wager) || 0
-                )}
               />
             )}
 
@@ -1092,13 +1072,25 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
                 collectLabel={`Collect ${stakeLabel(payoutFor(showdown), stakeTypeOf(showdown))}`}
                 collecting={busy}
                 onClose={backToLobby}
-                onPlayAgain={playAgain}
-                canPlayAgain={canAffordStake(
-                  user,
-                  stakeTypeOf(showdown),
-                  Number(showdown.wager) || 0
-                )}
               />
+            )}
+
+            {/* Challenger only: the live board sits under the result so a
+                rematch can be taken without going back to the main tab. */}
+            {step === "showdown" && (
+              <div className="flex flex-col gap-2 pt-1">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/50">
+                  Rematch the board — take any open bet
+                </p>
+                <OpenBetsBoard
+                  challenges={board}
+                  loading={loading}
+                  onAccept={startAccept}
+                  busy={busy}
+                  user={user}
+                  emptyText="No open bets right now — check back in a moment."
+                />
+              </div>
             )}
           </div>
         )}
