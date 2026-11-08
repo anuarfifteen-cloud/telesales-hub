@@ -1,8 +1,15 @@
-import { Swords, Trophy } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { RefreshCw, Swords, Trophy } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 import { formatOf, stakeLabel, stakeTypeOf } from "@/lib/beatMyHand";
 import { useUserMap } from "@/hooks/useUserMap";
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import { toast } from "@/components/ui/use-toast";
+
+// Only the newest five settled matches are ever read, and only once on mount.
+const RECENT_LIMIT = 5;
+// How long the avatar's full-name pop-out stays up.
+const NAME_TOAST_MS = 2000;
 
 // How long ago a match settled, in the plainest unit.
 function agoLabel(iso) {
@@ -104,10 +111,13 @@ function MatchTile({ row, index, profiles, onView }) {
   const opponentProfile = profiles[row.opponent_id];
 
   const showName = (profile, fallback) => {
-    toast({
+    const { dismiss } = toast({
       title: profile?.full_name || fallback,
       description: "Beat My Hand",
     });
+    // The shared toast store keeps entries far longer than a quick name hint
+    // needs, so this pop-out dismisses itself. Scoped to this toast only.
+    setTimeout(() => dismiss?.(), NAME_TOAST_MS);
   };
 
   return (
@@ -186,8 +196,54 @@ function MatchTile({ row, index, profiles, onView }) {
 }
 
 // The last five matches settled anywhere in the app, stacked as a bracket.
-export default function GameRecentBracket({ matches = [], onView }) {
-  const rows = (Array.isArray(matches) ? matches : []).slice(0, 5);
+export default function GameRecentBracket({ onView }) {
+  const [matches, setMatches] = useState([]);
+  // "loading" only covers the first fetch: a later refresh never blanks the list.
+  const [status, setStatus] = useState("loading"); // loading | ready | error
+  const inFlightRef = useRef(false);
+
+  // One read on mount — the feed then keeps itself current from live events.
+  const load = useCallback(async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    setStatus("loading");
+    try {
+      const page = await base44.entities.BeatMyHandChallenge.filter(
+        { status: "settled" },
+        { sort: "-settled_at", limit: RECENT_LIMIT }
+      );
+      setMatches((page?.items || []).slice(0, RECENT_LIMIT));
+      setStatus("ready");
+    } catch {
+      // A failed read is never shown as "no matches" — it offers a retry.
+      setStatus("error");
+    } finally {
+      inFlightRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // No polling: a settled match is appended in place the moment it lands,
+  // capped at five, so the feed stays fresh for zero extra reads.
+  useEffect(() => {
+    const unsubscribe = base44.entities.BeatMyHandChallenge.subscribe((event) => {
+      const row = event?.data;
+      if (!row?.id || event.type === "delete" || row.status !== "settled") return;
+      setMatches((prev) => {
+        if (prev.some((m) => m.id === row.id)) {
+          return prev.map((m) => (m.id === row.id ? { ...m, ...row } : m));
+        }
+        return [row, ...prev].slice(0, RECENT_LIMIT);
+      });
+      setStatus((s) => (s === "error" ? "ready" : s));
+    });
+    return unsubscribe;
+  }, []);
+
+  const rows = matches.slice(0, RECENT_LIMIT);
   // Same public profile records the leaderboards use, so photos and initials
   // match everywhere in the app.
   const profiles = useUserMap();
@@ -203,7 +259,30 @@ export default function GameRecentBracket({ matches = [], onView }) {
         </span>
       </div>
 
-      {rows.length === 0 ? (
+      {status === "loading" && rows.length === 0 ? (
+        <div className="flex flex-col gap-1.5" aria-busy="true" aria-live="polite">
+          {[0, 1].map((i) => (
+            <div
+              key={i}
+              className="h-[58px] rounded-xl border border-amber-400/15 bg-white/[0.04] animate-pulse"
+            />
+          ))}
+          <p className="py-1 text-center text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-100/30">
+            Loading recent matches…
+          </p>
+        </div>
+      ) : status === "error" && rows.length === 0 ? (
+        <div className="flex flex-col items-center gap-1.5 py-3">
+          <p className="text-[10px] text-emerald-100/45">Couldn't load recent matches.</p>
+          <button
+            type="button"
+            onClick={load}
+            className="flex items-center gap-1 rounded-full border border-amber-400/30 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-amber-200/80 transition hover:bg-amber-400/10"
+          >
+            <RefreshCw className="w-2.5 h-2.5" /> Retry
+          </button>
+        </div>
+      ) : rows.length === 0 ? (
         <p className="py-3 text-center text-[10px] text-emerald-100/35">
           No matches settled yet — the bracket fills up as games end.
         </p>

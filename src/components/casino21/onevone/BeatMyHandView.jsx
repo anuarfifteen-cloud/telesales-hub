@@ -46,8 +46,6 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const diamonds = Number(user?.diamonds) || 0;
 
   const [challenges, setChallenges] = useState([]);
-  // The global feed of finished matches, shown under Recent.
-  const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState("lobby"); // lobby | create | accept
   const [step, setStep] = useState("wager"); // wager | play | showdown
@@ -174,7 +172,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
   const load = useCallback(async () => {
     const seq = ++loadSeqRef.current;
     try {
-      const [openRes, mineRes, recentRes] = await Promise.all([
+      const [openRes, mineRes] = await Promise.all([
         base44.entities.BeatMyHandChallenge.filter(
           { status: "open" },
           { sort: "-created_date", limit: 40 }
@@ -183,14 +181,9 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
           { $or: [{ creator_id: me }, { opponent_id: me }] },
           { sort: "-created_date", limit: 25 }
         ),
-        base44.entities.BeatMyHandChallenge.filter(
-          { status: "settled" },
-          { sort: "-settled_at", limit: 15 }
-        ),
       ]);
       // A newer refresh already answered — drop this older snapshot entirely.
       if (seq !== loadSeqRef.current) return;
-      setRecent(recentRes?.items || []);
       const byId = new Map();
       [...(openRes?.items || []), ...(mineRes?.items || [])].forEach((c) =>
         byId.set(c.id, c)
@@ -1038,7 +1031,7 @@ export default function BeatMyHandView({ user, onUserUpdate }) {
             )}
 
             {/* Game Recent = the last five matches settled across all players. */}
-            <GameRecentBracket matches={recent} me={me} onView={setResultsFor} />
+            <GameRecentBracket me={me} onView={setResultsFor} />
 
             <p className="text-[9px] text-emerald-100/35 leading-relaxed mt-1">
               Highest valid hand wins the pot; a tie returns both stakes, and if both bust the

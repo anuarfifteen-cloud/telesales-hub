@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { User } from "lucide-react";
 import { getVaultTier } from "@/lib/vaultTiers";
 import AvatarOnlineDot from "./AvatarOnlineDot";
@@ -41,7 +42,11 @@ export default function ProfileAvatar({
   const tier = getVaultTier(balance);
   const ring = (tier && RINGS[tier.title]) || NEUTRAL;
   const platinum = tier?.title === "Platinum";
-  const photo = user?.avatar_photo_url;
+  // A photo that fails to load must never sit there as a broken image — the
+  // avatar drops straight back to the member's initials instead.
+  const [photoFailed, setPhotoFailed] = useState(false);
+  useEffect(() => setPhotoFailed(false), [user?.avatar_photo_url]);
+  const photo = user?.avatar_photo_url && !photoFailed ? user.avatar_photo_url : "";
   const customInitials = (user?.avatar_initials || "").trim().slice(0, 2).toUpperCase();
   const fallbackInitials = customInitials || (user?.full_name
     ? user.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -53,7 +58,12 @@ export default function ProfileAvatar({
   const inner = (
     <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-primary/70 to-primary">
       {photo ? (
-        <img src={photo} alt="" className="w-full h-full object-cover" />
+        <img
+          src={photo}
+          alt=""
+          className="w-full h-full object-cover"
+          onError={() => setPhotoFailed(true)}
+        />
       ) : showSilhouette ? (
         <User className={`${s.icon} text-primary-foreground`} />
       ) : (
