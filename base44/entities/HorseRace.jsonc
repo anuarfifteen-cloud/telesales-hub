@@ -1,0 +1,60 @@
+{
+  "name": "HorseRace",
+  "type": "object",
+  "properties": {
+    "race_date": {
+      "type": "string",
+      "description": "Asia/Brunei calendar date (YYYY-MM-DD) this race belongs to \u2014 the shared key for the day."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "betting",
+        "cancelled"
+      ],
+      "enumColors": [
+        "blue",
+        "gray"
+      ],
+      "default": "betting",
+      "description": "betting = the day is running normally (betting closes and the race airs at 12:00 Brunei, decided from the clock). cancelled = an administrator voided the day so valid bets can be refunded."
+    },
+    "horses": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "The six runners for the day, each { id, number, name, color, silks, odds }. Odds are generated independently once and frozen so every player sees the same board."
+    },
+    "winning_horse_id": {
+      "type": "string",
+      "description": "The day's precomputed winning horse id, drawn with equal probability for all six runners regardless of odds. Generated when the day's record is created and reused by every player and every replay."
+    },
+    "result_saved_at": {
+      "type": "string",
+      "description": "ISO timestamp the day's result was generated and stored."
+    },
+    "cancelled_reason": {
+      "type": "string",
+      "description": "Administrator note explaining why the day was cancelled."
+    }
+  },
+  "required": [
+    "race_date",
+    "winning_horse_id"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

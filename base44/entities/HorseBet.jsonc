@@ -1,0 +1,136 @@
+{
+  "name": "HorseBet",
+  "type": "object",
+  "properties": {
+    "race_date": {
+      "type": "string",
+      "description": "Asia/Brunei date (YYYY-MM-DD) of the race this bet belongs to."
+    },
+    "race_id": {
+      "type": "string",
+      "description": "ID of the HorseRace record for the day, kept for fast reconciliation."
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID of the player who placed the bet."
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name snapshot of the player, so the admin recovery table reads without a lookup."
+    },
+    "horse_id": {
+      "type": "string",
+      "description": "ID of the selected horse."
+    },
+    "horse_number": {
+      "type": "number",
+      "description": "Selected horse's number at the time of betting."
+    },
+    "horse_name": {
+      "type": "string",
+      "description": "Selected horse's name at the time of betting."
+    },
+    "stake": {
+      "type": "number",
+      "description": "Chips staked \u2014 always 50 or 100."
+    },
+    "gross_payout": {
+      "type": "number",
+      "description": "Chips returned if this bet wins: 300 for a 50 stake, 600 for a 100 stake."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "lost",
+        "claim_pending",
+        "paid",
+        "refund_pending",
+        "refunded",
+        "review_required"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "red",
+        "yellow",
+        "green",
+        "yellow",
+        "gray",
+        "red"
+      ],
+      "default": "pending",
+      "description": "pending = the bet row exists but the chip deduction is not confirmed. confirmed = chips deducted and the bet stands. lost = the day's result is in and this horse did not win. claim_pending = a collection was started but its outcome is unverified. paid = payout credited. refund_pending = a refund was started but its outcome is unverified. refunded = stake returned. review_required = an ambiguous operation that an administrator must resolve."
+    },
+    "balance_before": {
+      "type": "number",
+      "description": "Player's casinoChips immediately before the stake was deducted."
+    },
+    "balance_after": {
+      "type": "number",
+      "description": "Player's casinoChips immediately after the most recent wallet write for this bet (stake deduction, payout or refund)."
+    },
+    "confirmed_at": {
+      "type": "string",
+      "description": "ISO timestamp the stake deduction was confirmed."
+    },
+    "paid_at": {
+      "type": "string",
+      "description": "ISO timestamp the winning payout was credited."
+    },
+    "refunded_at": {
+      "type": "string",
+      "description": "ISO timestamp the stake refund was credited."
+    },
+    "note": {
+      "type": "string",
+      "description": "Administrator or system note explaining an interruption or manual resolution."
+    },
+    "resolved_by": {
+      "type": "string",
+      "description": "Name of the administrator who last resolved this bet manually."
+    }
+  },
+  "required": [
+    "race_date",
+    "user_id",
+    "horse_id",
+    "stake",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

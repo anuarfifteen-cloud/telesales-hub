@@ -12,6 +12,7 @@ import DiamondSmashGame from "@/components/games/DiamondSmashGame";
 import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
 import TapVaultCard from "@/components/tokens/TapVaultCard";
 import Blackjack21Game from "@/components/casino21/Blackjack21Game";
+import HorseBettingGame from "@/components/horseBetting/HorseBettingGame";
 import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
 import DailyChipGiftModal, { chipGiftClaimedToday } from "@/components/casino21/DailyChipGiftModal";
 import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
@@ -225,7 +226,16 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           >
             ♠️ Blackjack 21
           </button>
-          <div />
+          <button
+            onClick={() => setInnerTab("horseracing")}
+            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              innerTab === "horseracing"
+                ? "bg-orange-600 text-white shadow"
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            🐎 Horse Betting
+          </button>
         </div>
       </div>
 
@@ -262,6 +272,11 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           onUserUpdate={onUserUpdate}
           oneVOneRequest={oneVOneRequest}
         />
+      )}
+
+      {/* Daily Horse Betting */}
+      {innerTab === "horseracing" && (
+        <HorseBettingGame user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {/* Premium Scratch Card */}
