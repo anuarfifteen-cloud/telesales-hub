@@ -94,6 +94,12 @@ function winTokens(wager, difficulty) {
   return (wager * winMultiplier(difficulty)) / 10;
 }
 
+/** Easy and Normal wager in 10-chip steps from a 10-chip minimum; every other
+ *  difficulty keeps the table's 5-chip minimum and step. */
+function tableStep(difficulty) {
+  return difficulty === "easy" || difficulty === "normal" ? 10 : BET_STEP;
+}
+
 // ── Winner-Takes-All resolution ─────────────────────────────────────
 // Compares the final hands of You, Player 2 (AI), and the Dealer. Among all
 // non-busted hands, the single highest score (≤21) is the sole winner.
@@ -238,8 +244,12 @@ export default function Blackjack21Game({ user, onUserUpdate, oneVOneRequest = 0
   // 🏆RANK milestone progression — track seasonal winning payouts.
   const milestone = useMilestoneClaim(user);
 
-  // Highest legal wager: the largest 5-chip step the player can afford.
-  const maxBet = Math.floor(chips / BET_STEP) * BET_STEP;
+  // Easy and Normal: 10-chip minimum and 10-chip steps. Other difficulties
+  // keep the table's 5-chip step.
+  const betStep = tableStep(difficulty);
+  const minBet = betStep;
+  // Highest legal wager: the largest step the player can afford.
+  const maxBet = Math.floor(chips / betStep) * betStep;
   // On Very Easy and Hard there is no Player 2 — just You vs the Dealer.
   const noAI = difficulty === "very_easy" || difficulty === "hard";
   const draw = (d) => d.pop();
@@ -385,22 +395,22 @@ export default function Blackjack21Game({ user, onUserUpdate, oneVOneRequest = 0
   // ── Deal a fresh hand (player + AI + dealer) ────────────────────────
   const handleDeal = async () => {
     if (busy) return;
-    if (chips < MIN_BET) {
-      toast.error(`You need at least ${MIN_BET} chips to play.`);
+    if (chips < minBet) {
+      toast.error(`You need at least ${minBet} chips to play.`);
       return;
     }
     setBusy(true);
     playClink();
-    // Re-read the balance before taking the wager and cap it to a 5-chip step,
-    // so the wager is always affordable and its 2× return is whole tokens.
+    // Re-read the balance before taking the wager and cap it to the table's
+    // step, so the wager is always affordable and a whole token amount.
     const fresh = await base44.auth.me();
     const balance = Number(fresh?.casinoChips) || 0;
     const b = Math.min(
-      Math.floor(bet / BET_STEP) * BET_STEP,
-      Math.floor(balance / BET_STEP) * BET_STEP
+      Math.max(minBet, Math.floor(bet / betStep) * betStep),
+      Math.floor(balance / betStep) * betStep
     );
-    if (b < MIN_BET) {
-      toast.error(`You need at least ${MIN_BET} chips to play.`);
+    if (b < minBet) {
+      toast.error(`You need at least ${minBet} chips to play.`);
       setBusy(false);
       await onUserUpdate?.();
       return;
@@ -561,7 +571,7 @@ export default function Blackjack21Game({ user, onUserUpdate, oneVOneRequest = 0
   };
 
   const adjustBet = (delta) => {
-    setBet((b) => Math.min(Math.max(b + delta, MIN_BET), Math.max(maxBet, MIN_BET)));
+    setBet((b) => Math.min(Math.max(b + delta, minBet), Math.max(maxBet, minBet)));
     playClink();
   };
   const inPlay = phase === "player" || phase === "dealer";
@@ -711,6 +721,8 @@ export default function Blackjack21Game({ user, onUserUpdate, oneVOneRequest = 0
               <BetBar
                 bet={bet}
                 maxBet={maxBet}
+                minBet={minBet}
+                betStep={betStep}
                 onSet={setBet}
                 onAdjust={adjustBet}
                 chips={chips}
@@ -718,17 +730,17 @@ export default function Blackjack21Game({ user, onUserUpdate, oneVOneRequest = 0
               />
               <button
                 onClick={handleDeal}
-                disabled={busy || chips < MIN_BET}
+                disabled={busy || chips < minBet}
                 className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm bg-emerald-700/60 text-emerald-100 border border-emerald-400/30 disabled:opacity-40 hover:bg-emerald-600/70 transition"
               >
                 <Play className="inline mr-1 w-4 h-4" /> Deal
               </button>
-              {chips < MIN_BET && (
+              {chips < minBet && (
                 <button
                   onClick={() => setShowCashier(true)}
                   className="w-full text-center text-[11px] font-bold uppercase tracking-widest text-amber-300/80 hover:text-amber-200 transition"
                 >
-                  You need {MIN_BET} chips to play — buy chips in the Cashier →
+                  You need {minBet} chips to play — buy chips in the Cashier →
                 </button>
               )}
             </>
@@ -786,7 +798,7 @@ export default function Blackjack21Game({ user, onUserUpdate, oneVOneRequest = 0
             <AlertDialogTitle>⚠️ Bet the Maximum?</AlertDialogTitle>
             <AlertDialogDescription>
               MAX sets your wager to <strong>{maxBet} chips</strong> — the largest
-              5-chip step your <strong>{chips} chip</strong> balance allows. This is
+              {betStep}-chip step your <strong>{chips} chip</strong> balance allows. This is
               the Max bet for the casual table, so confirm only if that is really
               what you want to stake.
             </AlertDialogDescription>
@@ -817,32 +829,32 @@ export default function Blackjack21Game({ user, onUserUpdate, oneVOneRequest = 0
 }
 
 // ── Bet slider with arrows + MAX ───────────────────────────────────────
-function BetBar({ bet, maxBet, onSet, onAdjust, chips, onMaxRequest }) {
-  const playable = chips >= MIN_BET;
-  const sliderMax = Math.max(maxBet, MIN_BET);
-  const shownBet = Math.min(Math.max(bet, MIN_BET), sliderMax);
+function BetBar({ bet, maxBet, minBet, betStep, onSet, onAdjust, chips, onMaxRequest }) {
+  const playable = chips >= minBet;
+  const sliderMax = Math.max(maxBet, minBet);
+  const shownBet = Math.min(Math.max(bet, minBet), sliderMax);
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <button
-          onClick={() => onAdjust(-BET_STEP)}
-          disabled={!playable || shownBet <= MIN_BET}
+          onClick={() => onAdjust(-betStep)}
+          disabled={!playable || shownBet <= minBet}
           className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
         >
           ‹
         </button>
         <input
           type="range"
-          min={MIN_BET}
+          min={minBet}
           max={sliderMax}
-          step={BET_STEP}
+          step={betStep}
           value={shownBet}
           onChange={(e) => onSet(Number(e.target.value))}
           disabled={!playable}
           className="flex-1 accent-cyan-400"
         />
         <button
-          onClick={() => onAdjust(BET_STEP)}
+          onClick={() => onAdjust(betStep)}
           disabled={!playable || shownBet >= sliderMax}
           className="w-9 h-9 rounded-full bg-emerald-950/40 border border-cyan-400/30 text-cyan-200 font-black disabled:opacity-30"
         >
@@ -864,7 +876,7 @@ function BetBar({ bet, maxBet, onSet, onAdjust, chips, onMaxRequest }) {
         </button>
       </div>
       <p className="text-[10px] font-bold uppercase tracking-widest text-amber-200/60 text-center">
-        {MIN_BET}-chip minimum · {BET_STEP}-chip steps
+        {minBet}-chip minimum · {betStep}-chip steps
       </p>
     </div>
   );
