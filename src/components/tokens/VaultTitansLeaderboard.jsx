@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { getVaultTier, VAULT_TIERS } from "@/lib/vaultTiers";
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import { useChampionTitles } from "@/hooks/useChampionTitles";
+import { useUserMap } from "@/hooks/useUserMap";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -15,32 +16,22 @@ const RANK_STYLE = [
 ];
 
 export default function VaultTitansLeaderboard({ currentUser }) {
-  const [users, setUsers] = useState([]);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const { getChampionCount } = useChampionTitles();
+  // PublicProfile carries every member's public display fields (name, photo,
+  // initials, vault balance, activity). The built-in User entity only lets
+  // admins read other users. This board reads the app-wide shared profile map,
+  // which owns the single subscription — it used to re-read the whole list on
+  // every profile write.
+  const profileMap = useUserMap();
+  const users = Object.values(profileMap);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        // PublicProfile carries every member's public display fields (name,
-        // photo, initials, vault balance, activity). The built-in User entity
-        // only lets admins read other users, so non-admins saw only themselves.
-        const [u, s] = await Promise.all([
-          base44.entities.PublicProfile.list(),
-          base44.entities.AppSettings.list(),
-        ]);
-        setUsers(u);
-        setSettings(s[0] || null);
-      } catch {
-        // ignore — leaderboard is non-critical
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-    const unsub = base44.entities.PublicProfile.subscribe(() => load());
-    return () => { if (unsub) unsub(); };
+    base44.entities.AppSettings.list()
+      .then((rows) => setSettings(rows[0] || null))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   const filterInactive = settings?.filterInactiveFromLeaderboard === true;
