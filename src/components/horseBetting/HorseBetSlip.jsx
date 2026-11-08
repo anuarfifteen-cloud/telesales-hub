@@ -56,7 +56,7 @@ export default function HorseBetSlip({ horses, selected, onSelect, stake, onStak
                   : "border-border bg-muted/40 hover:bg-muted"
               }`}
             >
-              <HorseSilhouette color={h.color} silks={h.silks} number={h.number} size={30} />
+              <HorseSilhouette number={h.number} size={42} />
               <span className="min-w-0 flex-1 truncate text-[11.5px] font-bold leading-tight text-foreground">
                 {h.name}
               </span>
