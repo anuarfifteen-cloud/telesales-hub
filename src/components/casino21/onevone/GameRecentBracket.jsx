@@ -111,13 +111,13 @@ function MatchTile({ row, index, profiles, onView }) {
   const opponentProfile = profiles[row.opponent_id];
 
   const showName = (profile, fallback) => {
-    const { dismiss } = toast({
+    const { remove } = toast({
       title: profile?.full_name || fallback,
       description: "Beat My Hand",
     });
     // The shared toast store keeps entries far longer than a quick name hint
-    // needs, so this pop-out dismisses itself. Scoped to this toast only.
-    setTimeout(() => dismiss?.(), NAME_TOAST_MS);
+    // needs, so this pop-out removes itself. Scoped to this toast only.
+    setTimeout(() => remove?.(), NAME_TOAST_MS);
   };
 
   return (

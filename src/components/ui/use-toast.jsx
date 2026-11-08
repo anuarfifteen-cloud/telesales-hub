@@ -134,9 +134,18 @@ function toast({ ...props }) {
     },
   });
 
+  // Removes this toast from the visible list straight away. `dismiss` only
+  // flags it as closed, and the store's removal queue waits far longer than a
+  // short hint needs, so a caller that wants it gone now uses this.
+  const remove = () => {
+    _clearFromRemoveQueue(id);
+    dispatch({ type: actionTypes.REMOVE_TOAST, toastId: id });
+  };
+
   return {
     id,
     dismiss,
+    remove,
     update,
   };
 }
@@ -161,4 +170,4 @@ function useToast() {
   };
 }
 
-export { useToast, toast }; 
+export { useToast, toast };
