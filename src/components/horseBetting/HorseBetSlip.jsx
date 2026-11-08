@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Lock, Sparkles } from "lucide-react";
 import MiniChipIcon from "@/components/casino21/MiniChipIcon";
+import HorseSilhouette from "./HorseSilhouette";
 import { STAKE_OPTIONS, grossPayout } from "@/lib/horseRacing";
 import {
   AlertDialog,
@@ -49,23 +50,15 @@ export default function HorseBetSlip({ horses, selected, onSelect, stake, onStak
             <button
               key={h.id}
               onClick={() => onSelect(h.id)}
-              className={`relative flex items-center gap-2 rounded-xl border px-2 py-2 text-left transition-all ${
+              className={`relative flex items-center gap-2 rounded-xl border px-2.5 py-2.5 text-left transition-all ${
                 active
                   ? "border-amber-500 bg-amber-50 shadow-sm"
                   : "border-border bg-muted/40 hover:bg-muted"
               }`}
             >
-              <span
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-black tabular-nums"
-                style={{ backgroundColor: h.color, color: h.silks }}
-              >
-                {h.number}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[11px] font-bold text-foreground">{h.name}</span>
-                <span className="block text-[10px] font-semibold tabular-nums text-muted-foreground">
-                  {Number(h.odds || 0).toFixed(1)}× odds
-                </span>
+              <HorseSilhouette color={h.color} silks={h.silks} number={h.number} size={30} />
+              <span className="min-w-0 flex-1 truncate text-[11.5px] font-bold leading-tight text-foreground">
+                {h.name}
               </span>
             </button>
           );
@@ -116,8 +109,8 @@ export default function HorseBetSlip({ horses, selected, onSelect, stake, onStak
 
       <p className="mt-2 flex items-start gap-1 text-[10px] leading-snug text-muted-foreground">
         <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-amber-500" />
-        One bet per day. Chips are deducted the moment you confirm. Odds are flavour only — every horse
-        has an equal chance of winning.
+        One bet per day. Chips are deducted the moment you confirm. Every horse has an equal chance of
+        winning.
       </p>
 
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
