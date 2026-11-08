@@ -83,9 +83,15 @@ const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf239
 const DEALER_DRAW_MS = 550;
 const RESULT_MODAL_DELAY = 1800;
 
-/** Standard win returns stake + 1:1 profit (2× the wager), cashed in at 10 chips per token. */
-function winTokens(wager) {
-  return (wager * 2) / 10;
+/** Easy and Normal return 3× the wager; every other difficulty keeps the
+ *  standard stake + 1:1 profit (2×). */
+function winMultiplier(difficulty) {
+  return difficulty === "easy" || difficulty === "normal" ? 3 : 2;
+}
+
+/** A win returns multiplier × the wager, cashed in at 10 chips per token. */
+function winTokens(wager, difficulty) {
+  return (wager * winMultiplier(difficulty)) / 10;
 }
 
 // ── Winner-Takes-All resolution ─────────────────────────────────────
@@ -269,11 +275,12 @@ export default function Blackjack21Game({ user, onUserUpdate, oneVOneRequest = 0
     const wager = wagerOverride ?? committedBet;
     // A win pays the 2× wager return in tokens. A natural Blackjack adds a flat
     // 100-chip bonus on top (credited to the chip balance, not tokens).
-    const tokenWin = type === "win" ? winTokens(wager) : 0;
+    const multiplier = winMultiplier(difficulty);
+    const tokenWin = type === "win" ? winTokens(wager, difficulty) : 0;
     const chipBonus = type === "win" && natural ? BLACKJACK_CHIP_BONUS : 0;
     const chipRefund = type === "push" ? wager : 0;
     const tokensWon = type === "win" ? tokenWin : null;
-    const chipsWon = type === "win" ? wager * 2 : null;
+    const chipsWon = type === "win" ? wager * multiplier : null;
     // Casual win streak — its own run, kept separate from the Ranked table's. Only
     // consecutive wins keep it going: a loss, a push or a draw ends it. Each
     // milestone — 5, 10, 20 wins in a row — pays a one-off chip bonus, chips only,
@@ -301,6 +308,7 @@ export default function Blackjack21Game({ user, onUserUpdate, oneVOneRequest = 0
       chipBonus,
       chipRefund,
       bet: wager,
+      multiplier,
       streak: run.streak,
       best: run.best,
       streakBonus: run.bonus,
@@ -637,7 +645,7 @@ export default function Blackjack21Game({ user, onUserUpdate, oneVOneRequest = 0
           {/* Felt plaque */}
           <div className="relative text-center -mt-1">
             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-300/70">
-              Win pays 2× in tokens · 10 chips = 1 token
+              Win pays {winMultiplier(difficulty)}× in tokens · 10 chips = 1 token
             </span>
           </div>
 
@@ -646,10 +654,10 @@ export default function Blackjack21Game({ user, onUserUpdate, oneVOneRequest = 0
             <div className="relative flex justify-center -mt-1 -mb-1">
               <div className="flex items-center gap-1.5">
                 <MiniChipIcon size={20} />
-                <span className="text-amber-200 font-black text-sm tabular-nums">{committedBet * 2}</span>
+                <span className="text-amber-200 font-black text-sm tabular-nums">{committedBet * winMultiplier(difficulty)}</span>
                 <span className="text-amber-300/60 text-xs">→</span>
                 <img src={TOKEN_IMG} alt="token" className="w-4 h-4 object-contain" />
-                <span className="text-amber-200 font-black text-sm tabular-nums">{winTokens(committedBet)}</span>
+                <span className="text-amber-200 font-black text-sm tabular-nums">{winTokens(committedBet, difficulty)}</span>
               </div>
             </div>
           )}

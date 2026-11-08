@@ -50,8 +50,10 @@ function Row({ label, children, bonus = false }) {
 export default function BlackjackResultCard({ show, result, aiResult, showAi, onNewRound }) {
   const frame = FRAMES[result?.type] || FRAMES.loss;
   const chipBonus = result?.type === "win" && result?.natural ? (Number(result?.chipBonus) || BLACKJACK_CHIP_BONUS) : 0;
-  // tokenWin is the 2× bet payout in tokens; the natural bonus is separate chips.
+  // tokenWin is the win payout in tokens; the natural bonus is separate chips.
   const winTokens = Math.max(0, Number(result?.tokenWin) || 0);
+  // Easy and Normal pay 3× the bet; every other difficulty pays the standard 2×.
+  const multiplier = Number(result?.multiplier) || 2;
 
   return (
     <AnimatePresence>
@@ -82,8 +84,8 @@ export default function BlackjackResultCard({ show, result, aiResult, showAi, on
             <div className="mt-3.5 space-y-2 text-left">
               {result.type === "win" ? (
                 <>
-                  <Row label="Win · 2× bet">
-                    {result.bet * 2} <MiniChipIcon size={11} /> →
+                  <Row label={`Win · ${multiplier}× bet`}>
+                    {result.bet * multiplier} <MiniChipIcon size={11} /> →
                     <img src={TOKEN_IMG} alt="" className="w-3 h-3 object-contain" />
                     {winTokens}
                   </Row>
