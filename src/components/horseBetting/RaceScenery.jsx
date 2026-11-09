@@ -1,25 +1,26 @@
 /**
- * The racecourse behind the runners: a flat Brunei daylight sky, the level
- * sponsor rail with its repeating boards, and the dirt straight in front.
- * Nothing here is angled or curved — every layer is a straight horizontal band
- * that pans at its own speed from the single `cameraX` value.
+ * The racecourse behind the runners, cropped tight to the action: the view starts
+ * at the very top of the sponsor adboards — no sky — then the level rail, the turf
+ * strip it is planted in, and the dirt straight the runners gallop over.
+ * Every layer is a straight horizontal band that pans at its own speed from the
+ * single `cameraX` value.
  */
-import DerbySky from "./DerbySky";
-import SponsorRail from "./SponsorRail";
+import SponsorRail, { BOARD_H, RAIL_H } from "./SponsorRail";
 
-export const SCENE_H = 300;
-export const DIRT_TOP = 96;
+export { BOARD_H };
+export const SCENE_H = 340;
+export const DIRT_TOP = 70;
+const RAIL_BOTTOM = BOARD_H + RAIL_H;
 
 export default function RaceScenery({ cameraX = 0 }) {
   return (
     <>
-      <DerbySky cameraX={cameraX} height={46} />
       {/* the turf the rail is planted in, right down to the dirt */}
       <div
         className="absolute inset-x-0"
         style={{
-          top: 86,
-          height: DIRT_TOP - 86 + 2,
+          top: RAIL_BOTTOM - 2,
+          height: DIRT_TOP - RAIL_BOTTOM + 4,
           background: "linear-gradient(180deg,#16452f 0%,#0e3122 62%,#0a2418 100%)",
         }}
       />
@@ -34,7 +35,7 @@ export default function RaceScenery({ cameraX = 0 }) {
         <div
           className="absolute inset-x-0 top-0"
           style={{
-            height: 6,
+            height: 8,
             background: "linear-gradient(180deg,rgba(104,60,28,0.5), rgba(104,60,28,0))",
           }}
         />
@@ -42,29 +43,29 @@ export default function RaceScenery({ cameraX = 0 }) {
           className="absolute inset-0"
           style={{
             backgroundImage:
-              "repeating-linear-gradient(0deg, rgba(96,58,26,0.10) 0 1.5px, transparent 1.5px 19px)",
+              "repeating-linear-gradient(0deg, rgba(96,58,26,0.10) 0 2px, transparent 2px 26px)",
           }}
         />
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: "radial-gradient(circle, rgba(92,54,22,0.30) 0 1.3px, transparent 1.7px)",
-            backgroundSize: "23px 14px",
-            backgroundPosition: `${-cameraX * 1.12}px 7px`,
+            backgroundImage: "radial-gradient(circle, rgba(92,54,22,0.30) 0 1.8px, transparent 2.3px)",
+            backgroundSize: "31px 19px",
+            backgroundPosition: `${-cameraX * 1.12}px 9px`,
           }}
         />
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: "radial-gradient(circle, rgba(255,231,199,0.55) 0 1.1px, transparent 1.5px)",
-            backgroundSize: "37px 18px",
-            backgroundPosition: `${-cameraX * 1.45}px 13px`,
+            backgroundImage: "radial-gradient(circle, rgba(255,231,199,0.55) 0 1.5px, transparent 2px)",
+            backgroundSize: "50px 24px",
+            backgroundPosition: `${-cameraX * 1.45}px 17px`,
           }}
         />
         <div
           className="absolute inset-0 opacity-45"
           style={{
-            backgroundImage: "repeating-linear-gradient(90deg, rgba(255,244,225,0.4) 0 30px, transparent 30px 96px)",
+            backgroundImage: "repeating-linear-gradient(90deg, rgba(255,244,225,0.4) 0 40px, transparent 40px 128px)",
             backgroundPositionX: `${-cameraX * 1.38}px`,
           }}
         />

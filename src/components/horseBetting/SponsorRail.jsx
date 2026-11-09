@@ -3,7 +3,7 @@
  *
  * The three boards repeat endlessly along the level rail and slide with the
  * camera, so the run reads as one continuous sponsor line — never a curve or an
- * angled stand.
+ * angled stand. The boards sit on the very top edge of the race window.
  */
 const BOARDS = [
   { label: "DST", bg: "linear-gradient(170deg,#813a96 0%,#6a287e 55%,#541f66 100%)" },
@@ -11,20 +11,20 @@ const BOARDS = [
   { label: "16888", bg: "linear-gradient(170deg,#2b3699 0%,#1a237e 55%,#121a63 100%)", silver: true },
 ];
 
-const TILE_W = 86;
-const GAP = 7;
+export const TILE_W = 108;
+const GAP = 9;
 const STEP = TILE_W + GAP;
-const BOARD_H = 36;
-const RAIL_H = 10;
+export const BOARD_H = 46;
+export const RAIL_H = 12;
 
 export default function SponsorRail({ cameraX = 0 }) {
   const pan = cameraX * 0.18;
   const shift = pan % STEP;
-  const count = 14;
+  const count = 11;
 
   return (
-    <div className="absolute inset-x-0" style={{ top: 42 }}>
-      {/* boards */}
+    <div className="absolute inset-x-0" style={{ top: 0 }}>
+      {/* boards — the race window is cropped to their top edge */}
       <div className="absolute inset-x-0 overflow-hidden" style={{ top: 0, height: BOARD_H }}>
         {Array.from({ length: count }).map((_, i) => {
           const board = BOARDS[i % BOARDS.length];
@@ -33,25 +33,25 @@ export default function SponsorRail({ cameraX = 0 }) {
               key={i}
               className="absolute flex items-center justify-center"
               style={{
-                left: i * STEP - shift,
+                left: i * STEP - shift - STEP,
                 top: 0,
                 width: TILE_W,
                 height: BOARD_H,
                 background: board.bg,
                 border: board.silver ? "2px solid #cfd8dc" : "1px solid rgba(255,255,255,0.22)",
-                borderRadius: 3,
+                borderRadius: 4,
                 boxShadow: board.silver
-                  ? "inset 0 0 0 2px rgba(255,255,255,0.22), inset 0 0 10px rgba(207,216,220,0.35), 0 2px 4px rgba(0,0,0,0.22)"
-                  : "inset 0 1px 0 rgba(255,255,255,0.22), 0 2px 4px rgba(0,0,0,0.22)",
+                  ? "inset 0 0 0 3px rgba(255,255,255,0.22), inset 0 0 14px rgba(207,216,220,0.35), 0 3px 6px rgba(0,0,0,0.22)"
+                  : "inset 0 1px 0 rgba(255,255,255,0.22), 0 3px 6px rgba(0,0,0,0.22)",
               }}
             >
               {board.silver && (
                 <span
                   className="pointer-events-none absolute"
                   style={{
-                    inset: 4,
-                    border: "1px solid rgba(207,216,220,0.75)",
-                    borderRadius: 2,
+                    inset: 5,
+                    border: "1.5px solid rgba(207,216,220,0.75)",
+                    borderRadius: 3,
                   }}
                 />
               )}
@@ -60,7 +60,7 @@ export default function SponsorRail({ cameraX = 0 }) {
                   position: "relative",
                   color: "#ffffff",
                   fontWeight: 900,
-                  fontSize: board.label.length > 3 ? 16 : 19,
+                  fontSize: board.label.length > 3 ? 22 : 26,
                   letterSpacing: board.label.length > 3 ? "0.06em" : "0.12em",
                   lineHeight: 1,
                   textShadow: "0 1px 2px rgba(0,0,0,0.4)",
@@ -80,24 +80,24 @@ export default function SponsorRail({ cameraX = 0 }) {
           top: BOARD_H,
           height: RAIL_H,
           background: "linear-gradient(180deg,#ffffff 0%,#f4f7f8 55%,#dfe4e7 100%)",
-          boxShadow: "0 -1px 0 rgba(255,255,255,0.9), 0 2px 4px rgba(0,0,0,0.28)",
+          boxShadow: "0 -1px 0 rgba(255,255,255,0.9), 0 3px 6px rgba(0,0,0,0.28)",
         }}
       />
 
       {/* rail posts, evenly spaced on the same level line */}
-      <div className="absolute inset-x-0 overflow-hidden" style={{ top: BOARD_H + 4, height: 18 }}>
-        {Array.from({ length: 8 }).map((_, i) => (
+      <div className="absolute inset-x-0 overflow-hidden" style={{ top: BOARD_H + 5, height: 26 }}>
+        {Array.from({ length: 7 }).map((_, i) => (
           <div
             key={i}
             className="absolute"
             style={{
               left: i * STEP * 2 - shift,
               top: 0,
-              width: 5,
+              width: 7,
               height: "100%",
-              borderRadius: 1,
+              borderRadius: 1.5,
               background: "linear-gradient(90deg,#ffffff,#e6eaec)",
-              boxShadow: "1px 1px 2px rgba(0,0,0,0.22)",
+              boxShadow: "1px 1px 3px rgba(0,0,0,0.22)",
             }}
           />
         ))}

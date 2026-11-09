@@ -29,13 +29,13 @@ const FINISH_D = 2.96; // finish post distance in track widths
 const CAMERA_C = 2.26; // how far the camera travels
 const ORIGIN = 14;
 
-/* The finish post is planted on the track and stops at the white railing, so it
-   never reaches up into the grandstand or over the crowd. */
-const RAIL_Y = 88;
+/* The finish post runs the full height of the cropped view, terminating exactly at
+   the top border where the sponsor adboards begin. */
+const POST_TOP = 0;
 
-const FEET_Y = 150;
-const LANE_GAP = 27;
-const BASE_W = 58;
+const FEET_Y = 130;
+const LANE_GAP = 36;
+const BASE_W = 76;
 
 function seed(id = "") {
   let h = 7;
@@ -121,13 +121,13 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
               <>
                 <div
                   className="absolute"
-                  style={{ left: finishX, top: DIRT_TOP, bottom: 0, width: 11, zIndex: 4, opacity: 0.9 }}
+                  style={{ left: finishX, top: DIRT_TOP, bottom: 0, width: 15, zIndex: 4, opacity: 0.9 }}
                 >
                   <div
                     className="h-full w-full"
                     style={{
                       backgroundImage:
-                        "repeating-linear-gradient(0deg, rgba(255,255,255,0.92) 0 8px, rgba(224,86,86,0.9) 8px 16px)",
+                        "repeating-linear-gradient(0deg, rgba(255,255,255,0.92) 0 10px, rgba(224,86,86,0.9) 10px 20px)",
                     }}
                   />
                 </div>
@@ -135,23 +135,24 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
                   className="absolute"
                   style={{
                     left: finishX - 1,
-                    top: RAIL_Y,
+                    top: POST_TOP,
                     bottom: 0,
-                    width: 8,
+                    width: 10,
                     zIndex: 5,
                     backgroundImage:
-                      "repeating-linear-gradient(0deg,#ffffff 0 11px,#e25656 11px 22px)",
+                      "repeating-linear-gradient(0deg,#ffffff 0 14px,#e25656 14px 28px)",
                     boxShadow: "0 0 0 1px rgba(30,20,10,0.25)",
                   }}
                 >
                   <div
-                    className="absolute -top-3 left-1"
+                    className="absolute left-2"
                     style={{
+                      top: 3,
                       width: 0,
                       height: 0,
-                      borderLeft: "14px solid #f6c445",
-                      borderTop: "5px solid transparent",
-                      borderBottom: "5px solid transparent",
+                      borderLeft: "19px solid #f6c445",
+                      borderTop: "7px solid transparent",
+                      borderBottom: "7px solid transparent",
                     }}
                   />
                 </div>
@@ -166,7 +167,7 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
                 Math.sin(t * 7.2 + phaseFor(h.id)) * 0.03 * Math.sin(Math.PI * Math.min(1, t * 1.1));
               const prog = isWinner ? t : Math.max(0, Math.min(0.97, t * pace + wobble));
 
-              const scale = 0.68 + i * 0.068;
+              const scale = 0.72 + i * 0.062;
               const w = BASE_W * scale;
               const hgt = w; // sprite cells are square, feet sit on the cell's bottom edge
               const feet = FEET_Y + i * LANE_GAP;
