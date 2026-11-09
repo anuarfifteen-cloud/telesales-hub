@@ -36,7 +36,15 @@
     },
     "gross_payout": {
       "type": "number",
-      "description": "Chips returned if this bet wins: 300 for a 50 stake, 600 for a 100 stake."
+      "description": "Chips returned if this bet wins 1st: 300 for a 50 stake, 600 for a 100 stake."
+    },
+    "finish_place": {
+      "type": "number",
+      "description": "The selected horse's official finishing place (1\u20136), written when the day's result is settled."
+    },
+    "reward_amount": {
+      "type": "number",
+      "description": "Chips owed and credited for this bet's finishing place: the full win payout for 1st, the stake back for 2nd, half the stake for 3rd, and 0 for 4th\u20136th."
     },
     "status": {
       "type": "string",
@@ -57,11 +65,11 @@
         "yellow",
         "green",
         "yellow",
-        "gray",
+        "green",
         "red"
       ],
       "default": "pending",
-      "description": "pending = the bet row exists but the chip deduction is not confirmed. confirmed = chips deducted and the bet stands. lost = the day's result is in and this horse did not win. claim_pending = a collection was started but its outcome is unverified. paid = payout credited. refund_pending = a refund was started but its outcome is unverified. refunded = stake returned. review_required = an ambiguous operation that an administrator must resolve."
+      "description": "pending = the bet row exists but the chip deduction is not confirmed. confirmed = chips deducted and the bet stands (or awaits a 2nd/3rd place refund). lost = finished 4th\u20136th, no reward. claim_pending = a win collection was started but its outcome is unverified. paid = winning payout credited. refund_pending = a consolation refund was started but its outcome is unverified. refunded = consolation refund credited. review_required = an ambiguous operation that an administrator must resolve."
     },
     "balance_before": {
       "type": "number",
@@ -81,7 +89,7 @@
     },
     "refunded_at": {
       "type": "string",
-      "description": "ISO timestamp the stake refund was credited."
+      "description": "ISO timestamp the consolation refund was credited."
     },
     "note": {
       "type": "string",

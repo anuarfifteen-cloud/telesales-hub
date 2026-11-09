@@ -12,6 +12,7 @@ import {
 import { DUST_PUFF } from "@/lib/derbyArt";
 import { paceFor as paceOf, phaseFor } from "@/lib/derbyFinish";
 import RacerSprite from "./RacerSprite";
+import RaceResultsOverlay from "./RaceResultsOverlay";
 import RaceScenery, { SCENE_H, DIRT_TOP } from "./RaceScenery";
 import { BOARD_H, RAIL_H } from "./SponsorRail";
 import HorseLaneTag from "./HorseLaneTag";
@@ -256,6 +257,9 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
               className="pointer-events-none absolute inset-0"
               style={{ boxShadow: "inset 0 0 26px rgba(28,14,6,0.28)" }}
             />
+
+            {/* the moment the field is home, the track hands over to the result */}
+            {done && <RaceResultsOverlay horses={horses} winnerId={winnerId} onReplay={onReplay} />}
           </div>
 
           {/* HUD — smooth modern type, no pixel font */}

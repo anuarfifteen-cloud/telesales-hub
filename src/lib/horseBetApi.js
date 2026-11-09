@@ -5,9 +5,11 @@ import {
   grossPayout,
   isBettingOpen,
   pickWinningHorseId,
+  rewardForPlace,
   STAKE_OPTIONS,
   todayKey,
 } from "@/lib/horseRacing";
+import { placeOf } from "@/lib/derbyFinish";
 
 /**
  * Daily Horse Racing data operations.
@@ -117,48 +119,67 @@ export async function placeBet({ user, race, horseId, stake }) {
   return { bet: confirmed, duplicate: false };
 }
 
-/** Winner with a verified stake can collect the fixed gross payout, once. */
-export async function collectPayout({ user, bet }) {
-  const payout = Number(bet.gross_payout) || grossPayout(bet.stake);
+/**
+ * Collects the exact reward the finishing place earns: the full win payout for
+ * 1st, the stake back for 2nd, half the stake for 3rd. The claim is marked
+ * before the wallet write, so a second press can never pay twice.
+ */
+export async function collectPayout({ user, bet, horses, winnerId }) {
+  const place = placeOf(horses, winnerId, bet.horse_id);
+  const reward = rewardForPlace(place, bet.stake);
+  if (!reward) throw new Error("This bet did not finish in a paying place.");
 
-  // Claim mark first: a second press can see claim_pending and stop.
-  await base44.entities.HorseBet.update(bet.id, { status: "claim_pending" });
+  const isWin = place === 1;
+
+  await base44.entities.HorseBet.update(bet.id, {
+    status: isWin ? "claim_pending" : "refund_pending",
+    finish_place: place,
+    reward_amount: reward,
+  });
 
   const fresh = await base44.auth.me();
   const before = Number(fresh?.casinoChips) || 0;
 
   try {
-    await base44.auth.updateMe({ casinoChips: before + payout });
+    await base44.auth.updateMe({ casinoChips: before + reward });
   } catch {
     // The credit may or may not have landed — never retry automatically.
     throw new Error("Collection was interrupted. An admin will verify it — don't collect again.");
   }
 
-  const balanceAfter = before + payout;
+  const balanceAfter = before + reward;
+  const stamp = new Date().toISOString();
   const paid = await base44.entities.HorseBet.update(bet.id, {
-    status: "paid",
+    status: isWin ? "paid" : "refunded",
     balance_after: balanceAfter,
-    paid_at: new Date().toISOString(),
+    ...(isWin ? { paid_at: stamp } : { refunded_at: stamp }),
+    finish_place: place,
+    reward_amount: reward,
   });
 
   logChipMovement({
     user,
     mode: "wallet",
-    action_type: "win",
-    amount: payout,
+    action_type: isWin ? "win" : "push",
+    amount: reward,
     balance_after: balanceAfter,
-    chips_won: payout,
-    detail: `Horse Racing payout ${payout} on #${bet.horse_number} ${bet.horse_name}`,
+    ...(isWin ? { chips_won: reward } : {}),
+    detail: isWin
+      ? `Horse Racing payout ${reward} on #${bet.horse_number} ${bet.horse_name} (1st)`
+      : `Horse Racing ${place === 2 ? "100%" : "50%"} refund ${reward} on #${bet.horse_number} ${bet.horse_name} (${place}${place === 2 ? "nd" : "rd"})`,
   });
 
   return paid;
 }
 
-/** Lazy loss marking once the day's result is visible. Best-effort only. */
-export async function markLost(bet, winnerId) {
-  if (!bet || bet.status !== "confirmed" || bet.horse_id === winnerId) return bet;
+/**
+ * Lazy result marking once the day's result is visible. Only 4th–6th lose the
+ * stake; 2nd and 3rd stay collectable as refunds. Best-effort only.
+ */
+export async function markResult(bet, place) {
+  if (!bet || bet.status !== "confirmed" || !place || place <= 3) return bet;
   try {
-    return await base44.entities.HorseBet.update(bet.id, { status: "lost" });
+    return await base44.entities.HorseBet.update(bet.id, { status: "lost", finish_place: place });
   } catch {
     return bet;
   }

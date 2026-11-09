@@ -26,6 +26,18 @@ export function grossPayout(stake) {
   return (Number(stake) || 0) * PAYOUT_MULTIPLIER;
 }
 
+/**
+ * Chips owed for a finishing place: 1st keeps the full win payout, 2nd gets the
+ * whole stake back as a consolation, 3rd gets half of it, and 4th–6th nothing.
+ */
+export function rewardForPlace(place, stake) {
+  const s = Number(stake) || 0;
+  if (place === 1) return grossPayout(s);
+  if (place === 2) return s;
+  if (place === 3) return Math.floor(s / 2);
+  return 0;
+}
+
 /** Minutes since Brunei midnight for the given moment. */
 export function bruneiMinutes(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-GB", {

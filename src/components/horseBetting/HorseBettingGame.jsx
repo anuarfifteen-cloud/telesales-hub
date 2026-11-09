@@ -4,8 +4,9 @@ import { toast } from "sonner";
 import HorseRaceTrack from "./HorseRaceTrack";
 import HorseBetSlip from "./HorseBetSlip";
 import HorseBetCard from "./HorseBetCard";
-import { collectPayout, loadMyBet, loadTodayRace, markLost, placeBet } from "@/lib/horseBetApi";
+import { collectPayout, loadMyBet, loadTodayRace, markResult, placeBet } from "@/lib/horseBetApi";
 import { unlockRaceAudio } from "@/lib/raceAudio";
+import { placeOf } from "@/lib/derbyFinish";
 import {
   formatBruneiDate,
   formatClock,
@@ -72,11 +73,13 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
     setRunning(true);
   }, [race, open, winnerId]);
 
-  // Lazy loss marking — only once the day's result is visible.
+  // Lazy result marking — only once the day's result is visible. 4th–6th lose
+  // their stake; 2nd and 3rd stay open so their refund can be collected.
   useEffect(() => {
     if (!race || !bet || open) return;
     if (bet.status !== "confirmed") return;
-    markLost(bet, race.winning_horse_id).then((updated) => {
+    const place = placeOf(race.horses, race.winning_horse_id, bet.horse_id);
+    markResult(bet, place).then((updated) => {
       if (updated && updated !== bet) setBet(updated);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -104,10 +107,15 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
     setBusy(true);
     setError("");
     try {
-      const paid = await collectPayout({ user, bet });
+      const paid = await collectPayout({
+        user,
+        bet,
+        horses: race.horses,
+        winnerId: race.winning_horse_id,
+      });
       setBet(paid);
       await onUserUpdate?.();
-      toast.success(`${bet.gross_payout} chips collected!`);
+      toast.success(`${Number(paid.reward_amount) || 0} chips collected!`);
     } catch (e) {
       setError(e?.message || "Collection was interrupted.");
       const fresh = await loadMyBet(race.race_date, user?.id).catch(() => null);

@@ -33,6 +33,30 @@ export function placeOf(horses, winnerId, horseId) {
   return idx < 0 ? 0 : idx + 1;
 }
 
+/** The winner's official time; the rest of the field is spread behind it. */
+export const RACE_BASE_SECONDS = 74.28;
+const RACE_GAP_SECONDS = 10;
+
+/** Official time as m:ss.hh (or ss.hh under a minute), to the hundredth. */
+export function formatRaceTime(seconds) {
+  const total = Math.max(0, Number(seconds) || 0);
+  const mins = Math.floor(total / 60);
+  const secs = total - mins * 60;
+  const secStr = secs.toFixed(2).padStart(5, "0");
+  return mins > 0 ? `${mins}:${secStr}` : `${secStr}s`;
+}
+
+/** 1st through 6th with finish times — shared by the results overlay and the bet card. */
+export function raceResults(horses = [], winnerId) {
+  const list = horses || [];
+  return finishOrder(list, winnerId).map((id, i) => {
+    const horse = list.find((h) => h.id === id) || { id, name: "Unknown", number: 0 };
+    const pace = id === winnerId ? 1 : Math.min(0.97, paceFor(id));
+    const seconds = RACE_BASE_SECONDS + (1 - pace) * RACE_GAP_SECONDS;
+    return { ...horse, place: i + 1, seconds, time: formatRaceTime(seconds) };
+  });
+}
+
 export function ordinal(n) {
   const num = Number(n) || 0;
   const rem10 = num % 10;
