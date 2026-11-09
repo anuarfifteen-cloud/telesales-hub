@@ -9,7 +9,8 @@ import {
   subscribeRaceAudioMute,
   unlockRaceAudio,
 } from "@/lib/raceAudio";
-import CartoonHorse from "./CartoonHorse";
+import { DUST_PUFF } from "@/lib/derbyArt";
+import RacerSprite from "./RacerSprite";
 import RaceScenery, { SCENE_H, DIRT_TOP } from "./RaceScenery";
 import HorseLaneTag from "./HorseLaneTag";
 
@@ -23,7 +24,6 @@ import HorseLaneTag from "./HorseLaneTag";
  */
 
 const GAIT_MS = 88;
-const GAIT = [0, 1, 2, 1];
 
 const FINISH_D = 2.96; // finish post distance in track widths
 const CAMERA_C = 2.26; // how far the camera travels
@@ -100,7 +100,6 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
   const cameraX = CAMERA_C * width * t;
   const toScreen = (worldX) => worldX - cameraX + ORIGIN;
   const finishX = toScreen(distance);
-  const pose = GAIT[gait];
 
   return (
     <div className="flex flex-col gap-2">
@@ -165,7 +164,7 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
 
               const scale = 0.6 + i * 0.082;
               const w = BASE_W * scale;
-              const hgt = w * (118 / 180);
+              const hgt = w; // sprite cells are square, feet sit on the cell's bottom edge
               const feet = FEET_Y + i * LANE_GAP;
 
               // diagonal running trajectory: each lane drifts and sways a little
@@ -189,21 +188,33 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
                     transform: `translate3d(${left}px,0,0)`,
                   }}
                 >
-                  {/* hoof dust trailing behind */}
+                  {/* hand-drawn dust puffs kicked up behind the hooves */}
                   {running && (
                     <span
                       className="pointer-events-none absolute"
-                      style={{ left: w * 0.06, bottom: 1, width: w * 0.42, height: hgt * 0.34 }}
+                      style={{ left: -w * 0.18, bottom: hgt * 0.02, width: w * 0.46, height: hgt * 0.3 }}
                     >
-                      <span className="hoof-dust absolute bottom-0 left-2 h-2 w-2 rounded-full bg-[#f7e3c9]" />
-                      <span
-                        className="hoof-dust absolute bottom-0 left-0 h-2.5 w-2.5 rounded-full bg-[#ecd0ac]"
-                        style={{ animationDelay: "0.22s" }}
-                      />
-                      <span
-                        className="hoof-dust absolute bottom-1 left-3 h-1.5 w-1.5 rounded-full bg-white"
-                        style={{ animationDelay: "0.45s" }}
-                      />
+                      {[
+                        { left: "0%", bottom: "0%", size: 78, delay: "0s", opacity: 0.95 },
+                        { left: "26%", bottom: "12%", size: 56, delay: "0.24s", opacity: 0.8 },
+                        { left: "52%", bottom: "4%", size: 40, delay: "0.46s", opacity: 0.65 },
+                      ].map((p) => (
+                        <span
+                          key={p.left}
+                          className="hoof-dust absolute"
+                          style={{
+                            left: p.left,
+                            bottom: p.bottom,
+                            width: `${p.size}%`,
+                            height: `${p.size}%`,
+                            opacity: p.opacity,
+                            animationDelay: p.delay,
+                            backgroundImage: `url(${DUST_PUFF})`,
+                            backgroundSize: "contain",
+                            backgroundRepeat: "no-repeat",
+                          }}
+                        />
+                      ))}
                     </span>
                   )}
 
@@ -220,14 +231,11 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
                     </span>
                   )}
 
-                  <CartoonHorse
-                    number={h.number}
-                    coat={h.color}
-                    silks={h.silks}
-                    frame={running ? pose : 0}
+                  <RacerSprite
+                    horseId={h.id}
+                    frame={running ? gait : 0}
                     glow={isWinner && done}
                     blurred={Boolean(blur)}
-                    className="h-full w-full"
                   />
                 </div>
               );
