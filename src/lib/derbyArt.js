@@ -3,8 +3,7 @@
  *
  * The racers are a hand-drawn 2.5D cartoon sprite sheet: four gallop frames on a
  * transparent sheet, each frame bottom-aligned in its square cell so the hooves
- * always land exactly on the lane's feet line. The dust puff and the trackside
- * backdrop (sponsored boards, hedge and turf) are cut from the same set.
+ * always land exactly on the lane's feet line.
  */
 export const RACER_SHEET =
   "https://base44.app/api/apps/6a02849f1b6bb0b71bf23993/files/mp/public/6a02849f1b6bb0b71bf23993/c131fcf07_derby-racer-sheet-v2.png";
@@ -13,11 +12,16 @@ export const RACER_FRAMES = 4;
 export const DUST_PUFF =
   "https://base44.app/api/apps/6a02849f1b6bb0b71bf23993/files/mp/public/6a02849f1b6bb0b71bf23993/e37e49f9a_derby-dust.png";
 
-/* Luxury Turf Club backdrop: gold-framed sponsor boards on a clipped hedge,
-   with the turf edge beneath. Used as-is, cropped to its board strip. */
-export const TRACKSIDE =
-  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/564ae471b_generated_db2d7e8f.png";
-export const TRACKSIDE_RATIO = 2752 / 1536;
+/**
+ * Saddlecloth anchor, as a percentage of one sprite cell.
+ *
+ * The back line sits at ~52.5% of the cell in three of the four gallop frames but
+ * drops to ~56% in the fourth, so each frame carries its own offset. The number
+ * patch rides that offset and stays glued to the flank instead of floating as the
+ * horse bobs through the stride.
+ */
+export const SADDLE = { left: 31, width: 17, top: 54.4, height: 13.5 };
+export const SADDLE_FRAME_OFFSET = [0.4, 0, 0.4, 4.1];
 
 /* One drawn coat serves every runner; each lane recolours it to its own silks.
    Golden Spur (h5) is pushed all the way to yellow. */

@@ -31,7 +31,7 @@ const ORIGIN = 14;
 
 /* The finish post is planted on the track and stops at the white railing, so it
    never reaches up into the grandstand or over the crowd. */
-const RAIL_Y = 90;
+const RAIL_Y = 88;
 
 const FEET_Y = 150;
 const LANE_GAP = 27;
