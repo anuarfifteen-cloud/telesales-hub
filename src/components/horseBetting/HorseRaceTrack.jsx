@@ -184,7 +184,10 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
                     top,
                     width: w,
                     height: hgt,
-                    zIndex: isWinner && done ? 24 : 10 + i,
+                    // Strict lane depth: the layer is fixed by the lane alone, so a
+                    // nearer lane (higher index) always paints over a farther one,
+                    // no matter who is ahead, crossing or leading.
+                    zIndex: 10 + i,
                     transform: `translate3d(${left}px,0,0)`,
                   }}
                 >
