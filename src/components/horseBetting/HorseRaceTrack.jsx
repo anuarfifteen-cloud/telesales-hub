@@ -240,6 +240,8 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
 
                   <RacerSprite
                     horseId={h.id}
+                    number={h.number || i + 1}
+                    size={w}
                     frame={running ? gait : 0}
                     glow={isWinner && done}
                     blurred={Boolean(blur)}

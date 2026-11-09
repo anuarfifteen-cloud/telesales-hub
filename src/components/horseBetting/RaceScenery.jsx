@@ -1,94 +1,132 @@
 /**
- * The illustrated racecourse behind the runners: hand-drawn grandstand packed
- * with a cheering cartoon crowd, white rail, layered grass bank and dirt
- * straight.
+ * The racecourse behind the runners — a Luxury Turf Club trackside.
  *
- * Every layer pans at its own speed from the single `cameraX` value, so the
- * scene stays in step with the horses while the background reads as depth.
+ * A bright daylight sky with drifting clouds sits above a run of gold-framed
+ * sponsor boards carrying the app's branding, clipped on a hedge with the turf
+ * edge below and the dirt straight in front. Every layer pans at its own speed
+ * from the single `cameraX` value, so the background keeps step with the horses.
  */
-import { GRANDSTAND } from "@/lib/derbyArt";
+import { TRACKSIDE, TRACKSIDE_RATIO } from "@/lib/derbyArt";
 
 export const SCENE_H = 300;
 export const DIRT_TOP = 114;
 
-const STAND_H = 80;
+const SKY_H = 46;
+const BAND_TOP = 46;
+const BAND_H = 114 - 46;
+
+/* The backdrop is drawn at its own scale and windowed onto the board strip. */
+const SHEET_H = 358;
+const SHEET_W = Math.round(SHEET_H * TRACKSIDE_RATIO);
+const CROP_Y = Math.round(SHEET_H * 0.6);
+
+const PAN = 0.1;
+const TILE_W = 132;
+const TILE_COUNT = 8;
+
+const CLOUDS_FAR =
+  "radial-gradient(40px 13px at 32px 26px, rgba(255,255,255,0.92) 0 58%, rgba(255,255,255,0) 72%)," +
+  "radial-gradient(26px 9px at 74px 20px, rgba(255,255,255,0.78) 0 58%, rgba(255,255,255,0) 72%)," +
+  "radial-gradient(48px 15px at 158px 32px, rgba(255,255,255,0.85) 0 58%, rgba(255,255,255,0) 72%)";
+
+const CLOUDS_NEAR =
+  "radial-gradient(58px 18px at 60px 34px, rgba(255,255,255,0.95) 0 56%, rgba(255,255,255,0) 70%)," +
+  "radial-gradient(34px 12px at 120px 26px, rgba(255,255,255,0.8) 0 56%, rgba(255,255,255,0) 70%)," +
+  "radial-gradient(66px 20px at 236px 38px, rgba(255,255,255,0.9) 0 56%, rgba(255,255,255,0) 70%)";
 
 export default function RaceScenery({ cameraX = 0 }) {
+  const pan = cameraX * PAN;
+
   return (
     <>
-      {/* sky behind the stands */}
+      {/* daylight sky */}
       <div
-        className="absolute inset-x-0 top-0"
-        style={{ height: STAND_H, background: "linear-gradient(180deg,#e8eef6 0%,#d6e0ec 100%)" }}
-      />
-
-      {/* the stands themselves — one wide illustrated crowd, slowly panning */}
-      <div className="absolute inset-x-0 top-0 overflow-hidden" style={{ height: STAND_H }}>
+        className="absolute inset-x-0 top-0 overflow-hidden"
+        style={{
+          height: SKY_H,
+          background: "linear-gradient(180deg,#4aa2e6 0%,#7cc1ee 54%,#d3ebf8 100%)",
+        }}
+      >
+        <div
+          className="absolute -right-7 -top-9 h-24 w-24 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(255,247,214,0.95) 0%, rgba(255,247,214,0.35) 42%, rgba(255,247,214,0) 72%)",
+          }}
+        />
+        {/* clouds — the far bank drifts slower than the near one */}
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: `url(${GRANDSTAND})`,
-            backgroundSize: "130% auto",
-            backgroundPosition: `${-cameraX * 0.09}px 44%`,
+            backgroundImage: CLOUDS_FAR,
+            backgroundSize: "210px 100%",
+            backgroundRepeat: "repeat-x",
+            backgroundPosition: `${-pan * 0.5}px 0`,
+            opacity: 0.9,
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: CLOUDS_NEAR,
+            backgroundSize: "300px 100%",
+            backgroundRepeat: "repeat-x",
+            backgroundPosition: `${-pan * 1.15}px 0`,
+          }}
+        />
+      </div>
+
+      {/* sponsor boards, hedge and turf edge */}
+      <div className="absolute inset-x-0 overflow-hidden" style={{ top: BAND_TOP, height: BAND_H }}>
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${TRACKSIDE})`,
+            backgroundSize: `${SHEET_W}px ${SHEET_H}px`,
+            backgroundPosition: `${-pan}px ${-CROP_Y}px`,
             backgroundRepeat: "no-repeat",
           }}
         />
-      </div>
 
-      {/* soft depth wash over the stands */}
-      <div
-        className="absolute inset-x-0 top-0"
-        style={{
-          height: STAND_H,
-          background:
-            "linear-gradient(180deg, rgba(24,40,60,0.22) 0%, rgba(24,40,60,0) 52%, rgba(24,40,60,0.14) 100%)",
-        }}
-      />
+        {/* the app's own boards along the top of the run */}
+        <div className="absolute inset-x-0 overflow-hidden" style={{ top: 8, height: 28 }}>
+          {Array.from({ length: TILE_COUNT }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute flex items-center justify-center gap-1"
+              style={{
+                left: i * TILE_W - (pan % TILE_W),
+                top: 0,
+                width: TILE_W - 9,
+                height: "100%",
+                borderRadius: 3,
+                background: "linear-gradient(155deg,#12452f 0%,#0b3021 70%,#08251a 100%)",
+                border: "1px solid rgba(212,175,55,0.8)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14), 0 1px 2px rgba(0,0,0,0.28)",
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "'Pacifico', cursive",
+                  fontSize: 10,
+                  lineHeight: 1,
+                  color: "#e9d194",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Telesales Hub
+              </span>
+            </div>
+          ))}
+        </div>
 
-      {/* white rail */}
-      <div className="absolute inset-x-0" style={{ top: 76, height: 17 }}>
+        {/* the boards catch a little sun along their top edge */}
         <div
-          className="absolute inset-x-0 top-0"
+          className="absolute inset-x-0"
           style={{
-            height: 7,
-            background: "linear-gradient(180deg,#ffffff 0%,#e7ecf2 100%)",
-            boxShadow: "0 2px 3px rgba(40,60,40,0.25)",
-          }}
-        />
-        <div
-          className="absolute inset-x-0 top-[9px]"
-          style={{
-            height: 7,
-            backgroundImage:
-              "repeating-linear-gradient(90deg,#ffffff 0 4px, #dfe6ee 4px 5px, transparent 5px 21px)",
-            backgroundPositionX: `${-cameraX * 0.5}px`,
-          }}
-        />
-        <div
-          className="absolute inset-x-0 bottom-0"
-          style={{ height: 6, background: "linear-gradient(180deg,rgba(46,80,50,0.35), rgba(46,80,50,0))" }}
-        />
-      </div>
-
-      {/* grass bank */}
-      <div
-        className="absolute inset-x-0"
-        style={{ top: 92, height: 24, background: "linear-gradient(180deg,#8ed08a 0%,#69b56d 55%,#4f9a58 100%)" }}
-      >
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: "radial-gradient(circle at 5px 4px, rgba(22,80,36,0.30) 0 1.6px, transparent 2px)",
-            backgroundSize: "15px 11px",
-            backgroundPosition: `${-cameraX * 1.15}px 3px`,
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: "radial-gradient(circle at 3px 2px, rgba(255,255,255,0.45) 0 1.2px, transparent 1.6px)",
-            backgroundSize: "23px 9px",
-            backgroundPosition: `${-cameraX * 1.35}px 0px`,
+            top: 8,
+            height: 3,
+            background: "linear-gradient(180deg, rgba(255,241,199,0.35), rgba(255,241,199,0))",
           }}
         />
       </div>
@@ -102,7 +140,6 @@ export default function RaceScenery({ cameraX = 0 }) {
           className="absolute inset-x-0 top-0"
           style={{ height: 5, background: "linear-gradient(180deg,rgba(120,70,32,0.42), rgba(120,70,32,0))" }}
         />
-        {/* long horizontal layers of the track */}
         <div
           className="absolute inset-0"
           style={{
@@ -110,7 +147,6 @@ export default function RaceScenery({ cameraX = 0 }) {
               "repeating-linear-gradient(0deg, rgba(96,58,26,0.10) 0 1.5px, transparent 1.5px 19px)",
           }}
         />
-        {/* pebbles and dust specks scrolling with the camera */}
         <div
           className="absolute inset-0"
           style={{
@@ -127,7 +163,6 @@ export default function RaceScenery({ cameraX = 0 }) {
             backgroundPosition: `${-cameraX * 1.45}px 13px`,
           }}
         />
-        {/* motion streaks */}
         <div
           className="absolute inset-0 opacity-45"
           style={{
