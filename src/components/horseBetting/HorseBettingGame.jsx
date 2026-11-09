@@ -7,6 +7,7 @@ import HorseBetCard from "./HorseBetCard";
 import { collectPayout, loadMyBet, loadTodayRace, markResult, placeBet } from "@/lib/horseBetApi";
 import { unlockRaceAudio } from "@/lib/raceAudio";
 import { placeOf } from "@/lib/derbyFinish";
+import { syncDerbySeason } from "@/lib/derbySeason";
 import {
   formatBruneiDate,
   formatClock,
@@ -84,6 +85,13 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [race?.race_date, bet?.id, bet?.status, open]);
+
+  // Season points: the lazy season heartbeat, re-run when betting closes.
+  useEffect(() => {
+    if (!user?.id) return;
+    syncDerbySeason(user).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, race?.race_date, open]);
 
   const handlePlace = async () => {
     if (!race || busy) return;

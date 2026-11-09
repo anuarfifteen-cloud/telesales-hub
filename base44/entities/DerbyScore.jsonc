@@ -1,0 +1,80 @@
+{
+  "name": "DerbyScore",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Player this season score belongs to. A player may only write their own row."
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name snapshot shown on the season leaderboard."
+    },
+    "season_number": {
+      "type": "number",
+      "default": 1,
+      "description": "The Derby season this score belongs to. Rows from older seasons stay untouched so archived standings can still be read."
+    },
+    "points": {
+      "type": "number",
+      "default": 0,
+      "description": "Season points: 6 for a 1st-place horse, 4 for 2nd, 3 for 3rd, 2 for 4th, 1 for 5th, 0 for 6th \u2014 one award per race day."
+    },
+    "awarded_days": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Asia/Brunei race dates already credited to this player this season. Guarantees one daily entry \u2014 a reload never awards the same day twice."
+    },
+    "last_award_date": {
+      "type": "string",
+      "description": "The most recent race date that earned points."
+    },
+    "diamond_claimed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this player has collected the 1 Diamond milestone reward for this season."
+    },
+    "diamond_claimed_by": {
+      "type": "string",
+      "description": "User ID recorded on the claim, re-read straight after the write to confirm the claimant so a simultaneous claim cannot pay twice."
+    },
+    "diamond_claimed_at": {
+      "type": "string",
+      "description": "ISO timestamp the milestone Diamond was credited."
+    },
+    "updated_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last points change."
+    }
+  },
+  "required": [
+    "user_id",
+    "season_number",
+    "points"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

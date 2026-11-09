@@ -1,0 +1,50 @@
+{
+  "name": "DerbySeason",
+  "type": "object",
+  "properties": {
+    "season_number": {
+      "type": "number",
+      "default": 1,
+      "description": "Horse Betting season number. Increments when the finished season is archived, so every player's score row is compared against this number and starts again at 0 in the new season."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "closed"
+      ],
+      "enumColors": [
+        "green",
+        "gray"
+      ],
+      "default": "active",
+      "description": "active = points are accruing and qualified players can claim their 1 Diamond. closed = the season has been archived into DerbySeasonHistory and a newer season is running."
+    },
+    "final_day": {
+      "type": "string",
+      "description": "Asia/Brunei race date (YYYY-MM-DD) that became the season's final day, written the moment the first player reaches 100 points. The season stays open for claims until 23:59 that same day; the next visit after midnight archives it and starts the next season. Empty while nobody has qualified yet."
+    },
+    "started_at": {
+      "type": "string",
+      "description": "ISO timestamp the season was created."
+    },
+    "closed_at": {
+      "type": "string",
+      "description": "ISO timestamp the season was archived and the next one started."
+    }
+  },
+  "required": [
+    "season_number",
+    "status"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -12,7 +12,7 @@ import DiamondSmashGame from "@/components/games/DiamondSmashGame";
 import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
 import TapVaultCard from "@/components/tokens/TapVaultCard";
 import Blackjack21Game from "@/components/casino21/Blackjack21Game";
-import HorseBettingGame from "@/components/horseBetting/HorseBettingGame";
+import HorseBettingView from "@/components/horseBetting/HorseBettingView";
 import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
 import DailyChipGiftModal, { chipGiftClaimedToday } from "@/components/casino21/DailyChipGiftModal";
 import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
@@ -276,7 +276,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
 
       {/* Daily Horse Betting */}
       {innerTab === "horseracing" && (
-        <HorseBettingGame user={user} onUserUpdate={onUserUpdate} />
+        <HorseBettingView user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {/* Premium Scratch Card */}

@@ -1,0 +1,55 @@
+{
+  "name": "DerbySeasonHistory",
+  "type": "object",
+  "properties": {
+    "season_number": {
+      "type": "number",
+      "description": "The finished season this archive belongs to."
+    },
+    "final_day": {
+      "type": "string",
+      "description": "Asia/Brunei race date that was the season's final day."
+    },
+    "standings": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Final standings frozen at archive time, each { rank, user_id, user_name, points }."
+    },
+    "champion_id": {
+      "type": "string",
+      "description": "User ID of the season champion (the top of the final standings)."
+    },
+    "champion_name": {
+      "type": "string",
+      "description": "Display name of the season champion."
+    },
+    "champion_points": {
+      "type": "number",
+      "description": "Points the champion finished the season on."
+    },
+    "archived_at": {
+      "type": "string",
+      "description": "ISO timestamp the standings were archived and the next season started."
+    }
+  },
+  "required": [
+    "season_number",
+    "archived_at"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
