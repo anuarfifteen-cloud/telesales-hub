@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Lock, Sparkles } from "lucide-react";
 import MiniChipIcon from "@/components/casino21/MiniChipIcon";
-import HorseSilhouette from "./HorseSilhouette";
+import HorseLaneTag from "./HorseLaneTag";
 import { STAKE_OPTIONS, grossPayout } from "@/lib/horseRacing";
 import {
   AlertDialog,
@@ -43,26 +43,15 @@ export default function HorseBetSlip({ horses, selected, onSelect, stake, onStak
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-1.5">
-        {horses.map((h) => {
-          const active = selected === h.id;
-          return (
-            <button
-              key={h.id}
-              onClick={() => onSelect(h.id)}
-              className={`relative flex items-center gap-2 rounded-xl border px-2.5 py-2.5 text-left transition-all ${
-                active
-                  ? "border-amber-500 bg-amber-50 shadow-sm"
-                  : "border-border bg-muted/40 hover:bg-muted"
-              }`}
-            >
-              <HorseSilhouette number={h.number} size={42} />
-              <span className="min-w-0 flex-1 truncate text-[11.5px] font-bold leading-tight text-foreground">
-                {h.name}
-              </span>
-            </button>
-          );
-        })}
+      <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-slate-100/70 p-1.5">
+        {horses.map((h) => (
+          <HorseLaneTag
+            key={h.id}
+            horse={h}
+            active={selected === h.id}
+            onClick={() => onSelect(h.id)}
+          />
+        ))}
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-1.5">

@@ -1,50 +1,41 @@
 import { useEffect, useRef, useState } from "react";
-import { Flag, Play, RotateCcw } from "lucide-react";
+import { Play, RotateCcw } from "lucide-react";
 import { RACE_DURATION_MS } from "@/lib/horseRacing";
-import PixelHorse from "./PixelHorse";
+import CartoonHorse from "./CartoonHorse";
+import RaceScenery, { SCENE_H, DIRT_TOP } from "./RaceScenery";
+import HorseLaneTag from "./HorseLaneTag";
 
 /**
- * Daily Derby — a 16-bit arcade race.
+ * Daily Derby — a hand-drawn 2.5D race.
  *
- * Everything here is presentation only: the 15-second clock, the saved winner
- * and the replay flow are untouched. The camera, the scrolling parallax track
- * and the horses' positions are all derived from that one progress value, so a
- * replay of the same saved result always looks identical.
+ * Presentation only: the 15-second clock, the saved winner and the replay flow
+ * are untouched. The camera, the parallax scenery, the diagonal drift of each
+ * runner and the hoof dust all derive from that one progress value, so a replay
+ * of the same saved result always looks identical.
  */
 
-const GALLOP_MS = 95;
-const TRACK_H = 216;
-const TREE_H = 40;
-const FENCE_TOP = 40;
-const DIRT_TOP = 52;
-const ROW_START = 58;
-const ROW_GAP = 24;
-const SPRITE_W = 44;
-const ORIGIN = 10;
+const GAIT_MS = 88;
+const GAIT = [0, 1, 2, 1];
 
-// Camera geometry in track widths. The finish post sits at 2.96 widths and the
-// camera travels 2.26, so the post stays off-screen until about t = 0.867 (the
-// last two seconds) and then pans in from the right to meet the winner.
-const FINISH_D = 2.96;
-const CAMERA_C = 2.26;
+const FINISH_D = 2.96; // finish post distance in track widths
+const CAMERA_C = 2.26; // how far the camera travels
+const ORIGIN = 14;
 
-const TREES =
-  "radial-gradient(circle at 16px 32px, #1f6b30 0 17px, transparent 17px), radial-gradient(circle at 46px 34px, #175a28 0 15px, transparent 15px), radial-gradient(circle at 32px 21px, #2a8a3d 0 11px, transparent 11px)";
-
-const DIRT =
-  "repeating-linear-gradient(90deg, rgba(0,0,0,0.34) 0 2px, transparent 2px 24px), repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 9px), radial-gradient(circle at 40px 18px, rgba(255,214,150,0.12) 0 2px, transparent 2px)";
+const FEET_Y = 158;
+const LANE_GAP = 14;
+const BASE_W = 74;
 
 function seed(id = "") {
   let h = 7;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 997;
   return h;
 }
-const paceFor = (id) => 0.86 + (seed(id) % 10) / 100; // 0.86 – 0.95 of the winner
+const paceFor = (id) => 0.9 + (seed(id) % 7) / 100; // 0.90 – 0.96 of the winner
 const phaseFor = (id) => (seed(id) % 628) / 100;
 
 export default function HorseRaceTrack({ horses = [], winnerId, running, onFinish, onReplay }) {
   const [t, setT] = useState(0);
-  const [frame, setFrame] = useState(0);
+  const [gait, setGait] = useState(0);
   const [width, setWidth] = useState(360);
   const wrapRef = useRef(null);
   const raf = useRef(null);
@@ -60,13 +51,13 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
   useEffect(() => {
     if (!running) return undefined;
     setT(0);
-    setFrame(0);
+    setGait(0);
     startAt.current = performance.now();
     const tick = (now) => {
       const elapsed = now - startAt.current;
       const p = Math.min(1, elapsed / RACE_DURATION_MS);
       setT(p);
-      setFrame(Math.floor(elapsed / GALLOP_MS) % 4);
+      setGait(Math.floor(elapsed / GAIT_MS) % 4);
       if (p < 1) raf.current = requestAnimationFrame(tick);
       else onFinish?.();
     };
@@ -80,189 +71,183 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
   const cameraX = CAMERA_C * width * t;
   const toScreen = (worldX) => worldX - cameraX + ORIGIN;
   const finishX = toScreen(distance);
+  const pose = GAIT[gait];
 
   return (
-    <div className="overflow-hidden rounded-xl border-2 border-black shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+    <div className="flex flex-col gap-2">
+      {/* purple outer frame + dark green inner frame, as in the reference */}
       <div
-        ref={wrapRef}
-        className="relative overflow-hidden"
-        style={{ height: TRACK_H, backgroundColor: "#3e1e07" }}
+        className="rounded-[22px] p-[3px] shadow-[0_10px_26px_rgba(38,18,58,0.24)]"
+        style={{ background: "linear-gradient(150deg,#8c4fb2 0%,#5f2c81 48%,#3d1a57 100%)" }}
       >
-        {/* Treeline */}
-        <div
-          className="absolute inset-x-0 top-0"
-          style={{
-            height: TREE_H,
-            backgroundColor: "#0e2b1b",
-            backgroundImage: TREES,
-            backgroundSize: "64px 44px",
-            backgroundRepeat: "repeat-x",
-            backgroundPosition: `${-(cameraX * 0.18)}px 0`,
-          }}
-        />
+        <div className="overflow-hidden rounded-[19px]" style={{ background: "#062a21" }}>
+          <div ref={wrapRef} className="relative overflow-hidden" style={{ height: SCENE_H }}>
+            <RaceScenery cameraX={cameraX} />
 
-        {/* Dirt straight — scrolls at full speed */}
-        <div
-          className="absolute inset-x-0 bottom-0"
-          style={{
-            top: DIRT_TOP,
-            backgroundImage: DIRT,
-            backgroundPosition: `${-cameraX}px 0`,
-            boxShadow: "inset 0 8px 14px rgba(0,0,0,0.5)",
-          }}
-        />
+            {/* finish line and post */}
+            {finishX > -70 && finishX < width + 70 && (
+              <>
+                <div
+                  className="absolute"
+                  style={{ left: finishX, top: DIRT_TOP, bottom: 0, width: 11, zIndex: 4, opacity: 0.9 }}
+                >
+                  <div
+                    className="h-full w-full"
+                    style={{
+                      backgroundImage:
+                        "repeating-linear-gradient(0deg, rgba(255,255,255,0.92) 0 8px, rgba(224,86,86,0.9) 8px 16px)",
+                    }}
+                  />
+                </div>
+                <div
+                  className="absolute"
+                  style={{
+                    left: finishX - 1,
+                    top: 26,
+                    bottom: 0,
+                    width: 8,
+                    zIndex: 5,
+                    backgroundImage:
+                      "repeating-linear-gradient(0deg,#ffffff 0 11px,#e25656 11px 22px)",
+                    boxShadow: "0 0 0 1px rgba(30,20,10,0.25)",
+                  }}
+                >
+                  <div
+                    className="absolute -top-3 left-1"
+                    style={{
+                      width: 0,
+                      height: 0,
+                      borderLeft: "14px solid #f6c445",
+                      borderTop: "5px solid transparent",
+                      borderBottom: "5px solid transparent",
+                    }}
+                  />
+                </div>
+              </>
+            )}
 
-        {/* White rail fence */}
-        <div className="absolute inset-x-0" style={{ top: FENCE_TOP, height: 12 }}>
-          <div className="absolute inset-x-0 top-0 h-[3px] bg-[#f2f0e4]" />
-          <div className="absolute inset-x-0 top-[5px] h-[2px] bg-[#cfcbb8]" />
-          <div
-            className="absolute inset-x-0 bottom-0 top-[2px]"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(90deg,#f2f0e4 0 3px, transparent 3px 22px)",
-              backgroundPosition: `${-(cameraX * 0.5)}px 0`,
-            }}
-          />
-        </div>
+            {/* runners */}
+            {horses.map((h, i) => {
+              const isWinner = h.id === winnerId;
+              const pace = paceFor(h.id);
+              const wobble =
+                Math.sin(t * 7.2 + phaseFor(h.id)) * 0.03 * Math.sin(Math.PI * Math.min(1, t * 1.1));
+              const prog = isWinner ? t : Math.max(0, Math.min(0.97, t * pace + wobble));
 
-        {/* Start gate — scrolls away with the world */}
-        <div
-          className="absolute w-1"
-          style={{
-            top: DIRT_TOP,
-            bottom: 0,
-            transform: `translate3d(${toScreen(0)}px,0,0)`,
-            backgroundImage:
-              "repeating-linear-gradient(0deg,#f2f0e4 0 7px, #1f2937 7px 14px)",
-            opacity: 0.75,
-            zIndex: 5,
-          }}
-        />
+              const scale = 0.6 + i * 0.082;
+              const w = BASE_W * scale;
+              const hgt = w * (100 / 150);
+              const feet = FEET_Y + i * LANE_GAP;
 
-        {/* Checkered finish post — pans in from the right for the last two seconds */}
-        <div
-          className="absolute"
-          style={{ top: DIRT_TOP, bottom: 0, width: 14, transform: `translate3d(${finishX}px,0,0)`, zIndex: 6 }}
-        >
-          <div
-            className="h-full w-full"
-            style={{
-              backgroundImage: "repeating-conic-gradient(#f8fafc 0 25%, #1f2937 0 50%)",
-              backgroundSize: "7px 7px",
-            }}
-          />
-          <Flag className="absolute -top-4 left-0 h-4 w-4 text-[#f7d85e]" />
-        </div>
+              // diagonal running trajectory: each lane drifts and sways a little
+              const sway =
+                Math.sin(t * Math.PI * 1.5 + phaseFor(h.id)) * 3 * Math.min(1, t * 3) * (1 - 0.35 * t);
 
-        {/* Runners */}
-        {horses.map((h, i) => {
-          const isWinner = h.id === winnerId;
-          const prog = isWinner
-            ? t
-            : Math.max(
-                0,
-                Math.min(
-                  0.99,
-                  t * paceFor(h.id) +
-                    0.05 * Math.sin(t * 8 + phaseFor(h.id)) * Math.min(1, t * 3) * (1 - t) +
-                    (((seed(h.id) % 3) - 1) * 0.05 * Math.sin(Math.PI * t))
-                )
+              const left = toScreen(distance * prog) - w * 0.5 * prog;
+              const top = feet - hgt + sway;
+              const blur = running && !isWinner ? 0.3 : 0;
+
+              return (
+                <div
+                  key={h.id}
+                  className="absolute"
+                  style={{
+                    left: 0,
+                    top,
+                    width: w,
+                    height: hgt,
+                    zIndex: isWinner && done ? 24 : 10 + i,
+                    transform: `translate3d(${left}px,0,0)`,
+                  }}
+                >
+                  {/* hoof dust trailing behind */}
+                  {running && (
+                    <span
+                      className="pointer-events-none absolute"
+                      style={{ left: w * 0.06, bottom: 1, width: w * 0.42, height: hgt * 0.34 }}
+                    >
+                      <span className="hoof-dust absolute bottom-0 left-2 h-2 w-2 rounded-full bg-[#f7e3c9]" />
+                      <span
+                        className="hoof-dust absolute bottom-0 left-0 h-2.5 w-2.5 rounded-full bg-[#ecd0ac]"
+                        style={{ animationDelay: "0.22s" }}
+                      />
+                      <span
+                        className="hoof-dust absolute bottom-1 left-3 h-1.5 w-1.5 rounded-full bg-white"
+                        style={{ animationDelay: "0.45s" }}
+                      />
+                    </span>
+                  )}
+
+                  {/* speed streaks */}
+                  {running && (
+                    <span className="pointer-events-none absolute" style={{ left: -w * 0.08, top: hgt * 0.3 }}>
+                      {[0, 1, 2].map((k) => (
+                        <span
+                          key={k}
+                          className="absolute rounded-full bg-white/70"
+                          style={{ width: 9 + k * 5, height: 2, top: k * 6, opacity: 0.45 - k * 0.1 }}
+                        />
+                      ))}
+                    </span>
+                  )}
+
+                  <CartoonHorse
+                    number={h.number}
+                    coat={h.color}
+                    silks={h.silks}
+                    frame={running ? pose : 0}
+                    glow={isWinner && done}
+                    blurred={Boolean(blur)}
+                    className="h-full w-full"
+                  />
+                </div>
               );
-          // The horse's nose reaches the post as it finishes: shift back a little
-          // more the further it has travelled, so the winner's head crosses first.
-          const screenX = toScreen(distance * prog) - SPRITE_W * 0.62 * prog;
-          const bob = running ? Math.sin(t * 34 + phaseFor(h.id)) * 1.6 : 0;
-          const scale = 0.88 + i * 0.04;
-          const top = ROW_START + i * ROW_GAP;
+            })}
 
-          return (
+            {/* soft vignette so the frame feels lit */}
             <div
-              key={h.id}
-              className="absolute"
-              style={{
-                top,
-                left: 0,
-                width: SPRITE_W,
-                zIndex: 10 + i,
-                transform: `translate3d(${screenX}px, ${bob}px, 0) scale(${scale})`,
-                transformOrigin: "bottom left",
-                filter: isWinner && done ? "drop-shadow(0 0 6px rgba(247,216,94,0.95))" : "none",
-              }}
-            >
-              {/* ground shadow */}
-              <div
-                className="absolute"
-                style={{
-                  left: 6,
-                  bottom: 0,
-                  width: 34,
-                  height: 5,
-                  background: "radial-gradient(ellipse at center, rgba(0,0,0,0.5), transparent 70%)",
-                }}
-              />
-              {running && (
-                <span className="pointer-events-none absolute" style={{ left: -2, bottom: 2, width: 10, height: 8 }}>
-                  <span className="race-dust" />
-                  <span className="race-dust race-dust-2" />
-                </span>
-              )}
-              <PixelHorse frame={frame} coat={h.color} silk={h.silks} width={SPRITE_W} />
-              <span
-                className="font-pixel absolute -top-1.5 left-0 px-[2px] py-[1px] text-[6px] leading-none"
-                style={{ background: "#000", color: "#f7d85e" }}
-              >
-                {h.number}
-              </span>
-            </div>
-          );
-        })}
+              className="pointer-events-none absolute inset-0"
+              style={{ boxShadow: "inset 0 0 26px rgba(28,14,6,0.28)" }}
+            />
+          </div>
 
-        {/* Arcade scanlines */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{ background: "repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px)" }}
-        />
+          {/* HUD — smooth modern type, no pixel font */}
+          <div className="flex items-center justify-between gap-2 px-3 py-2">
+            <div className="min-w-0">
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-300/75">
+                Daily Derby
+              </p>
+              <p className="truncate text-[11px] font-semibold text-emerald-50">Race at 12:00 · Brunei</p>
+            </div>
+            {done ? (
+              <button
+                onClick={onReplay}
+                className="flex shrink-0 items-center gap-1 rounded-full bg-amber-300 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-950 transition hover:brightness-105"
+              >
+                <RotateCcw className="h-3 w-3" /> Replay
+              </button>
+            ) : (
+              <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-50">
+                {running ? (
+                  <>
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> Racing
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-3 w-3" /> Ready
+                  </>
+                )}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Black HUD panel */}
-      <div className="bg-black px-2 py-1.5">
-        <div className="flex items-center justify-between gap-2">
-          <span className="font-pixel text-[7px] leading-none text-[#f7d85e]">THE DAILY DERBY</span>
-          {done ? (
-            <button
-              onClick={onReplay}
-              className="font-pixel flex items-center gap-1 rounded-sm border border-[#f7d85e] px-1.5 py-1 text-[6px] leading-none text-[#f7d85e] hover:bg-[#f7d85e]/15"
-            >
-              <RotateCcw className="h-2.5 w-2.5" /> REPLAY
-            </button>
-          ) : (
-            <span className="font-pixel flex items-center gap-1 text-[6px] leading-none text-[#7f9eff]">
-              {running ? (
-                <>
-                  <span className="inline-block h-1.5 w-1.5 animate-pulse bg-[#278f24]" /> RACING
-                </>
-              ) : (
-                <>
-                  <Play className="h-2.5 w-2.5" /> SAVED RESULT
-                </>
-              )}
-            </span>
-          )}
-        </div>
-        <div className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-1">
-          {horses.map((h) => (
-            <span key={h.id} className="flex items-center gap-1">
-              <span className="inline-block h-2 w-2 shrink-0" style={{ background: h.silks }} />
-              <span className="font-pixel truncate text-[6px] leading-none text-[#cfcfcf]">
-                {h.number} {String(h.name || "").toUpperCase()}
-              </span>
-            </span>
-          ))}
-        </div>
-        {done && (
-          <p className="font-pixel mt-1.5 text-[6px] leading-none text-[#f7d85e]">PHOTO FINISH</p>
-        )}
+      {/* lane list */}
+      <div className="grid grid-cols-2 gap-1.5">
+        {horses.map((h) => (
+          <HorseLaneTag key={h.id} horse={h} winner={done && h.id === winnerId} />
+        ))}
       </div>
     </div>
   );

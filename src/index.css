@@ -875,24 +875,14 @@
   100% { transform: scale(1); }
 }
 
-/* ── Daily Derby: pixel dust kicked up behind each galloping horse ── */
-@keyframes race-dust-kick {
-  0%   { opacity: 0.75; transform: translate(0, 0) scale(1); }
-  100% { opacity: 0;    transform: translate(-16px, -6px) scale(0.4); }
+/* ── Daily Derby: hoof dust kicked up behind the illustrated runners ── */
+@keyframes hoof-dust-puff {
+  0%   { opacity: 0;    transform: translate(0, 0) scale(0.35); }
+  22%  { opacity: 0.65; }
+  100% { opacity: 0;    transform: translate(-26px, -11px) scale(1.7); }
 }
-.race-dust,
-.race-dust-2 {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 4px;
-  height: 4px;
-  background: #c9a06a;
-  animation: race-dust-kick 0.5s steps(4) infinite;
-}
-.race-dust-2 {
-  background: #8a6234;
-  animation-delay: 0.25s;
+.hoof-dust {
+  animation: hoof-dust-puff 0.72s ease-out infinite;
 }
 
 /* ── Daily Missions: bonus-card "ready to claim" border glow ──
