@@ -14,7 +14,7 @@ export const DUST_PUFF =
   "https://base44.app/api/apps/6a02849f1b6bb0b71bf23993/files/mp/public/6a02849f1b6bb0b71bf23993/e37e49f9a_derby-dust.png";
 
 export const GRANDSTAND =
-  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/116370387_generated_image.png";
+  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/791b7483d_generated_image.png";
 
 /* One drawn coat serves every runner; each lane recolours it to its own silks. */
 const TINTS = {

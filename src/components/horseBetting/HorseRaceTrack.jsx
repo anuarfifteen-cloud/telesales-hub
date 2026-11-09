@@ -29,9 +29,13 @@ const FINISH_D = 2.96; // finish post distance in track widths
 const CAMERA_C = 2.26; // how far the camera travels
 const ORIGIN = 14;
 
-const FEET_Y = 158;
-const LANE_GAP = 14;
-const BASE_W = 74;
+/* The finish post is planted on the track and stops at the white railing, so it
+   never reaches up into the grandstand or over the crowd. */
+const RAIL_Y = 90;
+
+const FEET_Y = 150;
+const LANE_GAP = 27;
+const BASE_W = 58;
 
 function seed(id = "") {
   let h = 7;
@@ -131,7 +135,7 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
                   className="absolute"
                   style={{
                     left: finishX - 1,
-                    top: 26,
+                    top: RAIL_Y,
                     bottom: 0,
                     width: 8,
                     zIndex: 5,
@@ -162,7 +166,7 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
                 Math.sin(t * 7.2 + phaseFor(h.id)) * 0.03 * Math.sin(Math.PI * Math.min(1, t * 1.1));
               const prog = isWinner ? t : Math.max(0, Math.min(0.97, t * pace + wobble));
 
-              const scale = 0.6 + i * 0.082;
+              const scale = 0.68 + i * 0.068;
               const w = BASE_W * scale;
               const hgt = w; // sprite cells are square, feet sit on the cell's bottom edge
               const feet = FEET_Y + i * LANE_GAP;

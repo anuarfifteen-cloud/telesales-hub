@@ -8,7 +8,7 @@
  */
 import { GRANDSTAND } from "@/lib/derbyArt";
 
-export const SCENE_H = 232;
+export const SCENE_H = 300;
 export const DIRT_TOP = 114;
 
 const STAND_H = 80;
