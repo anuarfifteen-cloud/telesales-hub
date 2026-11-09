@@ -84,20 +84,21 @@ export default function SponsorRail({ cameraX = 0 }) {
         }}
       />
 
-      {/* rail posts, evenly spaced on the same level line */}
-      <div className="absolute inset-x-0 overflow-hidden" style={{ top: BOARD_H + 5, height: 26 }}>
-        {Array.from({ length: 7 }).map((_, i) => (
+      {/* solid posts, evenly spaced and driven down into the top dirt line so the
+          rail reads as firmly anchored instead of floating */}
+      <div className="absolute inset-x-0 overflow-hidden" style={{ top: BOARD_H + RAIL_H - 4, height: 18 }}>
+        {Array.from({ length: count + 1 }).map((_, i) => (
           <div
             key={i}
             className="absolute"
             style={{
-              left: i * STEP * 2 - shift,
+              left: i * STEP + TILE_W / 2 - shift,
               top: 0,
-              width: 7,
+              width: 8,
               height: "100%",
-              borderRadius: 1.5,
-              background: "linear-gradient(90deg,#ffffff,#e6eaec)",
-              boxShadow: "1px 1px 3px rgba(0,0,0,0.22)",
+              borderRadius: 1,
+              background: "linear-gradient(90deg,#cfd6da 0%,#ffffff 45%,#dbe2e5 100%)",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.28)",
             }}
           />
         ))}

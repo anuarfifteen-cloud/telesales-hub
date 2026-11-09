@@ -10,8 +10,10 @@ import {
   unlockRaceAudio,
 } from "@/lib/raceAudio";
 import { DUST_PUFF } from "@/lib/derbyArt";
+import { paceFor as paceOf, phaseFor } from "@/lib/derbyFinish";
 import RacerSprite from "./RacerSprite";
 import RaceScenery, { SCENE_H, DIRT_TOP } from "./RaceScenery";
+import { BOARD_H, RAIL_H } from "./SponsorRail";
 import HorseLaneTag from "./HorseLaneTag";
 
 /**
@@ -29,21 +31,17 @@ const FINISH_D = 2.96; // finish post distance in track widths
 const CAMERA_C = 2.26; // how far the camera travels
 const ORIGIN = 14;
 
-/* The finish post runs the full height of the cropped view, terminating exactly at
-   the top border where the sponsor adboards begin. */
-const POST_TOP = 0;
+/* The finish post is capped so it terminates cleanly at the bottom of the rail
+   and never runs up over the sponsor adboards. */
+const POST_TOP = BOARD_H + RAIL_H;
 
-const FEET_Y = 130;
+const FEET_Y = 136;
 const LANE_GAP = 36;
 const BASE_W = 76;
 
-function seed(id = "") {
-  let h = 7;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 997;
-  return h;
-}
-const paceFor = (id) => 0.9 + (seed(id) % 7) / 100; // 0.90 – 0.96 of the winner
-const phaseFor = (id) => (seed(id) % 628) / 100;
+// Shared with the roster and the bet card, so the order on screen, the places
+// shown after the race and the drawn race all come from the same numbers.
+const paceFor = paceOf;
 
 export default function HorseRaceTrack({ horses = [], winnerId, running, onFinish, onReplay }) {
   const [t, setT] = useState(0);
@@ -147,7 +145,7 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
                   <div
                     className="absolute left-2"
                     style={{
-                      top: 3,
+                      top: 4,
                       width: 0,
                       height: 0,
                       borderLeft: "19px solid #f6c445",
@@ -167,7 +165,9 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
                 Math.sin(t * 7.2 + phaseFor(h.id)) * 0.03 * Math.sin(Math.PI * Math.min(1, t * 1.1));
               const prog = isWinner ? t : Math.max(0, Math.min(0.97, t * pace + wobble));
 
-              const scale = 0.72 + i * 0.062;
+              // Every runner is drawn at exactly the same size — no lane-based
+              // perspective scaling, so the field reads as one 1:1 scale.
+              const scale = 0.82;
               const w = BASE_W * scale;
               const hgt = w; // sprite cells are square, feet sit on the cell's bottom edge
               const feet = FEET_Y + i * LANE_GAP;

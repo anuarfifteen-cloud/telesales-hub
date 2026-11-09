@@ -1,6 +1,8 @@
-import { CheckCircle2, Clock4, Coins, RotateCcw, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Clock4, Coins, RotateCcw, ShieldAlert, Trophy } from "lucide-react";
 import MiniChipIcon from "@/components/casino21/MiniChipIcon";
 import { grossPayout, horseById } from "@/lib/horseRacing";
+import { ordinal, placeOf } from "@/lib/derbyFinish";
+import RacerSprite from "./RacerSprite";
 
 const LABELS = {
   pending: { text: "Confirming…", tone: "text-amber-700", bg: "bg-amber-50 border-amber-200" },
@@ -22,6 +24,7 @@ export default function HorseBetCard({ bet, horses, winnerId, resultVisible, bus
   const meta = LABELS[status] || LABELS.confirmed;
   const canCollect = status === "won" && !busy;
   const payout = Number(bet.gross_payout) || grossPayout(bet.stake);
+  const place = resultVisible ? placeOf(horses, winnerId, bet.horse_id) : 0;
 
   return (
     <div className="rounded-2xl border border-border bg-white/95 p-3.5">
@@ -36,16 +39,31 @@ export default function HorseBetCard({ bet, horses, winnerId, resultVisible, bus
 
       <div className="mt-2.5 flex items-center gap-2.5">
         <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black tabular-nums text-white"
-          style={{ backgroundColor: horse?.color || "#94a3b8" }}
+          className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl ring-1 ring-black/5"
+          style={{ background: "linear-gradient(160deg,#eef7f1 0%,#dbeade 100%)" }}
         >
-          {horse?.number || "?"}
+          <RacerSprite horseId={horse?.id} size={44} frame={0} />
+          <span
+            className="absolute bottom-0 right-0 flex h-4 w-4 items-center justify-center rounded-tl-md text-[9px] font-black text-white"
+            style={{ backgroundColor: horse?.color || "#94a3b8" }}
+          >
+            {horse?.number || "?"}
+          </span>
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-bold text-foreground">{horse?.name || "Unknown horse"}</p>
           <p className="flex items-center gap-1 text-[11px] font-bold tabular-nums text-muted-foreground">
             <MiniChipIcon size={12} /> {bet.stake} staked · pays {payout}
           </p>
+          {place > 0 && (
+            <span
+              className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                isWinner ? "bg-amber-400 text-amber-950" : "bg-slate-100 text-slate-700"
+              }`}
+            >
+              {isWinner && <Trophy className="h-2.5 w-2.5" />} Finished {ordinal(place)}
+            </span>
+          )}
         </div>
       </div>
 
