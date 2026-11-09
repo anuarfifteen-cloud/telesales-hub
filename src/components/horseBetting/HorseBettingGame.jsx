@@ -5,6 +5,7 @@ import HorseRaceTrack from "./HorseRaceTrack";
 import HorseBetSlip from "./HorseBetSlip";
 import HorseBetCard from "./HorseBetCard";
 import { collectPayout, loadMyBet, loadTodayRace, markLost, placeBet } from "@/lib/horseBetApi";
+import { unlockRaceAudio } from "@/lib/raceAudio";
 import {
   formatBruneiDate,
   formatClock,
@@ -189,10 +190,16 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
             winnerId={winnerId}
             running={running}
             onFinish={() => setRunning(false)}
-            onReplay={() => setRunning(true)}
+            onReplay={() => {
+              unlockRaceAudio();
+              setRunning(true);
+            }}
           />
           <button
-            onClick={() => setRunning(true)}
+            onClick={() => {
+              unlockRaceAudio();
+              setRunning(true);
+            }}
             disabled={running}
             className="rounded-full bg-amber-400 py-2.5 text-xs font-black uppercase tracking-widest text-emerald-950 disabled:opacity-50"
           >

@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, RotateCcw } from "lucide-react";
+import { Play, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { RACE_DURATION_MS } from "@/lib/horseRacing";
+import {
+  isRaceAudioMuted,
+  setRaceAudioMuted,
+  startRaceAudio,
+  stopRaceAudio,
+  subscribeRaceAudioMute,
+  unlockRaceAudio,
+} from "@/lib/raceAudio";
 import CartoonHorse from "./CartoonHorse";
 import RaceScenery, { SCENE_H, DIRT_TOP } from "./RaceScenery";
 import HorseLaneTag from "./HorseLaneTag";
@@ -47,6 +55,27 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, []);
+
+  const [audioMuted, setAudioMuted] = useState(isRaceAudioMuted());
+  useEffect(() => subscribeRaceAudioMute(setAudioMuted), []);
+
+  // Browsers only play audio after a gesture, so the score unlocks on the first
+  // interaction and then follows the race on its own.
+  useEffect(() => {
+    const unlock = () => unlockRaceAudio();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (running) startRaceAudio(RACE_DURATION_MS / 1000);
+    else stopRaceAudio();
+    return () => stopRaceAudio();
+  }, [running]);
 
   useEffect(() => {
     if (!running) return undefined;
@@ -136,7 +165,7 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
 
               const scale = 0.6 + i * 0.082;
               const w = BASE_W * scale;
-              const hgt = w * (100 / 150);
+              const hgt = w * (118 / 180);
               const feet = FEET_Y + i * LANE_GAP;
 
               // diagonal running trajectory: each lane drifts and sways a little
@@ -219,6 +248,14 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
               </p>
               <p className="truncate text-[11px] font-semibold text-emerald-50">Race at 12:00 · Brunei</p>
             </div>
+            <button
+              onClick={() => setRaceAudioMuted(!audioMuted)}
+              aria-label={audioMuted ? "Unmute race audio" : "Mute race audio"}
+              title={audioMuted ? "Unmute race audio" : "Mute race audio"}
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/10 text-emerald-50 ring-1 ring-white/15 transition hover:bg-white/20"
+            >
+              {audioMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+            </button>
             {done ? (
               <button
                 onClick={onReplay}

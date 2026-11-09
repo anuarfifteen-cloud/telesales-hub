@@ -1,47 +1,101 @@
 import { memo, useId } from "react";
 
 /**
- * Hand-drawn 2D cartoon racehorse with its numbered jockey, facing right.
+ * Hand-drawn 2D cartoon racehorse and its numbered jockey, facing right.
  *
- * The silhouette is made of soft inked shapes with a highlight → shadow wash on
- * top, so any coat colour reads as a shaded illustration rather than a flat
- * fill. `frame` (0-3) swaps the four leg sets to animate a natural gallop.
+ * Anatomy is built from inked shapes: barrel, haunch and shoulder contours,
+ * tapered three-joint legs computed from per-frame angles, and a fully drawn
+ * jockey (helmet, goggles, silks, arms on the reins, boots in the irons).
+ * `frame` (0-3) swaps the four gallop poses.
  */
 
-const INK = "#38241a";
-const HOOF = "#2a1a12";
+const INK = "#332119";
+const HOOF = "#241812";
+const SKIN = "#f0c2a0";
+const BREECHES = "#f3f1ea";
 
-const BODY =
-  "M43 53 C43 41 55 33 71 33 C87 33 98 39 100 49 C102 60 96 69 84 71 C70 73 54 71 47 65 C43 61 43 57 43 53 Z";
-const NECK = "M92 47 C90 36 96 27 109 22 L121 33 C111 40 105 47 102 57 Z";
-const HEAD =
-  "M109 21 C116 12 127 12 133 19 C139 25 139 33 134 37 C129 41 121 39 116 34 C112 30 109 26 109 21 Z";
-const MANE =
-  "M90 47 C90 32 98 22 112 16 C118 13 122 12 127 13 C120 17 114 21 110 27 C106 33 103 41 101 49 Z";
-const TAIL =
-  "M46 43 C34 34 22 37 13 48 C20 45 27 45 32 47 C22 53 15 63 12 76 C22 64 30 58 44 57 Z";
+const RAD = Math.PI / 180;
+const pt = (p, a, l) => [p[0] + Math.sin(a * RAD) * l, p[1] + Math.cos(a * RAD) * l];
 
-// Four leg sets: two full-stretch, two gathered — cycled as 0-1-2-1.
+// Tapered limb segment (a → b) with different widths at each end.
+function limb(a, b, w1, w2) {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = (-dy / len) / 2;
+  const ny = dx / len / 2;
+  return `M${a[0] + nx * w1} ${a[1] + ny * w1} L${b[0] + nx * w2} ${b[1] + ny * w2} L${b[0] - nx * w2} ${b[1] - ny * w2} L${a[0] - nx * w1} ${a[1] - ny * w1} Z`;
+}
+
+const UPPER = 23;
+const LOWER = 21;
+const WIDTHS = [11, 7.5, 5.5];
+
+const HIP_NEAR = [60, 65];
+const HIP_FAR = [63, 63];
+const SHOULDER_NEAR = [104, 63];
+const SHOULDER_FAR = [100, 61];
+
+// [upper angle, knee bend] in degrees from vertical, positive = forward.
 const GAIT = [
   {
-    farHind: { d: "M60 66 C58 74 62 81 68 85", hoof: [70, 87] },
-    nearHind: { d: "M52 65 C46 72 38 77 30 80", hoof: [27, 81] },
-    farFront: { d: "M86 63 C93 57 100 53 108 52", hoof: [110, 52] },
-    nearFront: { d: "M92 63 C99 69 105 74 112 77", hoof: [114, 79] },
+    farHind: [-40, -14],
+    nearHind: [-52, -20],
+    farFront: [50, -8],
+    nearFront: [64, -12],
   },
   {
-    farHind: { d: "M60 66 C54 70 46 73 38 76", hoof: [35, 77] },
-    nearHind: { d: "M52 65 C52 72 56 79 61 84", hoof: [62, 86] },
-    farFront: { d: "M86 63 C89 71 90 79 86 85", hoof: [85, 87] },
-    nearFront: { d: "M92 63 C94 55 101 50 109 50", hoof: [111, 50] },
+    farHind: [-4, -44],
+    nearHind: [8, -54],
+    farFront: [24, -32],
+    nearFront: [38, -44],
   },
   {
-    farHind: { d: "M60 66 C56 74 58 82 64 87", hoof: [65, 89] },
-    nearHind: { d: "M52 65 C50 73 44 79 37 83", hoof: [35, 84] },
-    farFront: { d: "M86 63 C92 56 100 51 108 51", hoof: [110, 51] },
-    nearFront: { d: "M92 63 C95 71 94 79 90 86", hoof: [89, 88] },
+    farHind: [24, -74],
+    nearHind: [34, -84],
+    farFront: [16, -92],
+    nearFront: [28, -104],
+  },
+  {
+    farHind: [-20, -28],
+    nearHind: [-32, -36],
+    farFront: [42, -20],
+    nearFront: [56, -30],
   },
 ];
+
+const BODY =
+  "M47 58 C47 42 60 33 79 32 C96 31 110 37 115 48 C119 57 116 68 107 74 C96 81 78 82 66 78 C55 74 48 68 47 58 Z";
+const TAIL = "M52 46 C40 33 24 32 11 42 C21 41 30 44 34 49 C21 53 12 63 8 77 C20 62 32 57 47 60 Z";
+const NECK =
+  "M95 47 C96 36 103 26 115 20 C124 16 131 18 134 24 C128 29 121 34 116 41 C111 48 108 55 106 62 Z";
+const HEAD =
+  "M130 22 C140 19 149 24 152 33 C154 40 150 47 143 48 C136 49 130 44 127 37 C125 31 127 25 130 22 Z";
+const MANE =
+  "M94 46 C94 33 103 22 116 15 C124 11 131 12 136 17 C127 20 119 26 114 34 C110 41 107 48 106 57 C102 52 98 49 94 46 Z";
+const JOCKEY_BODY =
+  "M75 36 C71 26 78 16 91 13 C100 11 106 15 107 22 C108 29 101 34 92 36 C85 38 77 39 75 36 Z";
+
+function mix(hex, amt) {
+  const raw = String(hex || "").replace("#", "");
+  const full = raw.length === 3 ? raw.split("").map((c) => c + c).join("") : raw;
+  if (full.length !== 6) return hex || "#e67e22";
+  const n = parseInt(full, 16) || 0;
+  let r = (n >> 16) & 255;
+  let g = (n >> 8) & 255;
+  let b = n & 255;
+  if (amt < 0) {
+    const k = 1 + amt;
+    r *= k;
+    g *= k;
+    b *= k;
+  } else {
+    r += (255 - r) * amt;
+    g += (255 - g) * amt;
+    b += (255 - b) * amt;
+  }
+  return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+}
 
 function numberTone(hex) {
   const c = String(hex || "").replace("#", "");
@@ -52,12 +106,22 @@ function numberTone(hex) {
   return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? "#231a12" : "#ffffff";
 }
 
-function Leg({ leg, coat }) {
+function Leg({ anchor, pose, fill, scale = 1, weight = 1.7 }) {
+  const [upper, bend] = pose;
+  const knee = pt(anchor, upper, UPPER * scale);
+  const fet = pt(knee, upper + bend, LOWER * scale);
+  const w = WIDTHS.map((v) => v * scale);
+
   return (
-    <g>
-      <path d={leg.d} fill="none" stroke={INK} strokeWidth="9.5" strokeLinecap="round" />
-      <path d={leg.d} fill="none" stroke={coat} strokeWidth="6.4" strokeLinecap="round" />
-      <ellipse cx={leg.hoof[0]} cy={leg.hoof[1]} rx="4.4" ry="3.3" fill={HOOF} />
+    <g fill={fill} stroke={INK} strokeWidth={weight} strokeLinejoin="round">
+      <path d={limb(anchor, knee, w[0], w[1])} />
+      <path d={limb(knee, fet, w[1], w[2])} />
+      <circle cx={knee[0]} cy={knee[1]} r={w[1] * 0.52} />
+      <path
+        d={`M${fet[0] - 4.8} ${fet[1] - 1} L${fet[0] + 4.8} ${fet[1] - 1} L${fet[0] + 4.2} ${fet[1] + 5} L${fet[0] - 4.2} ${fet[1] + 5} Z`}
+        fill={HOOF}
+        strokeWidth={1.3}
+      />
     </g>
   );
 }
@@ -74,7 +138,10 @@ function CartoonHorse({
   const uid = useId().replace(/[:]/g, "");
   const pose = GAIT[((frame % 4) + 4) % 4] || GAIT[0];
   const wash = `wash-${uid}`;
-  const tailWash = `tail-${uid}`;
+  const shade = mix(coat, -0.32);
+  const line = mix(coat, -0.5);
+  const silkDark = mix(silks, -0.3);
+  const numTone = numberTone(silks);
   const filter = [
     "drop-shadow(0 3px 2px rgba(50,30,10,0.28))",
     blurred ? "blur(0.3px)" : "",
@@ -85,7 +152,7 @@ function CartoonHorse({
 
   return (
     <svg
-      viewBox="0 0 150 100"
+      viewBox="0 0 180 118"
       className={className}
       style={{ filter }}
       role="img"
@@ -93,76 +160,92 @@ function CartoonHorse({
     >
       <defs>
         <linearGradient id={wash} x1="0.1" y1="0" x2="0.45" y2="1">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.38" />
-          <stop offset="42%" stopColor="#ffffff" stopOpacity="0" />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0.30" />
-        </linearGradient>
-        <linearGradient id={tailWash} x1="0" y1="0" x2="1" y2="0.4">
-          <stop offset="0%" stopColor="#000000" stopOpacity="0.18" />
-          <stop offset="100%" stopColor="#ffffff" stopOpacity="0.16" />
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.34" />
+          <stop offset="45%" stopColor="#ffffff" stopOpacity="0" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0.26" />
         </linearGradient>
       </defs>
 
-      {/* ground shadow */}
-      <ellipse cx="74" cy="91" rx="33" ry="4.2" fill="#000000" opacity="0.16" />
+      <ellipse cx="86" cy="111" rx="38" ry="4" fill="#000000" opacity="0.16" />
 
-      {/* tail + far legs sit behind the body */}
-      <path d={TAIL} fill={INK} />
-      <path d={TAIL} fill={`url(#${tailWash})`} />
-      <Leg leg={pose.farHind} coat={coat} />
-      <Leg leg={pose.farFront} coat={coat} />
+      {/* tail + far side legs sit behind the barrel */}
+      <path d={TAIL} fill={line} stroke={INK} strokeWidth="1.5" strokeLinejoin="round" />
+      <Leg anchor={HIP_FAR} pose={pose.farHind} fill={shade} scale={0.92} weight={1.4} />
+      <Leg anchor={SHOULDER_FAR} pose={pose.farFront} fill={shade} scale={0.92} weight={1.4} />
 
-      {/* body */}
+      {/* barrel with muscular contours */}
       <path d={BODY} fill={coat} />
+      <ellipse cx="86" cy="43" rx="20" ry="8" fill="#ffffff" opacity="0.13" />
+      <path d="M50 61 C57 50 71 47 82 54" fill="none" stroke={line} strokeWidth="1.6" opacity="0.65" />
+      <path d="M97 44 C107 50 109 61 101 69" fill="none" stroke={line} strokeWidth="1.6" opacity="0.6" />
+      <path d="M83 49 C88 55 88 65 82 71" fill="none" stroke={line} strokeWidth="1.3" opacity="0.4" />
       <path d={BODY} fill={`url(#${wash})`} />
-      <path d={BODY} fill="none" stroke={INK} strokeWidth="2" />
+      <path d={BODY} fill="none" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
 
-      {/* saddle cloth with the lane number */}
-      <rect x="56" y="31" width="18" height="14" rx="3.5" fill={silks} stroke={INK} strokeWidth="1.4" />
+      {/* near side legs, in front of the barrel */}
+      <Leg anchor={HIP_NEAR} pose={pose.nearHind} fill={coat} />
+      <Leg anchor={SHOULDER_NEAR} pose={pose.nearFront} fill={coat} />
+
+      {/* saddle pad with the lane number */}
+      <path d="M65 33 C65 29 96 29 96 33 C96 44 94 50 80 50 C66 50 65 44 65 33 Z" fill={silks} stroke={INK} strokeWidth="1.6" />
       <text
-        x="65"
-        y="41.6"
+        x="80"
+        y="46"
         textAnchor="middle"
-        fontSize="9"
+        fontSize="12.5"
         fontWeight="900"
         fontFamily="Inter, sans-serif"
-        fill={numberTone(silks)}
+        fill={numTone}
       >
         {number}
       </text>
+      <ellipse cx="80" cy="33" rx="11" ry="3.6" fill={mix("#6b4a2f", -0.1)} stroke={INK} strokeWidth="1.2" />
+
+      {/* jockey — far arm, silks, then near arm and legs */}
+      <path d="M93 23 C98 27 102 30 106 33" fill="none" stroke={INK} strokeWidth="5.4" strokeLinecap="round" />
+      <path d="M93 23 C98 27 102 30 106 33" fill="none" stroke={silkDark} strokeWidth="3.4" strokeLinecap="round" />
+      <path d={JOCKEY_BODY} fill={silks} stroke={INK} strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M83 20 C89 26 96 28 102 26" fill="none" stroke="#ffffff" strokeWidth="2.2" opacity="0.85" strokeLinecap="round" />
+      <path d="M81 36 C87 40 92 43 95 46" fill="none" stroke={INK} strokeWidth="6.6" strokeLinecap="round" />
+      <path d="M81 36 C87 40 92 43 95 46" fill="none" stroke={BREECHES} strokeWidth="4.4" strokeLinecap="round" />
+      <path d="M95 46 C97 50 95 54 91 55.5" fill="none" stroke={INK} strokeWidth="6" strokeLinecap="round" />
+      <path d="M95 46 C97 50 95 54 91 55.5" fill="none" stroke="#2b201a" strokeWidth="4" strokeLinecap="round" />
+      <path d="M89 57 q 3.6 3.6 6.8 0.4" fill="none" stroke={INK} strokeWidth="1.4" strokeLinecap="round" />
+
+      {/* helmet, goggles and face */}
+      <circle cx="104" cy="11" r="8.4" fill={silks} stroke={INK} strokeWidth="1.6" />
+      <path d="M96 9.5 C100 6 109 6 112 9.6" fill="none" stroke="#ffffff" strokeWidth="1.6" opacity="0.7" strokeLinecap="round" />
+      <text x="104" y="13.6" textAnchor="middle" fontSize="7.2" fontWeight="900" fontFamily="Inter, sans-serif" fill={numTone}>
+        {number}
+      </text>
+      <rect x="99" y="14.6" width="10.6" height="3.8" rx="1.9" fill="#22242c" />
+      <path d="M100.4 16.2 L104 16.2" stroke="#ffffff" strokeWidth="0.9" opacity="0.8" />
+      <ellipse cx="108.4" cy="20.4" rx="3.9" ry="4.1" fill={SKIN} stroke={INK} strokeWidth="1.2" />
+      <path d="M105 23.6 C106 26 109 27 111 25" fill="none" stroke={INK} strokeWidth="1" opacity="0.7" strokeLinecap="round" />
 
       {/* neck, mane and head */}
       <path d={NECK} fill={coat} />
+      <path d="M100 40 C104 30 110 24 119 20" fill="none" stroke="#ffffff" strokeWidth="2" opacity="0.16" strokeLinecap="round" />
       <path d={NECK} fill={`url(#${wash})`} />
-      <path d={NECK} fill="none" stroke={INK} strokeWidth="2" />
+      <path d={NECK} fill="none" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M94 46 C94 33 103 22 116 15 C124 11 131 12 136 17 C127 20 119 26 114 34 C110 41 107 48 106 57 C102 52 98 49 94 46 Z" fill={line} stroke={INK} strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M128 21 L126 11 L134 17 Z" fill={coat} stroke={INK} strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M134 19 L136 9 L142 16 Z" fill={coat} stroke={INK} strokeWidth="1.5" strokeLinejoin="round" />
       <path d={HEAD} fill={coat} />
       <path d={HEAD} fill={`url(#${wash})`} />
-      <path d={HEAD} fill="none" stroke={INK} strokeWidth="2" />
-      <path d="M112 16 L109 6 L118 12 Z" fill={coat} stroke={INK} strokeWidth="1.6" />
-      <path d="M121 13 L123 4 L128 12 Z" fill={coat} stroke={INK} strokeWidth="1.6" />
-      <path d={MANE} fill={INK} />
-      <circle cx="128" cy="26" r="2.1" fill={INK} />
-      <circle cx="128.6" cy="25.4" r="0.7" fill="#ffffff" />
-      <ellipse cx="135" cy="33" rx="1.5" ry="1.1" fill={INK} opacity="0.75" />
-      <path d="M131 37 q 3 1.4 5 -0.4" fill="none" stroke={INK} strokeWidth="1.2" strokeLinecap="round" />
+      <path d={HEAD} fill="none" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M134 26 C137 30 138 35 136 39" fill="none" stroke={line} strokeWidth="1.4" opacity="0.6" />
+      <circle cx="137" cy="29" r="2.2" fill={INK} />
+      <circle cx="137.7" cy="28.3" r="0.75" fill="#ffffff" />
+      <ellipse cx="148" cy="39" rx="1.7" ry="1.2" fill={INK} opacity="0.8" />
+      <path d="M147 44 q 3.4 1.6 5.4 -0.4" fill="none" stroke={INK} strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M132 34 L147 32" fill="none" stroke={INK} strokeWidth="1.5" opacity="0.85" />
 
-      {/* near legs in front */}
-      <Leg leg={pose.nearHind} coat={coat} />
-      <Leg leg={pose.nearFront} coat={coat} />
-
-      {/* jockey */}
-      <path d="M79 42 C76 32 82 22 94 17 C102 14 109 17 111 24 C112 31 106 37 98 40 C90 43 82 45 79 42 Z" fill={silks} />
-      <path d="M79 42 C76 32 82 22 94 17 C102 14 109 17 111 24 C112 31 106 37 98 40 C90 43 82 45 79 42 Z" fill={`url(#${wash})`} />
-      <path d="M104 21 C110 25 114 29 118 33" fill="none" stroke={INK} strokeWidth="6" strokeLinecap="round" />
-      <path d="M104 21 C110 25 114 29 118 33" fill="none" stroke={silks} strokeWidth="3.6" strokeLinecap="round" />
-      <circle cx="119" cy="34" r="2.7" fill={INK} />
-      <path d="M119 34 C124 31 128 29 131 28" fill="none" stroke="#6b4a2f" strokeWidth="1.3" strokeLinecap="round" />
-      <path d="M83 40 C83 47 87 53 92 57" fill="none" stroke={INK} strokeWidth="6" strokeLinecap="round" />
-      <path d="M83 40 C83 47 87 53 92 57" fill="none" stroke={silks} strokeWidth="3.6" strokeLinecap="round" />
-      <ellipse cx="93" cy="58" rx="4.2" ry="2.7" fill={INK} />
-      <circle cx="107" cy="13" r="7.4" fill={silks} stroke={INK} strokeWidth="1.6" />
-      <path d="M100 15 Q 107 21 115 15 L 114 19.5 Q 106 24 99 18.5 Z" fill={INK} opacity="0.8" />
-      <path d="M100.5 10.5 L 113 8.6" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" opacity="0.85" />
+      {/* near arm reaching over the withers, glove and reins on top of the neck */}
+      <path d="M94 24 C99 28 104 32 108 35" fill="none" stroke={INK} strokeWidth="5.6" strokeLinecap="round" />
+      <path d="M94 24 C99 28 104 32 108 35" fill="none" stroke={silks} strokeWidth="3.4" strokeLinecap="round" />
+      <path d="M110 36 C120 38 136 39 147 41" fill="none" stroke="#5b3a22" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="110" cy="36" r="2.9" fill={INK} />
     </svg>
   );
 }
