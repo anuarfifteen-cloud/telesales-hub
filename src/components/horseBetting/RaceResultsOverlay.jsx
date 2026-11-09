@@ -17,7 +17,7 @@ export default function RaceResultsOverlay({ horses, winnerId, onReplay }) {
 
   return (
     <div
-      className="absolute inset-0 z-30 flex flex-col justify-center gap-1.5 px-2.5 py-2"
+      className="absolute inset-0 z-20 flex flex-col justify-center gap-1.5 px-2.5 py-2"
       style={{ background: "rgba(4,26,19,0.88)", backdropFilter: "blur(3px)" }}
     >
       <div className="flex items-baseline justify-between">
