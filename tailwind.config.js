@@ -22,7 +22,8 @@ module.exports = {
   		},
       fontFamily: {
         inter: ['var(--font-inter)'],
-        display: ['var(--font-display)', 'Cinzel', 'serif']
+        display: ['var(--font-display)', 'Cinzel', 'serif'],
+        pixel: ['var(--font-pixel)', 'monospace']
       },
   		colors: {
   			background: 'hsl(var(--background))',

@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Pacifico&family=Cinzel:wght@400;500;600;700&family=Cinzel+Decorative:wght@400;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -28,6 +29,7 @@
     --radius: 0.75rem;
     --font-inter: 'Inter', sans-serif;
     --font-display: 'Cinzel', 'Cormorant Garamond', serif;
+    --font-pixel: 'Press Start 2P', monospace;
 
     --am-bg: 38 92% 96%;
     --am-accent: 38 80% 50%;
@@ -871,6 +873,26 @@
 @keyframes tapPop {
   0%   { transform: scale(1.4); }
   100% { transform: scale(1); }
+}
+
+/* ── Daily Derby: pixel dust kicked up behind each galloping horse ── */
+@keyframes race-dust-kick {
+  0%   { opacity: 0.75; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0;    transform: translate(-16px, -6px) scale(0.4); }
+}
+.race-dust,
+.race-dust-2 {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  height: 4px;
+  background: #c9a06a;
+  animation: race-dust-kick 0.5s steps(4) infinite;
+}
+.race-dust-2 {
+  background: #8a6234;
+  animation-delay: 0.25s;
 }
 
 /* ── Daily Missions: bonus-card "ready to claim" border glow ──
