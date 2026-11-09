@@ -7,7 +7,7 @@
  * are cut from the same illustrated set.
  */
 export const RACER_SHEET =
-  "https://base44.app/api/apps/6a02849f1b6bb0b71bf23993/files/mp/public/6a02849f1b6bb0b71bf23993/4c13dc350_derby-racer-sheet.png";
+  "https://base44.app/api/apps/6a02849f1b6bb0b71bf23993/files/mp/public/6a02849f1b6bb0b71bf23993/c131fcf07_derby-racer-sheet-v2.png";
 export const RACER_FRAMES = 4;
 
 export const DUST_PUFF =
