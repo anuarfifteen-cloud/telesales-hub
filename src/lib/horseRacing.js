@@ -1,11 +1,14 @@
-import { bruneiToday } from "@/lib/bruneiDay";
+import { networkDate } from "@/lib/networkTime";
 
 /**
  * Daily Horse Racing — shared game constants and Brunei clock helpers.
  *
  * The race is one shared event per Brunei calendar day: betting closes at
- * 12:00 and the day's result is precomputed and saved on the daily race
- * record, so every player replays the same winner.
+ * 12:00 and the day's result is saved on the daily race record, so every
+ * player replays the same winner.
+ *
+ * Every clock helper defaults to the network-anchored time, never the device
+ * clock, so moving the phone's clock cannot reopen betting or reveal a result.
  */
 export const HORSES = [
   { id: "h1", number: 1, name: "Thunder Bay", color: "#f97316", silks: "#7c2d12" },
@@ -39,7 +42,7 @@ export function rewardForPlace(place, stake) {
 }
 
 /** Minutes since Brunei midnight for the given moment. */
-export function bruneiMinutes(date = new Date()) {
+export function bruneiMinutes(date = networkDate()) {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Brunei",
     hour: "2-digit",
@@ -51,34 +54,58 @@ export function bruneiMinutes(date = new Date()) {
   return hour * 60 + minute;
 }
 
-export function isBettingOpen(date = new Date()) {
+export function isBettingOpen(date = networkDate()) {
   return bruneiMinutes(date) < CLOSE_MINUTES;
 }
 
-export function isRaceDue(date = new Date()) {
+export function isRaceDue(date = networkDate()) {
   return bruneiMinutes(date) >= CLOSE_MINUTES;
 }
 
+/** Today's Brunei calendar day, taken from the network-anchored clock. */
 export function todayKey() {
-  return bruneiToday();
+  return networkDate().toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" });
 }
 
 export function horseById(horses, id) {
   return (horses || HORSES).find((h) => h.id === id) || null;
 }
 
-/** Six independent random odds, generated once per day and saved with the race. */
-export function generateOdds() {
-  return HORSES.map((h) => ({ ...h, odds: Number((1.5 + Math.random() * 7.5).toFixed(1)) }));
+/* Date-seeded draws: the same Brunei day always yields the same board and the
+   same winner, so every player and every replay agrees without any write. */
+function seedFrom(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
 }
 
-/** Winning horse drawn with equal probability, independent of the odds. */
-export function pickWinningHorseId() {
-  return HORSES[Math.floor(Math.random() * HORSES.length)].id;
+function seededRandom(seedText) {
+  let a = seedFrom(seedText);
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** The day's six runners with odds drawn once from the date itself. */
+export function seededOdds(raceDate) {
+  const rand = seededRandom(`${raceDate}:odds`);
+  return HORSES.map((h) => ({ ...h, odds: Number((1.5 + rand() * 7.5).toFixed(1)) }));
+}
+
+/** The day's winner, drawn with equal probability for all six runners. */
+export function seededWinnerId(raceDate) {
+  const rand = seededRandom(`${raceDate}:winner`);
+  return HORSES[Math.floor(rand() * HORSES.length)].id;
 }
 
 /** "HH:MM:SS" until the next Brunei noon, or --:--:-- once it has passed. */
-export function msUntilNoon(date = new Date()) {
+export function msUntilNoon(date = networkDate()) {
   const mins = bruneiMinutes(date);
   if (mins >= CLOSE_MINUTES) return 0;
   const secondsLeft = (CLOSE_MINUTES - mins) * 60 - date.getSeconds();

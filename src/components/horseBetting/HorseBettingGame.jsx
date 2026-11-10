@@ -8,6 +8,7 @@ import { collectPayout, loadMyBet, loadTodayRace, markResult, placeBet } from "@
 import { unlockRaceAudio } from "@/lib/raceAudio";
 import { placeOf } from "@/lib/derbyFinish";
 import { syncDerbySeason } from "@/lib/derbySeason";
+import { ensureNetworkTime, networkNow, syncNetworkTime } from "@/lib/networkTime";
 import {
   formatBruneiDate,
   formatClock,
@@ -24,10 +25,11 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState(null);
   const [stake, setStake] = useState(50);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => networkNow());
   const [running, setRunning] = useState(false);
   const watchedDay = useRef(null);
   const loadedDay = useRef(null);
+  const wasOpen = useRef(null);
 
   const chips = Number(user?.casinoChips) || 0;
 
@@ -54,10 +56,17 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
     load();
   }, [load]);
 
+  // Verified time on entry: betting, the countdown and the noon reveal all run
+  // off the network clock, never the device clock.
+  useEffect(() => {
+    syncNetworkTime();
+  }, []);
+
   // Clock + Brunei day rollover: a new day reloads a fresh race and bet.
   useEffect(() => {
     const t = setInterval(() => {
-      setNow(Date.now());
+      setNow(networkNow());
+      ensureNetworkTime();
       if (loadedDay.current && loadedDay.current !== todayKey()) load();
     }, 1000);
     return () => clearInterval(t);
@@ -65,6 +74,14 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
 
   const open = isBettingOpen(new Date(now));
   const winnerId = race?.winning_horse_id;
+
+  // The moment the network clock passes noon, fetch the day's saved result —
+  // or save it if this is the first player to arrive.
+  useEffect(() => {
+    const justClosed = wasOpen.current === true && !open;
+    wasOpen.current = open;
+    if (justClosed && race && !race.winning_horse_id) load();
+  }, [open, race, load]);
 
   // The saved result is shown once betting has closed; every player replays it.
   useEffect(() => {

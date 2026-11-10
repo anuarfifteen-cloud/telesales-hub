@@ -1,11 +1,12 @@
 import { base44 } from "@/api/base44Client";
 import { logChipMovement } from "@/lib/chipLog";
 import {
-  generateOdds,
   grossPayout,
   isBettingOpen,
-  pickWinningHorseId,
+  isRaceDue,
   rewardForPlace,
+  seededOdds,
+  seededWinnerId,
   STAKE_OPTIONS,
   todayKey,
 } from "@/lib/horseRacing";
@@ -19,7 +20,14 @@ import { placeOf } from "@/lib/derbyFinish";
  * the balance write and the bet record can never be updated atomically.
  */
 
-/** The day's shared race. Creates it once (odds + winner) if nobody has yet. */
+/**
+ * The day's shared race.
+ *
+ * Before noon the board is derived from the date alone and nothing is written,
+ * so the result exists nowhere — not on the device, not in the database. The
+ * first player to arrive after noon saves the day's row, and everyone else
+ * replays it.
+ */
 export async function loadTodayRace() {
   const raceDate = todayKey();
   const first = await base44.entities.HorseRace.filter(
@@ -29,23 +37,33 @@ export async function loadTodayRace() {
   const found = (first.items || [])[0];
   if (found) return found;
 
+  const board = {
+    id: null,
+    race_date: raceDate,
+    status: "betting",
+    horses: seededOdds(raceDate),
+    winning_horse_id: "",
+  };
+
+  if (!isRaceDue()) return board;
+
   try {
     await base44.entities.HorseRace.create({
       race_date: raceDate,
       status: "betting",
-      horses: generateOdds(),
-      winning_horse_id: pickWinningHorseId(),
+      horses: board.horses,
+      winning_horse_id: seededWinnerId(raceDate),
       result_saved_at: new Date().toISOString(),
     });
   } catch {
-    /* another client may have created it first — reread below */
+    /* another player may have saved it first — reread below */
   }
 
   const again = await base44.entities.HorseRace.filter(
     { race_date: raceDate },
     { sort: "created_date", limit: 1 }
   );
-  return (again.items || [])[0] || null;
+  return (again.items || [])[0] || board;
 }
 
 export async function loadMyBet(raceDate, userId) {
@@ -66,7 +84,7 @@ export async function loadMyBet(raceDate, userId) {
  */
 export async function placeBet({ user, race, horseId, stake }) {
   if (!STAKE_OPTIONS.includes(Number(stake))) throw new Error("Choose a 50 or 100 chip stake.");
-  if (!isBettingOpen()) throw new Error("Betting for today has closed.");
+  if (!isBettingOpen()) throw new Error("Bets are closed for today's race.");
 
   const existing = await loadMyBet(race.race_date, user.id);
   if (existing) return { bet: existing, duplicate: true };
@@ -78,7 +96,7 @@ export async function placeBet({ user, race, horseId, stake }) {
   const horse = (race.horses || []).find((h) => h.id === horseId);
   const pending = await base44.entities.HorseBet.create({
     race_date: race.race_date,
-    race_id: race.id,
+    race_id: race.id || "",
     user_id: user.id,
     user_name: user.full_name || user.email?.split("@")[0] || "Player",
     horse_id: horseId,
