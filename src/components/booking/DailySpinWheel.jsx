@@ -7,11 +7,7 @@ import { toast } from "sonner";
 import { logChipMovement } from "@/lib/chipLog";
 import BlackChipIcon from "@/components/casino21/BlackChipIcon";
 
-const TZ = "Asia/Brunei";
-
-function getBruneiToday() {
-  return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
-}
+import { bruneiToday } from "@/lib/bruneiDay";
 
 // ── Prize table (order = slice index 0..4, clockwise from top) ────────────────
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png";
@@ -155,7 +151,7 @@ function WheelGraphic({ rotation }) {
 }
 
 // ── Wheel Modal ───────────────────────────────────────────────────────────────
-function WheelModal({ onClose, onClaim, user, today }) {
+function WheelModal({ onClose, onClaim, user }) {
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState(null); // PRIZES[index] after spin
@@ -183,6 +179,14 @@ function WheelModal({ onClose, onClaim, user, today }) {
     setClaiming(true);
 
     const freshUser = await base44.auth.me();
+    const today = bruneiToday();
+    // Pre-claim re-check: another device may have already claimed today's spin.
+    if (freshUser?.last_spin_date === today) {
+      toast.info("Today's spin has already been claimed.");
+      setClaiming(false);
+      await onClaim();
+      return;
+    }
     const currentChips = Number(freshUser?.casinoChips) || 0;
 
     const updates = {};
@@ -335,7 +339,7 @@ export default function DailySpinWheel({ user, onUserUpdate }) {
   const [showModal, setShowModal] = useState(false);
   const queryClient = useQueryClient();
 
-  const today = getBruneiToday();
+  const today = bruneiToday();
   const alreadySpun = user?.last_spin_date === today;
 
   const handleClaim = async () => {
@@ -374,7 +378,6 @@ export default function DailySpinWheel({ user, onUserUpdate }) {
           onClose={() => setShowModal(false)}
           onClaim={handleClaim}
           user={user}
-          today={today}
         />
       )}
     </>

@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { playP10Start, playP10Stop, playP10Jackpot, playP10Close, playP10Miss } from "@/lib/sounds";
 
+import { bruneiToday } from "@/lib/bruneiDay";
+
 
 
 // ─── Live Feed ────────────────────────────────────────────────────────────────
@@ -454,7 +456,7 @@ const LS_UNLOCK_KEY = "perfect10_unlocked_until";
 
 function getTodayString() {
 
-  return new Date().toLocaleDateString("en-CA");
+  return bruneiToday();
 
 }
 
@@ -566,17 +568,29 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
 
     if (!canStart || isRunning) return;
 
+    // Re-read the account: the daily allowance and token balance are judged on
+    // the network-anchored Brunei date and stored values, never stale state.
+    const fresh = await base44.auth.me();
+
+    const freshPlaysToday = fresh?.perfect10_plays_date === getTodayString() ? (fresh?.perfect10_plays_count ?? 0) : 0;
+
+    const freshFreeLeft = Math.max(0, FREE_PLAYS_PER_DAY - freshPlaysToday);
+
+    const freshTokens = fresh?.earlyAccessTokens ?? 0;
+
+    if (freshFreeLeft <= 0 && !hasActiveSprint && freshTokens < 1) return;
+
     playP10Start();
 
     setResult(null);
 
 
 
-    if (freePlaysLeft > 0) {
+    if (freshFreeLeft > 0) {
 
       // Scenario A: Free Try synced to user account schema attributes
 
-      const newPlays = playsToday + 1;
+      const newPlays = freshPlaysToday + 1;
 
       await base44.auth.updateMe({
 
@@ -596,7 +610,7 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
 
     } else {
 
-      await base44.auth.updateMe({ earlyAccessTokens: tokens - 1 });
+      await base44.auth.updateMe({ earlyAccessTokens: freshTokens - 1 });
 
       await onUserUpdate();
 
@@ -1030,5 +1044,4 @@ export default function PerfectTen({ user, onUserUpdate, isAdmin }) {
 
   );
 
-} 
-
+}
