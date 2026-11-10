@@ -23,12 +23,23 @@ let inflight = null;
 
 const tick = () => performance.now();
 
+// A verified anchor exists (restored from cache or freshly synced). Booking
+// waits on this so a tap during the first second cannot slip past the gate.
+let verified = false;
+const waiters = []; // released once the initial sync attempt has settled
+
+function markVerified() {
+  verified = true;
+  waiters.splice(0).forEach((resolve) => resolve(true));
+}
+
 function restore() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
     if (!Number.isFinite(saved?.epoch) || !Number.isFinite(saved?.savedAt)) return;
     anchorEpoch = saved.epoch + (Date.now() - saved.savedAt);
     anchorTick = tick();
+    markVerified();
   } catch {
     /* unreadable cache — the next successful sync anchors the clock */
   }
@@ -88,6 +99,7 @@ async function syncOnce() {
       } catch {
         /* storage blocked — the in-memory clock still holds */
       }
+      markVerified();
       return true;
     } catch {
       /* try the next source */
@@ -98,8 +110,25 @@ async function syncOnce() {
 
 /** Refresh the verified time; simultaneous callers share one request. */
 export function syncNetworkTime() {
-  if (!inflight) inflight = syncOnce().finally(() => (inflight = null));
+  if (!inflight)
+    inflight = syncOnce().finally(() => {
+      inflight = null;
+      // The attempt has settled: release anything waiting on it, even when it
+      // failed — the clock then falls back to the last known time.
+      waiters.splice(0).forEach((resolve) => resolve(verified));
+    });
   return inflight;
+}
+
+/** Whether the Brunei clock is anchored to a verified time (cached or synced). */
+export function networkTimeVerified() {
+  return verified;
+}
+
+/** Resolves once the first sync attempt has settled; true when a verified anchor exists. */
+export function whenNetworkTimeVerified() {
+  if (verified) return Promise.resolve(true);
+  return new Promise((resolve) => waiters.push(resolve));
 }
 
 /** Sync only when the anchor has gone stale — otherwise the last verified time stands. */

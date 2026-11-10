@@ -7,7 +7,7 @@ import { checkBookingMilestones } from "@/lib/bookingMilestones";
 import { format as tzFormat } from "date-fns-tz";
 const TZ = "Asia/Brunei";
 import { useNetworkClock } from "@/hooks/useNetworkClock";
-import { networkNow } from "@/lib/networkTime";
+import { networkNow, networkTimeVerified, whenNetworkTimeVerified } from "@/lib/networkTime";
 import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
@@ -136,6 +136,19 @@ export default function Home() {
   // the device clock, so changing the phone's time cannot unlock slots early.
   const bruneiNow = useNetworkClock();
   const dates = getBookableDates(bruneiNow);
+
+  // Booking is refused until the clock is anchored to verified network time, so
+  // a tap in the first moments after load cannot slip past the unlock gate.
+  const [networkReady, setNetworkReady] = useState(() => networkTimeVerified());
+  useEffect(() => {
+    let active = true;
+    whenNetworkTimeVerified().then(() => {
+      if (active) setNetworkReady(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Set selectedDate — use server time if available, otherwise fall back to local time
 useEffect(() => {
@@ -306,8 +319,12 @@ useEffect(() => {
         : usingVip
         ? 30 * 60 * 1000
         : 0;
-      if (nowMs < getUnlockTime(selectedDate).getTime() - passLeadMs) {
-        throw new Error("BOOKING_NOT_OPEN");
+      const tierOpenAt = getUnlockTime(selectedDate).getTime() - passLeadMs;
+      if (nowMs < tierOpenAt) {
+        // Carry this tier's own opening hour in the rejection so a pass holder
+        // is never told the standard 7:30 PM hour.
+        const openLabel = tzFormat(new Date(tierOpenAt), "h:mm a", { timeZone: TZ });
+        throw new Error(`BOOKING_NOT_OPEN|${openLabel}`);
       }
 
       // Write the booking — stamp the single highest active tier (priority > vip_plus > vip)
@@ -383,8 +400,9 @@ useEffect(() => {
       queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
       queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
 
-      if (err.message === "BOOKING_NOT_OPEN") {
-        toast.error("Booking opens at 7:30 PM Brunei time.");
+      if (err.message?.startsWith("BOOKING_NOT_OPEN")) {
+        const openLabel = err.message.split("|")[1] || "7:30 PM";
+        toast.error(`Booking opens at ${openLabel} Brunei time.`);
       } else if (err.message === "RACE_CONDITION") {
         toast.error("Someone beat you to this slot by a millisecond. Your booking was voided — please select another slot.");
       } else if (err.message === "SLOT_FULL" || err.message === "ALREADY_BOOKED") {
@@ -447,6 +465,10 @@ useEffect(() => {
 
   const handleBook = (slot) => {
     if (!user) return;
+    if (!networkReady) {
+      toast.info("Syncing network time, please try again in a moment.");
+      return;
+    }
     createMutation.mutate(slot);
   };
 
