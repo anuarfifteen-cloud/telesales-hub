@@ -6,7 +6,8 @@ import { bookingOrder, slotLimits, excessBookings } from "@/lib/bookingCapacity"
 import { checkBookingMilestones } from "@/lib/bookingMilestones";
 import { format as tzFormat } from "date-fns-tz";
 const TZ = "Asia/Brunei";
-import { useBruneiClock } from "@/hooks/useBruneiClock";
+import { useNetworkClock } from "@/hooks/useNetworkClock";
+import { networkNow } from "@/lib/networkTime";
 import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
@@ -131,7 +132,9 @@ export default function Home() {
   const [seenAnnouncementIds, setSeenAnnouncementIds] = useState(() => {
     try {return JSON.parse(localStorage.getItem("seenAnnouncements") || "[]");} catch {return [];}
   });
-  const bruneiNow = useBruneiClock(serverTimeRef, localTimeAtFetch);
+  // Booking open/closed is judged on the network-anchored Brunei clock, never
+  // the device clock, so changing the phone's time cannot unlock slots early.
+  const bruneiNow = useNetworkClock();
   const dates = getBookableDates(bruneiNow);
 
   // Set selectedDate — use server time if available, otherwise fall back to local time
@@ -280,7 +283,7 @@ useEffect(() => {
 
       // Check early access pass timers on fresh account object
       const freshUserForVip = await base44.auth.me();
-      const nowMs = Date.now();
+      const nowMs = networkNow();
 
       // 7-Day Priority Pass (diamond) — highest tier, books at 6:00 PM. Stays
       // active for its full 7-day duration; NOT reset after a booking.
@@ -292,6 +295,20 @@ useEffect(() => {
 
       const vipExp = freshUserForVip?.vipExpiresAt ? new Date(freshUserForVip.vipExpiresAt) : null;
       const usingVip = vipExp && vipExp.getTime() > nowMs && !usingVipPlus && !usingPriority;
+
+      // Network-anchored cutoff, re-checked immediately before the record is
+      // written: regular bookings open at 7:30 PM Brunei on the day before the
+      // booking date (active pass tiers keep their earlier lead-in).
+      const passLeadMs = usingPriority
+        ? 90 * 60 * 1000
+        : usingVipPlus
+        ? 60 * 60 * 1000
+        : usingVip
+        ? 30 * 60 * 1000
+        : 0;
+      if (nowMs < getUnlockTime(selectedDate).getTime() - passLeadMs) {
+        throw new Error("BOOKING_NOT_OPEN");
+      }
 
       // Write the booking — stamp the single highest active tier (priority > vip_plus > vip)
       const newBooking = await base44.entities.Booking.create({
@@ -366,7 +383,9 @@ useEffect(() => {
       queryClient.invalidateQueries({ queryKey: ["bookings", selectedDate] });
       queryClient.invalidateQueries({ queryKey: ["bookings-week", dates[0]] });
 
-      if (err.message === "RACE_CONDITION") {
+      if (err.message === "BOOKING_NOT_OPEN") {
+        toast.error("Booking opens at 7:30 PM Brunei time.");
+      } else if (err.message === "RACE_CONDITION") {
         toast.error("Someone beat you to this slot by a millisecond. Your booking was voided — please select another slot.");
       } else if (err.message === "SLOT_FULL" || err.message === "ALREADY_BOOKED") {
         toast.error("This time slot is no longer available. Please select an alternative open slot.");
@@ -476,13 +495,13 @@ useEffect(() => {
 
   // Token-based VIP early access check
   const vipExpiresAt = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
-  const isVipTokenActive = vipExpiresAt && vipExpiresAt.getTime() > Date.now();
+  const isVipTokenActive = vipExpiresAt && vipExpiresAt.getTime() > bruneiNow.getTime();
   const vipPlusExpiresAt = user?.vipPlusExpiresAt ? new Date(user.vipPlusExpiresAt) : null;
-  const isVipPlusTokenActive = vipPlusExpiresAt && vipPlusExpiresAt.getTime() > Date.now();
+  const isVipPlusTokenActive = vipPlusExpiresAt && vipPlusExpiresAt.getTime() > bruneiNow.getTime();
 
   // 7-Day Priority Pass (diamond-purchased) — books at 6:00 PM (90 min early)
   const priorityExpiresAt = user?.active_pass_expiry ? new Date(user.active_pass_expiry) : null;
-  const isPriorityActive = priorityExpiresAt && priorityExpiresAt.getTime() > Date.now();
+  const isPriorityActive = priorityExpiresAt && priorityExpiresAt.getTime() > bruneiNow.getTime();
 
   const unlockTime = selectedDate ? (() => {
     const base = getUnlockTime(selectedDate); // 7:30 PM Brunei
