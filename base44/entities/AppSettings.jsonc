@@ -42,6 +42,11 @@
       "description": "Whether the Premium Scratch Card sub-tab is available to players. When false, players see a 'Coming Soon' placeholder instead of the game; admins can still open it after entering the admin PIN.",
       "default": true
     },
+    "horse_betting_enabled": {
+      "type": "boolean",
+      "description": "Whether the \ud83d\udc0e Horse Betting sub-tab is available to regular players. When false, the sub-tab button and game panel are completely hidden from players; admins always see it.",
+      "default": false
+    },
     "online_blackjack_enabled": {
       "type": "boolean",
       "description": "Whether the Online (multiplayer) Blackjack sub-tab is available to players. When false, the Online tab shows an 'Under maintenance' message instead of the shared PvP table; single-player Blackjack stays playable.",
@@ -125,7 +130,7 @@
     },
     "theme_offer_end_time": {
       "type": "string",
-      "description": "ISO datetime when the limited-time theme offer expires"
+      "description": "ISO datetime when the limited-time offer expires"
     },
     "filterInactiveFromLeaderboard": {
       "type": "boolean",
