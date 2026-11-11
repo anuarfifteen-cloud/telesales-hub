@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Flame, Zap, Coins } from "lucide-react";
+import { Flame, Zap } from "lucide-react";
 import { RankedCardBack } from "./RankedPlayingCard";
 
 // Shared building blocks for BOTH Mystery Card popups (the daily first-launch
@@ -22,8 +22,17 @@ export const REWARD_META = {
     durationMs: 20 * 60 * 1000,
     pill: "⚡ Max Bet 25",
   },
+  bet_cap_100: {
+    icon: Zap,
+    label: "Max Bet 100",
+    sub: "10-MIN 100-CHIP RANK BET CAP",
+    color: "#fb923c",
+    durationMs: 10 * 60 * 1000,
+    pill: "⚡ Max Bet 100",
+  },
+  // Retired card — kept only so historical records still render a name.
   chips_100: {
-    icon: Coins,
+    icon: Flame,
     label: "Direct Drop",
     sub: "+100 Chips · +100 Rank Points",
     color: "#10b981",

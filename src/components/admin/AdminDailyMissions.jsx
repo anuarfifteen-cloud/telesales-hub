@@ -12,6 +12,7 @@ import {
 const BONUS_PERK = {
   surge_2x: "2× Surge",
   bet_cap_25: "Max Bet 25",
+  bet_cap_100: "Max Bet 100",
   chips_100: "+100 Chips/Rank",
 };
 

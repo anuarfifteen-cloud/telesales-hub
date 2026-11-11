@@ -9,12 +9,10 @@
 // that depends on it.
 import { base44 } from "@/api/base44Client";
 import { bruneiToday } from "./bruneiDay";
-import { addWinPayout, fetchSeasonScore } from "./milestone";
 
 const BOOST_DURATION_MS = 30 * 60 * 1000; // 30 minutes (2× Rank Surge)
-const BETCAP_DURATION_MS = 20 * 60 * 1000; // 20 minutes (High Roller Pass)
-const DIRECT_DROP_CHIPS = 100; // chips credited by the Direct Drop card
-const DIRECT_DROP_RANK_POINTS = 100; // seasonal 🏆RANK points it also grants
+const BETCAP_DURATION_MS = 20 * 60 * 1000; // 20 minutes (Max Bet 25)
+const BETCAP_100_DURATION_MS = 10 * 60 * 1000; // 10 minutes (Max Bet 100)
 
 // ── 10 daily mission combinations ─────────────────────────────────────
 // Each player gets one full combination per Brunei day, chosen at random
@@ -75,13 +73,15 @@ export const MISSION_COMBINATIONS = [
 
 // ── Daily Mystery Card rewards ───────────────────────────────────────
 // The three outcomes shuffled across the three face-down cards each day.
-//   surge_2x   → 30-min 2× Rank Surge (sets rank_surge_expires_at)
-//   bet_cap_25 → 20-min High Roller Pass (sets rank_bet_cap_expires_at)
-//   chips_100  → 100 chips credited directly, plus 100 seasonal 🏆RANK points
+//   surge_2x    → 30-min 2× Rank Surge (sets rank_surge_expires_at)
+//   bet_cap_25  → 20-min 25-chip Ranked bet cap (sets rank_bet_cap_expires_at)
+//   bet_cap_100 → 10-min 100-chip Ranked bet cap (sets rank_bet_cap_100_expires_at)
+// chips_100 (Direct Drop) was retired: existing records may still carry it, but
+// it is never dealt again.
 export const MYSTERY_REWARDS = [
   { type: "surge_2x", label: "2× Rank Surge", durationMs: BOOST_DURATION_MS },
-  { type: "bet_cap_25", label: "High Roller Pass", durationMs: BETCAP_DURATION_MS },
-  { type: "chips_100", label: "Direct Drop", durationMs: 0 },
+  { type: "bet_cap_25", label: "Max Bet 25", durationMs: BETCAP_DURATION_MS },
+  { type: "bet_cap_100", label: "Max Bet 100", durationMs: BETCAP_100_DURATION_MS },
 ];
 
 // Fisher–Yates shuffle of the three rewards into the three card slots.
@@ -149,9 +149,8 @@ export function msUntilBruneiMidnight() {
 
 // ── Chip credit helper ──────────────────────────────────────────────
 // Mission rewards go straight to casinoChips as playable balance. They are NOT
-// added to the seasonal winning-payout score (only the Direct Drop below and
-// real Ranked wins are).
-async function creditChips(user, amount, detail, rankAfter) {
+// added to the seasonal winning-payout score (only real Ranked wins are).
+async function creditChips(user, amount, detail) {
   if (!user?.id || amount <= 0) return;
   const fresh = await base44.auth.me();
   const bal = Number(fresh?.casinoChips) || 0;
@@ -164,30 +163,10 @@ async function creditChips(user, amount, detail, rankAfter) {
       action_type: "admin_add",
       amount,
       balance_after: bal + amount,
-      ...(rankAfter != null ? { rank_after: Number(rankAfter) || 0 } : {}),
       detail,
       timestamp: new Date().toISOString(),
     });
   } catch {}
-}
-
-// ── Direct Drop helper ──────────────────────────────────────────────
-// The Mystery Card's 100-chip Direct Drop credits 100 playable chips AND 100
-// seasonal 🏆RANK points, using the standard milestone helper so the seasonal
-// score and the public leaderboard mirror stay consistent with Ranked wins.
-async function creditDirectDrop(user, source) {
-  // The rank points land first so the ledger row can be stamped with the season
-  // total this drop left behind.
-  let rankAfter = null;
-  try {
-    const fresh = await base44.auth.me();
-    const name = fresh?.full_name || user?.full_name || user?.email || "";
-    await addWinPayout(user.id, name, DIRECT_DROP_RANK_POINTS);
-    rankAfter = await fetchSeasonScore(user.id);
-  } catch {
-    /* best-effort — a milestone hiccup must never block the chip credit */
-  }
-  await creditChips(user, DIRECT_DROP_CHIPS, `${source} — Direct Drop (+100 chips)`, rankAfter);
 }
 
 // ── Ensure today's record exists ─────────────────────────────────────
@@ -214,6 +193,7 @@ export async function ensureDaily(user) {
     bonus_mystery_card_reward: null,
     rank_surge_expires_at: 0,
     rank_bet_cap_expires_at: 0,
+    rank_bet_cap_100_expires_at: 0,
     last_mystery_popup_date: "",
   });
 }
@@ -274,12 +254,8 @@ export async function revealMysteryCard(user, selection, reward) {
   };
   if (reward === "surge_2x") patch.rank_surge_expires_at = now + BOOST_DURATION_MS;
   else if (reward === "bet_cap_25") patch.rank_bet_cap_expires_at = now + BETCAP_DURATION_MS;
-  const updated = await base44.entities.DailyChallenge.update(daily.id, patch);
-  // chips_100 effect: +100 chips AND +100 seasonal 🏆RANK points.
-  if (reward === "chips_100") {
-    await creditDirectDrop(user, "Daily Mystery Card");
-  }
-  return updated;
+  else if (reward === "bet_cap_100") patch.rank_bet_cap_100_expires_at = now + BETCAP_100_DURATION_MS;
+  return await base44.entities.DailyChallenge.update(daily.id, patch);
 }
 
 // ── Bonus Mystery Card (unlocked by claiming every mission) ──────────
@@ -307,8 +283,6 @@ export async function revealBonusMysteryCard(user, selection, reward) {
   };
   if (reward === "surge_2x") patch.rank_surge_expires_at = now + BOOST_DURATION_MS;
   else if (reward === "bet_cap_25") patch.rank_bet_cap_expires_at = now + BETCAP_DURATION_MS;
-  const updated = await base44.entities.DailyChallenge.update(daily.id, patch);
-  // chips_100 effect: +100 chips AND +100 seasonal 🏆RANK points.
-  if (reward === "chips_100") await creditDirectDrop(user, "Bonus Mystery Card");
-  return updated;
+  else if (reward === "bet_cap_100") patch.rank_bet_cap_100_expires_at = now + BETCAP_100_DURATION_MS;
+  return await base44.entities.DailyChallenge.update(daily.id, patch);
 }

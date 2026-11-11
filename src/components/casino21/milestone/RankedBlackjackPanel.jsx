@@ -41,10 +41,11 @@ import {
 //   Loss              → nothing (wager already deducted at deal)
 const RANKED_MIN = 1;
 const RANKED_MAX = 10;
-const RANKED_MAX_HIGH_ROLLER = 25; // High Roller Pass raises the ceiling to 25
+const RANKED_MAX_HIGH_ROLLER = 25; // Max Bet 25 card raises the ceiling to 25
+const RANKED_MAX_HIGH_ROLLER_100 = 100; // Max Bet 100 card raises it to 100
 const DEALER_DRAW_MS = 550;
 
-export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, betCapExpiresAt, capped = false, played = 0, beginRankedHand, onClose, onScoreSaved }) {
+export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, onRankedHand, boostExpiresAt, betCapExpiresAt, betCap100ExpiresAt = 0, capped = false, played = 0, beginRankedHand, onClose, onScoreSaved }) {
   const chips = Number(user?.casinoChips) || 0;
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Player";
 
@@ -58,9 +59,16 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
   const surgeMs = Math.max(0, Number(boostExpiresAt || 0) - pillNow);
   const betCapActive = Number(betCapExpiresAt || 0) > pillNow;
   const betCapMs = Math.max(0, Number(betCapExpiresAt || 0) - pillNow);
+  const betCap100Active = Number(betCap100ExpiresAt || 0) > pillNow;
+  const betCap100Ms = Math.max(0, Number(betCap100ExpiresAt || 0) - pillNow);
 
-  // The table ceiling: 25 while the High Roller Pass is active, else 10.
-  const tableMax = betCapActive ? RANKED_MAX_HIGH_ROLLER : RANKED_MAX;
+  // The table ceiling: 100 while the Max Bet 100 card is active, else 25 while
+  // the Max Bet 25 card is active, else the standard 10.
+  const tableMax = betCap100Active
+    ? RANKED_MAX_HIGH_ROLLER_100
+    : betCapActive
+    ? RANKED_MAX_HIGH_ROLLER
+    : RANKED_MAX;
   // The highest legal wager: never more than the table ceiling, never more than the balance.
   const maxBet = Math.min(tableMax, Math.max(chips, RANKED_MIN));
 
@@ -288,9 +296,9 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
     playClink();
     const fresh = await base44.auth.me();
     const balance = Number(fresh?.casinoChips) || 0;
-    // Cap to the table ceiling actually in force: 25 while the High Roller Pass
-    // is active, 10 otherwise. (Was hard-capped to 10, so a 25-chip wager was
-    // charged as 10.)
+    // Cap to the table ceiling actually in force: 100 with the Max Bet 100 pass,
+    // else 25 with the Max Bet 25 pass, else 10. (Was hard-capped to 10, so a
+    // larger wager was charged as 10.)
     const b = Math.min(shownBet, balance, tableMax);
     if (b < RANKED_MIN) {
       toast.error(`You need at least ${RANKED_MIN} chip to play Ranked.`);
@@ -422,6 +430,12 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
             <span className="flex items-center gap-1 rounded-full border border-rose-400/50 bg-rose-950/50 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-rose-200" style={{ boxShadow: "0 0 8px rgba(244,63,94,0.4)" }}>
               <Flame className="w-3 h-3 animate-pulse" />
               2× Surge {String(Math.floor(surgeMs / 60000)).padStart(2, "0")}:{String(Math.floor((surgeMs % 60000) / 1000)).padStart(2, "0")}
+            </span>
+          )}
+          {betCap100Active && (
+            <span className="flex items-center gap-1 rounded-full border border-orange-400/50 bg-orange-950/50 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-orange-200" style={{ boxShadow: "0 0 8px rgba(251,146,60,0.4)" }}>
+              <Zap className="w-3 h-3" />
+              Max Bet 100 {String(Math.floor(betCap100Ms / 60000)).padStart(2, "0")}:{String(Math.floor((betCap100Ms % 60000) / 1000)).padStart(2, "0")}
             </span>
           )}
           {betCapActive && (
@@ -594,7 +608,8 @@ export default function RankedBlackjackPanel({ user, onUserUpdate, recordWin, on
               </button>
             </div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-amber-200/60 text-center">
-              Ranked wagers {RANKED_MIN}–{tableMax} chips{betCapActive ? " · High Roller Pass" : ""}
+              Ranked wagers {RANKED_MIN}–{tableMax} chips
+              {betCap100Active ? " · Max Bet 100" : betCapActive ? " · Max Bet 25" : ""}
             </p>
           </div>
           <button

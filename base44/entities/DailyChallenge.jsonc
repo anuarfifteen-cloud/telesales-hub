@@ -61,10 +61,11 @@
       "type": "string",
       "enum": [
         "surge_2x",
-        "chips_100",
-        "bet_cap_25"
+        "bet_cap_25",
+        "bet_cap_100",
+        "chips_100"
       ],
-      "description": "The reward revealed on today's Daily Mystery Card: surge_2x = 30-min 2\u00d7 Rank Surge, bet_cap_25 = 20-min 25-chip Ranked bet cap, chips_100 = 100 chips credited directly plus 100 seasonal \ud83c\udfc6RANK points."
+      "description": "The reward revealed on today's Daily Mystery Card: surge_2x = 30-min 2\u00d7 Rank Surge, bet_cap_25 = 20-min 25-chip Ranked bet cap, bet_cap_100 = 10-min 100-chip Ranked bet cap. chips_100 (the retired Direct Drop) only remains so cards revealed before it was removed still validate."
     },
     "bonus_mystery_card_status": {
       "type": "string",
@@ -84,10 +85,11 @@
       "type": "string",
       "enum": [
         "surge_2x",
-        "chips_100",
-        "bet_cap_25"
+        "bet_cap_25",
+        "bet_cap_100",
+        "chips_100"
       ],
-      "description": "The reward revealed on today's BONUS Mystery Card: surge_2x = 30-min 2\u00d7 Rank Surge, bet_cap_25 = 20-min 25-chip Ranked bet cap, chips_100 = 100 chips credited directly plus 100 seasonal \ud83c\udfc6RANK points."
+      "description": "The reward revealed on today's BONUS Mystery Card: surge_2x = 30-min 2\u00d7 Rank Surge, bet_cap_25 = 20-min 25-chip Ranked bet cap, bet_cap_100 = 10-min 100-chip Ranked bet cap. chips_100 (the retired Direct Drop) only remains so cards revealed before it was removed still validate."
     },
     "rank_surge_expires_at": {
       "type": "number",
@@ -97,7 +99,12 @@
     "rank_bet_cap_expires_at": {
       "type": "number",
       "default": 0,
-      "description": "UNIX epoch ms when the active 20-minute High Roller Pass (25-chip Ranked bet cap) expires. 0 = no active cap. While active, the Ranked table's wager ceiling is raised from 10 to 25 chips."
+      "description": "UNIX epoch ms when the active 20-minute Max Bet 25 pass expires. 0 = no active cap. While active, the Ranked table's wager ceiling is raised from 10 to 25 chips."
+    },
+    "rank_bet_cap_100_expires_at": {
+      "type": "number",
+      "default": 0,
+      "description": "UNIX epoch ms when the active 10-minute Max Bet 100 pass expires. 0 = no active cap. While active, the Ranked table's wager ceiling is raised to 100 chips, taking precedence over the 25-chip pass."
     },
     "last_mystery_popup_date": {
       "type": "string",

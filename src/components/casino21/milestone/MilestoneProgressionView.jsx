@@ -85,6 +85,11 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
     : 100;
   const diamondClaimed = !!season?.diamond_claimed;
   const offSeason = isOffSeason(season);
+  // Ranked table ceiling: 100 while the Max Bet 100 card runs, else 25 while the
+  // Max Bet 25 card runs, else the standard 10.
+  const betCap25ExpiresAt = Number(challenges.daily?.rank_bet_cap_expires_at || 0);
+  const betCap100ExpiresAt = Number(challenges.daily?.rank_bet_cap_100_expires_at || 0);
+  const rankedTableMax = betCap100ExpiresAt > Date.now() ? 100 : betCap25ExpiresAt > Date.now() ? 25 : 10;
   // 1-season Reigning Champion cooldown: last season's Diamond winner still
   // plays Ranked and claims Ranks 1-9, but Rank 10 pays 1,000 chips instead of
   // the Diamond and never ends the season.
@@ -289,7 +294,8 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
               onScoreSaved={reload}
               onRankedHand={challenges.recordRankedHand}
               boostExpiresAt={challenges.daily?.rank_surge_expires_at || 0}
-              betCapExpiresAt={challenges.daily?.rank_bet_cap_expires_at || 0}
+              betCapExpiresAt={betCap25ExpiresAt}
+              betCap100ExpiresAt={betCap100ExpiresAt}
               capped={rankedCap.capped}
               played={rankedCap.played}
               beginRankedHand={rankedCap.beginHand}
@@ -303,8 +309,7 @@ export default function MilestoneProgressionView({ user, onUserUpdate, recordWin
                 className="relative w-full py-3 rounded-full font-black uppercase tracking-widest text-sm text-emerald-950 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 style={{ background: rankedCap.capped ? "#5a5247" : "#d4af37" }}
               >
-                ⚔️ Play Ranked (1–
-                {Number(challenges.daily?.rank_bet_cap_expires_at || 0) > Date.now() ? 25 : 10} chips)
+                ⚔️ Play Ranked (1–{rankedTableMax} chips)
               </button>
               {rankedCap.capped && (
                 <p className="relative text-center text-[11px] font-bold leading-snug text-rose-300">
