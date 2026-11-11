@@ -13,7 +13,8 @@
  * aggregate…) passes straight through untouched.
  */
 
-const RETRY_MS = 2000;
+const MIN_RETRY_MS = 2000;
+const MAX_ATTEMPTS = 3;
 
 const READ_METHODS = new Set(["list", "filter"]);
 
@@ -34,6 +35,20 @@ function isRateLimited(err) {
   return /rate limit/i.test(message);
 }
 
+// The API tells us exactly how long the window has left ("Retry after 7s").
+// Waiting only a fixed 2s retried straight back into the same full window, so
+// the second attempt failed too and the error reached the screen. Honour the
+// reported delay, with a small cushion, and never come back sooner than the
+// minimum.
+function retryDelay(err, attempt) {
+  const message = String(
+    err?.message || err?.response?.data?.message || err?.data?.message || ""
+  );
+  const reported = /retry after ([\d.]+)\s*s/i.exec(message);
+  const wait = reported ? Math.ceil(Number(reported[1]) * 1000) + 750 : MIN_RETRY_MS;
+  return Math.max(MIN_RETRY_MS, wait) * attempt;
+}
+
 export function guardEntityReads(client) {
   // In-flight reads only: a shared promise is dropped the moment it settles, so
   // no caller is ever handed a stale record.
@@ -47,12 +62,13 @@ export function guardEntityReads(client) {
 
     const run = (async () => {
       try {
-        try {
-          return await entity[method](...args);
-        } catch (err) {
-          if (!isRateLimited(err)) throw err;
-          await sleep(RETRY_MS);
-          return await entity[method](...args);
+        for (let attempt = 1; ; attempt += 1) {
+          try {
+            return await entity[method](...args);
+          } catch (err) {
+            if (!isRateLimited(err) || attempt >= MAX_ATTEMPTS) throw err;
+            await sleep(retryDelay(err, attempt));
+          }
         }
       } finally {
         if (key) pending.delete(key);
