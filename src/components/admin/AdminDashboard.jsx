@@ -91,6 +91,7 @@ export default function AdminDashboard({ onBack }) {
   const [settingsId, setSettingsId] = useState(null);
   const [voucherFeedEnabled, setVoucherFeedEnabled] = useState(true);
   const [ninjaEnabled, setNinjaEnabled] = useState(true);
+  const [horseBettingEnabled, setHorseBettingEnabled] = useState(false);
   const [onlineBlackjackEnabled, setOnlineBlackjackEnabled] = useState(true);
   const [mysteryCardsEnabled, setMysteryCardsEnabled] = useState(true);
   const [showForceResetConfirm, setShowForceResetConfirm] = useState(false);
@@ -103,6 +104,7 @@ export default function AdminDashboard({ onBack }) {
         setSettingsId(s.id);
         setVoucherFeedEnabled(s.voucher_feed_enabled !== false);
         setNinjaEnabled(s.ninja_enabled !== false);
+        setHorseBettingEnabled(s.horse_betting_enabled === true);
         setOnlineBlackjackEnabled(s.online_blackjack_enabled !== false);
         setMysteryCardsEnabled(s.mystery_cards_enabled !== false);
       }
@@ -143,6 +145,18 @@ export default function AdminDashboard({ onBack }) {
       setSettingsId(created.id);
     }
     toast.success(val ? "Ninja Token enabled." : "Ninja Token hidden from players.");
+  };
+
+  const handleToggleHorseBetting = async (val) => {
+    setHorseBettingEnabled(val);
+    const payload = { horse_betting_enabled: val };
+    if (settingsId) {
+      await base44.entities.AppSettings.update(settingsId, payload);
+    } else {
+      const created = await base44.entities.AppSettings.create(payload);
+      setSettingsId(created.id);
+    }
+    toast.success(val ? "Horse Betting visible to all players." : "Horse Betting hidden from players (admins only).");
   };
 
   const handleToggleOnlineBlackjack = async (val) => {
@@ -534,6 +548,26 @@ export default function AdminDashboard({ onBack }) {
             style={{ width: "52px" }}
           >
             <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${ninjaEnabled ? "translate-x-7" : "translate-x-1"}`} />
+          </button>
+        </div>
+
+        {/* 🐎 Horse Betting Visibility Toggle */}
+        <div className="bg-white rounded-2xl border border-border p-5 flex items-center justify-between gap-4" style={{ boxShadow: "0 2px 16px 0 rgba(0,0,0,0.06)" }}>
+          <div>
+            <h3 className="font-bold text-slate-900 text-base">🐎 Horse Betting Game</h3>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Show the Horse Betting sub-tab to all players. When off, only admins can see it.
+            </p>
+            <p className={`text-xs font-semibold mt-1 ${horseBettingEnabled ? "text-emerald-600" : "text-slate-400"}`}>
+              {horseBettingEnabled ? "Currently VISIBLE to all" : "Currently HIDDEN (admins only)"}
+            </p>
+          </div>
+          <button
+            onClick={() => handleToggleHorseBetting(!horseBettingEnabled)}
+            className={`relative inline-flex h-7 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${horseBettingEnabled ? "bg-emerald-500" : "bg-slate-300"}`}
+            style={{ width: "52px" }}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${horseBettingEnabled ? "translate-x-7" : "translate-x-1"}`} />
           </button>
         </div>
 

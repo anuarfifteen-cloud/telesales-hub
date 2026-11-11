@@ -17,7 +17,7 @@ import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
 import DailyChipGiftModal, { chipGiftClaimedToday } from "@/components/casino21/DailyChipGiftModal";
 import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 
-export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true, oneVOneRequest = 0 }) {
+export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true, horseBettingEnabled = false, oneVOneRequest = 0 }) {
   const [innerTab, setInnerTab] = useState("milestones");
   // "View" on a new-challenge alert: land on the Blackjack 21 sub-tab, which
   // then opens its 1V1 board.
@@ -73,6 +73,14 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
   useEffect(() => {
     if (!scratchAccess && innerTab === "scratchcard") setInnerTab("milestones");
   }, [scratchAccess, innerTab]);
+
+  // Horse Betting is hidden from players until an admin opens it up to
+  // everyone; an unlocked admin always keeps access to its own tab.
+  const horseAccess = horseBettingEnabled || isAdmin;
+
+  useEffect(() => {
+    if (!horseAccess && innerTab === "horseracing") setInnerTab("milestones");
+  }, [horseAccess, innerTab]);
 
   return (
     <div className="flex flex-col gap-4 pb-4">
@@ -226,16 +234,20 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           >
             ♠️ Blackjack 21
           </button>
-          <button
-            onClick={() => setInnerTab("horseracing")}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "horseracing"
-                ? "bg-orange-600 text-white shadow"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            🐎 Horse Betting
-          </button>
+          {horseAccess ? (
+            <button
+              onClick={() => setInnerTab("horseracing")}
+              className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                innerTab === "horseracing"
+                  ? "bg-orange-600 text-white shadow"
+                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
+            >
+              🐎 Horse Betting
+            </button>
+          ) : (
+            <div />
+          )}
         </div>
       </div>
 
@@ -275,7 +287,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
       )}
 
       {/* Daily Horse Betting */}
-      {innerTab === "horseracing" && (
+      {innerTab === "horseracing" && horseAccess && (
         <HorseBettingView user={user} onUserUpdate={onUserUpdate} />
       )}
 

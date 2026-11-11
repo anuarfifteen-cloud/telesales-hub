@@ -105,6 +105,7 @@ export default function Home() {
   const [unlockModal, setUnlockModal] = useState({ open: false, title: "", message: "" });
   const [ninjaEnabled, setNinjaEnabled] = useState(true);
   const [scratchCardEnabled, setScratchCardEnabled] = useState(true);
+  const [horseBettingEnabled, setHorseBettingEnabled] = useState(false);
   const { getChampionCount } = useChampionTitles();
 
   // Preload AppSettings once at session start so the Tokens tab's Ninja Slice
@@ -116,6 +117,7 @@ export default function Home() {
         if (!mounted) return;
         setNinjaEnabled(rows[0]?.ninja_enabled !== false);
         setScratchCardEnabled(rows[0]?.scratch_card_enabled !== false);
+        setHorseBettingEnabled(rows[0]?.horse_betting_enabled === true);
       }).catch(() => {});
     load();
     const unsub = base44.entities.AppSettings.subscribe(load);
@@ -1017,6 +1019,7 @@ useEffect(() => {
             isAdmin={isAdmin}
             ninjaEnabled={ninjaEnabled}
             scratchCardEnabled={scratchCardEnabled}
+            horseBettingEnabled={horseBettingEnabled}
             oneVOneRequest={oneVOneRequest}
           />
         )}
