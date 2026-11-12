@@ -9,6 +9,6 @@ import { networkNow } from "./networkTime";
  * reset early. Until the first successful sync the clock falls back to device
  * time (see networkTime.js), and the last verified time is reused after that.
  */
-export function bruneiToday() {
-  return new Date(networkNow()).toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" });
+export function bruneiToday(at = networkNow()) {
+  return new Date(at).toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" });
 }

@@ -1,4 +1,6 @@
 import { base44 } from "@/api/base44Client";
+import { networkNow } from "./networkTime";
+import { bruneiToday } from "./bruneiDay";
 
 /**
  * Daily Scratch Card allocation.
@@ -8,6 +10,10 @@ import { base44 } from "@/api/base44Client";
  * lives on the player's ScratchCardDaily row, which is refilled to 10 whenever
  * the Brunei date or period on the row no longer matches the current one, so
  * unused cards never roll over.
+ *
+ * Every batch key, refill and countdown is read from the network-anchored
+ * Brunei clock — never the device clock — so moving the phone's time cannot
+ * jump a batch or refill the allowance early.
  */
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -18,17 +24,17 @@ const BRN_OFFSET_MS = 8 * HOUR_MS;
 export const CARDS_PER_BATCH = 10;
 
 /** Current Asia/Brunei date (YYYY-MM-DD) and half-day period (AM | PM). */
-export function bruneiBatch(now = Date.now()) {
+export function bruneiBatch(now = networkNow()) {
   const shifted = now + BRN_OFFSET_MS;
   const hour = Math.floor((shifted % DAY_MS) / HOUR_MS);
   return {
-    date: new Date(shifted).toISOString().slice(0, 10),
+    date: bruneiToday(now),
     period: hour < 12 ? "AM" : "PM",
   };
 }
 
 /** Milliseconds until the next batch opens (noon, or midnight). */
-export function msToNextBatch(now = Date.now()) {
+export function msToNextBatch(now = networkNow()) {
   const shifted = now + BRN_OFFSET_MS;
   const dayStart = Math.floor(shifted / DAY_MS) * DAY_MS;
   const hour = Math.floor((shifted - dayStart) / HOUR_MS);

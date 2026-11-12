@@ -17,6 +17,7 @@ import {
   loadAllocation,
   msToNextBatch,
 } from "@/lib/scratchAllocation";
+import { ensureNetworkTime, networkNow, networkTimeVerified, syncNetworkTime } from "@/lib/networkTime";
 
 /** Human-readable prize label for the admin history. */
 function prizeLabel(prize) {
@@ -46,7 +47,7 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
   const [busy, setBusy] = useState(false);
   // Daily allowance: 10 cards per Brunei half-day batch (00:00-11:59 / 12:00-23:59).
   const [allocation, setAllocation] = useState(null);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => networkNow());
   // True while a settled ticket's balances and logs are still being written.
   const [settling, setSettling] = useState(false);
   const logIdRef = useRef(null);
@@ -60,11 +61,16 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
   const remaining = allocation ? Number(allocation.scratch_cards_remaining) || 0 : CARDS_PER_BATCH;
   const exhausted = remaining <= 0;
 
-  // One-second tick keeps the exhausted countdown live, and re-keying the
-  // allocation load on the batch refreshes the allowance the moment the Brunei
-  // clock crosses noon or midnight — no page reload needed.
+  // One-second tick on the network-anchored Brunei clock keeps the exhausted
+  // countdown live, and re-keying the allocation load on the batch refreshes the
+  // allowance the moment verified time crosses noon or midnight — no page reload
+  // needed, and moving the device clock cannot roll the batch early.
   useEffect(() => {
-    const tick = setInterval(() => setNow(Date.now()), 1000);
+    syncNetworkTime();
+    const tick = setInterval(() => {
+      ensureNetworkTime();
+      setNow(networkNow());
+    }, 1000);
     return () => clearInterval(tick);
   }, []);
 
@@ -130,9 +136,21 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
 
   const buyTicket = async () => {
     if (busy || phase !== "idle") return;
+
+    // Purchases wait for the verified network clock: until the first sync lands
+    // the device clock is all we have, so nothing may be charged against it.
+    if (!networkTimeVerified()) {
+      toast.info("Syncing network time, please try again in a moment.");
+      syncNetworkTime();
+      return;
+    }
+
     setBusy(true);
 
-    // Re-read the allowance first so a fast double tap can never spend past the batch.
+    // Re-verify the anchored Brunei window and re-read the allowance right before
+    // charging, so a batch that rolled over — or a stale client balance — can never
+    // be spent past the last card of the window.
+    setNow(networkNow());
     const current = await loadAllocation(user);
     setAllocation(current);
     if ((Number(current?.scratch_cards_remaining) || 0) <= 0) {
