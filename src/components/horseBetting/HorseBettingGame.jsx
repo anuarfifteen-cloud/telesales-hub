@@ -261,9 +261,8 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
         </>
       )}
 
-      {done ? (
-        <>
-          {todayNeedsAction && (
+      {done
+        ? todayNeedsAction && (
             <HorseBetCard
               bet={bet}
               horses={race.horses || []}
@@ -272,32 +271,34 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
               busy={busy}
               onCollect={handleCollect}
             />
+          )
+        : bet
+          ? (
+            <HorseBetCard
+              bet={bet}
+              horses={race.horses || []}
+              winnerId={winnerId}
+              resultVisible={!open}
+              busy={busy}
+              onCollect={handleCollect}
+            />
+          )
+          : (
+            <HorseBetSlip
+              horses={race.horses || []}
+              selected={selected}
+              onSelect={setSelected}
+              stake={stake}
+              onStake={setStake}
+              balance={chips}
+              busy={busy}
+              locked={!open}
+              error={error}
+              onConfirm={handlePlace}
+            />
           )}
-          <NextRacePanel user={user} now={now} balance={chips} onUserUpdate={onUserUpdate} />
-        </>
-      ) : bet ? (
-        <HorseBetCard
-          bet={bet}
-          horses={race.horses || []}
-          winnerId={winnerId}
-          resultVisible={!open}
-          busy={busy}
-          onCollect={handleCollect}
-        />
-      ) : (
-        <HorseBetSlip
-          horses={race.horses || []}
-          selected={selected}
-          onSelect={setSelected}
-          stake={stake}
-          onStake={setStake}
-          balance={chips}
-          busy={busy}
-          locked={!open}
-          error={error}
-          onConfirm={handlePlace}
-        />
-      )}
+
+      <NextRacePanel user={user} now={now} balance={chips} onUserUpdate={onUserUpdate} />
 
       {bet && error && (
         <p className="rounded-lg bg-rose-50 px-2.5 py-2 text-[11px] font-semibold text-rose-700">{error}</p>

@@ -85,7 +85,8 @@ export async function loadMyBet(raceDate, userId) {
  * retrying, so a repeated press can never charge twice silently.
  */
 export async function placeBet({ user, race, horseId, stake }) {
-  if (!STAKE_OPTIONS.includes(Number(stake))) throw new Error("Choose a 50 or 100 chip stake.");
+  if (!STAKE_OPTIONS.includes(Number(stake)))
+    throw new Error("Choose a 10, 25, 50 or 100 chip stake.");
   // The race date decides the window: today's race closes at noon, the next
   // race opens at 18:00 the evening before and runs until noon on its own day.
   const bettableToday = race.race_date === todayKey() && isBettingOpen();

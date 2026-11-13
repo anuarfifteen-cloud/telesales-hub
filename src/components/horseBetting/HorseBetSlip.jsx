@@ -25,7 +25,7 @@ export default function HorseBetSlip({ horses, selected, onSelect, stake, onStak
       <div className="rounded-2xl border border-border bg-white/95 p-4 text-center">
         <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Betting closed</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Today&apos;s race has started. Watch it to unlock betting on the next race.
+          Today&apos;s race has started. The next race board is just below.
         </p>
       </div>
     );
@@ -54,7 +54,7 @@ export default function HorseBetSlip({ horses, selected, onSelect, stake, onStak
         ))}
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-1.5">
+      <div className="mt-3 grid grid-cols-4 gap-1.5">
         {STAKE_OPTIONS.map((amount) => {
           const active = stake === amount;
           return (
@@ -67,11 +67,11 @@ export default function HorseBetSlip({ horses, selected, onSelect, stake, onStak
                   : "border-border bg-muted/40 hover:bg-muted"
               }`}
             >
-              <span className="flex items-center gap-1 text-sm font-black tabular-nums text-foreground">
-                <MiniChipIcon size={13} />
+              <span className="flex items-center gap-0.5 text-xs font-black tabular-nums text-foreground">
+                <MiniChipIcon size={11} />
                 {amount}
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+              <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-600">
                 wins {grossPayout(amount)}
               </span>
             </button>

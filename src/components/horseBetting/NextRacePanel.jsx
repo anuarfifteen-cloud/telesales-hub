@@ -17,9 +17,9 @@ import {
 } from "@/lib/horseRacing";
 
 /**
- * Tomorrow's race, shown once today's race has been watched through to the
- * result. Locked until 18:00 Brunei (verified network clock), then it becomes
- * the normal bet slip for the next race date.
+ * The next race board, always shown under today's race. Locked with a countdown
+ * until 18:00 Brunei (verified network clock), then it becomes the normal bet
+ * slip for the next race date.
  */
 export default function NextRacePanel({ user, now, balance, onUserUpdate }) {
   const nextDate = nextRaceKey(new Date(now));

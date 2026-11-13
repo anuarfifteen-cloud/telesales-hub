@@ -19,12 +19,12 @@ export const HORSES = [
   { id: "h6", number: 6, name: "Emerald Flash", color: "#10b981", silks: "#064e3b" },
 ];
 
-export const STAKE_OPTIONS = [50, 100];
+export const STAKE_OPTIONS = [10, 25, 50, 100];
 export const PAYOUT_MULTIPLIER = 6;
 export const RACE_DURATION_MS = 15000;
 export const CLOSE_MINUTES = 12 * 60; // 12:00 Brunei — betting closes, race runs
 
-/** Gross chips returned by a winning bet: 50 → 300, 100 → 600. */
+/** Gross chips returned by a winning bet: 10 → 60, 25 → 150, 50 → 300, 100 → 600. */
 export function grossPayout(stake) {
   return (Number(stake) || 0) * PAYOUT_MULTIPLIER;
 }
