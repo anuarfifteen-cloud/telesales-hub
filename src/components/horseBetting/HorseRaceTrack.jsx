@@ -15,7 +15,6 @@ import RacerSprite from "./RacerSprite";
 import RaceResultsOverlay from "./RaceResultsOverlay";
 import RaceScenery, { SCENE_H, DIRT_TOP } from "./RaceScenery";
 import { BOARD_H, RAIL_H } from "./SponsorRail";
-import HorseLaneTag from "./HorseLaneTag";
 
 /**
  * Daily Derby — a hand-drawn 2.5D race.
@@ -313,12 +312,6 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
         </div>
       </div>
 
-      {/* lane list */}
-      <div className="grid grid-cols-2 gap-1.5">
-        {horses.map((h) => (
-          <HorseLaneTag key={h.id} horse={h} winner={done && h.id === winnerId} />
-        ))}
-      </div>
     </div>
   );
 }

@@ -258,13 +258,6 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
               setRunning(true);
             }}
           />
-          <button
-            onClick={startRace}
-            disabled={running || reminderOpen}
-            className="rounded-full bg-amber-400 py-2.5 text-xs font-black uppercase tracking-widest text-emerald-950 disabled:opacity-50"
-          >
-            ▶ Watch the race
-          </button>
         </>
       )}
 
