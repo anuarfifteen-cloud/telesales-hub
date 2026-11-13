@@ -14,7 +14,7 @@ import { loadMyBet, loadTodayRace } from "@/lib/horseBetApi";
  */
 
 export const MILESTONE_POINTS = 100;
-const POINTS_BY_PLACE = [6, 4, 3, 2, 1, 0];
+export const POINTS_BY_PLACE = [6, 4, 3, 2, 1, 0];
 
 /** 1st → 6, 2nd → 4, 3rd → 3, 4th → 2, 5th → 1, 6th → 0. */
 export function pointsForPlace(place) {

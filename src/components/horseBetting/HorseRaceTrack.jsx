@@ -44,7 +44,7 @@ const BASE_W = 76;
 // shown after the race and the drawn race all come from the same numbers.
 const paceFor = paceOf;
 
-export default function HorseRaceTrack({ horses = [], winnerId, running, onFinish, onReplay }) {
+export default function HorseRaceTrack({ horses = [], winnerId, running, onFinish, onReplay, preRace, bet }) {
   const [t, setT] = useState(0);
   const [gait, setGait] = useState(0);
   const [width, setWidth] = useState(360);
@@ -258,8 +258,13 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
               style={{ boxShadow: "inset 0 0 26px rgba(28,14,6,0.28)" }}
             />
 
+            {/* the bet reminder stands over the track until the player starts the race */}
+            {preRace}
+
             {/* the moment the field is home, the track hands over to the result */}
-            {done && <RaceResultsOverlay horses={horses} winnerId={winnerId} onReplay={onReplay} />}
+            {done && (
+              <RaceResultsOverlay horses={horses} winnerId={winnerId} bet={bet} onReplay={onReplay} />
+            )}
           </div>
 
           {/* HUD — smooth modern type, no pixel font */}

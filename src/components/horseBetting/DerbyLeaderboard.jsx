@@ -4,8 +4,10 @@ import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { bruneiToday } from "@/lib/bruneiDay";
 import { formatBruneiDate } from "@/lib/horseRacing";
+import { ordinal } from "@/lib/derbyFinish";
 import {
   MILESTONE_POINTS,
+  POINTS_BY_PLACE,
   claimMilestoneDiamond,
   loadSeasonScores,
   rankScores,
@@ -134,6 +136,24 @@ export default function DerbyLeaderboard({ user, onUserUpdate }) {
             Final day of the season — claims close at 23:59 tonight.
           </p>
         )}
+      </div>
+
+      {/* points guide — the same values the season credits per finishing place */}
+      <div className="rounded-2xl border border-border bg-white/95 px-3 py-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+          Points guide
+        </p>
+        <div className="mt-1.5 grid grid-cols-3 gap-1">
+          {POINTS_BY_PLACE.map((pointsFor, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-lg bg-muted/50 px-1.5 py-1"
+            >
+              <span className="text-[10px] font-bold text-muted-foreground">{ordinal(i + 1)}</span>
+              <span className="text-[10px] font-black tabular-nums text-foreground">+{pointsFor} pts</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* standings */}

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import HorseRaceTrack from "./HorseRaceTrack";
 import HorseBetSlip from "./HorseBetSlip";
 import HorseBetCard from "./HorseBetCard";
+import PreRaceBetOverlay from "./PreRaceBetOverlay";
 import { collectPayout, loadMyBet, loadTodayRace, markResult, placeBet } from "@/lib/horseBetApi";
 import { unlockRaceAudio } from "@/lib/raceAudio";
 import { placeOf } from "@/lib/derbyFinish";
@@ -27,6 +28,7 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
   const [stake, setStake] = useState(50);
   const [now, setNow] = useState(() => networkNow());
   const [running, setRunning] = useState(false);
+  const [reminderOpen, setReminderOpen] = useState(false);
   const watchedDay = useRef(null);
   const loadedDay = useRef(null);
   const wasOpen = useRef(null);
@@ -83,13 +85,21 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
     if (justClosed && race && !race.winning_horse_id) load();
   }, [open, race, load]);
 
-  // The saved result is shown once betting has closed; every player replays it.
+  // The saved result is shown once betting has closed. The first watch of the day
+  // opens with the bet reminder rather than running straight away; a replay after
+  // that starts immediately.
   useEffect(() => {
     if (!race || open || !winnerId) return;
     if (watchedDay.current === race.race_date) return;
     watchedDay.current = race.race_date;
-    setRunning(true);
+    setReminderOpen(true);
   }, [race, open, winnerId]);
+
+  const startRace = () => {
+    unlockRaceAudio();
+    setReminderOpen(false);
+    setRunning(true);
+  };
 
   // Lazy result marking — only once the day's result is visible. 4th–6th lose
   // their stake; 2nd and 3rd stay open so their refund can be collected.
@@ -222,6 +232,12 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
             horses={race.horses || []}
             winnerId={winnerId}
             running={running}
+            bet={bet}
+            preRace={
+              reminderOpen ? (
+                <PreRaceBetOverlay bet={bet} horses={race.horses || []} onStart={startRace} />
+              ) : null
+            }
             onFinish={() => setRunning(false)}
             onReplay={() => {
               unlockRaceAudio();
@@ -229,11 +245,8 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
             }}
           />
           <button
-            onClick={() => {
-              unlockRaceAudio();
-              setRunning(true);
-            }}
-            disabled={running}
+            onClick={startRace}
+            disabled={running || reminderOpen}
             className="rounded-full bg-amber-400 py-2.5 text-xs font-black uppercase tracking-widest text-emerald-950 disabled:opacity-50"
           >
             ▶ Watch the race
