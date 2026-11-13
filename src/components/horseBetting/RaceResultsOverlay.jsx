@@ -1,8 +1,12 @@
+import { useEffect, useMemo, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { ordinal, raceResults } from "@/lib/derbyFinish";
+import { groupBettorsByHorse, loadDayBettors } from "@/lib/derbyBettors";
 import { pointsForPlace } from "@/lib/derbySeason";
-import { rewardForPlace } from "@/lib/horseRacing";
+import { rewardForPlace, todayKey } from "@/lib/horseRacing";
+import { useUserMap } from "@/hooks/useUserMap";
 import RacerSprite from "./RacerSprite";
+import BettorStack from "./BettorStack";
 
 const PLACE_BADGE = [
   "bg-amber-300 text-amber-950",
@@ -12,16 +16,35 @@ const PLACE_BADGE = [
 
 /**
  * The official result, laid over the finished track: every runner from 1st to
- * 6th with its time to the hundredth, the player's own bet summary, and the
- * replay control. Points and chips come from the same config the season uses.
+ * 6th with its time to the hundredth, who backed it, the player's own bet
+ * summary, and the replay control. Points and chips come from the same config
+ * the season uses.
  */
-export default function RaceResultsOverlay({ horses, winnerId, bet, onReplay }) {
+export default function RaceResultsOverlay({ horses, winnerId, bet, raceDate, onReplay }) {
   const rows = raceResults(horses, winnerId);
   const mine = bet ? rows.find((row) => row.id === bet.horse_id) || null : null;
   const place = mine?.place || 0;
   const points = place ? pointsForPlace(place) : 0;
   const chips = place ? rewardForPlace(place, bet.stake) : 0;
   const placed = place > 0 && place <= 3;
+
+  const day = raceDate || todayKey();
+  const userMap = useUserMap();
+  const [bettors, setBettors] = useState([]);
+
+  useEffect(() => {
+    let alive = true;
+    loadDayBettors(day)
+      .then((found) => {
+        if (alive) setBettors(found);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [day]);
+
+  const byHorse = useMemo(() => groupBettorsByHorse(bettors), [bettors]);
 
   return (
     <div
@@ -66,6 +89,7 @@ export default function RaceResultsOverlay({ horses, winnerId, bet, onReplay }) 
               <span className="min-w-0 flex-1 truncate text-[11px] font-bold leading-tight text-emerald-50">
                 <span style={{ color: row.color }}>{row.number}</span> {row.name}
               </span>
+              <BettorStack bettors={byHorse.get(row.id) || []} userMap={userMap} />
               {isMine && (
                 <span className="shrink-0 rounded-full bg-amber-300 px-1.5 py-[1px] text-[7px] font-black uppercase tracking-wider text-emerald-950">
                   Your bet

@@ -5,6 +5,7 @@ import HorseRaceTrack from "./HorseRaceTrack";
 import HorseBetSlip from "./HorseBetSlip";
 import HorseBetCard from "./HorseBetCard";
 import PreRaceBetOverlay from "./PreRaceBetOverlay";
+import NextRacePanel from "./NextRacePanel";
 import { collectPayout, loadMyBet, loadTodayRace, markResult, placeBet } from "@/lib/horseBetApi";
 import { unlockRaceAudio } from "@/lib/raceAudio";
 import { placeOf } from "@/lib/derbyFinish";
@@ -29,6 +30,9 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
   const [now, setNow] = useState(() => networkNow());
   const [running, setRunning] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
+  // The race day this player has watched through to the result — the moment it
+  // lands, the betting area switches to the next race.
+  const [doneDay, setDoneDay] = useState(null);
   const watchedDay = useRef(null);
   const loadedDay = useRef(null);
   const wasOpen = useRef(null);
@@ -179,6 +183,12 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
 
   const winner = (race.horses || []).find((h) => h.id === winnerId);
 
+  // Watched through to the official result: the betting area becomes the next race.
+  const done = doneDay === race.race_date;
+  // Today's bet still needs its payout collected (or an admin is checking it).
+  const todayNeedsAction =
+    Boolean(bet) && ["confirmed", "claim_pending", "refund_pending", "review_required"].includes(bet.status);
+
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col gap-3">
       {/* Header */}
@@ -238,7 +248,11 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
                 <PreRaceBetOverlay bet={bet} horses={race.horses || []} onStart={startRace} />
               ) : null
             }
-            onFinish={() => setRunning(false)}
+            raceDate={race.race_date}
+            onFinish={() => {
+              setRunning(false);
+              setDoneDay(race.race_date);
+            }}
             onReplay={() => {
               unlockRaceAudio();
               setRunning(true);
@@ -254,7 +268,21 @@ export default function HorseBettingGame({ user, onUserUpdate }) {
         </>
       )}
 
-      {bet ? (
+      {done ? (
+        <>
+          {todayNeedsAction && (
+            <HorseBetCard
+              bet={bet}
+              horses={race.horses || []}
+              winnerId={winnerId}
+              resultVisible={!open}
+              busy={busy}
+              onCollect={handleCollect}
+            />
+          )}
+          <NextRacePanel user={user} now={now} balance={chips} onUserUpdate={onUserUpdate} />
+        </>
+      ) : bet ? (
         <HorseBetCard
           bet={bet}
           horses={race.horses || []}

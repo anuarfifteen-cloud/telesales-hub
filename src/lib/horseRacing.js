@@ -120,6 +120,27 @@ export function formatClock(ms) {
   return `${h}:${m}:${s}`;
 }
 
+export const NEXT_BET_OPEN_MINUTES = 18 * 60; // 18:00 Brunei — the next race opens for bets
+
+/** Whether the next race is open for bets (from 18:00 the evening before). */
+export function isNextBettingOpen(date = networkDate()) {
+  return bruneiMinutes(date) >= NEXT_BET_OPEN_MINUTES;
+}
+
+/** The Brunei calendar day of the next race — the day after the given moment. */
+export function nextRaceKey(date = networkDate()) {
+  const ahead = new Date(date.getTime() + 24 * 60 * 60 * 1000);
+  return ahead.toLocaleDateString("en-CA", { timeZone: "Asia/Brunei" });
+}
+
+/** "HH:MM:SS" until the next race opens at 18:00 Brunei. */
+export function msUntilNextBetOpen(date = networkDate()) {
+  const mins = bruneiMinutes(date);
+  if (mins >= NEXT_BET_OPEN_MINUTES) return 0;
+  const secondsLeft = (NEXT_BET_OPEN_MINUTES - mins) * 60 - date.getSeconds();
+  return Math.max(0, secondsLeft * 1000);
+}
+
 export function formatBruneiDate(key) {
   if (!key) return "";
   try {

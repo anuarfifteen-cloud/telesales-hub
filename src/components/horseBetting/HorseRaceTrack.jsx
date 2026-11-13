@@ -44,7 +44,7 @@ const BASE_W = 76;
 // shown after the race and the drawn race all come from the same numbers.
 const paceFor = paceOf;
 
-export default function HorseRaceTrack({ horses = [], winnerId, running, onFinish, onReplay, preRace, bet }) {
+export default function HorseRaceTrack({ horses = [], winnerId, running, onFinish, onReplay, preRace, bet, raceDate }) {
   const [t, setT] = useState(0);
   const [gait, setGait] = useState(0);
   const [width, setWidth] = useState(360);
@@ -263,7 +263,13 @@ export default function HorseRaceTrack({ horses = [], winnerId, running, onFinis
 
             {/* the moment the field is home, the track hands over to the result */}
             {done && (
-              <RaceResultsOverlay horses={horses} winnerId={winnerId} bet={bet} onReplay={onReplay} />
+              <RaceResultsOverlay
+                horses={horses}
+                winnerId={winnerId}
+                bet={bet}
+                raceDate={raceDate}
+                onReplay={onReplay}
+              />
             )}
           </div>
 

@@ -3,7 +3,9 @@ import { logChipMovement } from "@/lib/chipLog";
 import {
   grossPayout,
   isBettingOpen,
+  isNextBettingOpen,
   isRaceDue,
+  nextRaceKey,
   rewardForPlace,
   seededOdds,
   seededWinnerId,
@@ -84,7 +86,11 @@ export async function loadMyBet(raceDate, userId) {
  */
 export async function placeBet({ user, race, horseId, stake }) {
   if (!STAKE_OPTIONS.includes(Number(stake))) throw new Error("Choose a 50 or 100 chip stake.");
-  if (!isBettingOpen()) throw new Error("Bets are closed for today's race.");
+  // The race date decides the window: today's race closes at noon, the next
+  // race opens at 18:00 the evening before and runs until noon on its own day.
+  const bettableToday = race.race_date === todayKey() && isBettingOpen();
+  const bettableNext = race.race_date === nextRaceKey() && isNextBettingOpen();
+  if (!bettableToday && !bettableNext) throw new Error("Bets are closed for that race.");
 
   const existing = await loadMyBet(race.race_date, user.id);
   if (existing) return { bet: existing, duplicate: true };

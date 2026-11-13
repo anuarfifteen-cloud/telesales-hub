@@ -25,7 +25,7 @@ export default function HorseBetSlip({ horses, selected, onSelect, stake, onStak
       <div className="rounded-2xl border border-border bg-white/95 p-4 text-center">
         <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Betting closed</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Today&apos;s race has started. Bets reopen at 00:00 Brunei time.
+          Today&apos;s race has started. Watch it to unlock betting on the next race.
         </p>
       </div>
     );
