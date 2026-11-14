@@ -1026,30 +1026,64 @@
   display: none;
 }
 
-/* ── Tokens tab: theme-aware sub-tabs, page wash and section badges ──
+/* ── Tokens tab: theme-aware sub-tabs, framed cards and section badges ──
    The Arcade / Milestones / VIP Pass pills are painted from the active theme's
    own tokens, so every theme (Default, Gold, Pink, Lilac, Gamer, Batik) keeps
    its native palette. Royal Batik is the one theme that needs explicit colours:
-   it gets the same gold-on-navy treatment as the active bottom-nav button, a
-   navy wash over the batik tile behind the whole Tokens tab, and navy glass
-   section badges with gold text. These rules sit outside every @layer so they
-   win over the layered theme overrides further up. */
+   the batik tile runs unwashed behind the whole tab exactly as it does on the
+   Booking tab, while the wallet summary pill, the inactive sub-tabs, the hero
+   banner and every game card take the same deep royal navy fill with a thin
+   warm-gold hairline (amber-400/40) used by the Booking tab's framed controls.
+   These rules sit outside every @layer so they win over the layered theme
+   overrides further up. */
 
-/* Royal Batik: navy wash behind the entire Tokens tab, over the batik tile */
-[data-theme="royal_batik"] .tokens-tab-shell::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: rgba(15, 23, 66, 0.55);
+/* Royal Batik: the sticky bar behind the wallet pill and sub-tabs carries no
+   fill or divider, so the batik pattern flows seamlessly from the top bar —
+   exactly as it does down the Booking tab. Other themes keep their bar. */
+[data-theme="royal_batik"] .tokens-nav-bar {
+  background: transparent !important;
+  border-bottom-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-/* Royal Batik: inactive pills — navy glass with a gold hairline */
+/* Royal Batik: wallet summary pill — deep royal navy, warm-gold hairline */
+[data-theme="royal_batik"] .tokens-wallet {
+  background: rgba(13, 18, 96, 0.92) !important;
+  border-color: rgba(251, 191, 36, 0.4) !important;
+  box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Royal Batik: wallet figures read as bright gold on the navy fill */
+[data-theme="royal_batik"] .tokens-wallet-value {
+  color: #f7c25a !important;
+}
+
+/* Royal Batik: inactive pills — deep royal navy with a gold hairline */
 [data-theme="royal_batik"] .tokens-pill {
-  background: rgba(22, 34, 92, 0.85) !important;
-  border-color: rgba(251, 191, 36, 0.3) !important;
+  background: rgba(13, 18, 96, 0.92) !important;
+  border-color: rgba(251, 191, 36, 0.4) !important;
   color: #f5e6b8 !important;
+  box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Royal Batik: the Dealbreaker hero banner — crisp 1px gold frame.
+   Drawn as an inner overlay because the artwork covers the button itself. */
+[data-theme="royal_batik"] .dealbreaker-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  pointer-events: none;
+}
+
+/* Royal Batik: every game card — same crisp 1px gold frame, drawn as an inset
+   ring so the card's own gradient and size stay exactly as they are. */
+[data-theme="royal_batik"] .catalog-tile {
+  box-shadow:
+    inset 0 0 0 1px rgba(251, 191, 36, 0.4),
+    0 10px 22px -10px rgba(0, 0, 0, 0.6) !important;
 }
 
 /* Royal Batik: active pill — royal gold gradient with deep navy text/icon */
@@ -1062,7 +1096,7 @@
 
 /* Royal Batik: section subtitles — navy glass pill with gold text */
 [data-theme="royal_batik"] .catalog-badge {
-  background: rgba(22, 34, 92, 0.85) !important;
-  border-color: rgba(251, 191, 36, 0.35) !important;
+  background: rgba(13, 18, 96, 0.92) !important;
+  border-color: rgba(251, 191, 36, 0.4) !important;
   color: #fcd34d !important;
 }

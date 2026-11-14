@@ -100,7 +100,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
   const inArcade = view === "arcade";
 
   return (
-    <div className="tokens-tab-shell relative mx-auto flex w-full flex-col gap-3 pb-4">
+    <div className="relative mx-auto flex w-full flex-col gap-3 pb-4">
       {/* Wallet bar + persistent 3-pill toggle (sticky under the app header) */}
       <TokensNav user={user} value={view} onChange={selectView} />
 

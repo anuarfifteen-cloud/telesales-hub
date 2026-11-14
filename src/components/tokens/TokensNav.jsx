@@ -16,7 +16,7 @@ function Balance({ img, Icon, value, label, color }) {
   return (
     <span className="flex items-center gap-1.5">
       {Icon ? <Icon size={13} /> : <img src={img} alt="" className="h-4 w-4 object-contain" />}
-      <span className="text-[12px] font-black" style={{ color }}>
+      <span className="tokens-wallet-value text-[12px] font-black" style={{ color }}>
         {value}
       </span>
       <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{label}</span>
@@ -35,8 +35,8 @@ export default function TokensNav({ user, value, onChange }) {
   const chips = Number(user?.casinoChips) || 0;
 
   return (
-    <div className="sticky top-14 z-30 -mx-4 -mt-3 border-b border-border/60 bg-background/95 px-4 pb-2 pt-3 backdrop-blur-md">
-      <div className="flex items-center justify-between gap-2 rounded-full border border-border bg-card/80 px-3.5 py-2.5">
+    <div className="tokens-nav-bar sticky top-14 z-30 -mx-4 -mt-3 border-b border-border/60 bg-background/95 px-4 pb-2 pt-3 backdrop-blur-md">
+      <div className="tokens-wallet flex items-center justify-between gap-2 rounded-full border border-border bg-card/80 px-3.5 py-2.5">
         <Balance img={TOKEN_IMG} value={tokens} label="Tokens" color="#b8860b" />
         <span className="h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/50" />
         <Balance img={DIAMOND_IMG} value={diamonds} label="Diamond" color="#2f7fd4" />
