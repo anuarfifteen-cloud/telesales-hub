@@ -1037,14 +1037,25 @@
    These rules sit outside every @layer so they win over the layered theme
    overrides further up. */
 
-/* Royal Batik: the sticky bar behind the wallet pill and sub-tabs carries no
-   fill or divider, so the batik pattern flows seamlessly from the top bar —
-   exactly as it does down the Booking tab. Other themes keep their bar. */
+/* The sticky bar behind the wallet pill and sub-tabs is frosted glass: content
+   scrolling underneath blurs behind it instead of showing through the gaps
+   between the pills. Each theme gets a translucent tint of its own surface. */
 [data-theme="royal_batik"] .tokens-nav-bar {
-  background: transparent !important;
-  border-bottom-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  background: rgba(15, 23, 66, 0.8) !important;
+  border-bottom-color: rgba(251, 191, 36, 0.2) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+[data-theme="lilac_bloom"] .tokens-nav-bar {
+  background: rgba(243, 232, 255, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* Royal Batik: the batik pattern has light passages, so the bare catalog section
+   titles carry a subtle dark shadow to stay crisp while the page scrolls. */
+[data-theme="royal_batik"] .catalog-section-title {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
 }
 
 /* Royal Batik: wallet summary pill — deep royal navy, warm-gold hairline */

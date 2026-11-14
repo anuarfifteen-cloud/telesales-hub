@@ -87,7 +87,7 @@ export default function CatalogSection({ title, right, children }) {
   return (
     <section className="flex min-w-0 flex-col gap-2.5">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="min-w-0 whitespace-nowrap text-[14px] font-extrabold leading-none text-foreground">{title}</h3>
+        <h3 className="catalog-section-title min-w-0 whitespace-nowrap text-[14px] font-extrabold leading-none text-foreground">{title}</h3>
         <div className="flex shrink-0 items-center gap-1.5">
           {right ? (
             <span className="catalog-badge whitespace-nowrap rounded-full border border-border bg-card/80 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-foreground/80">
