@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import CatalogTile from "./CatalogTile";
 import CatalogSection from "./CatalogSection";
+import { useToast } from "@/components/ui/use-toast";
 import { CLOSER_BG } from "@/lib/closerTheme";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
@@ -76,6 +77,7 @@ function QuickPill({ icon: Icon, label, onClick, highlighted }) {
 }
 
 export default function TokensCatalog({ user, onOpen, ninjaEnabled, scratchAccess, horseAccess }) {
+  const { toast } = useToast();
   const tokens = user?.earlyAccessTokens ?? 0;
   const diamonds = user?.diamonds ?? 0;
   const chips = Number(user?.casinoChips) || 0;
@@ -206,17 +208,24 @@ export default function TokensCatalog({ user, onOpen, ninjaEnabled, scratchAcces
           to="#04231a"
           onClick={() => onOpen("blackjack21")}
         />
-        {horseAccess ? (
-          <CatalogTile
-            name="Horse Bet"
-            sub="Today's race"
-            cost="10+ Chips"
-            icon={Trophy}
-            from="#5a3a1c"
-            to="#2a1a0b"
-            onClick={() => onOpen("horseracing")}
-          />
-        ) : null}
+        <CatalogTile
+          name="Horse Betting"
+          sub="Today's race"
+          cost="10+ Chips"
+          icon={Trophy}
+          from="#5a3a1c"
+          to="#2a1a0b"
+          onClick={() => {
+            if (!horseAccess) {
+              toast({
+                title: "Horse Betting",
+                description: "This game isn't open to players right now.",
+              });
+              return;
+            }
+            onOpen("horseracing");
+          }}
+        />
       </CatalogSection>
 
       {/* Instant play */}

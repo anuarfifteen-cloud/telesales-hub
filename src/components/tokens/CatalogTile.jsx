@@ -3,8 +3,10 @@ export default function CatalogTile({ name, sub, cost, icon: Icon, from, to, onC
   return (
     <button
       type="button"
+      data-card
+      draggable={false}
       onClick={onClick}
-      className="catalog-tile relative w-[155px] flex-shrink-0 snap-start overflow-hidden rounded-3xl text-left transition-transform active:scale-[0.97] md:w-[210px]"
+      className="catalog-tile relative w-[155px] shrink-0 snap-start overflow-hidden rounded-3xl text-left select-none transition-transform active:scale-[0.97] md:w-[210px]"
       style={{
         background: `linear-gradient(165deg, ${from} 0%, ${to} 100%)`,
         boxShadow: "0 10px 22px -10px rgba(58, 30, 96, 0.55)",
