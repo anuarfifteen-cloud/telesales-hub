@@ -14,13 +14,12 @@ import {
 } from "lucide-react";
 import CatalogTile from "./CatalogTile";
 import CatalogSection from "./CatalogSection";
-import { useToast } from "@/components/ui/use-toast";
+import MiniChipIcon from "@/components/casino21/MiniChipIcon";
 import { CLOSER_BG } from "@/lib/closerTheme";
 
 const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
 const DIAMOND_IMG =
   "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b52888c95_Gemini_Generated_Image_3fwfra3fwfra3fwf-removebg-preview.png";
-const CHIP_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/5d8530cab_Screenshot2026-10-05004629.png";
 
 /** Heading shown above an opened destination. */
 export const GAME_TITLES = {
@@ -39,10 +38,10 @@ export const GAME_TITLES = {
   closer: "The Closer",
 };
 
-function Balance({ img, value, label, color }) {
+function Balance({ img, Icon, value, label, color }) {
   return (
     <span className="flex items-center gap-1.5">
-      <img src={img} alt="" className="h-4 w-4 object-contain" />
+      {Icon ? <Icon size={13} /> : <img src={img} alt="" className="h-4 w-4 object-contain" />}
       <span className="text-[12px] font-black" style={{ color }}>
         {value}
       </span>
@@ -78,7 +77,6 @@ function QuickPill({ icon: Icon, label, onClick, highlighted }) {
 }
 
 export default function TokensCatalog({ user, onOpen, ninjaEnabled, scratchAccess, horseAccess }) {
-  const { toast } = useToast();
   const tokens = user?.earlyAccessTokens ?? 0;
   const diamonds = user?.diamonds ?? 0;
   const chips = Number(user?.casinoChips) || 0;
@@ -130,7 +128,7 @@ export default function TokensCatalog({ user, onOpen, ninjaEnabled, scratchAcces
         <span className="h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/50" />
         <Balance img={DIAMOND_IMG} value={diamonds} label="Diamond" color="#2f7fd4" />
         <span className="h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/50" />
-        <Balance img={CHIP_IMG} value={chips} label="Chips" color="#d4573f" />
+        <Balance Icon={MiniChipIcon} value={chips} label="Chips" color="#d4573f" />
       </div>
 
       {/* Quick destinations */}
@@ -208,24 +206,17 @@ export default function TokensCatalog({ user, onOpen, ninjaEnabled, scratchAcces
           to="#04231a"
           onClick={() => onOpen("blackjack21")}
         />
-        <CatalogTile
-          name="Horse Betting"
-          sub="Today's race"
-          cost="10+ Chips"
-          icon={Trophy}
-          from="#5a3a1c"
-          to="#2a1a0b"
-          onClick={() => {
-            if (!horseAccess) {
-              toast({
-                title: "Horse Betting",
-                description: "This game isn't open to players right now.",
-              });
-              return;
-            }
-            onOpen("horseracing");
-          }}
-        />
+        {horseAccess ? (
+          <CatalogTile
+            name="Horse Betting"
+            sub="Today's race"
+            cost="10+ Chips"
+            icon={Trophy}
+            from="#5a3a1c"
+            to="#2a1a0b"
+            onClick={() => onOpen("horseracing")}
+          />
+        ) : null}
       </CatalogSection>
 
       {/* Instant play */}
