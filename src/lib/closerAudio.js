@@ -1,24 +1,35 @@
 /**
- * The Closer — cinematic suspense score, synthesized live with the Web Audio
- * API (the same approach as the Derby's raceAudio): no audio files to load and
+ * The Closer — light sales-floor score, synthesized live with the Web Audio API
+ * (the same approach as the Derby's raceAudio): no audio files to load and
  * nothing to host.
  *
- * The bed is deliberately restrained so the cues stay the star:
- *   · a low A1/E2 drone with a slow 0.13 Hz tremolo
- *   · a 60 BPM heartbeat (lub-dub) underneath it
- *   · a sparse high tension note every four beats
+ * The groove is a relaxed, upbeat lounge/game-show loop at 124 BPM so the desk
+ * feels busy and cheerful rather than tense:
+ *   · a soft wooden tick on every eighth note (the rhythmic pulse)
+ *   · a bouncing walking bass on the quarters
+ *   · swung major-seventh chord stabs on the off-beats
+ *   · a marimba sparkle once a bar
  *
  * Browsers refuse audio before a user gesture, so `unlockCloserAudio()` is
  * called from the seat tap; the music itself only starts once a round is live.
  */
 
-const BEAT = 0.5; // eighth-note resolution at 60 BPM
+const BPM = 124;
+const STEP = 60 / BPM / 4; // one 16th note
+const SWING = 0.055; // pushes the off-beats late for a shuffle
 const LOOKAHEAD = 0.25;
 const MASTER = 0.85;
 
+/** Cmaj7 · Am7 · Dm7 · G7 — the four-bar loop. */
+const BARS = [
+  { bass: [130.81, 196.0, 196.0, 164.81], chord: [329.63, 392.0, 493.88] },
+  { bass: [110.0, 164.81, 164.81, 146.83], chord: [261.63, 329.63, 392.0] },
+  { bass: [146.83, 220.0, 220.0, 196.0], chord: [293.66, 349.23, 440.0] },
+  { bass: [98.0, 146.83, 123.47, 146.83], chord: [293.66, 349.23, 493.88] },
+];
+
 let ac = null;
 let master = null;
-let drone = null;
 let timer = null;
 let nextAt = 0;
 let step = 0;
@@ -56,7 +67,80 @@ export function setCloserMuted(next) {
 
 /* ── voices ─────────────────────────────────────────────────────────────── */
 
-/** A soft pitched thump — heartbeat and impact body. */
+/** Wooden tick — the track's pulse. */
+function tick(t, peak) {
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  const band = ac.createBiquadFilter();
+  osc.type = "square";
+  osc.frequency.setValueAtTime(2100, t);
+  osc.frequency.exponentialRampToValueAtTime(1150, t + 0.03);
+  band.type = "bandpass";
+  band.frequency.value = 1900;
+  band.Q.value = 3;
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(peak, t + 0.004);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+  osc.connect(band);
+  band.connect(gain);
+  gain.connect(master);
+  osc.start(t);
+  osc.stop(t + 0.06);
+}
+
+/** Bouncy upright bass. */
+function bassNote(freq, t) {
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.1, t + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
+  osc.connect(gain);
+  gain.connect(master);
+  osc.start(t);
+  osc.stop(t + 0.36);
+}
+
+/** Short swung chord stab. */
+function chordStab(notes, t, peak) {
+  notes.forEach((freq, i) => {
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = i === 0 ? "triangle" : "sine";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(peak, t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start(t);
+    osc.stop(t + 0.24);
+  });
+}
+
+/** Marimba sparkle for the bar's flourish. */
+function pluck(freq, t, dur, peak) {
+  [
+    { freq, type: "sine", gain: peak },
+    { freq: freq * 2, type: "triangle", gain: peak * 0.35 },
+  ].forEach((voice) => {
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = voice.type;
+    osc.frequency.value = voice.freq;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(voice.gain, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start(t);
+    osc.stop(t + dur + 0.02);
+  });
+}
+
+/** A soft pitched thump — heartbeat and impact body for the cues. */
 function thump(t, from, to, dur, peak) {
   const osc = ac.createOscillator();
   const gain = ac.createGain();
@@ -72,8 +156,8 @@ function thump(t, from, to, dur, peak) {
   osc.stop(t + dur + 0.03);
 }
 
-/** A slow-rising high note used for tension. */
-function swell(t, freq, dur = 3.2, peak = 0.04) {
+/** Slow-rising high note. */
+function swell(t, freq, dur = 1.4, peak = 0.035) {
   const osc = ac.createOscillator();
   const gain = ac.createGain();
   osc.type = "sine";
@@ -112,68 +196,28 @@ function paper(t, dur, peak, bandFreq, q = 1.2) {
   src.stop(t + dur + 0.02);
 }
 
-/* ── the bed ────────────────────────────────────────────────────────────── */
-
-function startDrone() {
-  const now = ac.currentTime;
-  const gain = ac.createGain();
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.linearRampToValueAtTime(0.15, now + 1.8);
-
-  const filter = ac.createBiquadFilter();
-  filter.type = "lowpass";
-  filter.frequency.value = 340;
-  filter.Q.value = 0.6;
-  gain.connect(filter);
-  filter.connect(master);
-
-  const voices = [
-    { freq: 55, type: "sine" },
-    { freq: 55.4, type: "sine" },
-    { freq: 82.41, type: "triangle" },
-  ];
-  const nodes = voices.map(({ freq, type }) => {
-    const osc = ac.createOscillator();
-    osc.type = type;
-    osc.frequency.value = freq;
-    osc.connect(gain);
-    osc.start(now);
-    return osc;
-  });
-
-  // Slow tremolo keeps the drone breathing instead of droning flat.
-  const lfo = ac.createOscillator();
-  const lfoDepth = ac.createGain();
-  lfo.frequency.value = 0.13;
-  lfoDepth.gain.value = 0.05;
-  lfo.connect(lfoDepth);
-  lfoDepth.connect(gain.gain);
-  lfo.start(now);
-  nodes.push(lfo);
-
-  drone = { nodes, gain };
-}
-
-const TENSION = [440, 523.25, 587.33, 659.25];
+/* ── the loop ───────────────────────────────────────────────────────────── */
 
 function schedule() {
   if (!ac || !running) return;
   while (nextAt < ac.currentTime + LOOKAHEAD) {
-    const t = nextAt;
-    const beat = step % 8;
+    const bar = BARS[Math.floor(step / 16) % BARS.length];
+    const inBar = step % 16;
+    const swung = inBar % 4 === 2;
+    const t = swung ? nextAt + SWING : nextAt;
 
-    // Heartbeat once a second: "lub" then the softer "dub".
-    if (beat % 2 === 0) {
-      thump(t, 72, 40, 0.34, 0.15);
-      thump(t + 0.2, 62, 34, 0.3, 0.09);
-    }
-    // One high tension note per four-beat bar.
-    if (beat === 0) {
-      swell(t, TENSION[Math.floor(step / 8) % TENSION.length]);
+    if (inBar % 4 === 0) {
+      bassNote(bar.bass[inBar / 4], t);
+      tick(t, inBar === 0 || inBar === 8 ? 0.055 : 0.04);
+      // One marimba flourish to close each bar.
+      if (inBar === 12) pluck(bar.chord[2] * 2, t + 0.03, 0.5, 0.036);
+    } else if (swung) {
+      chordStab(bar.chord, t, inBar === 10 ? 0.055 : 0.045);
+      tick(t, 0.022);
     }
 
     step += 1;
-    nextAt += BEAT;
+    nextAt += STEP;
   }
 }
 
@@ -181,9 +225,8 @@ export function startCloserMusic() {
   const ctx = graph();
   if (!ctx || running) return;
   running = true;
-  startDrone();
   step = 0;
-  nextAt = ctx.currentTime + 0.1;
+  nextAt = ctx.currentTime + 0.08;
   timer = setInterval(schedule, 60);
   schedule();
 }
@@ -194,18 +237,6 @@ export function stopCloserMusic() {
     timer = null;
   }
   running = false;
-  if (!ac || !drone) return;
-  const now = ac.currentTime;
-  const { nodes, gain } = drone;
-  drone = null;
-  try {
-    gain.gain.cancelScheduledValues(now);
-    gain.gain.setValueAtTime(gain.gain.value, now);
-    gain.gain.linearRampToValueAtTime(0.0001, now + 0.8);
-    nodes.forEach((node) => node.stop(now + 0.9));
-  } catch {
-    /* already torn down */
-  }
 }
 
 /* ── cues ───────────────────────────────────────────────────────────────── */
@@ -218,8 +249,8 @@ export function playCloserCue(key) {
   const t = ctx.currentTime + 0.02;
 
   if (key === "select") {
-    thump(t, 300, 165, 0.13, 0.1);
-    swell(t, 587.33, 0.5, 0.035);
+    pluck(880, t, 0.4, 0.06);
+    thump(t, 300, 165, 0.1, 0.07);
     return;
   }
 
@@ -251,21 +282,11 @@ export function playCloserCue(key) {
   }
 
   if (key === "win") {
-    // Warm A-major swell that resolves the tension instead of shouting.
-    [220, 277.18, 329.63, 440].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = i === 0 ? "triangle" : "sine";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.linearRampToValueAtTime(0.055, t + 0.9);
-      gain.gain.linearRampToValueAtTime(0.0001, t + 2.6);
-      osc.connect(gain);
-      gain.connect(master);
-      osc.start(t);
-      osc.stop(t + 2.7);
+    // A bright major flourish to celebrate the payout.
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+      pluck(freq, t + i * 0.09, 0.9, 0.055);
     });
-    thump(t, 96, 46, 0.55, 0.1);
-    paper(t + 0.05, 0.5, 0.045, 3200, 0.8);
+    swell(t, 523.25, 1.6, 0.03);
+    paper(t + 0.05, 0.45, 0.04, 3200, 0.8);
   }
 }

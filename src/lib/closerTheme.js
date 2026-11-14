@@ -11,15 +11,18 @@ export const CLOSER_BG =
  */
 export const CHIP_ICON_URL = "";
 
+/** The Manager's dedicated portrait. */
+const MANAGER_PORTRAIT_URL =
+  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/190780bd4_generated_aec441fb.png";
+
 /**
- * The Manager's face cropped straight out of the same artwork — the head sits
- * at roughly 48% across and 15% down once the photo is scaled up inside the
- * circular frame.
+ * Tighter face crop inside the circular frame: the portrait is scaled up so the
+ * frame holds his face from hairline to chin, centred across and down.
  */
 export const MANAGER_PORTRAIT = {
-  backgroundImage: `url(${CLOSER_BG})`,
-  backgroundSize: "330% auto",
-  backgroundPosition: "48% 15%",
+  backgroundImage: `url(${MANAGER_PORTRAIT_URL})`,
+  backgroundSize: "175% auto",
+  backgroundPosition: "50% 40%",
   backgroundRepeat: "no-repeat",
 };
 
