@@ -35,7 +35,7 @@ export default function TokensNav({ user, value, onChange }) {
   const chips = Number(user?.casinoChips) || 0;
 
   return (
-    <div className="sticky top-14 z-20 -mx-4 -mt-3 border-b border-border/60 bg-background/95 px-4 pb-2 pt-3 backdrop-blur-md">
+    <div className="sticky top-14 z-30 -mx-4 -mt-3 border-b border-border/60 bg-background/95 px-4 pb-2 pt-3 backdrop-blur-md">
       <div className="flex items-center justify-between gap-2 rounded-full border border-border bg-card/80 px-3.5 py-2.5">
         <Balance img={TOKEN_IMG} value={tokens} label="Tokens" color="#b8860b" />
         <span className="h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/50" />

@@ -303,7 +303,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         </div>
 
         {phase === "idle" && (
-          <div className="absolute inset-x-0 bottom-[29%] top-0 z-20 flex items-center justify-center px-3">
+          <div className="absolute inset-0 z-10 flex items-center justify-center p-3">
             <CloserEntryCard
               chips={chips}
               remaining={daily.remaining}

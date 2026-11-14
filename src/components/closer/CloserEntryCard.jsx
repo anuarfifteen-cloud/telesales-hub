@@ -21,7 +21,7 @@ export default function CloserEntryCard({
 }) {
   return (
     <div
-      className="w-full max-w-[15.5rem] rounded-2xl p-3"
+      className="max-h-full w-full max-w-[15.5rem] overflow-y-auto rounded-2xl p-3.5 text-xs leading-snug"
       style={{
         background: "linear-gradient(180deg, rgba(41,26,74,0.93) 0%, rgba(22,13,44,0.95) 100%)",
         boxShadow:
