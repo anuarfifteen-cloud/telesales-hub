@@ -14,6 +14,7 @@ import TapVaultCard from "@/components/tokens/TapVaultCard";
 import Blackjack21Game from "@/components/casino21/Blackjack21Game";
 import HorseBettingView from "@/components/horseBetting/HorseBettingView";
 import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
+import TheCloserGame from "@/components/closer/TheCloserGame";
 import DailyChipGiftModal, { chipGiftClaimedToday } from "@/components/casino21/DailyChipGiftModal";
 import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 
@@ -249,6 +250,19 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
             <div />
           )}
         </div>
+        {/* Row 5 — The Closer */}
+        <div className="grid grid-cols-1 gap-1">
+          <button
+            onClick={() => setInnerTab("closer")}
+            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              innerTab === "closer"
+                ? "bg-[#12251d] text-amber-200 shadow ring-1 ring-amber-300/30"
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            🕴️ The Closer
+          </button>
+        </div>
       </div>
 
       {/* Milestones */}
@@ -296,6 +310,11 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         <div className="w-full max-w-md mx-auto">
           <ScratchCardGame user={user} onUserUpdate={onUserUpdate} />
         </div>
+      )}
+
+      {/* The Closer */}
+      {innerTab === "closer" && (
+        <TheCloserGame user={user} onUserUpdate={onUserUpdate} />
       )}
 
       {/* Ninja Slice (only when enabled) */}
