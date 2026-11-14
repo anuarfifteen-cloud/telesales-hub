@@ -1,4 +1,4 @@
-/** "THE CLOSER" progress header across the top of the desk scene. */
+/** "DEALBREAKER" progress header across the top of the desk scene. */
 export default function CloserProgressBar({ progress = 0 }) {
   const pct = Math.max(0, Math.min(100, Math.round(progress * 100)));
 
@@ -12,7 +12,7 @@ export default function CloserProgressBar({ progress = 0 }) {
       }}
     >
       <p className="text-center text-[9px] font-black uppercase tracking-[0.34em] text-white/90 sm:text-[10px]">
-        The Closer
+        Dealbreaker
       </p>
       <div className="mt-1 h-[7px] w-full overflow-hidden rounded-full bg-black/50">
         <div

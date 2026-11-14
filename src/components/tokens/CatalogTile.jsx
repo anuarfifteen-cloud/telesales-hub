@@ -6,7 +6,7 @@ export default function CatalogTile({ name, sub, cost, icon: Icon, from, to, onC
       data-card
       draggable={false}
       onClick={onClick}
-      className="catalog-tile relative w-[155px] shrink-0 snap-start select-none overflow-hidden rounded-3xl text-left transition-transform first:ml-4 last:mr-4 active:scale-[0.97] md:w-[210px]"
+      className="catalog-tile relative w-[155px] shrink-0 touch-auto snap-start select-none overflow-hidden rounded-3xl text-left transition-transform first:ml-4 last:mr-4 active:scale-[0.97] md:w-[210px]"
       style={{
         background: `linear-gradient(165deg, ${from} 0%, ${to} 100%)`,
         boxShadow: "0 10px 22px -10px rgba(58, 30, 96, 0.55)",

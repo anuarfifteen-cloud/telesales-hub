@@ -29,7 +29,7 @@ export const GAME_TITLES = {
   scratchcard: "Scratch Card",
   blackjack21: "Blackjack 21",
   horseracing: "Horse Betting",
-  closer: "The Closer",
+  closer: "Dealbreaker",
 };
 
 export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, horseAccess }) {
@@ -99,10 +99,10 @@ export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, hor
             New Release
           </span>
           <span className="text-[19px] font-black uppercase leading-none tracking-wide" style={{ color: "#f7c25a" }}>
-            The Closer
+            Dealbreaker
           </span>
           <span className="text-[10px] font-semibold" style={{ color: "rgba(255,255,255,0.78)" }}>
-            Close the Deal. Claim the Bonus!
+            Take the Deal. Or Risk It All!
           </span>
           <span
             className="mt-1.5 inline-flex items-center rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-widest"
@@ -126,7 +126,7 @@ export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, hor
       {/* Chip arcade */}
       <CatalogSection title="Chip Arcade" right={<span className="text-muted-foreground">Chips required 🪙</span>}>
         <CatalogTile
-          name="The Closer"
+          name="Dealbreaker"
           sub="3 seats a day"
           cost="100 Chips"
           icon={Briefcase}
