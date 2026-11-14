@@ -10,16 +10,18 @@ import BlindVoucherShop from "@/components/tokens/BlindVoucherShop";
 import FlappyTokenGame from "@/components/games/FlappyTokenGame";
 import DiamondSmashGame from "@/components/games/DiamondSmashGame";
 import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
-import TapVaultCard from "@/components/tokens/TapVaultCard";
 import Blackjack21Game from "@/components/casino21/Blackjack21Game";
 import HorseBettingView from "@/components/horseBetting/HorseBettingView";
 import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
 import TheCloserGame from "@/components/closer/TheCloserGame";
 import DailyChipGiftModal, { chipGiftClaimedToday } from "@/components/casino21/DailyChipGiftModal";
+import TokensCatalog, { GAME_TITLES } from "@/components/tokens/TokensCatalog";
+import BackToCatalog from "@/components/tokens/BackToCatalog";
 import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true, horseBettingEnabled = false, oneVOneRequest = 0 }) {
-  const [innerTab, setInnerTab] = useState("milestones");
+  // "catalog" is the game shelf; any other value opens that game or tool.
+  const [innerTab, setInnerTab] = useState("catalog");
   // "View" on a new-challenge alert: land on the Blackjack 21 sub-tab, which
   // then opens its 1V1 board.
   useEffect(() => {
@@ -39,8 +41,6 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
     react(getRankedSignal());
     return onRankedNavRequest(react);
   }, []);
-  // tabs: milestones | vip | ninja | coinflip | perfect10 | supertap | blindvoucher | flappy | blackjack21 | scratchcard | diamondsmash
-  const tokens = user?.earlyAccessTokens ?? 0;
 
   // Daily 5-chip gift: offered once per Brunei day. Checked on every visit to
   // the Tokens tab — dismissing the popup leaves the gift unclaimed, so it
@@ -63,16 +63,16 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
   // is already resolved by the time the user switches here — no 1s pop-in.
   // Avoid lingering on the Ninja tab if it gets hidden later
   useEffect(() => {
-    if (!ninjaEnabled && innerTab === "ninja") setInnerTab("milestones");
+    if (!ninjaEnabled && innerTab === "ninja") setInnerTab("catalog");
   }, [ninjaEnabled, innerTab]);
 
   // Scratch Card is completely hidden from players while the admin keeps it
-  // switched off — no button and no placeholder. An unlocked admin still sees
-  // the tab and can open the game as usual.
+  // switched off — no card in the catalog and no placeholder. An unlocked admin
+  // still sees it and can open the game as usual.
   const scratchAccess = scratchCardEnabled || isAdmin;
 
   useEffect(() => {
-    if (!scratchAccess && innerTab === "scratchcard") setInnerTab("milestones");
+    if (!scratchAccess && innerTab === "scratchcard") setInnerTab("catalog");
   }, [scratchAccess, innerTab]);
 
   // Horse Betting is hidden from players until an admin opens it up to
@@ -80,190 +80,24 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
   const horseAccess = horseBettingEnabled || isAdmin;
 
   useEffect(() => {
-    if (!horseAccess && innerTab === "horseracing") setInnerTab("milestones");
+    if (!horseAccess && innerTab === "horseracing") setInnerTab("catalog");
   }, [horseAccess, innerTab]);
 
   return (
     <div className="flex flex-col gap-4 pb-4">
-      {/* Balance Cards */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Token Balance Card */}
-        <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4 flex items-center justify-between">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Token Balance</span>
-            <span className="text-3xl font-black text-foreground">{tokens}</span>
-            <span className="text-xs text-muted-foreground">tokens available</span>
-          </div>
-          <img
-            src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png"
-            alt="token"
-            className="w-14 h-14 object-contain"
-          />
-        </div>
-
-        {/* Diamond Balance Card */}
-        <DiamondBalanceCard user={user} onUserUpdate={onUserUpdate} />
-      </div>
-
-      {/* Row 1: Milestones | VIP Pass | Ninja Slice (when enabled) */}
-      {/* Row 2: Coin Flip  | Perfect 10 */}
-      <div className="flex flex-col gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
-        {/* Row 1 */}
-        <div className={`grid gap-1 ${ninjaEnabled ? "grid-cols-3" : "grid-cols-2"}`}>
-          <button
-            onClick={() => setInnerTab("milestones")}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "milestones"
-                ? "bg-blue-600 text-white shadow"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            🏆 Milestones
-          </button>
-          <button
-            onClick={() => setInnerTab("vip")}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "vip"
-                ? "bg-purple-600 text-white shadow"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            👑 VIP Pass
-          </button>
-          {ninjaEnabled && (
-            <button
-              onClick={() => setInnerTab("ninja")}
-              className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-                innerTab === "ninja"
-                  ? "bg-pink-600 text-white shadow"
-                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-              }`}
-            >
-              🥷 Ninja Slice
-            </button>
-          )}
-        </div>
-        {/* Row 2 */}
-        <div className="grid grid-cols-3 gap-1">
-          <button
-            onClick={() => setInnerTab("coinflip")}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "coinflip"
-                ? "bg-amber-500 text-white shadow"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png" alt="coin" className="w-4 h-4" /> Coin Flip
-          </button>
-          <button
-            onClick={() => setInnerTab("perfect10")}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "perfect10"
-                ? "bg-indigo-600 text-white shadow"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            ⏱️ Perfect 10
-          </button>
-          <button
-            onClick={() => setInnerTab("supertap")}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "supertap"
-                ? "bg-red-500 text-white shadow"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            ⚡ Super Tap
-          </button>
-        </div>
-        {/* Row 3 */}
-        <div className="grid grid-cols-3 gap-1">
-          <button
-            onClick={() => setInnerTab("blindvoucher")}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "blindvoucher"
-                ? "bg-emerald-600 text-white shadow"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            🎟️ Blind Voucher
-          </button>
-          <button
-            onClick={() => setInnerTab("flappy")}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "flappy"
-                ? "bg-cyan-500 text-white shadow"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            🐦 Flappy Token
-          </button>
-          <button
-            onClick={() => setInnerTab("diamondsmash")}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "diamondsmash"
-                ? "bg-fuchsia-600 text-white shadow"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            💎 Diamond Smash
-          </button>
-        </div>
-        {/* Row 4 — Scratch Card sits beside Blackjack 21, below Flappy Token */}
-        <div className="grid grid-cols-3 gap-1">
-          {scratchAccess ? (
-            <button
-              onClick={() => setInnerTab("scratchcard")}
-              className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-                innerTab === "scratchcard"
-                  ? "bg-amber-600 text-white shadow"
-                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-              }`}
-            >
-              🎫 Scratch Card
-            </button>
-          ) : (
-            <div />
-          )}
-          <button
-            onClick={() => setInnerTab("blackjack21")}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "blackjack21"
-                ? "bg-emerald-700 text-white shadow"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            ♠️ Blackjack 21
-          </button>
-          {horseAccess ? (
-            <button
-              onClick={() => setInnerTab("horseracing")}
-              className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-                innerTab === "horseracing"
-                  ? "bg-orange-600 text-white shadow"
-                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-              }`}
-            >
-              🐎 Horse Betting
-            </button>
-          ) : (
-            <div />
-          )}
-        </div>
-        {/* Row 5 — The Closer */}
-        <div className="grid grid-cols-1 gap-1">
-          <button
-            onClick={() => setInnerTab("closer")}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              innerTab === "closer"
-                ? "bg-[#12251d] text-amber-200 shadow ring-1 ring-amber-300/30"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            🕴️ The Closer
-          </button>
-        </div>
-      </div>
+      {innerTab === "catalog" ? (
+        <TokensCatalog
+          user={user}
+          onOpen={setInnerTab}
+          ninjaEnabled={ninjaEnabled}
+          scratchAccess={scratchAccess}
+          horseAccess={horseAccess}
+        >
+          <DiamondBalanceCard user={user} onUserUpdate={onUserUpdate} />
+        </TokensCatalog>
+      ) : (
+        <BackToCatalog title={GAME_TITLES[innerTab] || ""} onBack={() => setInnerTab("catalog")} />
+      )}
 
       {/* Milestones */}
       {innerTab === "milestones" && (

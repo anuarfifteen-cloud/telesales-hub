@@ -1016,3 +1016,12 @@
   50%      { box-shadow: 0 0 0 1px rgba(255,255,220,1), 0 0 24px rgba(255,212,0,0.95); }
 }
 .closer-lucky { animation: closer-lucky-glow 2.2s ease-in-out infinite; }
+
+/* ── Tokens catalog: horizontal shelves without a visible scrollbar ── */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
