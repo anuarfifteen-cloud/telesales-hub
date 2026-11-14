@@ -1,14 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { Info, Lock } from "lucide-react";
+import { Info } from "lucide-react";
 import MiniChipIcon from "@/components/casino21/MiniChipIcon";
 import CloserFolder from "./CloserFolder";
 import CloserResultCard from "./CloserResultCard";
+import CloserProgressBar from "./CloserProgressBar";
+import CloserPrizeBoard from "./CloserPrizeBoard";
+import CloserEntryCard from "./CloserEntryCard";
 import ManagerOfferModal from "./ManagerOfferModal";
+import { CLOSER_BG } from "@/lib/closerTheme";
 import {
   DAILY_LIMIT,
   ENTRY_FEE,
   FOLDER_COUNT,
   FOLDERS_AT_OFFER,
+  PRIZES,
   creditPrize,
   loadCloserState,
   managerOffer,
@@ -16,15 +21,10 @@ import {
   takeSeat,
 } from "@/lib/theCloser";
 
-const DESK_BG =
-  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/86c7a98d5_generated_image.png";
-
-const RULES = [
-  "Stake 100 chips, then pick the one folder you will keep.",
-  "Open folders on the desk one by one — each is money you don't win.",
-  "With five folders left, the Manager makes a single buyout offer.",
-  "Take the money, or open on until only your folder is left.",
-];
+/** The prize ladder split across the two side boards, lowest to highest. */
+const LADDER = [...PRIZES].sort((a, b) => a - b);
+const LEFT_BOARD = LADDER.slice(0, Math.ceil(LADDER.length / 2));
+const RIGHT_BOARD = LADDER.slice(Math.ceil(LADDER.length / 2));
 
 /**
  * The Closer — a casual Deal or No Deal style game played for casino chips.
@@ -63,6 +63,9 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       : Array.from({ length: FOLDER_COUNT }, (_, i) => i).filter((i) => i !== lucky);
   const remainingDesk = deskIndices.filter((i) => !opened.includes(i));
   const lastDeskIndex = remainingDesk.length === 1 ? remainingDesk[0] : null;
+
+  const openedValues = opened.map((i) => Number(valuesRef.current[i]) || 0);
+  const progress = deskIndices.length ? opened.length / deskIndices.length : 0;
 
   const resetTable = () => {
     valuesRef.current = [];
@@ -191,163 +194,117 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   const gridLocked = phase !== "pick" && phase !== "play";
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-3">
-      {/* Header */}
+    <div className="mx-auto w-full max-w-[620px]">
       <div
-        className="relative overflow-hidden rounded-2xl border border-amber-400/40 p-3.5"
-        style={{ background: "linear-gradient(150deg,#0f2b21 0%,#0a1d16 60%,#08150f 100%)" }}
+        className="relative w-full overflow-hidden rounded-[26px] border border-amber-200/25 shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
+        style={{
+          aspectRatio: "1024 / 1408",
+          backgroundImage: `url(${CLOSER_BG})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
       >
+        {/* soft vignette so the overlays read on the artwork */}
         <div
           className="pointer-events-none absolute inset-0"
-          style={{ boxShadow: "inset 0 0 0 2px rgba(212,175,55,0.16)" }}
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(8,5,22,0.62) 0%, rgba(8,5,22,0.1) 26%, rgba(8,5,22,0) 56%, rgba(8,5,22,0.44) 100%)",
+          }}
         />
-        <div className="relative flex items-start justify-between gap-2">
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.24em] text-amber-300/80">
-              Deal or No Deal · The desk
-            </p>
-            <h2 className="mt-0.5 font-display text-xl font-bold leading-tight text-amber-50">
-              The Closer
-            </h2>
-            <p className="text-[11px] font-semibold text-amber-200/60">
-              Ten folders. One lucky pick. One buyout.
-            </p>
-            <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-amber-200/80 ring-1 ring-amber-300/20">
-              {daily.loading
-                ? "Checking today's plays…"
-                : `${daily.remaining} of ${DAILY_LIMIT} plays left today`}
-            </p>
-          </div>
-          <span className="flex shrink-0 items-center gap-1 rounded-full border border-amber-300/30 bg-black/30 px-2 py-1 text-[11px] font-black tabular-nums text-amber-100">
-            <MiniChipIcon size={12} />
-            {chips}
-          </span>
-        </div>
-      </div>
 
-      {phase === "idle" ? (
-        /* Entry */
-        <div
-          className="relative overflow-hidden rounded-2xl border border-amber-500/25"
-          style={{ backgroundImage: `url(${DESK_BG})`, backgroundSize: "cover", backgroundPosition: "center" }}
-        >
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(4,12,9,0.66) 0%, rgba(4,12,9,0.52) 45%, rgba(4,12,9,0.8) 100%)",
-            }}
-          />
-          <div className="relative p-4">
-            <p className="text-[9px] font-black uppercase tracking-[0.24em] text-amber-300/80">
-              House rules
-            </p>
-            <ul className="mt-2 space-y-1.5">
-              {RULES.map((rule) => (
-                <li key={rule} className="flex gap-1.5 text-[11px] leading-snug text-amber-50/85">
-                  <span className="mt-[5px] h-1 w-1 shrink-0 rounded-full bg-amber-300/80" />
-                  {rule}
-                </li>
-              ))}
-            </ul>
-
-            <button
-              type="button"
-              onClick={handleSit}
-              disabled={busy || !affordable || limitReached || daily.loading}
-              className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-amber-200 via-amber-300 to-amber-500 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-[#0b1712] shadow-[0_6px_20px_rgba(212,175,55,0.35)] transition hover:brightness-105 disabled:opacity-45"
-            >
-              <Lock className="h-3.5 w-3.5" />
-              {limitReached
-                ? "Daily limit reached"
-                : busy
-                  ? "Dealing…"
-                  : `Take a seat · ${ENTRY_FEE} chips`}
-            </button>
-
-            {!affordable && (
-              <p className="mt-1.5 text-center text-[10px] font-bold uppercase tracking-wider text-amber-300">
-                You need {ENTRY_FEE} chips — top up in the Cashier
-              </p>
-            )}
-            {error && (
-              <p className="mt-2 rounded-lg bg-rose-500/15 px-2 py-1.5 text-[11px] font-semibold text-rose-200 ring-1 ring-rose-400/30">
-                {error}
-              </p>
-            )}
+        {/* top: title + progress, then plays and chips */}
+        <div className="absolute inset-x-0 top-0 z-30 flex flex-col gap-1.5 p-2.5">
+          <CloserProgressBar progress={progress} />
+          <div className="flex items-center justify-between gap-1.5">
+            <span className="rounded-full bg-[#241242]/80 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-amber-100/90 ring-1 ring-amber-200/25 backdrop-blur-sm sm:text-[8px]">
+              {daily.loading ? "Checking plays…" : `${daily.remaining} of ${DAILY_LIMIT} plays left`}
+            </span>
+            <span className="flex items-center gap-1 rounded-full bg-[#241242]/80 px-2 py-0.5 text-[8px] font-black tabular-nums text-amber-100 ring-1 ring-amber-200/25 backdrop-blur-sm sm:text-[9px]">
+              <MiniChipIcon size={10} />
+              {chips}
+            </span>
           </div>
         </div>
-      ) : (
-        /* The desk */
-        <div
-          className="relative overflow-hidden rounded-2xl border border-amber-500/25"
-          style={{ backgroundImage: `url(${DESK_BG})`, backgroundSize: "cover", backgroundPosition: "center" }}
-        >
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(4,12,9,0.55) 0%, rgba(4,12,9,0.34) 42%, rgba(4,12,9,0.68) 100%)",
-            }}
-          />
-          <div className="relative p-2.5">
-            {phase === "pick" && (
-              <p className="mb-2 rounded-lg bg-amber-300/15 px-2 py-1 text-center text-[9px] font-black uppercase tracking-[0.16em] text-amber-200 ring-1 ring-amber-300/25">
-                Pick the folder you will keep
-              </p>
-            )}
 
-            <div className="grid grid-cols-5 gap-1.5">
-              {Array.from({ length: FOLDER_COUNT }, (_, i) => {
-                const isLucky = i === lucky;
-                const isOpen = opened.includes(i) || (isLucky && luckyRevealed);
-                return (
-                  <CloserFolder
-                    key={i}
-                    number={i + 1}
-                    value={isOpen ? Number(valuesRef.current[i]) || 0 : null}
-                    open={isOpen}
-                    lucky={isLucky}
-                    disabled={
-                      gridLocked ||
-                      busy ||
-                      offerOpen ||
-                      (phase === "play" && (isLucky || isOpen))
-                    }
-                    onOpen={() => (phase === "pick" ? handlePick(i) : handleOpen(i))}
-                  />
-                );
-              })}
+        <CloserPrizeBoard side="left" values={LEFT_BOARD} dimmed={openedValues} />
+        <CloserPrizeBoard side="right" values={RIGHT_BOARD} dimmed={openedValues} />
+
+        {phase !== "idle" && (
+          <div className="absolute inset-x-[15%] bottom-[31.5%] z-20 flex justify-center">
+            <p className="rounded-full bg-[#241242]/85 px-2.5 py-1 text-center text-[7px] font-black uppercase tracking-[0.12em] text-amber-100 ring-1 ring-amber-200/30 backdrop-blur-sm sm:text-[8px]">
+              {phase === "pick"
+                ? "Pick the folder you will keep"
+                : `${remainingDesk.length} on the desk · ${
+                    offerMade ? "no more offers" : `offer at ${FOLDERS_AT_OFFER}`
+                  }`}
+            </p>
+          </div>
+        )}
+
+        {/* the desk */}
+        <div className="absolute inset-x-[13%] bottom-[4%] z-10 grid grid-cols-5 gap-1.5 sm:gap-2">
+          {Array.from({ length: FOLDER_COUNT }, (_, i) => {
+            const isLucky = i === lucky;
+            const isOpen = opened.includes(i) || (isLucky && luckyRevealed);
+            return (
+              <CloserFolder
+                key={i}
+                number={i + 1}
+                value={isOpen ? Number(valuesRef.current[i]) || 0 : null}
+                open={isOpen}
+                lucky={isLucky}
+                disabled={
+                  phase === "idle" ||
+                  gridLocked ||
+                  busy ||
+                  offerOpen ||
+                  (phase === "play" && (isLucky || isOpen))
+                }
+                onOpen={() => (phase === "pick" ? handlePick(i) : handleOpen(i))}
+              />
+            );
+          })}
+        </div>
+
+        {phase === "idle" && (
+          <div className="absolute inset-x-0 bottom-[29%] top-0 z-30 flex items-center justify-center px-3">
+            <CloserEntryCard
+              chips={chips}
+              remaining={daily.remaining}
+              loading={daily.loading}
+              busy={busy}
+              affordable={affordable}
+              limitReached={limitReached}
+              error={error}
+              entryFee={ENTRY_FEE}
+              onSit={handleSit}
+            />
+          </div>
+        )}
+
+        {error && phase !== "idle" && phase !== "done" && (
+          <div className="absolute inset-x-[12%] bottom-[27%] z-30">
+            <p className="rounded-lg bg-rose-600/85 px-2 py-1.5 text-center text-[8px] font-bold text-white backdrop-blur-sm">
+              {error}
+            </p>
+          </div>
+        )}
+
+        {phase === "done" && result && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0A0618]/65 p-5 backdrop-blur-[2px]">
+            <div className="w-full max-w-[16rem]">
+              <CloserResultCard
+                result={result}
+                luckyValue={Number(valuesRef.current[lucky]) || 0}
+                canPlay={!limitReached}
+                onPlayAgain={resetTable}
+              />
             </div>
-
-            {phase === "play" && (
-              <div className="mt-2 flex items-center justify-between rounded-xl bg-black/40 px-2.5 py-1.5 ring-1 ring-amber-300/15">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-100/80">
-                  {remainingDesk.length} on the desk
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300/70">
-                  {offerMade ? "No more offers" : `Offer at ${FOLDERS_AT_OFFER} folders`}
-                </span>
-              </div>
-            )}
           </div>
-        </div>
-      )}
-
-      {phase === "done" && result && (
-        <CloserResultCard
-          result={result}
-          luckyValue={Number(valuesRef.current[lucky]) || 0}
-          canPlay={!limitReached}
-          onPlayAgain={resetTable}
-        />
-      )}
-
-      {error && phase !== "idle" && (
-        <p className="rounded-lg bg-rose-50 px-2.5 py-2 text-[11px] font-semibold text-rose-700">
-          {error}
-        </p>
-      )}
+        )}
+      </div>
 
       <ManagerOfferModal
         open={offerOpen}
@@ -358,7 +315,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         onReject={() => setOfferOpen(false)}
       />
 
-      <p className="flex items-start gap-1.5 rounded-xl border border-border bg-muted/40 px-2.5 py-2 text-[10px] leading-snug text-muted-foreground">
+      <p className="mt-2 flex items-start gap-1.5 rounded-xl border border-border bg-muted/40 px-2.5 py-2 text-[10px] leading-snug text-muted-foreground">
         <Info className="mt-0.5 h-3 w-3 shrink-0" />
         Casual play: the folder values are shuffled in your browser, so they are not tamper-proof until
         they open. Each game is settled once and left to admin auditing.

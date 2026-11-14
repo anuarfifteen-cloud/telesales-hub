@@ -1,56 +1,79 @@
+import { FOLDER_COLORS } from "@/lib/closerTheme";
+
 /**
  * One folder on the desk. Closed folders carry only their number — the prize
  * value is passed in exclusively once the folder has been opened.
  */
 export default function CloserFolder({ number, value, open, lucky, disabled, onOpen }) {
+  const color = FOLDER_COLORS[(number - 1) % FOLDER_COLORS.length];
+  const kept = Boolean(open && lucky);
+  const eliminated = Boolean(open && !lucky);
+
+  const surface = eliminated
+    ? {
+        background: "linear-gradient(180deg,#C2C7CF 0%,#9098A2 100%)",
+        boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.4), 0 3px 8px rgba(0,0,0,0.35)",
+      }
+    : kept
+      ? {
+          background: "linear-gradient(180deg,#2B1B10 0%,#140B06 100%)",
+          boxShadow: "inset 0 0 18px rgba(255,196,60,0.35)",
+        }
+      : {
+          background: `linear-gradient(168deg,${color.body} 0%,${color.edge} 100%)`,
+          boxShadow:
+            "0 5px 12px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.42), inset 0 -3px 0 rgba(0,0,0,0.22)",
+        };
+
   return (
     <button
       type="button"
       onClick={onOpen}
       disabled={disabled}
       aria-label={`Folder ${number}`}
-      className={`relative aspect-[3/4] w-full overflow-hidden rounded-[6px] transition-all duration-300 ${
-        open ? "" : "active:scale-[0.97]"
-      } ${lucky ? "ring-2 ring-amber-300 ring-offset-1 ring-offset-black/50" : ""}`}
-      style={
-        open
-          ? {
-              background: "linear-gradient(160deg,#0f2a20 0%,#07130f 100%)",
-              boxShadow: "inset 0 0 0 1px rgba(212,175,55,0.4), 0 1px 3px rgba(0,0,0,0.5)",
-            }
-          : {
-              background: "linear-gradient(158deg,#f7e9c9 0%,#e9d4a7 52%,#d2b681 100%)",
-              boxShadow:
-                "0 2px 6px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -2px 4px rgba(120,90,40,0.25)",
-            }
-      }
+      className={`relative block w-full rounded-lg ${
+        open ? "closer-flip" : "transition-transform duration-150 active:scale-95"
+      } ${lucky ? "closer-lucky z-10" : ""}`}
+      style={{
+        aspectRatio: "3 / 3.7",
+        ...surface,
+        ...(lucky ? { border: "3px solid #FFD400" } : {}),
+      }}
     >
       {!open && (
         <span
-          className="absolute left-1/2 top-0 h-[3px] w-1/2 -translate-x-1/2 rounded-b-[2px]"
-          style={{ background: "#c6a468" }}
+          className="absolute -top-[3px] left-[12%] h-[5px] w-[46%] rounded-t-[4px]"
+          style={{ background: color.edge, filter: "brightness(0.92)" }}
         />
       )}
 
-      {open ? (
-        <span className="flex h-full w-full flex-col items-center justify-center gap-0.5">
-          <span className="text-[7px] font-bold uppercase tracking-[0.14em] text-amber-200/45">
-            {number}
+      {eliminated ? (
+        <span className="flex h-full w-full flex-col items-center justify-center">
+          <span className="text-[6px] font-bold uppercase tracking-[0.12em] text-slate-600">{number}</span>
+          <span className="text-[11px] font-black tabular-nums leading-none text-slate-700 sm:text-sm">
+            {value}
           </span>
-          <span className="font-display text-[13px] font-bold leading-none tabular-nums text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+        </span>
+      ) : kept ? (
+        <span className="flex h-full w-full flex-col items-center justify-center">
+          <span className="text-[6px] font-bold uppercase tracking-[0.12em] text-amber-300/60">{number}</span>
+          <span className="text-sm font-black tabular-nums leading-none text-amber-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)] sm:text-lg">
             {value}
           </span>
         </span>
       ) : (
-        <span className="flex h-full w-full flex-col items-center justify-center">
-          <span className="font-display text-base font-bold leading-none text-[#6d4d1b]">
+        <span className="flex h-full w-full items-center justify-center">
+          <span className="text-base font-black leading-none text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.4)] sm:text-xl">
             {number}
           </span>
-          {lucky && (
-            <span className="mt-0.5 text-[6px] font-black uppercase tracking-[0.16em] text-[#8a5a12]">
-              yours
-            </span>
-          )}
+        </span>
+      )}
+
+      {lucky && (
+        <span className="absolute inset-x-0 bottom-[7%] flex justify-center">
+          <span className="whitespace-nowrap rounded-full bg-[#FFD400] px-1 py-[1px] text-[5px] font-black uppercase tracking-[0.06em] text-[#3A2A00] shadow-[0_2px_6px_rgba(0,0,0,0.45)] sm:text-[6px]">
+            Your folder
+          </span>
         </span>
       )}
     </button>
