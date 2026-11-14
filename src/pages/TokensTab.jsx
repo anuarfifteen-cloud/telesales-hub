@@ -14,9 +14,8 @@ import HorseBettingView from "@/components/horseBetting/HorseBettingView";
 import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
 import TheCloserGame from "@/components/closer/TheCloserGame";
 import DailyChipGiftModal, { chipGiftClaimedToday } from "@/components/casino21/DailyChipGiftModal";
-import TokensCatalog, { GAME_TITLES } from "@/components/tokens/TokensCatalog";
+import TokensCatalog from "@/components/tokens/TokensCatalog";
 import TokensNav from "@/components/tokens/TokensNav";
-import BackToCatalog from "@/components/tokens/BackToCatalog";
 import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true, horseBettingEnabled = false, oneVOneRequest = 0 }) {
@@ -111,10 +110,6 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           scratchAccess={scratchAccess}
           horseAccess={horseAccess}
         />
-      )}
-
-      {inArcade && innerTab !== "catalog" && (
-        <BackToCatalog title={GAME_TITLES[innerTab] || ""} onBack={() => setInnerTab("catalog")} />
       )}
 
       {/* Perfect 10 */}

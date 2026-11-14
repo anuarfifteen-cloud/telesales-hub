@@ -13,7 +13,12 @@ import {
 } from "lucide-react";
 import CatalogTile from "./CatalogTile";
 import CatalogSection from "./CatalogSection";
+import MiniChipIcon from "@/components/casino21/MiniChipIcon";
 import { CLOSER_BG } from "@/lib/closerTheme";
+
+// Gold token icon — the same artwork the wallet pill shows beside TOKENS.
+const TOKEN_IMG =
+  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
 
 /** Heading shown above an opened destination. */
 export const GAME_TITLES = {
@@ -124,7 +129,11 @@ export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, hor
       </CatalogSection>
 
       {/* Chip arcade */}
-      <CatalogSection title="Chip Arcade" right="Chips required 🪙">
+      <CatalogSection
+        title="Chip Arcade"
+        right="Chips required"
+        rightIcon={<MiniChipIcon size={10} />}
+      >
         <CatalogTile
           name="Dealbreaker"
           sub="3 seats a day"
@@ -157,7 +166,11 @@ export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, hor
       </CatalogSection>
 
       {/* Instant play */}
-      <CatalogSection title="Instant Play" right="Tokens only">
+      <CatalogSection
+        title="Instant Play"
+        right="Tokens only"
+        rightIcon={<img src={TOKEN_IMG} alt="" className="h-3 w-3 object-contain" />}
+      >
         <CatalogTile
           name="Coin Flip"
           sub="Double or nothing"

@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
  * past a few pixels swallows the click so a card is never opened by accident).
  * The ‹ › arrows advance the row by roughly one card.
  */
-export default function CatalogSection({ title, right, children }) {
+export default function CatalogSection({ title, right, rightIcon, children }) {
   const rowRef = useRef(null);
   const [edges, setEdges] = useState({ left: false, right: false });
   const drag = useRef({ down: false, startX: 0, startScroll: 0, moved: false });
@@ -90,7 +90,8 @@ export default function CatalogSection({ title, right, children }) {
         <h3 className="catalog-section-title min-w-0 whitespace-nowrap text-[14px] font-extrabold leading-none text-foreground">{title}</h3>
         <div className="flex shrink-0 items-center gap-1.5">
           {right ? (
-            <span className="catalog-badge whitespace-nowrap rounded-full border border-border bg-card/80 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-foreground/80">
+            <span className="catalog-badge flex items-center gap-1 whitespace-nowrap rounded-full border border-border bg-card/80 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-foreground/80">
+              {rightIcon}
               {right}
             </span>
           ) : null}
