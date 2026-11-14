@@ -1,42 +1,63 @@
 /**
- * The Closer — light sales-floor score, synthesized live with the Web Audio API
- * (the same approach as the Derby's raceAudio): no audio files to load and
- * nothing to host.
+ * The Closer — audio.
  *
- * The groove is a relaxed, upbeat lounge/game-show loop at 124 BPM so the desk
- * feels busy and cheerful rather than tense:
- *   · a soft wooden tick on every eighth note (the rhythmic pulse)
- *   · a bouncing walking bass on the quarters
- *   · swung major-seventh chord stabs on the off-beats
- *   · a marimba sparkle once a bar
+ * Background music is a real looping MP3 played through an HTML5 Audio element
+ * (no synthesis), while the short cues stay synthesized with the Web Audio API
+ * so they stay crisp and need no files.
  *
- * Browsers refuse audio before a user gesture, so `unlockCloserAudio()` is
- * called from the seat tap; the music itself only starts once a round is live.
+ * ── SWAP THE MUSIC ────────────────────────────────────────────────────────
+ * Change BG_MUSIC_URL below to any royalty-free .mp3 of your own; the loop and
+ * 0.35 volume are applied automatically.
  */
 
-const BPM = 124;
-const STEP = 60 / BPM / 4; // one 16th note
-const SWING = 0.055; // pushes the off-beats late for a shuffle
-const LOOKAHEAD = 0.25;
-const MASTER = 0.85;
+export const BG_MUSIC_URL =
+  "https://assets.mixkit.co/music/preview/mixkit-game-level-music-689.mp3";
 
-/** Cmaj7 · Am7 · Dm7 · G7 — the four-bar loop. */
-const BARS = [
-  { bass: [130.81, 196.0, 196.0, 164.81], chord: [329.63, 392.0, 493.88] },
-  { bass: [110.0, 164.81, 164.81, 146.83], chord: [261.63, 329.63, 392.0] },
-  { bass: [146.83, 220.0, 220.0, 196.0], chord: [293.66, 349.23, 440.0] },
-  { bass: [98.0, 146.83, 123.47, 146.83], chord: [293.66, 349.23, 493.88] },
-];
+const BG_MUSIC_VOLUME = 0.35;
+const MASTER = 0.85;
 
 let ac = null;
 let master = null;
-let timer = null;
-let nextAt = 0;
-let step = 0;
-let running = false;
 let muted = false;
 
-/** Lazily build (and resume) the shared graph. */
+/* ── background music (HTML5 Audio) ─────────────────────────────────────── */
+
+let bgMusic = null;
+
+function music() {
+  if (typeof window === "undefined") return null;
+  if (!bgMusic) {
+    bgMusic = new window.Audio(BG_MUSIC_URL);
+    bgMusic.loop = true;
+    bgMusic.preload = "auto";
+    bgMusic.volume = muted ? 0 : BG_MUSIC_VOLUME;
+  }
+  return bgMusic;
+}
+
+export function startCloserMusic() {
+  const el = music();
+  if (!el) return;
+  el.volume = muted ? 0 : BG_MUSIC_VOLUME;
+  if (!el.paused) return;
+  const attempt = el.play();
+  if (attempt && attempt.catch) attempt.catch(() => {});
+}
+
+export function stopCloserMusic() {
+  const el = bgMusic;
+  if (!el) return;
+  el.pause();
+  try {
+    el.currentTime = 0;
+  } catch {
+    // streams that have not buffered yet can refuse a seek — pausing is enough
+  }
+}
+
+/* ── cue graph ──────────────────────────────────────────────────────────── */
+
+/** Lazily build (and resume) the shared cue graph. */
 function graph() {
   if (typeof window === "undefined") return null;
   const AC = window.AudioContext || window.webkitAudioContext;
@@ -54,10 +75,13 @@ function graph() {
 /** Call from a click so the browser treats audio as user-initiated. */
 export function unlockCloserAudio() {
   graph();
+  music();
 }
 
 export function setCloserMuted(next) {
   muted = next;
+  const el = bgMusic;
+  if (el) el.volume = muted ? 0 : BG_MUSIC_VOLUME;
   if (!ac || !master) return;
   const now = ac.currentTime;
   master.gain.cancelScheduledValues(now);
@@ -65,62 +89,25 @@ export function setCloserMuted(next) {
   master.gain.linearRampToValueAtTime(muted ? 0 : MASTER, now + 0.25);
 }
 
-/* ── voices ─────────────────────────────────────────────────────────────── */
+/* ── voices (cues only) ─────────────────────────────────────────────────── */
 
-/** Wooden tick — the track's pulse. */
-function tick(t, peak) {
+/** A soft pitched thump — impact body for the cues. */
+function thump(t, from, to, dur, peak) {
   const osc = ac.createOscillator();
   const gain = ac.createGain();
-  const band = ac.createBiquadFilter();
-  osc.type = "square";
-  osc.frequency.setValueAtTime(2100, t);
-  osc.frequency.exponentialRampToValueAtTime(1150, t + 0.03);
-  band.type = "bandpass";
-  band.frequency.value = 1900;
-  band.Q.value = 3;
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(from, t);
+  osc.frequency.exponentialRampToValueAtTime(to, t + dur);
   gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(peak, t + 0.004);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-  osc.connect(band);
-  band.connect(gain);
-  gain.connect(master);
-  osc.start(t);
-  osc.stop(t + 0.06);
-}
-
-/** Bouncy upright bass. */
-function bassNote(freq, t) {
-  const osc = ac.createOscillator();
-  const gain = ac.createGain();
-  osc.type = "triangle";
-  osc.frequency.setValueAtTime(freq, t);
-  gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(0.1, t + 0.012);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
+  gain.gain.exponentialRampToValueAtTime(peak, t + 0.014);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   osc.connect(gain);
   gain.connect(master);
   osc.start(t);
-  osc.stop(t + 0.36);
+  osc.stop(t + dur + 0.03);
 }
 
-/** Short swung chord stab. */
-function chordStab(notes, t, peak) {
-  notes.forEach((freq, i) => {
-    const osc = ac.createOscillator();
-    const gain = ac.createGain();
-    osc.type = i === 0 ? "triangle" : "sine";
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(peak, t + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-    osc.connect(gain);
-    gain.connect(master);
-    osc.start(t);
-    osc.stop(t + 0.24);
-  });
-}
-
-/** Marimba sparkle for the bar's flourish. */
+/** Bright marimba-style note. */
 function pluck(freq, t, dur, peak) {
   [
     { freq, type: "sine", gain: peak },
@@ -140,22 +127,6 @@ function pluck(freq, t, dur, peak) {
   });
 }
 
-/** A soft pitched thump — heartbeat and impact body for the cues. */
-function thump(t, from, to, dur, peak) {
-  const osc = ac.createOscillator();
-  const gain = ac.createGain();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(from, t);
-  osc.frequency.exponentialRampToValueAtTime(to, t + dur);
-  gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(peak, t + 0.014);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  osc.connect(gain);
-  gain.connect(master);
-  osc.start(t);
-  osc.stop(t + dur + 0.03);
-}
-
 /** Slow-rising high note. */
 function swell(t, freq, dur = 1.4, peak = 0.035) {
   const osc = ac.createOscillator();
@@ -171,7 +142,7 @@ function swell(t, freq, dur = 1.4, peak = 0.035) {
   osc.stop(t + dur + 0.05);
 }
 
-/** Filtered noise burst — paper, air, and breath. */
+/** Filtered noise burst — paper and air. */
 function paper(t, dur, peak, bandFreq, q = 1.2) {
   const len = Math.max(1, Math.floor(ac.sampleRate * dur));
   const buffer = ac.createBuffer(1, len, ac.sampleRate);
@@ -194,49 +165,6 @@ function paper(t, dur, peak, bandFreq, q = 1.2) {
   gain.connect(master);
   src.start(t);
   src.stop(t + dur + 0.02);
-}
-
-/* ── the loop ───────────────────────────────────────────────────────────── */
-
-function schedule() {
-  if (!ac || !running) return;
-  while (nextAt < ac.currentTime + LOOKAHEAD) {
-    const bar = BARS[Math.floor(step / 16) % BARS.length];
-    const inBar = step % 16;
-    const swung = inBar % 4 === 2;
-    const t = swung ? nextAt + SWING : nextAt;
-
-    if (inBar % 4 === 0) {
-      bassNote(bar.bass[inBar / 4], t);
-      tick(t, inBar === 0 || inBar === 8 ? 0.055 : 0.04);
-      // One marimba flourish to close each bar.
-      if (inBar === 12) pluck(bar.chord[2] * 2, t + 0.03, 0.5, 0.036);
-    } else if (swung) {
-      chordStab(bar.chord, t, inBar === 10 ? 0.055 : 0.045);
-      tick(t, 0.022);
-    }
-
-    step += 1;
-    nextAt += STEP;
-  }
-}
-
-export function startCloserMusic() {
-  const ctx = graph();
-  if (!ctx || running) return;
-  running = true;
-  step = 0;
-  nextAt = ctx.currentTime + 0.08;
-  timer = setInterval(schedule, 60);
-  schedule();
-}
-
-export function stopCloserMusic() {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-  }
-  running = false;
 }
 
 /* ── cues ───────────────────────────────────────────────────────────────── */

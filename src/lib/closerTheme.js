@@ -11,18 +11,16 @@ export const CLOSER_BG =
  */
 export const CHIP_ICON_URL = "";
 
-/** The Manager's dedicated portrait. */
-const MANAGER_PORTRAIT_URL =
-  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/190780bd4_generated_aec441fb.png";
-
 /**
- * Tighter face crop inside the circular frame: the portrait is scaled up so the
- * frame holds his face from hairline to chin, centred across and down.
+ * The Manager's face cropped out of the same cartoon artwork as the room, so
+ * the modal matches the game's art style. CSS crop only (no separate asset):
+ * the office is scaled up and shifted so the cartoon Manager's face sits
+ * centred in the circular frame.
  */
 export const MANAGER_PORTRAIT = {
-  backgroundImage: `url(${MANAGER_PORTRAIT_URL})`,
-  backgroundSize: "175% auto",
-  backgroundPosition: "50% 40%",
+  backgroundImage: `url(${CLOSER_BG})`,
+  backgroundSize: "300% auto",
+  backgroundPosition: "50% 24%",
   backgroundRepeat: "no-repeat",
 };
 
