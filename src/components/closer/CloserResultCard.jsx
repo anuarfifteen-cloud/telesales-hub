@@ -24,7 +24,7 @@ export default function CloserResultCard({ result, luckyValue, canPlay = true, o
       </div>
       <p className="mt-1.5 text-[10px] leading-snug text-white/60">
         {fromOffer
-          ? `Bought out by the Manager. Your folder was holding ${luckyValue}.`
+          ? `Bought out by the VIP Client. Your folder was holding ${luckyValue}.`
           : "Paid straight into your chip balance."}
       </p>
       <button

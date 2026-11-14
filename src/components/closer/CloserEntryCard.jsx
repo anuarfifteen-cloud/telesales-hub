@@ -3,7 +3,7 @@ import { Lock } from "lucide-react";
 const RULES = [
   "Stake 100 chips, then pick the one folder you will keep.",
   "Open folders on the desk one by one — each is money you don't win.",
-  "With five folders left, the Manager makes a single buyout offer.",
+  "With five folders left, the VIP Client makes a single buyout offer.",
   "Take the money, or open on until only your folder is left.",
 ];
 

@@ -23,17 +23,17 @@ export default function ManagerOfferModal({ open, offer, foldersLeft, busy, onAc
               className="h-14 w-14 shrink-0 rounded-full ring-2 ring-[#FFD400]"
               style={{ ...MANAGER_PORTRAIT, boxShadow: "0 0 16px rgba(255,196,40,0.45)" }}
               role="img"
-              aria-label="The Manager"
+              aria-label="The VIP Client"
             />
             <div className="flex-1 pt-1">
               <span className="inline-block rounded-md bg-[#FF8A1E] px-1.5 py-[2px] text-[7px] font-black uppercase tracking-[0.18em] text-[#2B1600]">
-                Manager
+                VIP Client
               </span>
               <DialogTitle className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/50">
-                Final call
+                Incoming Client Offer
               </DialogTitle>
               <DialogDescription className="sr-only">
-                The Manager&apos;s one and only buyout offer
+                The VIP Client&apos;s one and only buyout offer
               </DialogDescription>
             </div>
           </div>

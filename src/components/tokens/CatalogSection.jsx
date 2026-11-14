@@ -120,8 +120,8 @@ export default function CatalogSection({ title, right, children }) {
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
         onClickCapture={handleClickCapture}
-        className="no-scrollbar -mx-4 flex min-w-0 cursor-grab touch-pan-x snap-x gap-3 overflow-x-auto px-4 pb-1 select-none"
-        style={{ flexWrap: "nowrap", WebkitOverflowScrolling: "touch", paddingRight: "24px" }}
+        className="no-scrollbar -mx-4 scroll-pl-4 flex min-w-0 cursor-grab touch-pan-x snap-x snap-mandatory gap-3 overflow-x-auto pb-1 select-none"
+        style={{ flexWrap: "nowrap", WebkitOverflowScrolling: "touch", scrollPaddingLeft: "16px" }}
       >
         {children}
       </div>

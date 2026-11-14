@@ -159,13 +159,13 @@ export default function TokensCatalog({ user, onOpen, ninjaEnabled, scratchAcces
         />
         <div className="relative flex min-h-[118px] flex-col items-end justify-center gap-1 px-4 text-right">
           <span className="text-[9px] font-black uppercase tracking-[0.18em]" style={{ color: "rgba(255,255,255,0.6)" }}>
-            Featured
+            New Release
           </span>
           <span className="text-[19px] font-black uppercase leading-none tracking-wide" style={{ color: "#f7c25a" }}>
             The Closer
           </span>
           <span className="text-[10px] font-semibold" style={{ color: "rgba(255,255,255,0.78)" }}>
-            Beat the Manager&apos;s Offer!
+            Close the Deal. Claim the Bonus!
           </span>
           <span
             className="mt-1.5 inline-flex items-center rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-widest"
