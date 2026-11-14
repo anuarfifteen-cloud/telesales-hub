@@ -9,7 +9,6 @@ import SuperTapGame from "@/components/supertap/SuperTapGame";
 import BlindVoucherShop from "@/components/tokens/BlindVoucherShop";
 import FlappyTokenGame from "@/components/games/FlappyTokenGame";
 import DiamondSmashGame from "@/components/games/DiamondSmashGame";
-import DiamondBalanceCard from "@/components/tokens/DiamondBalanceCard";
 import Blackjack21Game from "@/components/casino21/Blackjack21Game";
 import HorseBettingView from "@/components/horseBetting/HorseBettingView";
 import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
@@ -92,9 +91,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
           ninjaEnabled={ninjaEnabled}
           scratchAccess={scratchAccess}
           horseAccess={horseAccess}
-        >
-          <DiamondBalanceCard user={user} onUserUpdate={onUserUpdate} />
-        </TokensCatalog>
+        />
       ) : (
         <BackToCatalog title={GAME_TITLES[innerTab] || ""} onBack={() => setInnerTab("catalog")} />
       )}

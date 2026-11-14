@@ -8,7 +8,12 @@ export default function CatalogSection({ title, right, children }) {
       </div>
       <div
         className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1"
-        style={{ scrollbarWidth: "none" }}
+        style={{
+          flexWrap: "nowrap",
+          WebkitOverflowScrolling: "touch",
+          scrollbarWidth: "none",
+          paddingRight: "24px",
+        }}
       >
         {children}
       </div>

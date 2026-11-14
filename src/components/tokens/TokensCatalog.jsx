@@ -1,4 +1,16 @@
-import { Trophy, Crown, Ticket, Zap, Bird, Gem, Timer, Spade, Flag } from "lucide-react";
+import {
+  Trophy,
+  Crown,
+  Ticket,
+  Zap,
+  Bird,
+  Gem,
+  Timer,
+  Spade,
+  Briefcase,
+  Sword,
+  Coins,
+} from "lucide-react";
 import CatalogTile from "./CatalogTile";
 import CatalogSection from "./CatalogSection";
 import { CLOSER_BG } from "@/lib/closerTheme";
@@ -7,9 +19,6 @@ const TOKEN_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf239
 const DIAMOND_IMG =
   "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b52888c95_Gemini_Generated_Image_3fwfra3fwfra3fwf-removebg-preview.png";
 const CHIP_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/5d8530cab_Screenshot2026-10-05004629.png";
-const NINJA_IMG = "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/6682e09d9_generated_image.png";
-const SCRATCH_IMG =
-  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/42559215e_Gemini_Generated_Image_tkxkqttkxkqttkxk.jpg";
 
 /** Heading shown above an opened destination. */
 export const GAME_TITLES = {
@@ -66,14 +75,7 @@ function QuickPill({ icon: Icon, label, onClick, highlighted }) {
   );
 }
 
-export default function TokensCatalog({
-  user,
-  onOpen,
-  ninjaEnabled,
-  scratchAccess,
-  horseAccess,
-  children,
-}) {
+export default function TokensCatalog({ user, onOpen, ninjaEnabled, scratchAccess, horseAccess }) {
   const tokens = user?.earlyAccessTokens ?? 0;
   const diamonds = user?.diamonds ?? 0;
   const chips = Number(user?.casinoChips) || 0;
@@ -83,8 +85,8 @@ export default function TokensCatalog({
       key: "ninja",
       name: "Ninja Slice",
       sub: "Season leaderboard",
-      cost: "FREE PLAY",
-      image: NINJA_IMG,
+      cost: "Free Play",
+      icon: Sword,
       from: "#3b1d63",
       to: "#1b0f31",
     },
@@ -92,7 +94,7 @@ export default function TokensCatalog({
       key: "supertap",
       name: "Super Tap",
       sub: "Season leaderboard",
-      cost: "FREE PLAY",
+      cost: "Free Play",
       icon: Zap,
       from: "#15346b",
       to: "#0a1a38",
@@ -101,7 +103,7 @@ export default function TokensCatalog({
       key: "flappy",
       name: "Flappy Token",
       sub: "Season leaderboard",
-      cost: "FREE PLAY",
+      cost: "Free Play",
       icon: Bird,
       from: "#0d5a54",
       to: "#06302d",
@@ -110,7 +112,7 @@ export default function TokensCatalog({
       key: "diamondsmash",
       name: "Diamond Smash",
       sub: "Season leaderboard",
-      cost: "FREE PLAY",
+      cost: "Free Play",
       icon: Gem,
       from: "#5b1765",
       to: "#2c0a33",
@@ -190,8 +192,7 @@ export default function TokensCatalog({
           name="The Closer"
           sub="3 seats a day"
           cost="100 Chips"
-          image={CLOSER_BG}
-          artClass="!h-[86px] !w-[86px] !-bottom-3 !-right-4"
+          icon={Briefcase}
           from="#14453c"
           to="#071e1a"
           onClick={() => onOpen("closer")}
@@ -210,7 +211,7 @@ export default function TokensCatalog({
             name="Horse Bet"
             sub="Today's race"
             cost="10+ Chips"
-            icon={Flag}
+            icon={Trophy}
             from="#5a3a1c"
             to="#2a1a0b"
             onClick={() => onOpen("horseracing")}
@@ -224,7 +225,7 @@ export default function TokensCatalog({
           name="Coin Flip"
           sub="Double or nothing"
           cost="1+ Tokens"
-          image={TOKEN_IMG}
+          icon={Coins}
           from="#8a5a12"
           to="#3d2606"
           onClick={() => onOpen("coinflip")}
@@ -243,16 +244,13 @@ export default function TokensCatalog({
             name="Scratch Card"
             sub="Three symbols win"
             cost="5 Tokens"
-            image={SCRATCH_IMG}
-            artClass="!rounded-xl"
+            icon={Ticket}
             from="#7a4a10"
             to="#38200a"
             onClick={() => onOpen("scratchcard")}
           />
         ) : null}
       </CatalogSection>
-
-      {children}
     </div>
   );
 }
