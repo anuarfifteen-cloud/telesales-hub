@@ -55,7 +55,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
 
   // The suspense bed only runs while a round is live, and starts on the seat
   // tap — the gesture browsers require before any audio may play.
-  const { muted, toggleMuted, unlock, play } = useCloserAudio({
+  const { muted, toggleMuted, unlock, stop, play } = useCloserAudio({
     active: phase === "pick" || phase === "play",
   });
 
@@ -103,7 +103,9 @@ export default function TheCloserGame({ user, onUserUpdate }) {
 
   const handleSit = async () => {
     if (busy || !affordable || limitReached) return;
-    unlock(); // the tap is the gesture that lets the score start
+    // Starts the music in this very tap, before anything is awaited — the server
+    // round trip would otherwise land outside the browser's gesture window.
+    unlock();
     setBusy(true);
     setError("");
     try {
@@ -111,6 +113,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       const state = await takeSeat();
       setDaily({ ...state, loading: false });
       if (!state.ok) {
+        stop(); // no seat: silence the bed again
         setError(
           state.blocked === "limit"
             ? "You've used all 3 plays today. The desk resets at midnight Brunei time."
@@ -128,6 +131,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       setPhase("pick");
       await onUserUpdate?.();
     } catch {
+      stop();
       setError("The desk could not confirm your seat. Please try again.");
     } finally {
       setBusy(false);

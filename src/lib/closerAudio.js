@@ -13,8 +13,8 @@
 export const BG_MUSIC_URL =
   "https://assets.mixkit.co/music/preview/mixkit-game-level-music-689.mp3";
 
-const BG_MUSIC_VOLUME = 0.35;
-const MASTER = 0.85;
+const BG_MUSIC_VOLUME = 0.6;
+const MASTER = 0.8;
 
 let ac = null;
 let master = null;
@@ -35,13 +35,24 @@ function music() {
   return bgMusic;
 }
 
+/**
+ * Start (or resume) the bed. Always safe to call from a click handler: the play
+ * call is issued synchronously inside the gesture, so the browser allows it.
+ */
 export function startCloserMusic() {
   const el = music();
   if (!el) return;
   el.volume = muted ? 0 : BG_MUSIC_VOLUME;
   if (!el.paused) return;
   const attempt = el.play();
-  if (attempt && attempt.catch) attempt.catch(() => {});
+  if (attempt && typeof attempt.then === "function") {
+    attempt.catch((err) => {
+      // Not swallowed: the next tap retries, and the reason is visible in the console.
+      console.warn(
+        `[The Closer] Background music could not start (${err?.name || err}). It will retry on the next tap.`
+      );
+    });
+  }
 }
 
 export function stopCloserMusic() {
@@ -72,10 +83,13 @@ function graph() {
   return ac;
 }
 
-/** Call from a click so the browser treats audio as user-initiated. */
+/**
+ * Call synchronously from a click (the seat tap) so the browser treats audio as
+ * user-initiated: the cue graph resumes and the bed starts in that same gesture.
+ */
 export function unlockCloserAudio() {
   graph();
-  music();
+  startCloserMusic();
 }
 
 export function setCloserMuted(next) {

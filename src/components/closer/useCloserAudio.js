@@ -45,16 +45,21 @@ export default function useCloserAudio({ active }) {
 
   const toggleMuted = useCallback(() => setMuted((prev) => !prev), []);
 
-  /** Call from a real click (the seat tap) to allow audio to start. */
+  /** Call synchronously from a real click (the seat tap) to allow audio to start. */
   const unlock = useCallback(() => unlockCloserAudio(), []);
+
+  /** Pause and rewind the bed (used when a seat purchase is refused). */
+  const stop = useCallback(() => stopCloserMusic(), []);
 
   const play = useCallback(
     (key) => {
       if (muted) return;
+      // Every game tap is a gesture, so a blocked bed gets retried right here.
+      startCloserMusic();
       playCloserCue(CUES[key] || key);
     },
     [muted]
   );
 
-  return { muted, toggleMuted, unlock, play };
+  return { muted, toggleMuted, unlock, stop, play };
 }
