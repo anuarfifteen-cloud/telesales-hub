@@ -89,7 +89,11 @@ export default function CatalogSection({ title, right, children }) {
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-[15px] font-extrabold leading-none text-foreground">{title}</h3>
         <div className="flex items-center gap-2">
-          {right ? <span className="text-[9px] font-black uppercase tracking-widest">{right}</span> : null}
+          {right ? (
+            <span className="catalog-badge rounded-full border border-border bg-card/80 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-foreground/80">
+              {right}
+            </span>
+          ) : null}
           <div className="flex items-center gap-1.5">
             <button
               type="button"

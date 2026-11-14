@@ -1025,3 +1025,44 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ── Tokens tab: theme-aware sub-tabs, page wash and section badges ──
+   The Arcade / Milestones / VIP Pass pills are painted from the active theme's
+   own tokens, so every theme (Default, Gold, Pink, Lilac, Gamer, Batik) keeps
+   its native palette. Royal Batik is the one theme that needs explicit colours:
+   it gets the same gold-on-navy treatment as the active bottom-nav button, a
+   navy wash over the batik tile behind the whole Tokens tab, and navy glass
+   section badges with gold text. These rules sit outside every @layer so they
+   win over the layered theme overrides further up. */
+
+/* Royal Batik: navy wash behind the entire Tokens tab, over the batik tile */
+[data-theme="royal_batik"] .tokens-tab-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: rgba(15, 23, 66, 0.55);
+}
+
+/* Royal Batik: inactive pills — navy glass with a gold hairline */
+[data-theme="royal_batik"] .tokens-pill {
+  background: rgba(22, 34, 92, 0.85) !important;
+  border-color: rgba(251, 191, 36, 0.3) !important;
+  color: #f5e6b8 !important;
+}
+
+/* Royal Batik: active pill — royal gold gradient with deep navy text/icon */
+[data-theme="royal_batik"] .tokens-pill-active {
+  background: linear-gradient(135deg, #fbbf24 0%, #eab308 100%) !important;
+  border-color: #fcd34d !important;
+  color: #0f1742 !important;
+  box-shadow: 0 8px 18px -8px rgba(212, 175, 55, 0.75) !important;
+}
+
+/* Royal Batik: section subtitles — navy glass pill with gold text */
+[data-theme="royal_batik"] .catalog-badge {
+  background: rgba(22, 34, 92, 0.85) !important;
+  border-color: rgba(251, 191, 36, 0.35) !important;
+  color: #fcd34d !important;
+}

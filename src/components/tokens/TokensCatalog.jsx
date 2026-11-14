@@ -116,7 +116,7 @@ export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, hor
       {/* Monthly tournaments */}
       <CatalogSection
         title="Monthly Tournaments"
-        right={<span style={{ color: "#e0344b" }}>📅 Monthly deadline</span>}
+        right="📅 Monthly deadline"
       >
         {tournaments.map((t) => (
           <CatalogTile key={t.key} {...t} onClick={() => onOpen(t.key)} />
@@ -124,7 +124,7 @@ export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, hor
       </CatalogSection>
 
       {/* Chip arcade */}
-      <CatalogSection title="Chip Arcade" right={<span className="text-muted-foreground">Chips required 🪙</span>}>
+      <CatalogSection title="Chip Arcade" right="Chips required 🪙">
         <CatalogTile
           name="Dealbreaker"
           sub="3 seats a day"
@@ -157,7 +157,7 @@ export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, hor
       </CatalogSection>
 
       {/* Instant play */}
-      <CatalogSection title="Instant Play" right={<span className="text-muted-foreground">Tokens only</span>}>
+      <CatalogSection title="Instant Play" right="Tokens only">
         <CatalogTile
           name="Coin Flip"
           sub="Double or nothing"

@@ -7,9 +7,9 @@ const DIAMOND_IMG =
 
 /** The three persistent views behind the Tokens tab. */
 export const TOKEN_VIEWS = [
-  { key: "arcade", label: "Arcade", icon: Gamepad2, inactiveColor: "#3b2f52" },
-  { key: "milestones", label: "Milestones", icon: Trophy, inactiveColor: "#3b2f52" },
-  { key: "vip", label: "VIP Pass", icon: Crown, inactiveColor: "#c8942a" },
+  { key: "arcade", label: "Arcade", icon: Gamepad2 },
+  { key: "milestones", label: "Milestones", icon: Trophy },
+  { key: "vip", label: "VIP Pass", icon: Crown },
 ];
 
 function Balance({ img, Icon, value, label, color }) {
@@ -45,7 +45,7 @@ export default function TokensNav({ user, value, onChange }) {
       </div>
 
       <div className="mt-2 flex gap-2">
-        {TOKEN_VIEWS.map(({ key, label, icon: Icon, inactiveColor }) => {
+        {TOKEN_VIEWS.map(({ key, label, icon: Icon }) => {
           const active = value === key;
           return (
             <button
@@ -53,20 +53,11 @@ export default function TokensNav({ user, value, onChange }) {
               type="button"
               onClick={() => onChange(key)}
               aria-pressed={active}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-full px-2 py-2.5 text-[11px] font-extrabold transition-transform active:scale-[0.97]"
-              style={
+              className={`tokens-pill flex flex-1 items-center justify-center gap-1.5 rounded-full border px-2 py-2.5 text-[11px] font-extrabold transition-transform active:scale-[0.97] ${
                 active
-                  ? {
-                      background: "linear-gradient(135deg, #5bcbf9 0%, #3e6dfa 100%)",
-                      color: "#ffffff",
-                      boxShadow: "0 8px 18px -8px rgba(62, 109, 250, 0.75)",
-                    }
-                  : {
-                      background: "#ffffff",
-                      color: inactiveColor,
-                      boxShadow: "0 6px 16px -10px rgba(58, 30, 96, 0.5)",
-                    }
-              }
+                  ? "tokens-pill-active border-transparent bg-primary text-primary-foreground shadow-md"
+                  : "border-border bg-card/85 text-foreground shadow-sm"
+              }`}
             >
               <Icon size={13} strokeWidth={2.6} />
               {label}
