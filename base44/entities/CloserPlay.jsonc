@@ -1,0 +1,72 @@
+{
+  "name": "CloserPlay",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner of this seat purchase."
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Display name snapshot of the player."
+    },
+    "play_date": {
+      "type": "string",
+      "description": "Asia/Brunei calendar day (YYYY-MM-DD) the seat was taken. Every count and the daily limit are keyed on this."
+    },
+    "slot": {
+      "type": "number",
+      "description": "1-based play number for that Brunei day (1 to 3)."
+    },
+    "play_id": {
+      "type": "string",
+      "description": "Client idempotency key for the seat purchase, so a retried request can never charge twice."
+    },
+    "chips_before": {
+      "type": "number",
+      "description": "Chip balance immediately before the 100-chip seat fee was deducted."
+    },
+    "chips_after": {
+      "type": "number",
+      "description": "Chip balance immediately after the seat fee was deducted."
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO timestamp of the seat purchase."
+    }
+  },
+  "required": [
+    "user_id",
+    "play_date",
+    "slot"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

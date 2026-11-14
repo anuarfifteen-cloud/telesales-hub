@@ -5,13 +5,15 @@ import CloserFolder from "./CloserFolder";
 import CloserResultCard from "./CloserResultCard";
 import ManagerOfferModal from "./ManagerOfferModal";
 import {
+  DAILY_LIMIT,
   ENTRY_FEE,
   FOLDER_COUNT,
   FOLDERS_AT_OFFER,
-  chargeEntry,
   creditPrize,
+  loadCloserState,
   managerOffer,
   shufflePrizes,
+  takeSeat,
 } from "@/lib/theCloser";
 
 const DESK_BG =
@@ -42,11 +44,18 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [daily, setDaily] = useState({
+    remaining: DAILY_LIMIT,
+    playCount: 0,
+    loading: true,
+    date: "",
+  });
   const valuesRef = useRef([]);
 
   const chips = Number(user?.casinoChips) || 0;
   const affordable = chips >= ENTRY_FEE;
   const offerMade = offer !== null;
+  const limitReached = daily.remaining <= 0;
 
   const deskIndices =
     lucky === null
@@ -67,12 +76,37 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     setPhase("idle");
   };
 
+  // Today's persisted plays (server-dated in Brunei time) load with the tab.
+  useEffect(() => {
+    let alive = true;
+    loadCloserState()
+      .then((state) => {
+        if (alive) setDaily({ ...state, loading: false });
+      })
+      .catch(() => {
+        if (alive) setDaily((prev) => ({ ...prev, loading: false }));
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const handleSit = async () => {
-    if (busy || !affordable) return;
+    if (busy || !affordable || limitReached) return;
     setBusy(true);
     setError("");
     try {
-      await chargeEntry(user);
+      // The server checks the limit and takes the 100 chips before the game begins.
+      const state = await takeSeat();
+      setDaily({ ...state, loading: false });
+      if (!state.ok) {
+        setError(
+          state.blocked === "limit"
+            ? "You've used all 3 plays today. The desk resets at midnight Brunei time."
+            : `You need ${ENTRY_FEE} chips to take a seat.`
+        );
+        return;
+      }
       valuesRef.current = shufflePrizes();
       setLucky(null);
       setOpened([]);
@@ -82,8 +116,8 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       setResult(null);
       setPhase("pick");
       await onUserUpdate?.();
-    } catch (e) {
-      setError(e?.message || "The desk could not take your entry fee.");
+    } catch {
+      setError("The desk could not confirm your seat. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -178,6 +212,11 @@ export default function TheCloserGame({ user, onUserUpdate }) {
             <p className="text-[11px] font-semibold text-amber-200/60">
               Ten folders. One lucky pick. One buyout.
             </p>
+            <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-amber-200/80 ring-1 ring-amber-300/20">
+              {daily.loading
+                ? "Checking today's plays…"
+                : `${daily.remaining} of ${DAILY_LIMIT} plays left today`}
+            </p>
           </div>
           <span className="flex shrink-0 items-center gap-1 rounded-full border border-amber-300/30 bg-black/30 px-2 py-1 text-[11px] font-black tabular-nums text-amber-100">
             <MiniChipIcon size={12} />
@@ -215,11 +254,15 @@ export default function TheCloserGame({ user, onUserUpdate }) {
             <button
               type="button"
               onClick={handleSit}
-              disabled={busy || !affordable}
+              disabled={busy || !affordable || limitReached || daily.loading}
               className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-amber-200 via-amber-300 to-amber-500 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-[#0b1712] shadow-[0_6px_20px_rgba(212,175,55,0.35)] transition hover:brightness-105 disabled:opacity-45"
             >
               <Lock className="h-3.5 w-3.5" />
-              {busy ? "Dealing…" : `Take a seat · ${ENTRY_FEE} chips`}
+              {limitReached
+                ? "Daily limit reached"
+                : busy
+                  ? "Dealing…"
+                  : `Take a seat · ${ENTRY_FEE} chips`}
             </button>
 
             {!affordable && (
@@ -295,6 +338,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         <CloserResultCard
           result={result}
           luckyValue={Number(valuesRef.current[lucky]) || 0}
+          canPlay={!limitReached}
           onPlayAgain={resetTable}
         />
       )}

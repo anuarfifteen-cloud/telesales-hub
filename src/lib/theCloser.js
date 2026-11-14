@@ -34,24 +34,34 @@ export function managerOffer(remainingValues) {
   return Math.floor((total / values.length) * (1 - HOUSE_EDGE));
 }
 
-/** Charges the 100-chip entry fee and returns the new chip balance. */
-export async function chargeEntry(user) {
-  const fresh = await base44.auth.me();
-  const before = Number(fresh?.casinoChips) || 0;
-  if (before < ENTRY_FEE) {
-    throw new Error(`You need ${ENTRY_FEE} chips to take a seat.`);
-  }
-  const balanceAfter = before - ENTRY_FEE;
-  await base44.auth.updateMe({ casinoChips: balanceAfter });
-  logChipMovement({
-    user,
-    mode: "wallet",
-    action_type: "bet",
-    amount: -ENTRY_FEE,
-    balance_after: balanceAfter,
-    detail: `The Closer entry fee ${ENTRY_FEE}`,
-  });
-  return balanceAfter;
+/** Seats allowed per Brunei calendar day — enforced by the closerSeat function. */
+export const DAILY_LIMIT = 3;
+
+function normaliseState(data = {}) {
+  const remaining = Number(data.remaining);
+  return {
+    ok: data.ok !== false,
+    blocked: data.blocked || null,
+    date: data.date || "",
+    chips: Number(data.chips) || 0,
+    playCount: Number(data.playCount) || 0,
+    remaining: Number.isFinite(remaining) ? remaining : DAILY_LIMIT,
+    limit: Number(data.limit) || DAILY_LIMIT,
+  };
+}
+
+/** Today's persisted plays for the signed-in player, dated server-side in Brunei time. */
+export async function loadCloserState() {
+  const res = await base44.functions.invoke("closerSeat", { action: "state" });
+  return normaliseState(res?.data);
+}
+
+/** Deducts the seat fee and records one play; the server refuses a 4th play today. */
+export async function takeSeat() {
+  const playId =
+    globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const res = await base44.functions.invoke("closerSeat", { action: "seat", playId });
+  return normaliseState(res?.data);
 }
 
 /** Credits a finished game's chips — the buyout offer or the lucky folder. */

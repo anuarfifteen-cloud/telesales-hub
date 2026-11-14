@@ -1,7 +1,7 @@
 import MiniChipIcon from "@/components/casino21/MiniChipIcon";
 
 /** Final panel for a finished game — the buyout taken or the lucky folder opened. */
-export default function CloserResultCard({ result, luckyValue, onPlayAgain }) {
+export default function CloserResultCard({ result, luckyValue, canPlay = true, onPlayAgain }) {
   const fromOffer = result?.source === "offer";
 
   return (
@@ -28,7 +28,7 @@ export default function CloserResultCard({ result, luckyValue, onPlayAgain }) {
         onClick={onPlayAgain}
         className="mt-3.5 w-full rounded-full bg-amber-300 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-[#0b1712] shadow-[0_6px_18px_rgba(212,175,55,0.3)] transition hover:brightness-105"
       >
-        Play again · 100 chips
+        {canPlay ? "Play again · 100 chips" : "Back to the desk"}
       </button>
     </div>
   );
