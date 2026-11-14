@@ -83,7 +83,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
   }, [horseAccess, innerTab]);
 
   return (
-    <div className="flex flex-col gap-4 pb-4">
+    <div className="mx-auto flex w-full flex-col gap-4 pb-4">
       {innerTab === "catalog" ? (
         <TokensCatalog
           user={user}

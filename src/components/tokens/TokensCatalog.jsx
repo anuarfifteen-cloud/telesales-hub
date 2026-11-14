@@ -10,6 +10,7 @@ import {
   Briefcase,
   Sword,
   Coins,
+  Gift,
 } from "lucide-react";
 import CatalogTile from "./CatalogTile";
 import CatalogSection from "./CatalogSection";
@@ -136,7 +137,6 @@ export default function TokensCatalog({ user, onOpen, ninjaEnabled, scratchAcces
       <div className="flex gap-2">
         <QuickPill icon={Trophy} label="Milestones" onClick={() => onOpen("milestones")} highlighted />
         <QuickPill icon={Crown} label="VIP Pass" onClick={() => onOpen("vip")} />
-        <QuickPill icon={Ticket} label="Blind Voucher" onClick={() => onOpen("blindvoucher")} />
       </div>
 
       {/* The Closer feature banner */}
@@ -247,6 +247,15 @@ export default function TokensCatalog({ user, onOpen, ninjaEnabled, scratchAcces
           from="#2b2f7a"
           to="#12142f"
           onClick={() => onOpen("perfect10")}
+        />
+        <CatalogTile
+          name="Blind Voucher"
+          sub="Mystery reward"
+          cost="2 Tokens"
+          icon={Gift}
+          from="#4a2a6b"
+          to="#1d0f2e"
+          onClick={() => onOpen("blindvoucher")}
         />
         {scratchAccess ? (
           <CatalogTile

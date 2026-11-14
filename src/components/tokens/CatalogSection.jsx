@@ -86,7 +86,7 @@ export default function CatalogSection({ title, right, children }) {
 
   return (
     <section className="flex min-w-0 flex-col gap-2.5">
-      <div className="flex items-center justify-between gap-2 px-1">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-[15px] font-extrabold leading-none text-foreground">{title}</h3>
         <div className="flex items-center gap-2">
           {right ? <span className="text-[9px] font-black uppercase tracking-widest">{right}</span> : null}
