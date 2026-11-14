@@ -15,16 +15,30 @@ import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
 import TheCloserGame from "@/components/closer/TheCloserGame";
 import DailyChipGiftModal, { chipGiftClaimedToday } from "@/components/casino21/DailyChipGiftModal";
 import TokensCatalog, { GAME_TITLES } from "@/components/tokens/TokensCatalog";
+import TokensNav from "@/components/tokens/TokensNav";
 import BackToCatalog from "@/components/tokens/BackToCatalog";
 import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 
 export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true, horseBettingEnabled = false, oneVOneRequest = 0 }) {
-  // "catalog" is the game shelf; any other value opens that game or tool.
+  // Which of the three persistent views (Arcade / Milestones / VIP Pass) is open.
+  const [view, setView] = useState("arcade");
+  // "catalog" is the Arcade storefront; any other value opens that game or tool.
   const [innerTab, setInnerTab] = useState("catalog");
+
+  // Switching pills always lands on that view's own first screen, so returning
+  // to Arcade shows the storefront rather than the last game that was open.
+  const selectView = (next) => {
+    setView(next);
+    setInnerTab("catalog");
+  };
+
   // "View" on a new-challenge alert: land on the Blackjack 21 sub-tab, which
   // then opens its 1V1 board.
   useEffect(() => {
-    if (oneVOneRequest > 0) setInnerTab("blackjack21");
+    if (oneVOneRequest > 0) {
+      setView("arcade");
+      setInnerTab("blackjack21");
+    }
   }, [oneVOneRequest]);
   // Cross-tree "GO TO RANKED NOW": land on the Blackjack 21 sub-tab. Reacts
   // once per signal (checks on mount for a signal fired before this tab
@@ -34,6 +48,7 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
     const react = (s) => {
       if (s > last) {
         last = s;
+        setView("arcade");
         setInnerTab("blackjack21");
       }
     };
@@ -82,32 +97,24 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
     if (!horseAccess && innerTab === "horseracing") setInnerTab("catalog");
   }, [horseAccess, innerTab]);
 
+  const inArcade = view === "arcade";
+
   return (
-    <div className="mx-auto flex w-full flex-col gap-4 pb-4">
-      {innerTab === "catalog" ? (
+    <div className="mx-auto flex w-full flex-col gap-3 pb-4">
+      {/* Wallet bar + persistent 3-pill toggle (sticky under the app header) */}
+      <TokensNav user={user} value={view} onChange={selectView} />
+
+      {inArcade && innerTab === "catalog" && (
         <TokensCatalog
-          user={user}
           onOpen={setInnerTab}
           ninjaEnabled={ninjaEnabled}
           scratchAccess={scratchAccess}
           horseAccess={horseAccess}
         />
-      ) : (
-        <BackToCatalog title={GAME_TITLES[innerTab] || ""} onBack={() => setInnerTab("catalog")} />
       )}
 
-      {/* Milestones */}
-      {innerTab === "milestones" && (
-        <>
-          <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
-            <EarlyAccessToggle
-              user={user}
-              onUserUpdate={onUserUpdate}
-              totalBookingCount={totalBookingCount}
-              showMilestones={true}
-            />
-          </div>
-        </>
+      {inArcade && innerTab !== "catalog" && (
+        <BackToCatalog title={GAME_TITLES[innerTab] || ""} onBack={() => setInnerTab("catalog")} />
       )}
 
       {/* Perfect 10 */}
@@ -173,8 +180,20 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         <DiamondSmashGame user={user} onUserUpdate={onUserUpdate} />
       )}
 
-      {/* VIP Pass */}
-      {innerTab === "vip" && (
+      {/* Milestones view */}
+      {view === "milestones" && (
+        <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
+          <EarlyAccessToggle
+            user={user}
+            onUserUpdate={onUserUpdate}
+            totalBookingCount={totalBookingCount}
+            showMilestones={true}
+          />
+        </div>
+      )}
+
+      {/* VIP Pass view */}
+      {view === "vip" && (
         <>
           <div className="bg-white dark:bg-card rounded-2xl border border-border shadow-sm p-4">
             <EarlyAccessToggle
