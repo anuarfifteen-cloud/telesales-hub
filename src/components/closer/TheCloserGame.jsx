@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Info } from "lucide-react";
+import { Info, Volume2, VolumeX } from "lucide-react";
 import MiniChipIcon from "@/components/casino21/MiniChipIcon";
 import CloserFolder from "./CloserFolder";
 import CloserResultCard from "./CloserResultCard";
@@ -7,6 +7,7 @@ import CloserProgressBar from "./CloserProgressBar";
 import CloserPrizeBoard from "./CloserPrizeBoard";
 import CloserEntryCard from "./CloserEntryCard";
 import ManagerOfferModal from "./ManagerOfferModal";
+import useCloserAudio from "./useCloserAudio";
 import { CLOSER_BG } from "@/lib/closerTheme";
 import {
   DAILY_LIMIT,
@@ -51,6 +52,12 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     date: "",
   });
   const valuesRef = useRef([]);
+
+  // The music bed only runs while a round is live; the header toggle is the
+  // opt-in that satisfies the browser's autoplay rule.
+  const { muted, toggleMuted, play } = useCloserAudio({
+    active: phase === "pick" || phase === "play",
+  });
 
   const chips = Number(user?.casinoChips) || 0;
   const affordable = chips >= ENTRY_FEE;
@@ -130,6 +137,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     if (phase !== "pick") return;
     setLucky(index);
     setPhase("play");
+    play("sfxSelect");
   };
 
   const handleOpen = (index) => {
@@ -138,6 +146,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
 
     const nextOpened = [...opened, index];
     setOpened(nextOpened);
+    play("sfxEliminate");
 
     // The one and only Manager call: exactly five desk folders still in play.
     const deskLeft = deskIndices.filter((i) => !nextOpened.includes(i));
@@ -155,6 +164,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     setLuckyRevealed(true);
     setResult({ amount, source: "offer" });
     setPhase("done");
+    play("sfxWin");
     setBusy(true);
     try {
       await creditPrize({ user, amount, source: "buyout offer" });
@@ -165,6 +175,12 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       setBusy(false);
     }
   };
+
+  // The Manager's call rings the moment his modal opens.
+  useEffect(() => {
+    if (offerOpen) play("sfxRing");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offerOpen]);
 
   // No second offer: the last desk folder opens itself, then the lucky folder.
   useEffect(() => {
@@ -181,6 +197,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       setLuckyRevealed(true);
       setResult({ amount, source: "lucky" });
       setPhase("done");
+      play("sfxWin");
       creditPrize({ user, amount, source: "lucky folder" })
         .then(() => onUserUpdate?.())
         .catch(() =>
@@ -214,17 +231,29 @@ export default function TheCloserGame({ user, onUserUpdate }) {
           }}
         />
 
-        {/* top: title + progress, then plays and chips */}
-        <div className="absolute inset-x-0 top-0 z-30 flex flex-col gap-1.5 p-2.5">
+        {/* top: title + progress, then plays, chips and the sound toggle.
+            Kept at z-10 so the sticky app header above always wins. */}
+        <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-1.5 p-2.5">
           <CloserProgressBar progress={progress} />
           <div className="flex items-center justify-between gap-1.5">
             <span className="rounded-full bg-[#241242]/80 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-amber-100/90 ring-1 ring-amber-200/25 backdrop-blur-sm sm:text-[8px]">
               {daily.loading ? "Checking plays…" : `${daily.remaining} of ${DAILY_LIMIT} plays left`}
             </span>
-            <span className="flex items-center gap-1 rounded-full bg-[#241242]/80 px-2 py-0.5 text-[8px] font-black tabular-nums text-amber-100 ring-1 ring-amber-200/25 backdrop-blur-sm sm:text-[9px]">
-              <MiniChipIcon size={10} />
-              {chips}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="flex items-center gap-1 rounded-full bg-[#241242]/80 px-2 py-0.5 text-[8px] font-black tabular-nums text-amber-100 ring-1 ring-amber-200/25 backdrop-blur-sm sm:text-[9px]">
+                <MiniChipIcon size={10} />
+                {chips}
+              </span>
+              <button
+                type="button"
+                onClick={toggleMuted}
+                aria-label={muted ? "Unmute game sound" : "Mute game sound"}
+                title={muted ? "Unmute game sound" : "Mute game sound"}
+                className="flex h-5 w-5 items-center justify-center rounded-full bg-[#241242]/80 text-amber-100 ring-1 ring-amber-200/25 backdrop-blur-sm transition hover:bg-[#34205F]/90 sm:h-[22px] sm:w-[22px]"
+              >
+                {muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -232,7 +261,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         <CloserPrizeBoard side="right" values={RIGHT_BOARD} dimmed={openedValues} />
 
         {phase !== "idle" && (
-          <div className="absolute inset-x-[15%] bottom-[31.5%] z-20 flex justify-center">
+          <div className="absolute inset-x-[15%] bottom-[31.5%] z-10 flex justify-center">
             <p className="rounded-full bg-[#241242]/85 px-2.5 py-1 text-center text-[7px] font-black uppercase tracking-[0.12em] text-amber-100 ring-1 ring-amber-200/30 backdrop-blur-sm sm:text-[8px]">
               {phase === "pick"
                 ? "Pick the folder you will keep"
@@ -269,7 +298,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         </div>
 
         {phase === "idle" && (
-          <div className="absolute inset-x-0 bottom-[29%] top-0 z-30 flex items-center justify-center px-3">
+          <div className="absolute inset-x-0 bottom-[29%] top-0 z-20 flex items-center justify-center px-3">
             <CloserEntryCard
               chips={chips}
               remaining={daily.remaining}
@@ -285,7 +314,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         )}
 
         {error && phase !== "idle" && phase !== "done" && (
-          <div className="absolute inset-x-[12%] bottom-[27%] z-30">
+          <div className="absolute inset-x-[12%] bottom-[27%] z-20">
             <p className="rounded-lg bg-rose-600/85 px-2 py-1.5 text-center text-[8px] font-bold text-white backdrop-blur-sm">
               {error}
             </p>
@@ -293,7 +322,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         )}
 
         {phase === "done" && result && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0A0618]/65 p-5 backdrop-blur-[2px]">
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#0A0618]/65 p-5 backdrop-blur-[2px]">
             <div className="w-full max-w-[16rem]">
               <CloserResultCard
                 result={result}

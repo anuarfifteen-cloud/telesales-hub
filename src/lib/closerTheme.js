@@ -5,6 +5,13 @@ export const CLOSER_BG =
   "https://base44.app/api/apps/6a02849f1b6bb0b71bf23993/files/mp/public/6a02849f1b6bb0b71bf23993/e119566c7_closer-office-bg.jpg";
 
 /**
+ * Black-and-yellow chip shown beside every prize amount on the sideboards.
+ * Paste your own chip image URL here to replace the built-in drawing, e.g.
+ * CHIP_ICON_URL = "https://your-host/chip.png";
+ */
+export const CHIP_ICON_URL = "";
+
+/**
  * The Manager's face cropped straight out of the same artwork — the head sits
  * at roughly 48% across and 15% down once the photo is scaled up inside the
  * circular frame.
