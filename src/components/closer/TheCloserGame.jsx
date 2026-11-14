@@ -53,9 +53,9 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   });
   const valuesRef = useRef([]);
 
-  // The music bed only runs while a round is live; the header toggle is the
-  // opt-in that satisfies the browser's autoplay rule.
-  const { muted, toggleMuted, play } = useCloserAudio({
+  // The suspense bed only runs while a round is live, and starts on the seat
+  // tap — the gesture browsers require before any audio may play.
+  const { muted, toggleMuted, unlock, play } = useCloserAudio({
     active: phase === "pick" || phase === "play",
   });
 
@@ -103,6 +103,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
 
   const handleSit = async () => {
     if (busy || !affordable || limitReached) return;
+    unlock(); // the tap is the gesture that lets the score start
     setBusy(true);
     setError("");
     try {
