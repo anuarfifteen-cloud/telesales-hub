@@ -1111,3 +1111,29 @@
   border-color: rgba(251, 191, 36, 0.4) !important;
   color: #fcd34d !important;
 }
+
+/* ── Royal Batik: Roster legibility ──
+   The shift cards are repainted navy by the theme's blanket card rule, while
+   their task pills keep their light pastel fills. The global dark-text override
+   turns slate/muted text white, which left pills like "PULL TO PM" white-on-
+   light. Pin dark navy bold text on every light pill, lift the shift time
+   ranges to warm gold, and keep per-agent subtexts a readable light slate.
+   Other themes and roster data are untouched. */
+[data-theme="royal_batik"] .roster-badge {
+  color: #0f1742 !important;
+  font-weight: 700 !important;
+  text-shadow: none !important;
+}
+[data-theme="royal_batik"] .roster-shift-title {
+  color: #fcd34d !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85) !important;
+}
+[data-theme="royal_batik"] .roster-shift-time {
+  color: #fcd34d !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+}
+[data-theme="royal_batik"] .roster-agent-time {
+  color: #cbd5e1 !important;
+  text-shadow: none !important;
+}

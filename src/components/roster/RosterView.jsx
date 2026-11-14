@@ -41,9 +41,9 @@ const PM_DEFAULTS  = ["MB / BUNDLE PLAN", "REPORT / SIMPACK", "OUTBOUND / SIMPAC
 const OFF_DEFAULTS = ["", "", "", ""];
 
 const TASK_COLORS = [
-  { match: /Report/i,        bg: "bg-pink-500", text: "text-white" },
+  { match: /Report/i,        bg: "bg-pink-500", text: "text-white", dark: true },
   { match: /outbound/i,      bg: "bg-blue-100",    text: "text-blue-800"    },
-  { match: /simpack/i,       bg: "bg-red-600",     text: "text-white"       },
+  { match: /simpack/i,       bg: "bg-red-600",     text: "text-white", dark: true },
   { match: /inbound/i,       bg: "bg-green-100",   text: "text-green-800"   },
   { match: /chat/i,          bg: "bg-cyan-100",    text: "text-cyan-800"    },
   { match: /report/i,        bg: "bg-purple-100",  text: "text-purple-800"  },
@@ -59,6 +59,13 @@ function taskBadgeColor(task) {
   if (!task) return { bg: "bg-slate-100", text: "text-slate-500" };
   const match = TASK_COLORS.find(c => c.match.test(task));
   return match || { bg: "bg-slate-100", text: "text-slate-600" };
+}
+
+// Light pills always carry dark bold text. `roster-badge` is the hook the Royal
+// Batik theme uses to pin that dark navy text, since its global dark-text
+// override would otherwise paint these pills white-on-light and vanish.
+function badgeClass(badge) {
+  return `text-[10px] font-semibold px-1.5 py-0.5 rounded ${badge.bg} ${badge.text}${badge.dark ? "" : " roster-badge"}`;
 }
 
 const AM_SLOTS = 5;
@@ -105,7 +112,7 @@ function TemplateRow({ slotIndex, defaultTask, isAdmin, pendingEmp, onPendingCha
           </>
         ) : (
           <span onClick={() => isAdmin && setEditingTask(true)}
-            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badge.bg} ${badge.text} ${isAdmin ? "cursor-pointer hover:opacity-80" : ""}`}>
+            className={`${badgeClass(badge)} ${isAdmin ? "cursor-pointer hover:opacity-80" : ""}`}>
             {taskVal}
           </span>
         )}
@@ -189,12 +196,12 @@ function EntryRow({ entry, isAdmin, onDelete, onUpdate, dragHandleProps }) {
         <Avatar name={name} abbreviation={abbreviation} />
         <div className="min-w-0">
           <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-tight truncate">{name}</p>
-          {caption && <p className="text-[9px] text-slate-400 dark:text-slate-500 leading-none truncate mt-0.5">{caption}</p>}
+          {caption && <p className="roster-agent-time text-[9px] text-slate-400 dark:text-slate-500 leading-none truncate mt-0.5">{caption}</p>}
         </div>
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {task ? (
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badge.bg} ${badge.text}`}>{task}</span>
+          <span className={badgeClass(badge)}>{task}</span>
         ) : (
           <span className="text-[10px] italic text-slate-300">—</span>
         )}
@@ -286,8 +293,8 @@ function ShiftCard({ emoji, title, subtitle, entries, slotCount, defaultTasks, s
     <div className={`rounded-xl border px-3 pt-2 pb-2.5 ${color.bg} ${color.border}`}>
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className="text-sm">{emoji}</span>
-        <span className={`text-xs font-bold ${color.title}`}>{title}</span>
-        <span className={`text-[10px] ${color.sub}`}>· {subtitle}</span>
+        <span className={`roster-shift-title text-xs font-bold ${color.title}`}>{title}</span>
+        <span className={`roster-shift-time text-[10px] ${color.sub}`}>· {subtitle}</span>
       </div>
       <div className="space-y-1">
         <DraggableShiftList entries={entries} shiftKey={shiftType} isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} />
@@ -362,8 +369,8 @@ function OffDayCard({ entries, isAdmin, onDelete, onUpdate, selectedDate }) {
     <div className="rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 px-3 pt-2 pb-2.5">
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className="text-sm">🌴</span>
-        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Off Day</span>
-        <span className="text-[10px] text-slate-400 dark:text-slate-500">· Resting today</span>
+        <span className="roster-shift-title text-xs font-bold text-slate-600 dark:text-slate-300">Off Day</span>
+        <span className="roster-shift-time text-[10px] text-slate-400 dark:text-slate-500">· Resting today</span>
       </div>
       <div className="space-y-1">
         <DraggableShiftList entries={entries} shiftKey="Off" isAdmin={isAdmin} onDelete={onDelete} onUpdate={onUpdate} />
@@ -479,7 +486,7 @@ export default function RosterView({ isAdmin = false }) {
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="space-y-2 pb-20">
+      <div className="space-y-2 pb-28">
         <div className="flex items-center justify-between py-0.5">
           {dayOffset > -1 ? (
             <button onClick={() => setDayOffset(d => d - 1)} className="p-1 rounded-md text-slate-600 hover:bg-slate-100 transition-colors">
