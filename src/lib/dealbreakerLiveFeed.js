@@ -29,15 +29,17 @@ export function isVipAgent(user) {
  * Records a winning round. Fire-and-forget: a failed write must never affect
  * the payout that already landed in the player's wallet.
  */
-export async function recordDealbreakerWin({ user, payout, method }) {
+export async function recordDealbreakerWin({ user, payout, diamonds = 0, method }) {
   const chips = Number(payout) || 0;
-  if (chips <= 0) return null; // winnings only
+  const gems = Number(diamonds) || 0;
+  if (chips <= 0 && gems <= 0) return null; // winnings only
   try {
     return await base44.entities.DealbreakerLiveWin.create({
       user_id: user?.id,
       agent_name: user?.full_name || user?.email?.split("@")[0] || "Agent",
       is_vip: isVipAgent(user),
       payout_chips: chips,
+      payout_diamonds: gems,
       win_method:
         method === LIVE_WIN_METHOD.vipBuyout ? LIVE_WIN_METHOD.vipBuyout : LIVE_WIN_METHOD.finalFolder,
       created_at: new Date().toISOString(),

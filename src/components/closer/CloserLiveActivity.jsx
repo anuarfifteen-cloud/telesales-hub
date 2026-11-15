@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Crown } from "lucide-react";
+import { Crown, Gem } from "lucide-react";
 import {
   LIVE_WINS_LIMIT,
   LIVE_WINS_POLL_MS,
@@ -77,9 +77,16 @@ export default function CloserLiveActivity({ refreshKey = 0 }) {
                 </span>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
-                <span className="text-[11px] font-black tabular-nums text-emerald-600 dark:text-emerald-400">
-                  +{Number(win.payout_chips) || 0} Chips
-                </span>
+                {Number(win.payout_diamonds) > 0 ? (
+                  <span className="flex items-center gap-1 text-[11px] font-black tabular-nums text-sky-600 dark:text-sky-400">
+                    <Gem className="h-3 w-3 shrink-0" />
+                    +{Number(win.payout_diamonds)} Diamond
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-black tabular-nums text-emerald-600 dark:text-emerald-400">
+                    +{Number(win.payout_chips) || 0} Chips
+                  </span>
+                )}
                 <span className="text-[9px] font-medium tabular-nums text-muted-foreground">
                   {formatBruneiWinStamp(win.created_at)}
                 </span>

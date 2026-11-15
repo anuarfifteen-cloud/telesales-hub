@@ -7,6 +7,8 @@ import CloserProgressBar from "./CloserProgressBar";
 import CloserPrizeBoard from "./CloserPrizeBoard";
 import CloserEntryCard from "./CloserEntryCard";
 import CloserLiveActivity from "./CloserLiveActivity";
+import CloserDiamondBadge from "./CloserDiamondBadge";
+import CloserBonusPill from "./CloserBonusPill";
 import ManagerOfferModal from "./ManagerOfferModal";
 import useCloserAudio from "./useCloserAudio";
 import { CLOSER_BG } from "@/lib/closerTheme";
@@ -14,14 +16,20 @@ import {
   BONUS_COST,
   BONUS_PLAYS,
   DAILY_LIMIT,
+  DIAMOND_PRIZE,
+  DIAMOND_VALUE,
   ENTRY_FEE,
   FOLDER_COUNT,
   FOLDERS_AT_OFFER,
   PRIZES,
   buyBonusPlays,
+  creditDiamondPrize,
   creditPrize,
+  finishCloserRound,
+  loadCloserRound,
   loadCloserState,
   managerOffer,
+  saveCloserRound,
   shufflePrizes,
   takeSeat,
 } from "@/lib/theCloser";
@@ -47,6 +55,9 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   const [offerOpen, setOfferOpen] = useState(false);
   const [luckyRevealed, setLuckyRevealed] = useState(false);
   const [result, setResult] = useState(null);
+  // True only while playing the third play of today's +3 allowance — the sixth
+  // seat of the Brunei day, where folder 500 pays 1 Diamond instead of chips.
+  const [diamondRound, setDiamondRound] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [daily, setDaily] = useState({
@@ -98,15 +109,30 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     setLuckyRevealed(false);
     setResult(null);
     setError("");
+    setDiamondRound(false);
     setPhase("idle");
   };
 
-  // Today's persisted plays (server-dated in Brunei time) load with the tab.
+  // Today's persisted plays (server-dated in Brunei time) load with the tab,
+  // then any in-progress Diamond Round is restored so a refresh resumes the very
+  // same folders instead of losing a paid seat.
   useEffect(() => {
     let alive = true;
     loadCloserState()
       .then((state) => {
         if (alive) setDaily({ ...state, loading: false });
+        return loadCloserRound();
+      })
+      .then((saved) => {
+        const round = saved?.round;
+        if (!alive || !round || !Array.isArray(round.values) || !round.values.length) return;
+        valuesRef.current = round.values;
+        setLucky(Number.isInteger(round.lucky) ? round.lucky : null);
+        setOpened(Array.isArray(round.opened) ? round.opened : []);
+        setOffer(round.offer === null || round.offer === undefined ? null : Number(round.offer));
+        setOfferOpen(Boolean(round.offerOpen));
+        setDiamondRound(true);
+        setPhase(round.phase === "play" ? "play" : "pick");
       })
       .catch(() => {
         if (alive) setDaily((prev) => ({ ...prev, loading: false }));
@@ -115,6 +141,15 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       alive = false;
     };
   }, []);
+
+  // Diamond Round only: every pick, open and offer decision is saved on the
+  // round's own server row, so a refresh lands back on the same board.
+  useEffect(() => {
+    if (!diamondRound || (phase !== "pick" && phase !== "play")) return;
+    saveCloserRound({ values: valuesRef.current, lucky, opened, offer, phase, offerOpen }).catch(
+      () => {}
+    );
+  }, [diamondRound, phase, lucky, opened, offer, offerOpen]);
 
   const handleSit = async () => {
     if (busy || !affordable || limitReached) return;
@@ -136,6 +171,9 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         );
         return;
       }
+      // The +3 allowance's third play — the sixth seat of the day — is the
+      // Diamond Round. Folder 500 still weighs 500 for the offer maths.
+      setDiamondRound(Boolean(state.bonusPurchased && state.playCount >= state.limit));
       valuesRef.current = shufflePrizes();
       setLucky(null);
       setOpened([]);
@@ -211,6 +249,9 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     play("sfxWin");
     setBusy(true);
     try {
+      // A Diamond Round buyout is still paid in chips; closing the round first
+      // makes sure it can never be resumed or paid twice.
+      if (diamondRound) await finishCloserRound();
       await creditPrize({ user, amount, source: "buyout offer" });
       setFeedKey((k) => k + 1);
       await onUserUpdate?.();
@@ -239,11 +280,19 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     if (remainingDesk.length !== 0) return undefined;
     const timer = setTimeout(() => {
       const amount = Number(valuesRef.current[lucky]) || 0;
+      // Only folder 500 converts in a Diamond Round; every other folder still
+      // pays its normal chips.
+      const diamond = diamondRound && amount === DIAMOND_VALUE;
       setLuckyRevealed(true);
-      setResult({ amount, source: "lucky" });
+      setResult({ amount: diamond ? DIAMOND_PRIZE : amount, source: "lucky", diamond });
       setPhase("done");
       play("sfxWin");
-      creditPrize({ user, amount, source: "lucky folder" })
+      (diamondRound ? finishCloserRound() : Promise.resolve())
+        .then(() =>
+          diamond
+            ? creditDiamondPrize({ user, amount: DIAMOND_PRIZE, source: "lucky folder 500" })
+            : creditPrize({ user, amount, source: "lucky folder" })
+        )
         .then(() => {
           setFeedKey((k) => k + 1);
           onUserUpdate?.();
@@ -305,11 +354,27 @@ export default function TheCloserGame({ user, onUserUpdate }) {
           </div>
         </div>
 
-        <CloserPrizeBoard side="left" values={LEFT_BOARD} dimmed={openedValues} />
-        <CloserPrizeBoard side="right" values={RIGHT_BOARD} dimmed={openedValues} />
+        <CloserPrizeBoard
+          side="left"
+          values={LEFT_BOARD}
+          dimmed={openedValues}
+          diamondRound={diamondRound}
+        />
+        <CloserPrizeBoard
+          side="right"
+          values={RIGHT_BOARD}
+          dimmed={openedValues}
+          diamondRound={diamondRound}
+        />
+
+        {diamondRound && phase !== "idle" && <CloserDiamondBadge />}
 
         {phase !== "idle" && (
-          <div className="absolute inset-x-[15%] bottom-[31.5%] z-10 flex justify-center">
+          <div className="absolute inset-x-[15%] bottom-[31.5%] z-10 flex flex-col items-center gap-1">
+            {!diamondRound &&
+              (daily.bonusPlayNumber === 1 || daily.bonusPlayNumber === 2) && (
+                <CloserBonusPill play={daily.bonusPlayNumber} total={BONUS_PLAYS} />
+              )}
             <p className="rounded-full bg-[#241242]/85 px-2.5 py-1 text-center text-[7px] font-black uppercase tracking-[0.12em] text-amber-100 ring-1 ring-amber-200/30 backdrop-blur-sm sm:text-[8px]">
               {phase === "pick"
                 ? "Pick the folder you will keep"
@@ -330,6 +395,9 @@ export default function TheCloserGame({ user, onUserUpdate }) {
                 key={i}
                 number={i + 1}
                 value={isOpen ? Number(valuesRef.current[i]) || 0 : null}
+                diamond={
+                  isOpen && diamondRound && (Number(valuesRef.current[i]) || 0) === DIAMOND_VALUE
+                }
                 open={isOpen}
                 lucky={isLucky}
                 disabled={
@@ -361,6 +429,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
               bonusPurchased={daily.bonusPurchased}
               bonusPlays={daily.bonusPlays}
               bonusCost={daily.bonusCost}
+              bonusPlayNumber={daily.bonusPlayNumber}
               buyingBonus={buyingBonus}
               onBuyBonus={handleBuyBonus}
             />

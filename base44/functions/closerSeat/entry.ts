@@ -44,6 +44,10 @@ export default async function (req) {
     const limit = DAILY_LIMIT + (purchased ? BONUS_PLAYS : 0);
     const bonusLeftAfter = (taken) =>
       purchased ? Math.max(0, BONUS_PLAYS - Math.max(0, taken - DAILY_LIMIT)) : 0;
+    // How many of today's bonus seats have been taken (1-3); the third is the
+    // Diamond Round.
+    const bonusUsed = (taken) =>
+      purchased ? Math.max(0, Math.min(BONUS_PLAYS, taken - DAILY_LIMIT)) : 0;
 
     const state = (over = {}) => ({
       ok: true,
@@ -56,11 +60,44 @@ export default async function (req) {
       fee: SEAT_FEE,
       bonusPurchased: purchased,
       bonusPlaysLeft: bonusLeftAfter(seats),
+      bonusPlayNumber: bonusUsed(seats),
       bonusAvailable: !purchased,
       bonusPlays: BONUS_PLAYS,
       bonusCost: BONUS_COST,
       ...over,
     });
+
+    // Dealbreaker Diamond Round — the sixth seat of the Brunei day (the third
+    // play of the +3 allowance). Its progress lives on that seat's own row, so a
+    // refresh resumes the same round; the row is keyed to today's date, so it
+    // resets by itself at Brunei midnight.
+    if (body.action === 'round') {
+      const seatRow = rows.find(
+        (row) => row.bonus_purchase !== true && Number(row.slot) === DAILY_LIMIT + BONUS_PLAYS
+      );
+      if (body.op === 'load') {
+        const saved = seatRow?.round_state;
+        return Response.json({
+          ok: true,
+          round: saved && Object.keys(saved).length ? saved : null,
+          finished: Boolean(seatRow?.round_finished_at),
+        });
+      }
+      if (!seatRow) return Response.json({ ok: false, blocked: 'no_round' });
+      if (body.op === 'finish') {
+        await base44.asServiceRole.entities.CloserPlay.update(seatRow.id, {
+          round_finished_at: new Date().toISOString(),
+          round_state: {},
+        });
+        return Response.json({ ok: true });
+      }
+
+      await base44.asServiceRole.entities.CloserPlay.update(seatRow.id, {
+        diamond_round: true,
+        round_state: body.state && typeof body.state === 'object' ? body.state : {},
+      });
+      return Response.json({ ok: true });
+    }
 
     // Buy today's +3 plays with tokens — once per Brunei day, after the three
     // base seats are spent.
@@ -174,6 +211,7 @@ export default async function (req) {
         playCount: seats + 1,
         remaining: Math.max(0, limit - (seats + 1)),
         bonusPlaysLeft: bonusLeftAfter(seats + 1),
+        bonusPlayNumber: bonusUsed(seats + 1),
       })
     );
   } catch (error) {

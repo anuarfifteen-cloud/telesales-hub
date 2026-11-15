@@ -42,6 +42,15 @@ export const DAILY_LIMIT = 3;
 export const BONUS_PLAYS = 3;
 export const BONUS_COST = 5;
 
+/** The play number of the Brunei day that is the Diamond Round (3rd bonus play). */
+export const DIAMOND_SLOT = 6;
+
+/** The one folder value that pays a Diamond instead of chips in a Diamond Round. */
+export const DIAMOND_VALUE = 500;
+
+/** Diamonds paid by a Diamond Round win. */
+export const DIAMOND_PRIZE = 1;
+
 function normaliseState(data = {}) {
   const remaining = Number(data.remaining);
   return {
@@ -55,6 +64,7 @@ function normaliseState(data = {}) {
     limit: Number(data.limit) || DAILY_LIMIT,
     bonusPurchased: data.bonusPurchased === true,
     bonusPlaysLeft: Number(data.bonusPlaysLeft) || 0,
+    bonusPlayNumber: Number(data.bonusPlayNumber) || 0,
     bonusAvailable: data.bonusAvailable === true,
     bonusPlays: Number(data.bonusPlays) || BONUS_PLAYS,
     bonusCost: Number(data.bonusCost) || BONUS_COST,
@@ -112,4 +122,52 @@ export async function creditPrize({ user, amount, source }) {
       source === "buyout offer" ? LIVE_WIN_METHOD.vipBuyout : LIVE_WIN_METHOD.finalFolder,
   });
   return balanceAfter;
+}
+
+/**
+ * Credits a Diamond Round win: 1 Diamond into the diamond balance — never chips.
+ * The activity history row (TokenTransaction) and the shared Live Activity feed
+ * are written after the wallet write, so neither can affect the payout.
+ */
+export async function creditDiamondPrize({ user, amount = DIAMOND_PRIZE, source }) {
+  const gems = Number(amount) || 0;
+  if (gems <= 0) return null;
+  const fresh = await base44.auth.me();
+  const total = (Number(fresh?.diamonds) || 0) + gems;
+  await base44.auth.updateMe({ diamonds: total });
+  base44.entities.TokenTransaction.create({
+    user_id: fresh?.id || user?.id,
+    user_name: fresh?.full_name || fresh?.email || "",
+    amount: 0,
+    source: `Dealbreaker Diamond Round — 💎 ${gems} Diamond (${source})`,
+    timestamp: new Date().toISOString(),
+  }).catch(() => null);
+  await recordDealbreakerWin({
+    user: fresh || user,
+    payout: 0,
+    diamonds: gems,
+    method: LIVE_WIN_METHOD.finalFolder,
+  });
+  return total;
+}
+
+/**
+ * Dealbreaker Diamond Round progress, stored on the sixth seat's own CloserPlay
+ * row. It keeps the exact shuffled folders, the kept folder and the folders
+ * already opened, so a refresh resumes the same paid round instead of losing it.
+ */
+export async function saveCloserRound(state) {
+  const res = await base44.functions.invoke("closerSeat", { action: "round", op: "save", state });
+  return res?.data || {};
+}
+
+/** The saved Diamond Round for today, if one is in progress. */
+export async function loadCloserRound() {
+  const res = await base44.functions.invoke("closerSeat", { action: "round", op: "load" });
+  return { round: res?.data?.round || null, finished: res?.data?.finished === true };
+}
+
+/** Closes the round so it can never be resumed or paid twice. */
+export async function finishCloserRound() {
+  await base44.functions.invoke("closerSeat", { action: "round", op: "finish" }).catch(() => null);
 }

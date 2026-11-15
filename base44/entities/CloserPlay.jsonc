@@ -45,6 +45,19 @@
       "type": "number",
       "description": "Chip balance immediately after the 100-chip seat fee was deducted."
     },
+    "diamond_round": {
+      "type": "boolean",
+      "default": false,
+      "description": "true when this seat row belongs to the day's Diamond Round \u2014 the third play of the +3 allowance (the sixth play of the Brunei day). Written when that round's progress is first saved."
+    },
+    "round_state": {
+      "type": "object",
+      "description": "In-progress Diamond Round only: the shuffled folder values, the kept folder, the opened folders, the VIP Client's offer and the current phase. Lets a refresh resume the same paid round. Emptied once the round finishes or at Brunei midnight (the row is keyed to that day)."
+    },
+    "round_finished_at": {
+      "type": "string",
+      "description": "ISO timestamp the Diamond Round on this seat row finished, so the round can never be resumed or paid twice."
+    },
     "created_at": {
       "type": "string",
       "description": "ISO timestamp of the seat purchase."

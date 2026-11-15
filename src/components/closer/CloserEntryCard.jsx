@@ -25,6 +25,7 @@ export default function CloserEntryCard({
   bonusPurchased = false,
   bonusPlays = 3,
   bonusCost = 5,
+  bonusPlayNumber = 0,
   buyingBonus = false,
   onBuyBonus,
 }) {
@@ -87,7 +88,16 @@ export default function CloserEntryCard({
             }}
           >
             <img src={TOKEN_IMG} alt="" className="h-3.5 w-3.5 object-contain" />
-            {buyingBonus ? "Unlocking…" : `Unlock +${bonusPlays} Plays (${bonusCost} Tokens)`}
+            {buyingBonus ? (
+              "Unlocking…"
+            ) : (
+              <span className="flex flex-col items-center leading-tight">
+                <span className="text-[9px] normal-case tracking-normal">
+                  Unlock +{bonusPlays} Plays (3rd Bonus Play = 💎 Diamond Round!)
+                </span>
+                <span className="text-[8px] font-bold opacity-70">{bonusCost} Tokens</span>
+              </span>
+            )}
           </button>
           {!canBuyBonus && (
             <p className="mt-1.5 text-center text-[9px] font-bold uppercase tracking-wide text-amber-300">
@@ -95,6 +105,13 @@ export default function CloserEntryCard({
             </p>
           )}
         </>
+      )}
+
+      {bonusPurchased && !limitReached && !loading && (
+        <p className="mt-2 rounded-lg bg-sky-400/15 px-2 py-1 text-center text-[8px] font-black uppercase tracking-[0.06em] text-sky-200 ring-1 ring-sky-300/35">
+          Bonus Play {Math.min(bonusPlayNumber + 1, bonusPlays)}/{bonusPlays} • {bonusPlays}/
+          {bonusPlays} = 💎 Diamond Round
+        </p>
       )}
 
       <p className="mt-1.5 text-center text-[8px] font-bold uppercase tracking-[0.1em] text-amber-200/55">

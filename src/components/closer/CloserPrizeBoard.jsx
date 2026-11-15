@@ -1,5 +1,6 @@
 import MiniChipIcon from "@/components/casino21/MiniChipIcon";
 import { CHIP_ICON_URL } from "@/lib/closerTheme";
+import { DIAMOND_VALUE } from "@/lib/theCloser";
 
 /**
  * Small black-and-yellow chip shown beside every prize amount.
@@ -17,9 +18,11 @@ function PrizeChip() {
 
 /**
  * One prize ladder pinned to a side of the desk. Values still on the desk glow;
- * a value that has been opened on the desk dims to 30% straight away.
+ * a value that has been opened on the desk dims to 30% straight away. During a
+ * Diamond Round the 500 slot is labelled as its Diamond prize — the value stays
+ * numeric everywhere else, so the offer maths is untouched.
  */
-export default function CloserPrizeBoard({ side, values = [], dimmed = [] }) {
+export default function CloserPrizeBoard({ side, values = [], dimmed = [], diamondRound = false }) {
   return (
     <div
       className={`absolute top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-1 rounded-full px-1 py-2 sm:gap-1.5 sm:px-1.5 sm:py-2.5 ${
@@ -33,6 +36,7 @@ export default function CloserPrizeBoard({ side, values = [], dimmed = [] }) {
     >
       {values.map((value) => {
         const gone = dimmed.includes(value);
+        const diamond = diamondRound && value === DIAMOND_VALUE;
         return (
           <span
             key={value}
@@ -45,8 +49,16 @@ export default function CloserPrizeBoard({ side, values = [], dimmed = [] }) {
                 : { color: "#FFE6A8", textShadow: "0 0 8px rgba(255,199,60,0.9)" }
             }
           >
-            <PrizeChip />
-            {value}
+            {diamond ? (
+              <span className="whitespace-nowrap text-[6px] tracking-[0.02em] sm:text-[8px]">
+                💎 1 Diamond
+              </span>
+            ) : (
+              <>
+                <PrizeChip />
+                {value}
+              </>
+            )}
           </span>
         );
       })}

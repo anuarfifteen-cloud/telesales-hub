@@ -4,7 +4,7 @@ import { FOLDER_COLORS } from "@/lib/closerTheme";
  * One folder on the desk. Closed folders carry only their number — the prize
  * value is passed in exclusively once the folder has been opened.
  */
-export default function CloserFolder({ number, value, open, lucky, disabled, onOpen }) {
+export default function CloserFolder({ number, value, open, lucky, disabled, onOpen, diamond = false }) {
   const color = FOLDER_COLORS[(number - 1) % FOLDER_COLORS.length];
   const kept = Boolean(open && lucky);
   const eliminated = Boolean(open && !lucky);
@@ -51,15 +51,24 @@ export default function CloserFolder({ number, value, open, lucky, disabled, onO
         <span className="flex h-full w-full flex-col items-center justify-center">
           <span className="text-[6px] font-bold uppercase tracking-[0.12em] text-slate-600">{number}</span>
           <span className="text-[11px] font-black tabular-nums leading-none text-slate-700 sm:text-sm">
-            {value}
+            {diamond ? "💎 1" : value}
           </span>
         </span>
       ) : kept ? (
         <span className="flex h-full w-full flex-col items-center justify-center">
           <span className="text-[6px] font-bold uppercase tracking-[0.12em] text-amber-300/60">{number}</span>
-          <span className="text-sm font-black tabular-nums leading-none text-amber-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)] sm:text-lg">
-            {value}
-          </span>
+          {diamond ? (
+            <span className="flex flex-col items-center leading-none">
+              <span className="text-base leading-none">💎</span>
+              <span className="mt-0.5 text-[6px] font-black uppercase tracking-[0.02em] text-amber-300 sm:text-[7px]">
+                1 Diamond
+              </span>
+            </span>
+          ) : (
+            <span className="text-sm font-black tabular-nums leading-none text-amber-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)] sm:text-lg">
+              {value}
+            </span>
+          )}
         </span>
       ) : (
         <span className="flex h-full w-full items-center justify-center">

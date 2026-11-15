@@ -17,7 +17,12 @@
     },
     "payout_chips": {
       "type": "number",
-      "description": "Exact chips paid out for the round, in chips (never tokens). Only positive payouts are recorded."
+      "description": "Exact chips paid out for the round, in chips (never tokens). Only positive payouts are recorded. 0 on a Diamond Round win."
+    },
+    "payout_diamonds": {
+      "type": "number",
+      "default": 0,
+      "description": "Diamonds paid out by a Diamond Round win (1). 0 on every chip win; when set, the feed shows '+1 Diamond' with a blue diamond badge instead of a chip amount."
     },
     "win_method": {
       "type": "string",

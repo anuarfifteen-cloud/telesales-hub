@@ -3,6 +3,7 @@ import MiniChipIcon from "@/components/casino21/MiniChipIcon";
 /** Final panel for a finished game — the buyout taken or the lucky folder opened. */
 export default function CloserResultCard({ result, luckyValue, canPlay = true, onPlayAgain }) {
   const fromOffer = result?.source === "offer";
+  const diamond = result?.diamond === true;
 
   return (
     <div
@@ -17,15 +18,22 @@ export default function CloserResultCard({ result, luckyValue, canPlay = true, o
         {fromOffer ? "Deal" : "Your lucky folder"}
       </p>
       <div className="mt-1.5 flex items-center justify-center gap-1.5">
-        <MiniChipIcon size={20} />
+        {diamond ? <span className="text-xl leading-none">💎</span> : <MiniChipIcon size={20} />}
         <span className="text-3xl font-black tabular-nums text-amber-300 drop-shadow-[0_0_12px_rgba(255,196,40,0.6)]">
           {result?.amount ?? 0}
         </span>
+        {diamond && (
+          <span className="text-[10px] font-black uppercase tracking-[0.1em] text-amber-200">
+            Diamond
+          </span>
+        )}
       </div>
       <p className="mt-1.5 text-[10px] leading-snug text-white/60">
-        {fromOffer
-          ? `Bought out by the VIP Client. Your folder was holding ${luckyValue}.`
-          : "Paid straight into your chip balance."}
+        {diamond
+          ? "Diamond Round won — paid straight into your diamond balance."
+          : fromOffer
+            ? `Bought out by the VIP Client. Your folder was holding ${luckyValue}.`
+            : "Paid straight into your chip balance."}
       </p>
       <button
         type="button"
