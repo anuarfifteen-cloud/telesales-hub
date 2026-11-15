@@ -1,5 +1,6 @@
 import { base44 } from "@/api/base44Client";
 import { logChipMovement } from "@/lib/chipLog";
+import { LIVE_WIN_METHOD, recordDealbreakerWin } from "@/lib/dealbreakerLiveFeed";
 
 /** The Closer — casual client-side game rules and wallet settlement. */
 
@@ -101,6 +102,14 @@ export async function creditPrize({ user, amount, source }) {
     balance_after: balanceAfter,
     chips_won: payout,
     detail: `The Closer ${source} payout ${payout}`,
+  });
+  // Shared "last 5 wins" feed — written after the wallet write, never in place
+  // of it, so a feed failure cannot affect the payout above.
+  await recordDealbreakerWin({
+    user: fresh || user,
+    payout,
+    method:
+      source === "buyout offer" ? LIVE_WIN_METHOD.vipBuyout : LIVE_WIN_METHOD.finalFolder,
   });
   return balanceAfter;
 }

@@ -6,6 +6,7 @@ import CloserResultCard from "./CloserResultCard";
 import CloserProgressBar from "./CloserProgressBar";
 import CloserPrizeBoard from "./CloserPrizeBoard";
 import CloserEntryCard from "./CloserEntryCard";
+import CloserLiveActivity from "./CloserLiveActivity";
 import ManagerOfferModal from "./ManagerOfferModal";
 import useCloserAudio from "./useCloserAudio";
 import { CLOSER_BG } from "@/lib/closerTheme";
@@ -61,6 +62,9 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   });
   // True while the once-a-day +3 plays unlock is in flight.
   const [buyingBonus, setBuyingBonus] = useState(false);
+  // Bumped after the player's own payout lands, so the Live Activity feed
+  // refreshes immediately instead of waiting for its next poll.
+  const [feedKey, setFeedKey] = useState(0);
   const valuesRef = useRef([]);
 
   // The suspense bed only runs while a round is live, and starts on the seat
@@ -208,6 +212,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     setBusy(true);
     try {
       await creditPrize({ user, amount, source: "buyout offer" });
+      setFeedKey((k) => k + 1);
       await onUserUpdate?.();
     } catch {
       setError("The payout could not be confirmed. An admin will verify it — don't replay.");
@@ -239,7 +244,10 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       setPhase("done");
       play("sfxWin");
       creditPrize({ user, amount, source: "lucky folder" })
-        .then(() => onUserUpdate?.())
+        .then(() => {
+          setFeedKey((k) => k + 1);
+          onUserUpdate?.();
+        })
         .catch(() =>
           setError("The payout could not be confirmed. An admin will verify it — don't replay.")
         );
@@ -389,6 +397,9 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         onAccept={handleAccept}
         onReject={() => setOfferOpen(false)}
       />
+
+      {/* Shared feed of the five newest wins across all players */}
+      <CloserLiveActivity refreshKey={feedKey} />
 
       <p className="mt-2 flex items-start gap-1.5 rounded-xl border border-border bg-muted/40 px-2.5 py-2 text-[10px] leading-snug text-muted-foreground">
         <Info className="mt-0.5 h-3 w-3 shrink-0" />

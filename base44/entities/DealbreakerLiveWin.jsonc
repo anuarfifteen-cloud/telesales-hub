@@ -1,0 +1,62 @@
+{
+  "name": "DealbreakerLiveWin",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the player who won. The only field the create rule checks, so a player can only post their own win."
+    },
+    "agent_name": {
+      "type": "string",
+      "description": "Display name snapshot of the winning agent, so the public feed reads without a user lookup."
+    },
+    "is_vip": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the winner had an active VIP Pass at the moment of the win \u2014 shown as a small gold crown on the Live Activity feed."
+    },
+    "payout_chips": {
+      "type": "number",
+      "description": "Exact chips paid out for the round, in chips (never tokens). Only positive payouts are recorded."
+    },
+    "win_method": {
+      "type": "string",
+      "enum": [
+        "VIP Buyout",
+        "Final Folder"
+      ],
+      "enumColors": [
+        "purple",
+        "blue"
+      ],
+      "description": "How the chips were won: VIP Buyout = the player accepted the VIP Client's offer, Final Folder = the player played through and opened their chosen folder."
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO timestamp of the payout, written by the winning client. The feed sorts newest-first on this and renders it in Asia/Brunei time."
+    }
+  },
+  "required": [
+    "user_id",
+    "agent_name",
+    "payout_chips",
+    "win_method",
+    "created_at"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
