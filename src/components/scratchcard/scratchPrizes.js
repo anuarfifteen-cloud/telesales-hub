@@ -1,9 +1,9 @@
 // ── Premium Scratch Card rules ────────────────────────────────────────────────
 // Every ticket costs ENTRY_COST tokens: 5% of tickets are a house win (no match at
 // all) and the other 95% pay one of the prizes below, whose weights add up to 95
-// and are each that prize's chance of ALL tickets — 35% twenty-five chips, 22%
-// fifty chips, 14.3% five tokens, 10.3% a hundred chips, 9.6% ten tokens, 2% Royal
-// Batik, 1% Lilac Bloom and 0.8% a diamond. A theme the player already owns pays
+// and are each that prize's chance of ALL tickets — 36.5% twenty-five chips, 22.8%
+// fifty chips, 14.3% five tokens, 10.3% a hundred chips, 9.6% ten tokens, 0.8% Royal
+// Batik, 0.4% Lilac Bloom and 0.3% a diamond. A theme the player already owns pays
 // 1 diamond instead.
 
 export const ENTRY_COST = 5;
@@ -37,14 +37,14 @@ export const SYMBOLS = [
 // Prize table (weights sum to 95, so each weight is that prize's exact chance of
 // showing up on any given ticket — the missing 5% is the house win).
 export const SUCCESS_TABLE = [
-  { weight: 35, type: "chips", amount: 25, symbol: "chips25" },
-  { weight: 22, type: "chips", amount: 50, symbol: "chips50" },
+  { weight: 36.5, type: "chips", amount: 25, symbol: "chips25" },
+  { weight: 22.8, type: "chips", amount: 50, symbol: "chips50" },
   { weight: 14.3, type: "tokens", amount: 5, symbol: "tokens5" },
   { weight: 10.3, type: "chips", amount: 100, symbol: "chips100" },
   { weight: 9.6, type: "tokens", amount: 10, symbol: "tokens10" },
-  { weight: 2, type: "theme", themeId: "royal_batik", themeName: "Royal Batik", symbol: "royal" },
-  { weight: 1, type: "theme", themeId: "lilac_bloom", themeName: "Lilac Bloom", symbol: "lilac" },
-  { weight: 0.8, type: "diamond", amount: 1, symbol: "diamond" },
+  { weight: 0.8, type: "theme", themeId: "royal_batik", themeName: "Royal Batik", symbol: "royal" },
+  { weight: 0.4, type: "theme", themeId: "lilac_bloom", themeName: "Lilac Bloom", symbol: "lilac" },
+  { weight: 0.3, type: "diamond", amount: 1, symbol: "diamond" },
 ];
 
 /** Rolls one ticket: the 5% house win first, then a weighted prize. */
