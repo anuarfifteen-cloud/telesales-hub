@@ -54,11 +54,11 @@ export default function useCloserAudio({ active }) {
   const play = useCallback(
     (key) => {
       if (muted) return;
-      // Every game tap is a gesture, so a blocked bed gets retried right here.
-      startCloserMusic();
+      // Every round tap is a gesture, so a suspended graph gets resumed here.
+      if (active) startCloserMusic();
       playCloserCue(CUES[key] || key);
     },
-    [muted]
+    [active, muted]
   );
 
   return { muted, toggleMuted, unlock, stop, play };

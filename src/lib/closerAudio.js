@@ -1,74 +1,54 @@
 /**
  * The Closer — audio.
  *
- * Background music is a real looping MP3 played through an HTML5 Audio element
- * (no synthesis), while the short cues stay synthesized with the Web Audio API
- * so they stay crisp and need no files.
- *
- * ── SWAP THE MUSIC ────────────────────────────────────────────────────────
- * Change BG_MUSIC_URL below to any royalty-free .mp3 of your own; the loop and
- * 0.35 volume are applied automatically.
+ * Everything here is synthesised with the Web Audio API: the background bed is
+ * a slow, tense sixteenth-note sequencer (a minor-key pulse plus a sparse
+ * marimba motif) and the short cues sit on the same graph. No MP3, no network
+ * request, so the bed cannot fail because a file host is blocked.
  */
 
-export const BG_MUSIC_URL =
-  "https://assets.mixkit.co/music/preview/mixkit-game-level-music-689.mp3";
-
-const BG_MUSIC_VOLUME = 0.6;
 const MASTER = 0.8;
+const MUSIC_LEVEL = 0.9;
 
 let ac = null;
 let master = null;
+let musicBus = null;
 let muted = false;
 
-/* ── background music (HTML5 Audio) ─────────────────────────────────────── */
+/* ── the music loop ─────────────────────────────────────────────────────── */
 
-let bgMusic = null;
+const BPM = 84;
+const STEP = 60 / BPM / 2; // eighth notes
+const LOOP_STEPS = 16;
 
-function music() {
-  if (typeof window === "undefined") return null;
-  if (!bgMusic) {
-    bgMusic = new window.Audio(BG_MUSIC_URL);
-    bgMusic.loop = true;
-    bgMusic.preload = "auto";
-    bgMusic.volume = muted ? 0 : BG_MUSIC_VOLUME;
-  }
-  return bgMusic;
-}
+/** Heartbeat low end — D2 with a passing A2/C2 to keep it unsettled. */
+const BASS = [
+  { step: 0, freq: 73.42, dur: 0.95, peak: 0.085 },
+  { step: 4, freq: 73.42, dur: 0.55, peak: 0.06 },
+  { step: 6, freq: 110.0, dur: 0.5, peak: 0.045 },
+  { step: 8, freq: 73.42, dur: 0.95, peak: 0.085 },
+  { step: 12, freq: 73.42, dur: 0.55, peak: 0.06 },
+  { step: 14, freq: 98.0, dur: 0.5, peak: 0.045 },
+];
 
-/**
- * Start (or resume) the bed. Always safe to call from a click handler: the play
- * call is issued synchronously inside the gesture, so the browser allows it.
- */
-export function startCloserMusic() {
-  const el = music();
-  if (!el) return;
-  el.volume = muted ? 0 : BG_MUSIC_VOLUME;
-  if (!el.paused) return;
-  const attempt = el.play();
-  if (attempt && typeof attempt.then === "function") {
-    attempt.catch((err) => {
-      // Not swallowed: the next tap retries, and the reason is visible in the console.
-      console.warn(
-        `[The Closer] Background music could not start (${err?.name || err}). It will retry on the next tap.`
-      );
-    });
-  }
-}
+/** D harmonic minor motif — the raised C# is what makes it feel like a gamble. */
+const MOTIF = [
+  { step: 0, freq: 293.66, dur: 0.5, peak: 0.042 },
+  { step: 2, freq: 349.23, dur: 0.4, peak: 0.034 },
+  { step: 4, freq: 440.0, dur: 0.5, peak: 0.038 },
+  { step: 6, freq: 554.37, dur: 0.45, peak: 0.036 },
+  { step: 8, freq: 587.33, dur: 0.6, peak: 0.042 },
+  { step: 10, freq: 440.0, dur: 0.4, peak: 0.032 },
+  { step: 12, freq: 349.23, dur: 0.45, peak: 0.034 },
+  { step: 14, freq: 329.63, dur: 0.5, peak: 0.036 },
+];
 
-export function stopCloserMusic() {
-  const el = bgMusic;
-  if (!el) return;
-  el.pause();
-  try {
-    el.currentTime = 0;
-  } catch {
-    // streams that have not buffered yet can refuse a seek — pausing is enough
-  }
-}
+let musicTimer = null;
+let stepIndex = 0;
 
-/* ── cue graph ──────────────────────────────────────────────────────────── */
+/* ── graph ──────────────────────────────────────────────────────────────── */
 
-/** Lazily build (and resume) the shared cue graph. */
+/** Lazily build (and resume) the shared audio graph. */
 function graph() {
   if (typeof window === "undefined") return null;
   const AC = window.AudioContext || window.webkitAudioContext;
@@ -78,14 +58,67 @@ function graph() {
     master = ac.createGain();
     master.gain.value = muted ? 0 : MASTER;
     master.connect(ac.destination);
+    musicBus = ac.createGain();
+    musicBus.gain.value = MUSIC_LEVEL;
+    musicBus.connect(master);
   }
   if (ac.state === "suspended") ac.resume().catch(() => {});
   return ac;
 }
 
+/** One soft note routed to the music bus. */
+function musicNote(freq, type, t, dur, peak) {
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(peak, t + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(gain);
+  gain.connect(musicBus);
+  osc.start(t);
+  osc.stop(t + dur + 0.03);
+}
+
+/** Schedule a single step of the loop. */
+function musicStep() {
+  if (!ac || !musicBus) return;
+  const t = ac.currentTime + 0.03;
+  const i = stepIndex % LOOP_STEPS;
+  stepIndex += 1;
+
+  BASS.forEach((n) => {
+    if (n.step === i) musicNote(n.freq, "triangle", t, n.dur, n.peak);
+  });
+  MOTIF.forEach((n) => {
+    if (n.step === i) musicNote(n.freq, "sine", t, n.dur, n.peak);
+  });
+}
+
+/**
+ * Start (or resume) the bed. Always safe to call from a click handler: the
+ * graph is created and resumed synchronously inside the gesture.
+ */
+export function startCloserMusic() {
+  const ctx = graph();
+  if (!ctx || musicTimer) return;
+  stepIndex = 0;
+  musicStep();
+  musicTimer = setInterval(musicStep, STEP * 1000);
+}
+
+export function stopCloserMusic() {
+  if (musicTimer) {
+    clearInterval(musicTimer);
+    musicTimer = null;
+  }
+  stepIndex = 0;
+}
+
 /**
  * Call synchronously from a click (the seat tap) so the browser treats audio as
- * user-initiated: the cue graph resumes and the bed starts in that same gesture.
+ * user-initiated: the graph resumes and the bed starts in that same gesture.
  */
 export function unlockCloserAudio() {
   graph();
@@ -94,8 +127,6 @@ export function unlockCloserAudio() {
 
 export function setCloserMuted(next) {
   muted = next;
-  const el = bgMusic;
-  if (el) el.volume = muted ? 0 : BG_MUSIC_VOLUME;
   if (!ac || !master) return;
   const now = ac.currentTime;
   master.gain.cancelScheduledValues(now);
