@@ -2,9 +2,10 @@
  * The Closer — audio.
  *
  * Everything here is synthesised with the Web Audio API: the background bed is
- * a slow, tense sixteenth-note sequencer (a minor-key pulse plus a sparse
- * marimba motif) and the short cues sit on the same graph. No MP3, no network
- * request, so the bed cannot fail because a file host is blocked.
+ * the "Sneaky Office Heist" loop — bouncy pizzicato strings walking over
+ * tiptoe percussion with cheeky little woodblock winks — and the short cues
+ * sit on the same graph. No MP3, no network request, so the bed cannot fail
+ * because a file host is blocked.
  */
 
 const MASTER = 0.8;
@@ -17,31 +18,47 @@ let muted = false;
 
 /* ── the music loop ─────────────────────────────────────────────────────── */
 
-const BPM = 84;
+const BPM = 112;
 const STEP = 60 / BPM / 2; // eighth notes
 const LOOP_STEPS = 16;
 
-/** Heartbeat low end — D2 with a passing A2/C2 to keep it unsettled. */
+/** Walking pizzicato bass — the tiptoe across the office floor. */
 const BASS = [
-  { step: 0, freq: 73.42, dur: 0.95, peak: 0.085 },
-  { step: 4, freq: 73.42, dur: 0.55, peak: 0.06 },
-  { step: 6, freq: 110.0, dur: 0.5, peak: 0.045 },
-  { step: 8, freq: 73.42, dur: 0.95, peak: 0.085 },
-  { step: 12, freq: 73.42, dur: 0.55, peak: 0.06 },
-  { step: 14, freq: 98.0, dur: 0.5, peak: 0.045 },
+  { step: 0, freq: 146.83, dur: 0.22, peak: 0.075 }, // D3
+  { step: 3, freq: 146.83, dur: 0.16, peak: 0.05 },
+  { step: 4, freq: 174.61, dur: 0.22, peak: 0.065 }, // F3
+  { step: 6, freq: 196.0, dur: 0.2, peak: 0.06 }, // G3
+  { step: 8, freq: 220.0, dur: 0.22, peak: 0.07 }, // A3
+  { step: 11, freq: 196.0, dur: 0.16, peak: 0.05 },
+  { step: 12, freq: 174.61, dur: 0.22, peak: 0.06 },
+  { step: 14, freq: 164.81, dur: 0.18, peak: 0.055 }, // E3
+  { step: 15, freq: 155.56, dur: 0.14, peak: 0.05 }, // Eb3 — the cheeky lift
 ];
 
-/** D harmonic minor motif — the raised C# is what makes it feel like a gamble. */
-const MOTIF = [
-  { step: 0, freq: 293.66, dur: 0.5, peak: 0.042 },
-  { step: 2, freq: 349.23, dur: 0.4, peak: 0.034 },
-  { step: 4, freq: 440.0, dur: 0.5, peak: 0.038 },
-  { step: 6, freq: 554.37, dur: 0.45, peak: 0.036 },
-  { step: 8, freq: 587.33, dur: 0.6, peak: 0.042 },
-  { step: 10, freq: 440.0, dur: 0.4, peak: 0.032 },
-  { step: 12, freq: 349.23, dur: 0.45, peak: 0.034 },
-  { step: 14, freq: 329.63, dur: 0.5, peak: 0.036 },
+/** Bouncy staccato riff on top, with plenty of little rests to stay sneaky. */
+const RIFF = [
+  { step: 0, freq: 440.0, dur: 0.18, peak: 0.05 }, // A4
+  { step: 1, freq: 587.33, dur: 0.16, peak: 0.048 }, // D5
+  { step: 2, freq: 698.46, dur: 0.18, peak: 0.052 }, // F5
+  { step: 3, freq: 659.25, dur: 0.14, peak: 0.042 }, // E5
+  { step: 4, freq: 587.33, dur: 0.2, peak: 0.05 }, // D5
+  { step: 5, freq: 440.0, dur: 0.14, peak: 0.04 }, // A4
+  { step: 7, freq: 523.25, dur: 0.16, peak: 0.044 }, // C5
+  { step: 8, freq: 587.33, dur: 0.18, peak: 0.05 }, // D5
+  { step: 9, freq: 698.46, dur: 0.16, peak: 0.046 }, // F5
+  { step: 10, freq: 880.0, dur: 0.2, peak: 0.05 }, // A5
+  { step: 11, freq: 783.99, dur: 0.16, peak: 0.044 }, // G5
+  { step: 12, freq: 698.46, dur: 0.18, peak: 0.046 }, // F5
+  { step: 14, freq: 587.33, dur: 0.16, peak: 0.044 }, // D5
+  { step: 15, freq: 554.37, dur: 0.16, peak: 0.046 }, // C#5, landing back on D
 ];
+
+/** Tiptoe percussion: off-beat ticks, soft kicks, brush strokes, woodblock winks. */
+const TICKS = [1, 3, 5, 7, 9, 11, 13];
+const BRUSHES = [4, 12];
+const KICKS = [0, 8, 11];
+const WINK = 6;
+const WOODBLOCK = 15;
 
 let musicTimer = null;
 let stepIndex = 0;
@@ -66,19 +83,94 @@ function graph() {
   return ac;
 }
 
-/** One soft note routed to the music bus. */
-function musicNote(freq, type, t, dur, peak) {
+/** Bouncy pizzicato string pluck — fast attack, quick choked decay. */
+function pizz(freq, t, dur, peak) {
+  const body = ac.createOscillator();
+  body.type = "sawtooth";
+  body.frequency.setValueAtTime(freq, t);
+  const top = ac.createOscillator();
+  top.type = "triangle";
+  top.frequency.setValueAtTime(freq * 2, t);
+
+  const lp = ac.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.setValueAtTime(Math.min(6000, freq * 9), t);
+  lp.frequency.exponentialRampToValueAtTime(Math.max(400, freq * 2.2), t + dur);
+  lp.Q.value = 2.4;
+
+  const gain = ac.createGain();
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(peak, t + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+  body.connect(lp);
+  top.connect(lp);
+  lp.connect(gain);
+  gain.connect(musicBus);
+  body.start(t);
+  body.stop(t + dur + 0.02);
+  top.start(t);
+  top.stop(t + dur + 0.02);
+}
+
+/** Short filtered noise — tiptoe ticks and brush strokes. */
+function musicNoise(t, dur, peak, bandFreq, q = 1.4) {
+  const len = Math.max(1, Math.floor(ac.sampleRate * dur));
+  const buffer = ac.createBuffer(1, len, ac.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < len; i += 1) {
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+  }
+  const src = ac.createBufferSource();
+  src.buffer = buffer;
+  const band = ac.createBiquadFilter();
+  band.type = "bandpass";
+  band.frequency.setValueAtTime(bandFreq, t);
+  band.Q.value = q;
+  const gain = ac.createGain();
+  gain.gain.setValueAtTime(peak, t);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(band);
+  band.connect(gain);
+  gain.connect(musicBus);
+  src.start(t);
+  src.stop(t + dur + 0.02);
+}
+
+/** Soft low kick that keeps the groove walking. */
+function musicKick(t, peak) {
   const osc = ac.createOscillator();
   const gain = ac.createGain();
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, t);
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(140, t);
+  osc.frequency.exponentialRampToValueAtTime(52, t + 0.13);
   gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(peak, t + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  gain.gain.exponentialRampToValueAtTime(peak, t + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
   osc.connect(gain);
   gain.connect(musicBus);
   osc.start(t);
-  osc.stop(t + dur + 0.03);
+  osc.stop(t + 0.19);
+}
+
+/** Cheeky little woodblock wink. */
+function musicWoodblock(t, freq, peak) {
+  const osc = ac.createOscillator();
+  const bp = ac.createBiquadFilter();
+  const gain = ac.createGain();
+  osc.type = "square";
+  osc.frequency.setValueAtTime(freq, t);
+  bp.type = "bandpass";
+  bp.frequency.value = freq * 1.6;
+  bp.Q.value = 6;
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(peak, t + 0.004);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+  osc.connect(bp);
+  bp.connect(gain);
+  gain.connect(musicBus);
+  osc.start(t);
+  osc.stop(t + 0.11);
 }
 
 /** Schedule a single step of the loop. */
@@ -89,11 +181,19 @@ function musicStep() {
   stepIndex += 1;
 
   BASS.forEach((n) => {
-    if (n.step === i) musicNote(n.freq, "triangle", t, n.dur, n.peak);
+    if (n.step === i) pizz(n.freq, t, n.dur, n.peak);
   });
-  MOTIF.forEach((n) => {
-    if (n.step === i) musicNote(n.freq, "sine", t, n.dur, n.peak);
+  RIFF.forEach((n) => {
+    if (n.step === i) pizz(n.freq, t, n.dur, n.peak);
   });
+  if (KICKS.includes(i)) musicKick(t, i === 0 ? 0.085 : 0.055);
+  if (TICKS.includes(i)) musicNoise(t, 0.05, 0.026, 5200, 3);
+  if (BRUSHES.includes(i)) musicNoise(t, 0.12, 0.05, 1900, 1.1);
+  if (i === WINK) musicWoodblock(t, 1500, 0.03);
+  if (i === WOODBLOCK) {
+    musicWoodblock(t, 1180, 0.05);
+    musicWoodblock(t + 0.09, 1560, 0.038);
+  }
 }
 
 /**
