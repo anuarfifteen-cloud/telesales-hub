@@ -37,6 +37,10 @@ export function managerOffer(remainingValues) {
 /** Seats allowed per Brunei calendar day — enforced by the closerSeat function. */
 export const DAILY_LIMIT = 3;
 
+/** The once-a-day token pack that adds these plays to the day. */
+export const BONUS_PLAYS = 3;
+export const BONUS_COST = 5;
+
 function normaliseState(data = {}) {
   const remaining = Number(data.remaining);
   return {
@@ -44,9 +48,15 @@ function normaliseState(data = {}) {
     blocked: data.blocked || null,
     date: data.date || "",
     chips: Number(data.chips) || 0,
+    tokens: Number(data.tokens) || 0,
     playCount: Number(data.playCount) || 0,
     remaining: Number.isFinite(remaining) ? remaining : DAILY_LIMIT,
     limit: Number(data.limit) || DAILY_LIMIT,
+    bonusPurchased: data.bonusPurchased === true,
+    bonusPlaysLeft: Number(data.bonusPlaysLeft) || 0,
+    bonusAvailable: data.bonusAvailable === true,
+    bonusPlays: Number(data.bonusPlays) || BONUS_PLAYS,
+    bonusCost: Number(data.bonusCost) || BONUS_COST,
   };
 }
 
@@ -61,6 +71,17 @@ export async function takeSeat() {
   const playId =
     globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const res = await base44.functions.invoke("closerSeat", { action: "seat", playId });
+  return normaliseState(res?.data);
+}
+
+/**
+ * Buys today's +3 plays once for 5 tokens. The server checks the Brunei date,
+ * the token balance and eligibility, and refuses a second pack the same day.
+ */
+export async function buyBonusPlays() {
+  const requestId =
+    globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const res = await base44.functions.invoke("closerSeat", { action: "bonus", requestId });
   return normaliseState(res?.data);
 }
 

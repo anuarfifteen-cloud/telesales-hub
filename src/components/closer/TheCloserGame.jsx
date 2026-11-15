@@ -10,11 +10,14 @@ import ManagerOfferModal from "./ManagerOfferModal";
 import useCloserAudio from "./useCloserAudio";
 import { CLOSER_BG } from "@/lib/closerTheme";
 import {
+  BONUS_COST,
+  BONUS_PLAYS,
   DAILY_LIMIT,
   ENTRY_FEE,
   FOLDER_COUNT,
   FOLDERS_AT_OFFER,
   PRIZES,
+  buyBonusPlays,
   creditPrize,
   loadCloserState,
   managerOffer,
@@ -50,7 +53,14 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     playCount: 0,
     loading: true,
     date: "",
+    bonusPurchased: false,
+    bonusPlaysLeft: 0,
+    bonusAvailable: false,
+    bonusPlays: BONUS_PLAYS,
+    bonusCost: BONUS_COST,
   });
+  // True while the once-a-day +3 plays unlock is in flight.
+  const [buyingBonus, setBuyingBonus] = useState(false);
   const valuesRef = useRef([]);
 
   // The suspense bed only runs while a round is live, and starts on the seat
@@ -60,6 +70,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   });
 
   const chips = Number(user?.casinoChips) || 0;
+  const tokens = Number(user?.earlyAccessTokens) || 0;
   const affordable = chips >= ENTRY_FEE;
   const offerMade = offer !== null;
   const limitReached = daily.remaining <= 0;
@@ -116,7 +127,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         stop(); // no seat: silence the bed again
         setError(
           state.blocked === "limit"
-            ? "You've used all 3 plays today. The desk resets at midnight Brunei time."
+            ? "You've used all your plays today. The desk resets at midnight Brunei time."
             : `You need ${ENTRY_FEE} chips to take a seat.`
         );
         return;
@@ -135,6 +146,30 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       setError("The desk could not confirm your seat. Please try again.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  // One-time token purchase that reopens today's table with three more seats.
+  const handleBuyBonus = async () => {
+    if (buyingBonus) return;
+    setBuyingBonus(true);
+    setError("");
+    try {
+      const state = await buyBonusPlays();
+      setDaily({ ...state, loading: false });
+      if (!state.ok) {
+        setError(
+          state.blocked === "tokens"
+            ? `You need ${BONUS_COST} tokens to unlock more plays.`
+            : "That unlock is no longer available today."
+        );
+        return;
+      }
+      await onUserUpdate?.();
+    } catch {
+      setError("The unlock could not be confirmed. Please try again.");
+    } finally {
+      setBuyingBonus(false);
     }
   };
 
@@ -242,7 +277,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
           <CloserProgressBar progress={progress} />
           <div className="flex items-center justify-between gap-1.5">
             <span className="rounded-full bg-[#241242]/80 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-amber-100/90 ring-1 ring-amber-200/25 backdrop-blur-sm sm:text-[8px]">
-              {daily.loading ? "Checking plays…" : `${daily.remaining} of ${DAILY_LIMIT} plays left`}
+              {daily.loading ? "Checking plays…" : `${daily.remaining} plays left`}
             </span>
             <div className="flex items-center gap-1">
               <span className="flex items-center gap-1 rounded-full bg-[#241242]/80 px-2 py-0.5 text-[8px] font-black tabular-nums text-amber-100 ring-1 ring-amber-200/25 backdrop-blur-sm sm:text-[9px]">
@@ -314,6 +349,12 @@ export default function TheCloserGame({ user, onUserUpdate }) {
               error={error}
               entryFee={ENTRY_FEE}
               onSit={handleSit}
+              tokens={tokens}
+              bonusPurchased={daily.bonusPurchased}
+              bonusPlays={daily.bonusPlays}
+              bonusCost={daily.bonusCost}
+              buyingBonus={buyingBonus}
+              onBuyBonus={handleBuyBonus}
             />
           </div>
         )}

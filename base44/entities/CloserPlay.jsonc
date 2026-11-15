@@ -16,11 +16,26 @@
     },
     "slot": {
       "type": "number",
-      "description": "1-based play number for that Brunei day (1 to 3)."
+      "description": "1-based play number for that Brunei day (1 to 6 once the +3 pack is bought). A bonus-purchase row uses 0 because it is not a seat."
     },
     "play_id": {
       "type": "string",
-      "description": "Client idempotency key for the seat purchase, so a retried request can never charge twice."
+      "description": "Client idempotency key for the seat purchase or the bonus-pack purchase, so a retried request can never charge twice."
+    },
+    "bonus_purchase": {
+      "type": "boolean",
+      "default": false,
+      "description": "true = this row records the once-per-day +3 plays token purchase for that Brunei day rather than a seat. Rows with this flag are excluded from the day's play count."
+    },
+    "bonus_plays": {
+      "type": "number",
+      "default": 0,
+      "description": "Extra plays granted by this purchase (3). 0 on a seat row."
+    },
+    "tokens_spent": {
+      "type": "number",
+      "default": 0,
+      "description": "Tokens paid for the bonus pack (5). 0 on a seat row."
     },
     "chips_before": {
       "type": "number",
@@ -28,7 +43,7 @@
     },
     "chips_after": {
       "type": "number",
-      "description": "Chip balance immediately after the seat fee was deducted."
+      "description": "Chip balance immediately after the 100-chip seat fee was deducted."
     },
     "created_at": {
       "type": "string",

@@ -1,5 +1,8 @@
 import { Lock } from "lucide-react";
 
+const TOKEN_IMG =
+  "https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b280e3d1b_44c1b0077_tokens.png";
+
 const RULES = [
   "Stake 100 chips, then pick the one folder you will keep.",
   "Open folders on the desk one by one — each is money you don't win.",
@@ -18,7 +21,18 @@ export default function CloserEntryCard({
   error,
   entryFee,
   onSit,
+  tokens = 0,
+  bonusPurchased = false,
+  bonusPlays = 3,
+  bonusCost = 5,
+  buyingBonus = false,
+  onBuyBonus,
 }) {
+  // The pack is offered only once the day's base plays are spent and today's
+  // pack is still unbought; after it is used up the plain limit lock returns.
+  const showBonusOffer = limitReached && !bonusPurchased && !loading;
+  const canBuyBonus = tokens >= bonusCost;
+
   return (
     <div
       className="max-h-full w-full max-w-[15.5rem] overflow-y-auto rounded-2xl p-3.5 text-xs leading-snug"
@@ -59,6 +73,29 @@ export default function CloserEntryCard({
             ? "Dealing…"
             : `Take a seat · ${entryFee} chips`}
       </button>
+
+      {showBonusOffer && (
+        <>
+          <button
+            type="button"
+            onClick={onBuyBonus}
+            disabled={!canBuyBonus || buyingBonus}
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full py-2 text-[10px] font-black uppercase tracking-[0.12em] text-[#231000] transition hover:brightness-105 disabled:opacity-45"
+            style={{
+              background: "linear-gradient(180deg,#FFE07A 0%,#FFC107 55%,#F59E0B 100%)",
+              boxShadow: "0 6px 18px rgba(255,175,20,0.45), inset 0 1px 0 rgba(255,255,255,0.6)",
+            }}
+          >
+            <img src={TOKEN_IMG} alt="" className="h-3.5 w-3.5 object-contain" />
+            {buyingBonus ? "Unlocking…" : `Unlock +${bonusPlays} Plays (${bonusCost} Tokens)`}
+          </button>
+          {!canBuyBonus && (
+            <p className="mt-1.5 text-center text-[9px] font-bold uppercase tracking-wide text-amber-300">
+              Need {bonusCost} Tokens to Unlock +{bonusPlays} Plays
+            </p>
+          )}
+        </>
+      )}
 
       <p className="mt-1.5 text-center text-[8px] font-bold uppercase tracking-[0.1em] text-amber-200/55">
         {loading ? "Checking today's plays…" : `${remaining} plays left today`}
