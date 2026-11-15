@@ -11,7 +11,7 @@ export default function ManagerOfferModal({ open, offer, foldersLeft, busy, onAc
       }}
     >
       <DialogContent
-        className="max-w-[20rem] gap-0 rounded-3xl border-2 border-[#FFD400] bg-[#15102A] p-0 text-white"
+        className="closer-offer-modal max-w-[20rem] gap-0 rounded-3xl border-2 border-[#FFD400] bg-[#15102A] p-0 text-white"
         style={{
           boxShadow:
             "0 0 0 1px rgba(255,212,0,0.4), 0 0 34px rgba(255,196,40,0.42), 0 24px 60px rgba(0,0,0,0.75)",
@@ -38,7 +38,7 @@ export default function ManagerOfferModal({ open, offer, foldersLeft, busy, onAc
             </div>
           </div>
 
-          <div className="relative mt-3 rounded-2xl rounded-tl-sm bg-white px-3 py-2.5 shadow-[0_8px_20px_rgba(0,0,0,0.45)]">
+          <div className="closer-offer-bubble relative mt-3 rounded-2xl rounded-tl-sm bg-white px-3 py-2.5 shadow-[0_8px_20px_rgba(0,0,0,0.45)]">
             <p className="text-center text-[12px] font-semibold leading-snug text-[#241A3D]">
               I&apos;ll give you{" "}
               <span className="font-black text-[#6D28D9]">{offer} CHIPS</span> to walk away right now.

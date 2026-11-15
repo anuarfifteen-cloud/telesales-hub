@@ -590,12 +590,16 @@ useEffect(() => {
               <img src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b8e6d10d3_tokens.png" alt="Token" className="w-4 h-4" />
               <OdometerNumber value={user?.earlyAccessTokens ?? 0} className="text-xs font-bold text-amber-700 dark:text-amber-300" />
             </button>
-            {/* Diamond balance pill */}
+            {/* Diamond balance pill — same icon box and gap as the token pill so
+                both pills share one height and baseline. */}
             <button
               onClick={() => setActiveTab("tokens")}
-              className="flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-2.5 py-1 rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
-              <span className="text-xs">💎</span>
-              <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">{user?.diamonds ?? 0}</span>
+              className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-2.5 py-1 rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
+              <img
+                src="https://media.base44.com/images/public/6a02849f1b6bb0b71bf23993/b52888c95_Gemini_Generated_Image_3fwfra3fwfra3fwf-removebg-preview.png"
+                alt="Diamond"
+                className="h-4 w-4 object-contain" />
+              <span className="text-xs leading-none font-bold tabular-nums text-indigo-700 dark:text-indigo-300">{user?.diamonds ?? 0}</span>
             </button>
             <button
               onClick={handleOpenAnnouncements}
