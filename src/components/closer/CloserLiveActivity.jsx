@@ -3,7 +3,7 @@ import { Crown, Gem } from "lucide-react";
 import {
   LIVE_WINS_LIMIT,
   LIVE_WINS_POLL_MS,
-  formatBruneiWinStamp,
+  formatWinAge,
   loadRecentDealbreakerWins,
 } from "@/lib/dealbreakerLiveFeed";
 
@@ -18,6 +18,13 @@ import {
 export default function CloserLiveActivity({ refreshKey = 0 }) {
   const [wins, setWins] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Ticks so the "25 mins ago" labels age while the feed stays open.
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -87,8 +94,8 @@ export default function CloserLiveActivity({ refreshKey = 0 }) {
                     +{Number(win.payout_chips) || 0} Chips
                   </span>
                 )}
-                <span className="text-[9px] font-medium tabular-nums text-muted-foreground">
-                  {formatBruneiWinStamp(win.created_at)}
+                <span className="shrink-0 text-[9px] font-medium text-muted-foreground">
+                  {formatWinAge(win.created_at, now)}
                 </span>
               </div>
             </li>

@@ -59,32 +59,19 @@ export async function loadRecentDealbreakerWins(limit = LIVE_WINS_LIMIT) {
   return page?.items || [];
 }
 
-const BRUNEI_STAMP = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Asia/Brunei",
-  day: "numeric",
-  month: "short",
-  hour: "numeric",
-  minute: "2-digit",
-  hour12: true,
-});
-
-const BRUNEI_DAY = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Asia/Brunei",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
 /**
- * Brunei-time label for a win. Today → "8:28 PM"; an earlier Brunei date →
- * "15 Nov, 8:28 PM". Always read in Asia/Brunei, never the device timezone.
+ * Privacy-friendly age label for a win: "Just now", "25 mins ago", "1 hr ago",
+ * "2 days ago". Never shows a clock time, so the feed gives away no exact
+ * moment a player won.
  */
-export function formatBruneiWinStamp(iso) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  const parts = {};
-  for (const part of BRUNEI_STAMP.formatToParts(date)) parts[part.type] = part.value;
-  const clock = `${parts.hour}:${parts.minute} ${(parts.dayPeriod || "").toUpperCase()}`.trim();
-  const isToday = BRUNEI_DAY.format(date) === BRUNEI_DAY.format(new Date());
-  return isToday ? clock : `${parts.day} ${parts.month}, ${clock}`;
+export function formatWinAge(iso, nowMs = Date.now()) {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const mins = Math.floor(Math.max(0, nowMs - then) / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return mins === 1 ? "1 min ago" : `${mins} mins ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs === 1 ? "1 hr ago" : `${hrs} hrs ago`;
+  const days = Math.floor(hrs / 24);
+  return days === 1 ? "1 day ago" : `${days} days ago`;
 }
