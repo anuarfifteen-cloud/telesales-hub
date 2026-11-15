@@ -41,7 +41,8 @@ import DailySpinWheel from "@/components/booking/DailySpinWheel";
 import TokenVoucher from "@/components/booking/MysteryBoxModal";
 import ThemeShop from "@/components/profile/ThemeShop";
 import NewSeasonRewardsPopup from "@/components/casino21/milestone/NewSeasonRewardsPopup";
-import DailyMysteryCardModal from "@/components/casino21/milestone/DailyMysteryCardModal";
+import DealbreakerAnnouncementModal from "@/components/announcements/DealbreakerAnnouncementModal";
+import useDealbreakerAnnouncement from "@/hooks/useDealbreakerAnnouncement";
 import TapTaxNoticeModal from "@/components/tax/TapTaxNoticeModal";
 import { onRankedNavRequest } from "@/lib/rankedNav";
 import AvatarInitialsEditor from "@/components/profile/AvatarInitialsEditor";
@@ -83,6 +84,17 @@ export default function Home() {
     setOneVOneRequest((n) => n + 1);
     setActiveTab("tokens");
   };
+  // Bumped by the Dealbreaker announcement CTA: Tokens lands on the Arcade
+  // storefront and scrolls its Dealbreaker banner into view.
+  const [dealbreakerSpotlight, setDealbreakerSpotlight] = useState(0);
+  const dealbreakerAnnouncement = useDealbreakerAnnouncement({
+    user,
+    activeTab,
+    onTry: () => {
+      setDealbreakerSpotlight((n) => n + 1);
+      setActiveTab("tokens");
+    }
+  });
   const [innerTab, setInnerTab] = useState("book");
   const [profileTab, setProfileTab] = useState("profile");
   const [showPinModal, setShowPinModal] = useState(false);
@@ -1023,6 +1035,7 @@ useEffect(() => {
             scratchCardEnabled={scratchCardEnabled}
             horseBettingEnabled={horseBettingEnabled}
             oneVOneRequest={oneVOneRequest}
+            dealbreakerSpotlight={dealbreakerSpotlight}
           />
         )}
 
@@ -1253,7 +1266,10 @@ useEffect(() => {
 
       <NewSeasonRewardsPopup user={user} onUserUpdate={refreshUser} />
 
-      <DailyMysteryCardModal user={user} onUserUpdate={refreshUser} />
+      <DealbreakerAnnouncementModal
+        open={dealbreakerAnnouncement.open}
+        onClose={dealbreakerAnnouncement.dismiss}
+        onTry={dealbreakerAnnouncement.tryNow} />
 
       <TapTaxNoticeModal user={user} />
 

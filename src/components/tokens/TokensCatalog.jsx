@@ -82,8 +82,9 @@ export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, hor
       {/* The Closer feature banner */}
       <button
         type="button"
+        id="dealbreaker-card"
         onClick={() => onOpen("closer")}
-        className="dealbreaker-hero relative w-full overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 text-left transition-transform active:scale-[0.99]"
+        className="dealbreaker-hero relative scroll-mt-24 w-full overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 text-left transition-transform active:scale-[0.99]"
         style={{ boxShadow: "0 16px 32px -14px rgba(12, 47, 42, 0.8)" }}
       >
         <img

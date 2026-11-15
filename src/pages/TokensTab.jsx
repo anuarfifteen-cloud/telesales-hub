@@ -14,11 +14,12 @@ import HorseBettingView from "@/components/horseBetting/HorseBettingView";
 import ScratchCardGame from "@/components/scratchcard/ScratchCardGame";
 import TheCloserGame from "@/components/closer/TheCloserGame";
 import DailyChipGiftModal, { chipGiftClaimedToday } from "@/components/casino21/DailyChipGiftModal";
+import DailyMysteryCardModal from "@/components/casino21/milestone/DailyMysteryCardModal";
 import TokensCatalog from "@/components/tokens/TokensCatalog";
 import TokensNav from "@/components/tokens/TokensNav";
 import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 
-export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true, horseBettingEnabled = false, oneVOneRequest = 0 }) {
+export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true, horseBettingEnabled = false, oneVOneRequest = 0, dealbreakerSpotlight = 0 }) {
   // Which of the three persistent views (Arcade / Milestones / VIP Pass) is open.
   const [view, setView] = useState("arcade");
   // "catalog" is the Arcade storefront; any other value opens that game or tool.
@@ -55,11 +56,12 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
     return onRankedNavRequest(react);
   }, []);
 
-  // Daily 5-chip gift: offered once per Brunei day. Checked on every visit to
-  // the Tokens tab — dismissing the popup leaves the gift unclaimed, so it
-  // shows again the next time the tab is opened.
+  // Daily 5-chip gift: offered once per Brunei day. Checked when the player
+  // opens Dealbreaker — dismissing the popup leaves the gift unclaimed, so it
+  // shows again the next time the game is opened.
   const [showChipGift, setShowChipGift] = useState(false);
   useEffect(() => {
+    if (innerTab !== "closer") return undefined;
     let active = true;
     base44.auth
       .me()
@@ -70,7 +72,21 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
     return () => {
       active = false;
     };
-  }, []);
+  }, [innerTab]);
+
+  // "Try Dealbreaker Now" in the one-time announcement: land on the Arcade
+  // storefront and bring its Dealbreaker banner into view.
+  useEffect(() => {
+    if (!dealbreakerSpotlight) return undefined;
+    setView("arcade");
+    setInnerTab("catalog");
+    const timer = setTimeout(() => {
+      document
+        .getElementById("dealbreaker-card")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 160);
+    return () => clearTimeout(timer);
+  }, [dealbreakerSpotlight]);
 
   // ninjaEnabled is preloaded by Home (via AppSettings subscription) so the tab
   // is already resolved by the time the user switches here — no 1s pop-in.
@@ -126,11 +142,17 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
 
       {/* Blackjack 21 */}
       {innerTab === "blackjack21" && (
-        <Blackjack21Game
-          user={user}
-          onUserUpdate={onUserUpdate}
-          oneVOneRequest={oneVOneRequest}
-        />
+        <>
+          <Blackjack21Game
+            user={user}
+            onUserUpdate={onUserUpdate}
+            oneVOneRequest={oneVOneRequest}
+          />
+          {/* Daily Mystery Card: only prompted once the player is inside a
+              Blackjack view (any mode). It keeps its own once-per-Brunei-day
+              eligibility check and reward logic. */}
+          <DailyMysteryCardModal user={user} onUserUpdate={onUserUpdate} />
+        </>
       )}
 
       {/* Daily Horse Betting */}
@@ -202,10 +224,10 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
         </>
       )}
 
-      {/* Daily 5 free chips */}
+      {/* Daily 5 free chips — only while Dealbreaker is open */}
       <DailyChipGiftModal
         user={user}
-        open={showChipGift}
+        open={showChipGift && innerTab === "closer"}
         onClose={() => setShowChipGift(false)}
         onClaimed={onUserUpdate}
       />
