@@ -18,6 +18,27 @@ export const THEME_MODE_LOCK = {
   royal_batik: "dark",
 };
 
+/**
+ * Cosmetic theme cache. Written here and read synchronously at boot (see the
+ * inline script in index.html) so a returning player's theme is painted on the
+ * very first frame instead of after the profile request resolves.
+ */
+export const THEME_CACHE_KEY = "telesales_active_theme";
+
+export function getCachedTheme() {
+  try {
+    return localStorage.getItem(THEME_CACHE_KEY) || "default";
+  } catch {
+    return "default";
+  }
+}
+
+function cacheTheme(themeId) {
+  try {
+    localStorage.setItem(THEME_CACHE_KEY, themeId || "default");
+  } catch {}
+}
+
 export function getStoredTheme() {
   try {
     return localStorage.getItem("theme") === "dark";
@@ -46,4 +67,5 @@ export function applyActiveTheme(themeId, darkPref) {
     : getStoredTheme();
   applyTheme(isDark);
   document.documentElement.setAttribute("data-theme", themeId || "default");
+  cacheTheme(themeId);
 }

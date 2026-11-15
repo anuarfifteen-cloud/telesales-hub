@@ -83,12 +83,13 @@ export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, hor
       <button
         type="button"
         onClick={() => onOpen("closer")}
-        className="dealbreaker-hero relative w-full overflow-hidden rounded-3xl text-left transition-transform active:scale-[0.99]"
+        className="dealbreaker-hero relative w-full overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 text-left transition-transform active:scale-[0.99]"
         style={{ boxShadow: "0 16px 32px -14px rgba(12, 47, 42, 0.8)" }}
       >
         <img
           src={CLOSER_BG}
           alt=""
+          loading="eager"
           className="absolute inset-0 h-full w-full object-cover"
           style={{ objectPosition: "12% 32%" }}
         />

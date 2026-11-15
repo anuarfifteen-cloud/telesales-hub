@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -5,6 +6,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import { preloadArcadeArt } from '@/lib/preloadAssets';
 import Home from "./pages/Home";
 
 const AuthenticatedApp = () => {
@@ -42,6 +44,11 @@ const AuthenticatedApp = () => {
 
 
 function App() {
+  // Warm the Tokens tab's banner artwork as soon as the shell mounts, so the
+  // Dealbreaker card is already cached when the player opens that tab.
+  useEffect(() => {
+    preloadArcadeArt();
+  }, []);
 
   return (
     <AuthProvider>

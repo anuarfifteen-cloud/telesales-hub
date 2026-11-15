@@ -6,6 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="manifest" href="/manifest.json" />
     <title>Base44 APP</title>
+    <script>
+      // Paint the cached theme before the first frame so returning players never
+      // see an unthemed flash while the bundle loads and the profile resolves.
+      (function () {
+        try {
+          var theme = localStorage.getItem("telesales_active_theme") || "default";
+          var lock = {
+            gold: "dark",
+            gamer: "light",
+            pink: "light",
+            lilac_bloom: "light",
+            royal_batik: "dark",
+          }[theme];
+          var isDark = lock ? lock === "dark" : localStorage.getItem("theme") === "dark";
+          document.documentElement.setAttribute("data-theme", theme);
+          document.documentElement.classList.toggle("dark", isDark);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

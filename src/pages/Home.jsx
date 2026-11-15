@@ -14,7 +14,7 @@ import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
 import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins, Megaphone } from "lucide-react";
 import TokensTab from "./TokensTab";
-import { getStoredTheme, applyTheme, applyActiveTheme, THEME_MODE_LOCK } from "@/lib/theme";
+import { getStoredTheme, getCachedTheme, applyTheme, applyActiveTheme, THEME_MODE_LOCK } from "@/lib/theme";
 import { syncPublicProfile } from "@/lib/publicProfile";
 import AdminPinModal from "@/components/admin/AdminPinModal";
 import AdminBookingTotals from "@/components/admin/AdminBookingTotals";
@@ -199,7 +199,9 @@ useEffect(() => {
   }, []);
 
   useEffect(() => {
-    applyActiveTheme(user?.activeTheme || "default", isDarkMode);
+    // Until the profile arrives, keep the theme the reload painted (cached); once
+    // it loads, the database value takes over and refreshes that cache.
+    applyActiveTheme(user?.activeTheme || getCachedTheme(), isDarkMode);
   }, [user?.activeTheme, isDarkMode]);
 
   const handleToggleDarkMode = (val) => {
