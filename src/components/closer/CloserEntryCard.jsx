@@ -88,17 +88,11 @@ export default function CloserEntryCard({
             }}
           >
             <img src={TOKEN_IMG} alt="" className="h-3.5 w-3.5 object-contain" />
-            {buyingBonus ? (
-              "Unlocking…"
-            ) : (
-              <span className="flex flex-col items-center leading-tight">
-                <span className="text-[9px] normal-case tracking-normal">
-                  Unlock +{bonusPlays} Plays (3rd Bonus Play = 💎 Diamond Round!)
-                </span>
-                <span className="text-[8px] font-bold opacity-70">{bonusCost} Tokens</span>
-              </span>
-            )}
+            {buyingBonus ? "Unlocking…" : `Unlock +${bonusPlays} plays · ${bonusCost} tokens`}
           </button>
+          <p className="mt-1.5 text-center text-[8px] font-semibold leading-snug text-amber-100/70">
+            Third bonus play is the 💎 Diamond Round — open folder 500 to win 1 Diamond.
+          </p>
           {!canBuyBonus && (
             <p className="mt-1.5 text-center text-[9px] font-bold uppercase tracking-wide text-amber-300">
               Need {bonusCost} Tokens to Unlock +{bonusPlays} Plays
