@@ -39,6 +39,15 @@ export const GAME_TITLES = {
 
 export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, horseAccess }) {
   const tournaments = [
+    {
+      key: "diamondsmash",
+      name: "Diamond Smash",
+      sub: "Season leaderboard",
+      cost: "Free Play",
+      icon: Gem,
+      from: "#5b1765",
+      to: "#2c0a33",
+    },
     ninjaEnabled && {
       key: "ninja",
       name: "Ninja Slice",
@@ -65,15 +74,6 @@ export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, hor
       icon: Bird,
       from: "#0d5a54",
       to: "#06302d",
-    },
-    {
-      key: "diamondsmash",
-      name: "Diamond Smash",
-      sub: "Season leaderboard",
-      cost: "Free Play",
-      icon: Gem,
-      from: "#5b1765",
-      to: "#2c0a33",
     },
   ].filter(Boolean);
 
@@ -173,6 +173,26 @@ export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, hor
         right="Tokens only"
         rightIcon={<img src={TOKEN_IMG} alt="" className="h-3 w-3 object-contain" />}
       >
+        {scratchAccess ? (
+          <CatalogTile
+            name="Scratch Card"
+            sub="Three symbols win"
+            cost="5 Tokens"
+            icon={Ticket}
+            from="#7a4a10"
+            to="#38200a"
+            onClick={() => onOpen("scratchcard")}
+          />
+        ) : null}
+        <CatalogTile
+          name="Blind Voucher"
+          sub="Mystery reward"
+          cost="2 Tokens"
+          icon={Gift}
+          from="#4a2a6b"
+          to="#1d0f2e"
+          onClick={() => onOpen("blindvoucher")}
+        />
         <CatalogTile
           name="Coin Flip"
           sub="Double or nothing"
@@ -191,26 +211,6 @@ export default function TokensCatalog({ onOpen, ninjaEnabled, scratchAccess, hor
           to="#12142f"
           onClick={() => onOpen("perfect10")}
         />
-        <CatalogTile
-          name="Blind Voucher"
-          sub="Mystery reward"
-          cost="2 Tokens"
-          icon={Gift}
-          from="#4a2a6b"
-          to="#1d0f2e"
-          onClick={() => onOpen("blindvoucher")}
-        />
-        {scratchAccess ? (
-          <CatalogTile
-            name="Scratch Card"
-            sub="Three symbols win"
-            cost="5 Tokens"
-            icon={Ticket}
-            from="#7a4a10"
-            to="#38200a"
-            onClick={() => onOpen("scratchcard")}
-          />
-        ) : null}
       </CatalogSection>
     </div>
   );

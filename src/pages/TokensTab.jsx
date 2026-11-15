@@ -19,7 +19,7 @@ import TokensCatalog from "@/components/tokens/TokensCatalog";
 import TokensNav from "@/components/tokens/TokensNav";
 import { getRankedSignal, onRankedNavRequest } from "@/lib/rankedNav";
 
-export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true, horseBettingEnabled = false, oneVOneRequest = 0, dealbreakerSpotlight = 0 }) {
+export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdmin, ninjaEnabled = true, scratchCardEnabled = true, horseBettingEnabled = false, oneVOneRequest = 0 }) {
   // Which of the three persistent views (Arcade / Milestones / VIP Pass) is open.
   const [view, setView] = useState("arcade");
   // "catalog" is the Arcade storefront; any other value opens that game or tool.
@@ -73,20 +73,6 @@ export default function TokensTab({ user, onUserUpdate, totalBookingCount, isAdm
       active = false;
     };
   }, [innerTab]);
-
-  // "Try Dealbreaker Now" in the one-time announcement: land on the Arcade
-  // storefront and bring its Dealbreaker banner into view.
-  useEffect(() => {
-    if (!dealbreakerSpotlight) return undefined;
-    setView("arcade");
-    setInnerTab("catalog");
-    const timer = setTimeout(() => {
-      document
-        .getElementById("dealbreaker-card")
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 160);
-    return () => clearTimeout(timer);
-  }, [dealbreakerSpotlight]);
 
   // ninjaEnabled is preloaded by Home (via AppSettings subscription) so the tab
   // is already resolved by the time the user switches here — no 1s pop-in.
