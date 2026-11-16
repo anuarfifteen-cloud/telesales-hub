@@ -1151,15 +1151,17 @@
     0 0 30px rgba(212, 175, 55, 0.45),
     0 24px 60px rgba(0, 0, 0, 0.85) !important;
 }
+/* The offer pill is a dark surface in every theme, so the blanketed navy fill is
+   left alone and the copy is pinned bright white with a gold amount. */
 [data-theme="royal_batik"] .closer-offer-bubble {
-  background: #ffffff !important;
-  border: none !important;
+  background: linear-gradient(180deg, #2a1b48 0%, #170e2e 100%) !important;
+  border: 1px solid rgba(255, 212, 0, 0.5) !important;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55) !important;
 }
 [data-theme="royal_batik"] .closer-offer-bubble p {
-  color: #241a3d !important;
+  color: #ffffff !important;
   text-shadow: none !important;
 }
 [data-theme="royal_batik"] .closer-offer-bubble p span {
-  color: #6d28d9 !important;
+  color: #ffd400 !important;
 }

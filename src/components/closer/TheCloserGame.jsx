@@ -49,7 +49,7 @@ const RIGHT_BOARD = LADDER.slice(Math.ceil(LADDER.length / 2));
  * once per round and left to admin auditing.
  */
 export default function TheCloserGame({ user, onUserUpdate }) {
-  const [phase, setPhase] = useState("idle"); // idle | pick | play | done
+  const [phase, setPhase] = useState("idle"); // idle | pick | play | reveal | done
   const [lucky, setLucky] = useState(null);
   const [opened, setOpened] = useState([]);
   const [offer, setOffer] = useState(null);
@@ -250,12 +250,23 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   const handleAccept = async () => {
     if (busy || !offerMade) return;
     const amount = offer;
+    const folderValue = Number(valuesRef.current[lucky]) || 0;
+    // Folder 500 is the Diamond in a Diamond Round — the take stays a Chips
+    // payout, but the reveal shows the Diamond that was left behind.
+    const folderDiamond = diamondRound && folderValue === DIAMOND_VALUE;
+
     setOfferOpen(false);
-    setLuckyRevealed(true);
-    setResult({ amount, source: "offer" });
+    setBusy(true);
+    setPhase("reveal");
+    setLuckyRevealed(true); // the kept folder flips over first…
+    play("sfxEliminate");
+
+    // …and the deal is settled only once the player has seen what was inside.
+    await new Promise((resolve) => setTimeout(resolve, 1900));
+
+    setResult({ amount, source: "offer", folderValue, folderDiamond });
     setPhase("done");
     play("sfxWin");
-    setBusy(true);
     try {
       // A Diamond Round buyout is still paid in chips; closing the round first
       // makes sure it can never be resumed or paid twice.
@@ -386,9 +397,11 @@ export default function TheCloserGame({ user, onUserUpdate }) {
             <p className="rounded-full bg-[#241242]/85 px-2.5 py-1 text-center text-[7px] font-black uppercase tracking-[0.12em] text-amber-100 ring-1 ring-amber-200/30 backdrop-blur-sm sm:text-[8px]">
               {phase === "pick"
                 ? "Pick the folder you will keep"
-                : `${remainingDesk.length} on the desk · ${
-                    offerMade ? "no more offers" : `offer at ${FOLDERS_AT_OFFER}`
-                  }`}
+                : phase === "reveal"
+                  ? "Your folder is turning over…"
+                  : `${remainingDesk.length} on the desk · ${
+                      offerMade ? "no more offers" : `offer at ${FOLDERS_AT_OFFER}`
+                    }`}
             </p>
           </div>
         )}
@@ -455,12 +468,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         {phase === "done" && result && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#0A0618]/65 p-5 backdrop-blur-[2px]">
             <div className="w-full max-w-[16rem]">
-              <CloserResultCard
-                result={result}
-                luckyValue={Number(valuesRef.current[lucky]) || 0}
-                canPlay={!limitReached}
-                onPlayAgain={resetTable}
-              />
+              <CloserResultCard result={result} canPlay={!limitReached} onPlayAgain={resetTable} />
             </div>
           </div>
         )}

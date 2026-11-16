@@ -38,16 +38,22 @@ export default function ManagerOfferModal({ open, offer, foldersLeft, busy, onAc
             </div>
           </div>
 
-          <div className="closer-offer-bubble relative mt-3 rounded-2xl rounded-tl-sm bg-white px-3 py-2.5 shadow-[0_8px_20px_rgba(0,0,0,0.45)]">
-            <p className="text-center text-[12px] font-semibold leading-snug text-[#241A3D]">
-              I&apos;ll give you{" "}
-              <span className="font-black text-[#6D28D9]">{offer} CHIPS</span> to walk away right now.
+          <div
+            className="closer-offer-bubble relative mt-3 rounded-2xl rounded-tl-sm px-3 py-2.5"
+            style={{
+              background: "linear-gradient(180deg,#2A1B48 0%,#170E2E 100%)",
+              border: "1px solid rgba(255,212,0,0.5)",
+              boxShadow: "0 8px 20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)",
+            }}
+          >
+            <p className="text-center text-[12px] font-semibold leading-snug text-white">
+              I&apos;ll buy your folder for{" "}
+              <span className="font-black text-[#FFD400]">{offer} CHIPS</span> right now.
             </p>
           </div>
 
-          <p className="mt-2 text-center text-[8.5px] leading-snug text-white/45">
-            That&apos;s 85% of the true average of the {foldersLeft} folders left and the one you set
-            aside. This is the only offer you get.
+          <p className="mt-2 text-center text-[8.5px] leading-snug text-white/50">
+            This is my one and only offer based on the {foldersLeft} remaining folders.
           </p>
 
           <div className="mt-3 flex flex-col gap-2">
