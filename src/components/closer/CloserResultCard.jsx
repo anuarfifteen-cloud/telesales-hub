@@ -1,4 +1,5 @@
 import MiniChipIcon from "@/components/casino21/MiniChipIcon";
+import { ENTRY_FEE } from "@/lib/theCloser";
 
 /**
  * How a taken buyout reads against the folder that was set aside. The headline
@@ -33,6 +34,54 @@ function dealVerdict({ amount, folderValue, folderDiamond }) {
   };
 }
 
+/**
+ * The "NO DEAL" verdict: the folder the player kept, weighed against the buyout
+ * they refused and against the chips the seat itself cost.
+ */
+function finalVerdict({ amount, diamond, lastVipOffer }) {
+  const offer = Number(lastVipOffer) || 0;
+  if (diamond) {
+    return {
+      headline: "ICE IN YOUR VEINS!",
+      body: `You turned down ${offer} Chips and walked away with 💎 1 Diamond!`,
+      tone: "text-sky-300",
+    };
+  }
+  if (amount === offer) {
+    return {
+      headline: "DEAD EVEN!",
+      body: `You rejected ${offer} Chips and your folder held the exact same ${amount} Chips!`,
+      tone: "text-amber-300",
+    };
+  }
+  if (amount >= ENTRY_FEE && amount > offer) {
+    return {
+      headline: "NERVES OF STEEL!",
+      body: `You rejected ${offer} Chips and won ${amount} Chips (+${amount - offer} more than the VIP offered)!`,
+      tone: "text-emerald-300",
+    };
+  }
+  if (amount >= ENTRY_FEE) {
+    return {
+      headline: "VIP WINS!",
+      body: `You still profited with ${amount} Chips, but turning down ${offer} Chips cost you ${offer - amount} extra Chips!`,
+      tone: "text-rose-300",
+    };
+  }
+  if (amount > offer) {
+    return {
+      headline: "DAMAGE CONTROL!",
+      body: `You lost ${ENTRY_FEE - amount} Chips overall on the ${ENTRY_FEE}-chip entry, but refusing ${offer} Chips still saved you +${amount - offer} Chips!`,
+      tone: "text-amber-300",
+    };
+  }
+  return {
+    headline: "VIP WINS!",
+    body: `You ended up with ${amount} Chips (a ${ENTRY_FEE - amount}-Chip loss on entry) — you should've taken the ${offer}-Chip deal!`,
+    tone: "text-rose-300",
+  };
+}
+
 /** Final panel for a finished game — the buyout taken or the lucky folder opened. */
 export default function CloserResultCard({ result, canPlay = true, onPlayAgain }) {
   const fromOffer = result?.source === "offer";
@@ -44,7 +93,9 @@ export default function CloserResultCard({ result, canPlay = true, onPlayAgain }
         folderValue: Number(result?.folderValue) || 0,
         folderDiamond: result?.folderDiamond === true,
       })
-    : null;
+    : Number(result?.lastVipOffer) > 0
+      ? finalVerdict({ amount, diamond, lastVipOffer: Number(result.lastVipOffer) })
+      : null;
 
   return (
     <div
@@ -70,7 +121,7 @@ export default function CloserResultCard({ result, canPlay = true, onPlayAgain }
         )}
       </div>
 
-      {fromOffer ? (
+      {verdict ? (
         <>
           <p className={`mt-2 text-[9px] font-black uppercase tracking-[0.08em] ${verdict.tone}`}>
             {verdict.headline}

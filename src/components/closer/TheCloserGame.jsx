@@ -54,6 +54,8 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   const [opened, setOpened] = useState([]);
   const [offer, setOffer] = useState(null);
   const [offerOpen, setOfferOpen] = useState(false);
+  // The buyout the player turned down, kept for the end-of-round verdict.
+  const [lastVipOffer, setLastVipOffer] = useState(null);
   const [luckyRevealed, setLuckyRevealed] = useState(false);
   const [result, setResult] = useState(null);
   // True only while playing the third play of today's +3 allowance — the sixth
@@ -107,6 +109,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     setOpened([]);
     setOffer(null);
     setOfferOpen(false);
+    setLastVipOffer(null);
     setLuckyRevealed(false);
     setResult(null);
     setError("");
@@ -136,6 +139,12 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         const savedOffer = round.vipOffer ?? round.offer;
         setOffer(savedOffer === null || savedOffer === undefined ? null : Number(savedOffer));
         setOfferOpen(Boolean(round.offerOpen));
+        // A rejected offer comes back with the round, so finishing the final four
+        // opens after a refresh still compares against what was turned down.
+        const savedRejected = round.lastVipOffer ?? (round.offerOpen ? null : savedOffer);
+        setLastVipOffer(
+          savedRejected === null || savedRejected === undefined ? null : Number(savedRejected)
+        );
         setDiamondRound(true);
         setPhase(round.phase === "play" ? "play" : "pick");
       })
@@ -151,10 +160,10 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   // round's own server row, so a refresh lands back on the same board.
   useEffect(() => {
     if (!diamondRound || (phase !== "pick" && phase !== "play")) return;
-    saveCloserRound({ values: valuesRef.current, lucky, opened, vipOffer: offer, offer, phase, offerOpen }).catch(
+    saveCloserRound({ values: valuesRef.current, lucky, opened, vipOffer: offer, offer, lastVipOffer, phase, offerOpen }).catch(
       () => {}
     );
-  }, [diamondRound, phase, lucky, opened, offer, offerOpen]);
+  }, [diamondRound, phase, lucky, opened, offer, offerOpen, lastVipOffer]);
 
   const handleSit = async () => {
     if (busy || !affordable || limitReached) return;
@@ -184,6 +193,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       setOpened([]);
       setOffer(null);
       setOfferOpen(false);
+      setLastVipOffer(null);
       setLuckyRevealed(false);
       setResult(null);
       setPhase("pick");
@@ -303,7 +313,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       // pays its normal chips.
       const diamond = diamondRound && amount === DIAMOND_VALUE;
       setLuckyRevealed(true);
-      setResult({ amount: diamond ? DIAMOND_PRIZE : amount, source: "lucky", diamond });
+      setResult({ amount: diamond ? DIAMOND_PRIZE : amount, source: "lucky", diamond, lastVipOffer });
       setPhase("done");
       play("sfxWin");
       (diamondRound ? finishCloserRound() : Promise.resolve())
@@ -322,7 +332,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     }, 700);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, offerMade, remainingDesk.length, lucky]);
+  }, [phase, offerMade, remainingDesk.length, lucky, lastVipOffer]);
 
   const gridLocked = phase !== "pick" && phase !== "play";
 
@@ -480,7 +490,11 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         foldersLeft={FOLDERS_AT_OFFER}
         busy={busy}
         onAccept={handleAccept}
-        onReject={() => setOfferOpen(false)}
+        onReject={() => {
+          // The refused amount is remembered for the end-of-round comparison.
+          setLastVipOffer(offer);
+          setOfferOpen(false);
+        }}
       />
 
       {/* Shared feed of the five newest wins across all players */}
