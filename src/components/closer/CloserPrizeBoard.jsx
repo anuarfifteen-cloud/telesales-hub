@@ -1,6 +1,5 @@
 import MiniChipIcon from "@/components/casino21/MiniChipIcon";
 import { CHIP_ICON_URL } from "@/lib/closerTheme";
-import { DIAMOND_VALUE } from "@/lib/theCloser";
 
 /**
  * Small black-and-yellow chip shown beside every prize amount.
@@ -17,12 +16,13 @@ function PrizeChip() {
 }
 
 /**
- * One prize ladder pinned to a side of the desk. Values still on the desk glow;
- * a value that has been opened on the desk dims to 30% straight away. During a
- * Diamond Round the 500 slot is labelled as its Diamond prize — the value stays
+ * One prize ladder pinned to a side of the desk. Prizes still on the desk glow;
+ * a slot opened on the desk dims to 30% straight away. A Mystery Wildcard reads
+ * as a `?` until its folder opens, then shows the amount it really held. During
+ * a Diamond Round the Diamond slot is labelled as its prize — the value stays
  * numeric everywhere else, so the offer maths is untouched.
  */
-export default function CloserPrizeBoard({ side, values = [], dimmed = [], diamondRound = false }) {
+export default function CloserPrizeBoard({ side, slots = [] }) {
   return (
     <div
       className={`absolute top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-1 rounded-full px-1 py-2 sm:gap-1.5 sm:px-1.5 sm:py-2.5 ${
@@ -34,12 +34,12 @@ export default function CloserPrizeBoard({ side, values = [], dimmed = [], diamo
         backdropFilter: "blur(6px)",
       }}
     >
-      {values.map((value) => {
-        const gone = dimmed.includes(value);
-        const diamond = diamondRound && value === DIAMOND_VALUE;
+      {slots.map((slot) => {
+        const mystery = Boolean(slot.isMystery) && !slot.revealed;
+        const gone = Boolean(slot.gone);
         return (
           <span
-            key={value}
+            key={slot.base}
             className={`flex items-center gap-[2px] text-[8px] font-black tabular-nums leading-none transition-all duration-300 sm:text-[10px] ${
               gone ? "opacity-30 grayscale" : ""
             }`}
@@ -49,14 +49,26 @@ export default function CloserPrizeBoard({ side, values = [], dimmed = [], diamo
                 : { color: "#FFE6A8", textShadow: "0 0 8px rgba(255,199,60,0.9)" }
             }
           >
-            {diamond ? (
+            {mystery ? (
+              <span
+                className="closer-mystery flex h-3 w-3 items-center justify-center rounded-full text-[8px] font-black leading-none sm:h-3.5 sm:w-3.5 sm:text-[9px]"
+                style={{
+                  background: "linear-gradient(180deg,#8B5CF6 0%,#4C1D95 100%)",
+                  color: "#FFE6A8",
+                  boxShadow: "inset 0 0 0 1px rgba(255,230,168,0.75)",
+                }}
+                title="Mystery Wildcard — revealed when its folder opens"
+              >
+                ?
+              </span>
+            ) : slot.diamond ? (
               <span className="whitespace-nowrap text-[6px] tracking-[0.02em] sm:text-[8px]">
                 💎 1 Diamond
               </span>
             ) : (
               <>
                 <PrizeChip />
-                {value}
+                {slot.value}
               </>
             )}
           </span>

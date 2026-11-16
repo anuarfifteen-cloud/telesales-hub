@@ -19,6 +19,7 @@ import {
   DIAMOND_PRIZE,
   DIAMOND_VALUE,
   ENTRY_FEE,
+  dealFolders,
   FOLDER_COUNT,
   FOLDERS_AT_OFFER,
   PRIZES,
@@ -31,22 +32,21 @@ import {
   managerOffer,
   negotiatedOffer,
   saveCloserRound,
-  shufflePrizes,
   takeSeat,
 } from "@/lib/theCloser";
 
-/** The prize ladder split across the two side boards, lowest to highest. */
+/** The prize ladder, lowest to highest — split across the two side boards. */
 const LADDER = [...PRIZES].sort((a, b) => a - b);
-const LEFT_BOARD = LADDER.slice(0, Math.ceil(LADDER.length / 2));
-const RIGHT_BOARD = LADDER.slice(Math.ceil(LADDER.length / 2));
+const LADDER_SPLIT = Math.ceil(LADDER.length / 2);
 
 /**
  * The Closer — a casual Deal or No Deal style game played for casino chips.
  *
- * The shuffled prize list lives in a ref: folders render only their number, and
- * a value enters the markup the moment that folder opens. That keeps the board
- * clean for casual play; it is not a security boundary, so the game is settled
- * once per round and left to admin auditing.
+ * The ten dealt folders — two of them Mystery Wildcards with a secret value —
+ * live in a ref: folders render only their number, and a value enters the markup
+ * the moment that folder opens (or is revealed as the kept folder). That keeps
+ * the board clean for casual play; it is not a security boundary, so the game is
+ * settled once per round and left to admin auditing.
  */
 export default function TheCloserGame({ user, onUserUpdate }) {
   const [phase, setPhase] = useState("idle"); // idle | pick | play | reveal | done
@@ -79,7 +79,9 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   // Bumped after the player's own payout lands, so the Live Activity feed
   // refreshes immediately instead of waiting for its next poll.
   const [feedKey, setFeedKey] = useState(0);
-  const valuesRef = useRef([]);
+  // The ten dealt folders ({ id, base, value, isMystery, isDiamond }). Kept in a
+  // ref so an unopened Mystery Wildcard's value never reaches the markup.
+  const foldersRef = useRef([]);
 
   // The suspense bed only runs while a round is live, and starts on the seat
   // tap — the gesture browsers require before any audio may play.
@@ -100,11 +102,26 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   const remainingDesk = deskIndices.filter((i) => !opened.includes(i));
   const lastDeskIndex = remainingDesk.length === 1 ? remainingDesk[0] : null;
 
-  const openedValues = opened.map((i) => Number(valuesRef.current[i]) || 0);
   const progress = deskIndices.length ? opened.length / deskIndices.length : 0;
 
+  // The ladder keeps the standard prize order. A Mystery Wildcard reads as a `?`
+  // until its own folder opens — on the desk, or as the kept folder at the end —
+  // and only then shows the amount it really held.
+  const ladderSlots = LADDER.map((base) => {
+    const index = foldersRef.current.findIndex((folder) => folder.base === base);
+    const folder = index >= 0 ? foldersRef.current[index] : null;
+    return {
+      base,
+      value: Number(folder?.value) || base,
+      isMystery: Boolean(folder?.isMystery),
+      revealed: index >= 0 && (opened.includes(index) || (index === lucky && luckyRevealed)),
+      gone: index >= 0 && opened.includes(index),
+      diamond: Boolean(diamondRound && folder?.isDiamond),
+    };
+  });
+
   const resetTable = () => {
-    valuesRef.current = [];
+    foldersRef.current = [];
     setLucky(null);
     setOpened([]);
     setOffer(null);
@@ -129,8 +146,23 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       })
       .then((saved) => {
         const round = saved?.round;
-        if (!alive || !round || !Array.isArray(round.values) || !round.values.length) return;
-        valuesRef.current = round.values;
+        if (!alive || !round) return;
+        // The full dealt folders (Wildcard flags and secret values included) come
+        // back exactly as they were saved. Rounds saved before Wildcards existed
+        // only carry plain values, which are rebuilt into folder objects.
+        const savedFolders = Array.isArray(round.folders)
+          ? round.folders
+          : Array.isArray(round.values)
+            ? round.values.map((value, i) => ({
+                id: `${i}-${value}`,
+                base: Number(value) || 0,
+                value: Number(value) || 0,
+                isMystery: false,
+                isDiamond: Number(value) === DIAMOND_VALUE,
+              }))
+            : [];
+        if (!savedFolders.length) return;
+        foldersRef.current = savedFolders;
         setLucky(Number.isInteger(round.lucky) ? round.lucky : null);
         setOpened(Array.isArray(round.opened) ? round.opened : []);
         // The saved buyout is restored exactly as it was rolled — a refresh never
@@ -160,9 +192,16 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   // round's own server row, so a refresh lands back on the same board.
   useEffect(() => {
     if (!diamondRound || (phase !== "pick" && phase !== "play")) return;
-    saveCloserRound({ values: valuesRef.current, lucky, opened, vipOffer: offer, offer, lastVipOffer, phase, offerOpen }).catch(
-      () => {}
-    );
+    saveCloserRound({
+      folders: foldersRef.current.map((folder, i) => ({ ...folder, opened: opened.includes(i) })),
+      lucky,
+      opened,
+      vipOffer: offer,
+      offer,
+      lastVipOffer,
+      phase,
+      offerOpen,
+    }).catch(() => {});
   }, [diamondRound, phase, lucky, opened, offer, offerOpen, lastVipOffer]);
 
   const handleSit = async () => {
@@ -188,7 +227,9 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       // The +3 allowance's third play — the sixth seat of the day — is the
       // Diamond Round. Folder 500 still weighs 500 for the offer maths.
       setDiamondRound(Boolean(state.bonusPurchased && state.playCount >= state.limit));
-      valuesRef.current = shufflePrizes();
+      // Two of the ten folders are dealt as Mystery Wildcards, each holding a
+      // freshly rolled secret amount — the top two slots always stay visible.
+      foldersRef.current = dealFolders();
       setLucky(null);
       setOpened([]);
       setOffer(null);
@@ -248,7 +289,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     // The one and only Manager call: exactly five desk folders still in play.
     const deskLeft = deskIndices.filter((i) => !nextOpened.includes(i));
     if (!offerMade && deskLeft.length === FOLDERS_AT_OFFER) {
-      const inPlay = [...deskLeft, lucky].map((i) => Number(valuesRef.current[i]) || 0);
+      const inPlay = [...deskLeft, lucky].map((i) => Number(foldersRef.current[i]?.value) || 0);
       // The house sets its base offer from the folders still in play (500 stays
       // a 500 weight in a Diamond Round), then the VIP Client's ±5% swing is
       // rolled once and becomes the amount displayed and paid.
@@ -260,10 +301,12 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   const handleAccept = async () => {
     if (busy || !offerMade) return;
     const amount = offer;
-    const folderValue = Number(valuesRef.current[lucky]) || 0;
-    // Folder 500 is the Diamond in a Diamond Round — the take stays a Chips
-    // payout, but the reveal shows the Diamond that was left behind.
-    const folderDiamond = diamondRound && folderValue === DIAMOND_VALUE;
+    const kept = foldersRef.current[lucky];
+    // A Wildcard pays what it secretly held; the Diamond slot is the Diamond in a
+    // Diamond Round — the take stays a Chips payout, but the reveal shows the
+    // Diamond that was left behind.
+    const folderValue = Number(kept?.value) || 0;
+    const folderDiamond = diamondRound && Boolean(kept?.isDiamond);
 
     setOfferOpen(false);
     setBusy(true);
@@ -308,10 +351,12 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     if (phase !== "play" || !offerMade || lucky === null) return undefined;
     if (remainingDesk.length !== 0) return undefined;
     const timer = setTimeout(() => {
-      const amount = Number(valuesRef.current[lucky]) || 0;
-      // Only folder 500 converts in a Diamond Round; every other folder still
-      // pays its normal chips.
-      const diamond = diamondRound && amount === DIAMOND_VALUE;
+      // A Wildcard pays the amount it secretly held, revealed right now.
+      const kept = foldersRef.current[lucky];
+      const amount = Number(kept?.value) || 0;
+      // Only the Diamond slot converts in a Diamond Round; every other folder
+      // still pays its normal chips.
+      const diamond = diamondRound && Boolean(kept?.isDiamond);
       setLuckyRevealed(true);
       setResult({ amount: diamond ? DIAMOND_PRIZE : amount, source: "lucky", diamond, lastVipOffer });
       setPhase("done");
@@ -383,18 +428,8 @@ export default function TheCloserGame({ user, onUserUpdate }) {
           </div>
         </div>
 
-        <CloserPrizeBoard
-          side="left"
-          values={LEFT_BOARD}
-          dimmed={openedValues}
-          diamondRound={diamondRound}
-        />
-        <CloserPrizeBoard
-          side="right"
-          values={RIGHT_BOARD}
-          dimmed={openedValues}
-          diamondRound={diamondRound}
-        />
+        <CloserPrizeBoard side="left" slots={ladderSlots.slice(0, LADDER_SPLIT)} />
+        <CloserPrizeBoard side="right" slots={ladderSlots.slice(LADDER_SPLIT)} />
 
         {diamondRound && phase !== "idle" && <CloserDiamondBadge />}
 
@@ -425,10 +460,8 @@ export default function TheCloserGame({ user, onUserUpdate }) {
               <CloserFolder
                 key={i}
                 number={i + 1}
-                value={isOpen ? Number(valuesRef.current[i]) || 0 : null}
-                diamond={
-                  isOpen && diamondRound && (Number(valuesRef.current[i]) || 0) === DIAMOND_VALUE
-                }
+                value={isOpen ? Number(foldersRef.current[i]?.value) || 0 : null}
+                diamond={Boolean(isOpen && diamondRound && foldersRef.current[i]?.isDiamond)}
                 open={isOpen}
                 lucky={isLucky}
                 disabled={

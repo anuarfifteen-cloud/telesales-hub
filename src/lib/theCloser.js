@@ -14,17 +14,67 @@ export const FOLDERS_AT_OFFER = 5;
 /** The house keeps 15% of the true average for its buyout. */
 export const HOUSE_EDGE = 0.15;
 
+/** How many Mystery Wildcard slots a round deals. */
+export const MYSTERY_COUNT = 2;
+
 /**
- * Fisher–Yates shuffle of the prize list. The result stays in a local ref —
- * folder values are never written to the DOM or to markup before they open.
+ * The secret Chip values a Wildcard can hold, with their relative weights —
+ * a 1,000 roll is the rare second Grand Win.
  */
-export function shufflePrizes(prizes = PRIZES) {
-  const values = [...prizes];
+export const MYSTERY_TABLE = [
+  { value: 5, weight: 20 },
+  { value: 15, weight: 20 },
+  { value: 40, weight: 20 },
+  { value: 100, weight: 15 },
+  { value: 175, weight: 15 },
+  { value: 300, weight: 8 },
+  { value: 1000, weight: 2 },
+];
+
+/** Fisher–Yates shuffle — returns a new array, never the one passed in. */
+function shuffled(items) {
+  const values = [...items];
   for (let i = values.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [values[i], values[j]] = [values[j], values[i]];
   }
   return values;
+}
+
+/** One weighted roll of a Wildcard's secret value. */
+function rollMysteryValue() {
+  const total = MYSTERY_TABLE.reduce((sum, row) => sum + row.weight, 0);
+  let roll = Math.random() * total;
+  for (const row of MYSTERY_TABLE) {
+    roll -= row.weight;
+    if (roll < 0) return row.value;
+  }
+  return MYSTERY_TABLE[MYSTERY_TABLE.length - 1].value;
+}
+
+/**
+ * Deals the round's ten folders. Every folder keeps the standard ladder prize it
+ * stands for in `base`, while `value` is what it truly pays — for a Mystery
+ * Wildcard, a freshly rolled secret amount. The objects stay in a local ref so a
+ * Wildcard's value never reaches the markup before its folder opens.
+ */
+export function dealFolders(prizes = PRIZES) {
+  const mysteryBases = shuffled(
+    prizes.filter((value) => !LOCKED_VISIBLE_VALUES.includes(value))
+  ).slice(0, MYSTERY_COUNT);
+
+  return shuffled(
+    prizes.map((base, i) => {
+      const isMystery = mysteryBases.includes(base);
+      return {
+        id: `${i}-${base}`,
+        base,
+        value: isMystery ? rollMysteryValue() : base,
+        isMystery,
+        isDiamond: base === DIAMOND_VALUE,
+      };
+    })
+  );
 }
 
 /** True average of every value still in play, less the house edge, floored. */
@@ -59,6 +109,12 @@ export const DIAMOND_SLOT = 6;
 
 /** The one folder value that pays a Diamond instead of chips in a Diamond Round. */
 export const DIAMOND_VALUE = 500;
+
+/**
+ * The two top slots are never masked — the Grand Win and the Diamond slot stay
+ * visible on the ladder in every round, Wildcards or not.
+ */
+export const LOCKED_VISIBLE_VALUES = [DIAMOND_VALUE, 1000];
 
 /** Diamonds paid by a Diamond Round win. */
 export const DIAMOND_PRIZE = 1;
