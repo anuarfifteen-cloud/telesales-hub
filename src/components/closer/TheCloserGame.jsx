@@ -29,6 +29,7 @@ import {
   loadCloserRound,
   loadCloserState,
   managerOffer,
+  negotiatedOffer,
   saveCloserRound,
   shufflePrizes,
   takeSeat,
@@ -129,7 +130,11 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         valuesRef.current = round.values;
         setLucky(Number.isInteger(round.lucky) ? round.lucky : null);
         setOpened(Array.isArray(round.opened) ? round.opened : []);
-        setOffer(round.offer === null || round.offer === undefined ? null : Number(round.offer));
+        // The saved buyout is restored exactly as it was rolled — a refresh never
+        // re-rolls the ±5% swing. Rounds saved before this field existed fall
+        // back to their stored offer.
+        const savedOffer = round.vipOffer ?? round.offer;
+        setOffer(savedOffer === null || savedOffer === undefined ? null : Number(savedOffer));
         setOfferOpen(Boolean(round.offerOpen));
         setDiamondRound(true);
         setPhase(round.phase === "play" ? "play" : "pick");
@@ -146,7 +151,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   // round's own server row, so a refresh lands back on the same board.
   useEffect(() => {
     if (!diamondRound || (phase !== "pick" && phase !== "play")) return;
-    saveCloserRound({ values: valuesRef.current, lucky, opened, offer, phase, offerOpen }).catch(
+    saveCloserRound({ values: valuesRef.current, lucky, opened, vipOffer: offer, offer, phase, offerOpen }).catch(
       () => {}
     );
   }, [diamondRound, phase, lucky, opened, offer, offerOpen]);
@@ -234,7 +239,10 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     const deskLeft = deskIndices.filter((i) => !nextOpened.includes(i));
     if (!offerMade && deskLeft.length === FOLDERS_AT_OFFER) {
       const inPlay = [...deskLeft, lucky].map((i) => Number(valuesRef.current[i]) || 0);
-      setOffer(managerOffer(inPlay));
+      // The house sets its base offer from the folders still in play (500 stays
+      // a 500 weight in a Diamond Round), then the VIP Client's ±5% swing is
+      // rolled once and becomes the amount displayed and paid.
+      setOffer(negotiatedOffer(managerOffer(inPlay)));
       setOfferOpen(true);
     }
   };

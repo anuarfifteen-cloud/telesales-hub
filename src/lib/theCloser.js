@@ -35,6 +35,18 @@ export function managerOffer(remainingValues) {
   return Math.floor((total / values.length) * (1 - HOUSE_EDGE));
 }
 
+/**
+ * The VIP Client's actual buyout: the house offer with a ±5% negotiation swing
+ * on top. Rolled once when the call triggers and then kept in the round state,
+ * so the amount shown is exactly the amount paid and a refresh cannot re-roll it.
+ */
+export function negotiatedOffer(baseOffer) {
+  const base = Number(baseOffer) || 0;
+  if (base <= 0) return 0;
+  const swingMultiplier = 0.95 + Math.random() * 0.1;
+  return Math.max(1, Math.round(base * swingMultiplier));
+}
+
 /** Seats allowed per Brunei calendar day — enforced by the closerSeat function. */
 export const DAILY_LIMIT = 3;
 
