@@ -47,8 +47,41 @@ export const SUCCESS_TABLE = [
   { weight: 0.3, type: "diamond", amount: 1, symbol: "diamond" },
 ];
 
-/** Rolls one ticket: the 5% house win first, then a weighted prize. */
-export function rollScratchOutcome() {
+// Alternate prize table used only when an administrator has switched the game to
+// its lenient mode: no blank tickets and heavier tokens. Kept beside the default
+// table so both are rolled the same way. Never surfaced in any player-facing text.
+export const LENIENT_TABLE = [
+  { weight: 10, type: "chips", amount: 25, symbol: "chips25" },
+  { weight: 28, type: "chips", amount: 50, symbol: "chips50" },
+  { weight: 15, type: "chips", amount: 100, symbol: "chips100" },
+  { weight: 15, type: "tokens", amount: 5, symbol: "tokens5" },
+  { weight: 25, type: "tokens", amount: 10, symbol: "tokens10" },
+  { weight: 1, type: "theme", themeId: "royal_batik", themeName: "Royal Batik", symbol: "royal" },
+  { weight: 1, type: "theme", themeId: "lilac_bloom", themeName: "Lilac Bloom", symbol: "lilac" },
+  { weight: 5, type: "diamond", amount: 1, symbol: "diamond" },
+];
+
+/** Anything that is not an explicit lenient setting rolls as the default mode. */
+export function normaliseScratchMode(mode) {
+  return mode === "lenient" ? "lenient" : "strict";
+}
+
+/**
+ * Rolls one ticket at the moment it is bought. The default mode keeps the 5%
+ * house win; the alternate mode always pays. The mode is passed in per roll, so a
+ * ticket already dealt can never be re-rolled or changed afterwards.
+ */
+export function rollScratchOutcome(mode = "strict") {
+  if (normaliseScratchMode(mode) === "lenient") {
+    const lenientRoll = Math.random() * 100;
+    let lenientAcc = 0;
+    for (const prize of LENIENT_TABLE) {
+      lenientAcc += prize.weight;
+      if (lenientRoll < lenientAcc) return { win: true, prize: { ...prize } };
+    }
+    return { win: true, prize: { ...LENIENT_TABLE[0] } };
+  }
+
   if (Math.random() < 0.05) return { win: false, prize: null };
 
   const roll = Math.random() * 95;

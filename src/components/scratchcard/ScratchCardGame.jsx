@@ -8,7 +8,15 @@ import ScratchCardTicket from "./ScratchCardTicket";
 import ScratchBatchAllowance from "./ScratchBatchAllowance";
 import ScratchCardLiveFeed from "./ScratchCardLiveFeed";
 import ScratchResultModal from "./ScratchResultModal";
-import { ENTRY_COST, SCRATCH_CARD_IMG, TOKEN_IMG, buildGrid, prizeTier, rollScratchOutcome } from "./scratchPrizes";
+import {
+  ENTRY_COST,
+  SCRATCH_CARD_IMG,
+  TOKEN_IMG,
+  buildGrid,
+  normaliseScratchMode,
+  prizeTier,
+  rollScratchOutcome,
+} from "./scratchPrizes";
 import {
   CARDS_PER_BATCH,
   bruneiBatch,
@@ -52,6 +60,9 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
   const [settling, setSettling] = useState(false);
   const logIdRef = useRef(null);
   const settledRef = useRef(false);
+  // Which prize matrix a newly bought ticket is rolled against. Internal only —
+  // nothing in the player-facing UI ever shows or hints at it.
+  const [oddsMode, setOddsMode] = useState("strict");
 
   const tokens = user?.earlyAccessTokens ?? 0;
   const canAfford = tokens >= ENTRY_COST;
@@ -79,6 +90,20 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
     loadAllocation(user).then(setAllocation);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, batch.date, batch.period]);
+
+  // The odds mode is read once for the session and kept current, so a change made
+  // by an administrator applies to the next ticket bought — a ticket already dealt
+  // keeps the outcome it was rolled with.
+  useEffect(() => {
+    const loadMode = () => {
+      base44.entities.AppSettings.list()
+        .then((rows) => setOddsMode(normaliseScratchMode(rows[0]?.scratch_card_mode)))
+        .catch(() => {});
+    };
+    loadMode();
+    const unsubscribe = base44.entities.AppSettings.subscribe(loadMode);
+    return unsubscribe;
+  }, []);
 
   /** What the ticket actually pays, decided against the freshly-read user record. */
   const resolveGrant = (won, fresh) => {
@@ -172,7 +197,7 @@ export default function ScratchCardGame({ user, onUserUpdate }) {
 
     // The ticket is dealt the moment the tokens are taken; the transaction and
     // ticket records are written while the player is scratching.
-    const roll = rollScratchOutcome();
+    const roll = rollScratchOutcome(oddsMode);
     settledRef.current = false;
     setPrize(roll.prize);
     setGranted(null);

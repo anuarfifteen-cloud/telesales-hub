@@ -42,6 +42,19 @@
       "description": "Whether the Premium Scratch Card sub-tab is available to players. When false, players see a 'Coming Soon' placeholder instead of the game; admins can still open it after entering the admin PIN.",
       "default": true
     },
+    "scratch_card_mode": {
+      "type": "string",
+      "enum": [
+        "strict",
+        "lenient"
+      ],
+      "enumColors": [
+        "gray",
+        "green"
+      ],
+      "description": "Admin-only odds mode for the Premium Scratch Card. strict = the default prize matrix. lenient = higher win rates and no blank tickets. Read when each ticket is rolled; a ticket already dealt keeps the outcome it was given. Never surfaced anywhere a player can see it \u2014 missing or invalid values fall back to strict.",
+      "default": "strict"
+    },
     "horse_betting_enabled": {
       "type": "boolean",
       "description": "Whether the \ud83d\udc0e Horse Betting sub-tab is available to regular players. When false, the sub-tab button and game panel are completely hidden from players; admins always see it.",
