@@ -62,7 +62,7 @@ export const BRANCHES = [
   "Rimba Point",
   "Yayasan",
   "Airport Mall",
-  "Times Square",
+  "Brunei International Airport",
   "Gadong",
   "Tutong",
   "KB",
@@ -71,7 +71,20 @@ export const BRANCHES = [
 
 /** Branch pick-up ticket choices. */
 export const PICKUP_ITEMS = ["Easi Prepaid", "Mobi Postpaid", "Freedom"];
-export const PICKUP_TIMES = ["9am", "10am", "2pm", "5pm"];
+
+/** Pick-up slots: every 30 minutes of the day, written as 12-hour AM/PM. */
+function buildPickupTimes() {
+  const slots = [];
+  for (let minutes = 0; minutes < 24 * 60; minutes += 30) {
+    const hour24 = Math.floor(minutes / 60);
+    const suffix = hour24 < 12 ? "AM" : "PM";
+    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    slots.push(`${hour12}:${String(minutes % 60).padStart(2, "0")} ${suffix}`);
+  }
+  return slots;
+}
+
+export const PICKUP_TIMES = buildPickupTimes();
 export const PAYMENT_STATUSES = ["Not Yet Paid", "Already Paid"];
 
 /** YYYY-MM-DD → DD.MM.YYYY, the one date format every note is written in. */

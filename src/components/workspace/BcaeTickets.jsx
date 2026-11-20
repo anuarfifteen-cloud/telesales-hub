@@ -11,7 +11,6 @@ import {
   MOBI_PLANS,
   PAYMENT_STATUSES,
   PICKUP_ITEMS,
-  PICKUP_TIMES,
   buildBcaeNote,
   infinityDefaultQuotaFor,
   mobiQuotaFor,
@@ -19,6 +18,7 @@ import {
 import WorkspacePills from "./WorkspacePills";
 import WorkspaceField from "./WorkspaceField";
 import DateDotInput from "./DateDotInput";
+import TimeSlotPicker from "./TimeSlotPicker";
 import InfinityRecontractFields from "./InfinityRecontractFields";
 import MobiRecontractFields from "./MobiRecontractFields";
 import CopyButton from "./CopyButton";
@@ -182,14 +182,11 @@ export default function BcaeTickets() {
                 </WorkspaceField>
 
                 <WorkspaceField label="Pick-Up Time">
-                  <select value={fields.pickupTime} onChange={set("pickupTime")} className={INPUT}>
-                    <option value="">Select time</option>
-                    {PICKUP_TIMES.map((time) => (
-                      <option key={time} value={time}>
-                        {time}
-                      </option>
-                    ))}
-                  </select>
+                  <TimeSlotPicker
+                    value={fields.pickupTime}
+                    onChange={(time) => setFields((prev) => ({ ...prev, pickupTime: time }))}
+                    label="Pick-Up Time"
+                  />
                 </WorkspaceField>
 
                 <div className="sm:col-span-2">
