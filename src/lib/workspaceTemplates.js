@@ -322,17 +322,23 @@ export function buildBcaeNote(category, fields) {
   }
 
   if (category === "activation") {
+    // "Today" keeps the sentence bare; a chosen date is written in DD.MM.YYYY.
+    const received =
+      fields.simReceivedMode === "date"
+        ? `on ${fill(formatDotDate(fields.simReceivedDate), "[SIM Received Date]")}`
+        : "today";
+
     return [
       `BCAE Ref: ${ref}`,
       "",
       `Order date: ${date}`,
-      `Sub ID: ${subId}`,
+      `Order ID: ${subId}`,
       "Complaints No: ",
       `Customer name: ${name}`,
       `IC No: ${ic}`,
       `Number to be contacted: ${contact}`,
       "",
-      "Remarks: Sub received simcard today/on ##.##.#### and claiming line is not active yet.",
+      `Remarks: Sub received simcard ${received} and claiming line is not active yet.`,
     ].join("\n");
   }
 
@@ -344,12 +350,13 @@ export function buildBcaeNote(category, fields) {
     const speed = fill(fields.infinitySpeed, "[Infinity Speed]");
     const effectiveDate = fill(formatDotDate(fields.infinityEffectiveDate), "[Effective Date]");
 
+    const serviceLine = fill(fields.serviceLine, "[Service Line]");
+
     return [
-      "ASSIGN TO BRANCH OFFICER",
       `BCAE REF: ${ref}`,
       "",
       `Call date: ${date}`,
-      `Sub Id/Service line: ${subId}`,
+      `Sub Id/Service line: ${subId} / ${serviceLine}`,
       `Customer name: ${name}`,
       `IC No: ${ic}`,
       `Contact num: ${contact}`,

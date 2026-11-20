@@ -28,6 +28,7 @@ const EMPTY_FIELDS = {
   ref: "",
   date: "",
   subId: "",
+  serviceLine: "",
   customerName: "",
   ic: "",
   contact: "",
@@ -35,6 +36,8 @@ const EMPTY_FIELDS = {
   pickupDate: "",
   pickupTime: "",
   pickupStatus: "",
+  simReceivedMode: "today",
+  simReceivedDate: "",
   mobiCurrentPlan: MOBI_PLANS[0],
   mobiUpgradePlan: MOBI_PLANS[0],
   mobiContract: CONTRACT_TYPES[0],
@@ -46,6 +49,18 @@ const EMPTY_FIELDS = {
   infinitySpeed: INFINITY_SPEEDS[0],
   infinityEffectiveDate: "",
 };
+
+/** The shared ID input is named per category. */
+const SUB_ID_LABELS = {
+  activation: "Order ID",
+  infinity: "Sub ID",
+};
+
+/** Today / Select Date choice for the SIM Activation remarks. */
+const RECEIVED_OPTIONS = [
+  { key: "today", label: "Today" },
+  { key: "date", label: "Select Date" },
+];
 
 /** Card titles for the category-specific card. */
 const DETAILS_TITLES = {
@@ -120,9 +135,19 @@ export default function BcaeTickets() {
               label="Call Date"
             />
           </WorkspaceField>
-          <WorkspaceField label="Sub ID / Order ID">
+          <WorkspaceField label={SUB_ID_LABELS[category] || "Sub ID / Order ID"}>
             <input value={fields.subId} onChange={set("subId")} placeholder="Sub or order ID" className={INPUT} />
           </WorkspaceField>
+          {category === "infinity" && (
+            <WorkspaceField label="Service Line">
+              <input
+                value={fields.serviceLine}
+                onChange={set("serviceLine")}
+                placeholder="Service line"
+                className={INPUT}
+              />
+            </WorkspaceField>
+          )}
           <WorkspaceField label="Customer Name">
             <input
               value={fields.customerName}
@@ -140,76 +165,93 @@ export default function BcaeTickets() {
         </div>
       </div>
 
-      {category !== "activation" && (
-        <div className={CARD}>
-          <p className="mb-3 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
-            {DETAILS_TITLES[category]}
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {category === "infinity" && <InfinityRecontractFields fields={fields} set={set} />}
-
-            {category === "mobi" && <MobiRecontractFields fields={fields} set={set} />}
-
-            {category === "pickup" && (
-              <>
-                <WorkspaceField label="Branch">
-                  <select value={branch} onChange={(e) => setBranch(e.target.value)} className={INPUT}>
-                    {BRANCHES.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
+      <div className={CARD}>
+        <p className="mb-3 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+          {DETAILS_TITLES[category]}
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {category === "activation" && (
+            <>
+              <div className="sm:col-span-2">
+                <WorkspaceField label="SIM Received Date">
+                  <WorkspacePills
+                    options={RECEIVED_OPTIONS}
+                    value={fields.simReceivedMode}
+                    onChange={(mode) => setFields((prev) => ({ ...prev, simReceivedMode: mode }))}
+                  />
                 </WorkspaceField>
-
-                <WorkspaceField label="Item for Pick Up">
-                  <select value={fields.pickupItem} onChange={set("pickupItem")} className={INPUT}>
-                    <option value="">Select item</option>
-                    {PICKUP_ITEMS.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                </WorkspaceField>
-
-                <WorkspaceField label="Pick-Up Date">
+              </div>
+              {fields.simReceivedMode === "date" && (
+                <WorkspaceField label="Received On">
                   <DateDotInput
-                    value={fields.pickupDate}
-                    onChange={(iso) => setFields((prev) => ({ ...prev, pickupDate: iso }))}
-                    label="Pick-Up Date"
+                    value={fields.simReceivedDate}
+                    onChange={(iso) => setFields((prev) => ({ ...prev, simReceivedDate: iso }))}
+                    label="SIM Received Date"
                   />
                 </WorkspaceField>
+              )}
+            </>
+          )}
 
-                <WorkspaceField label="Pick-Up Time">
-                  <TimeSlotPicker
-                    value={fields.pickupTime}
-                    onChange={(time) => setFields((prev) => ({ ...prev, pickupTime: time }))}
-                    label="Pick-Up Time"
-                  />
+          {category === "infinity" && <InfinityRecontractFields fields={fields} set={set} />}
+
+          {category === "mobi" && <MobiRecontractFields fields={fields} set={set} />}
+
+          {category === "pickup" && (
+            <>
+              <WorkspaceField label="Branch">
+                <select value={branch} onChange={(e) => setBranch(e.target.value)} className={INPUT}>
+                  {BRANCHES.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </WorkspaceField>
+
+              <WorkspaceField label="Item for Pick Up">
+                <select value={fields.pickupItem} onChange={set("pickupItem")} className={INPUT}>
+                  <option value="">Select item</option>
+                  {PICKUP_ITEMS.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </WorkspaceField>
+
+              <WorkspaceField label="Pick-Up Date">
+                <DateDotInput
+                  value={fields.pickupDate}
+                  onChange={(iso) => setFields((prev) => ({ ...prev, pickupDate: iso }))}
+                  label="Pick-Up Date"
+                />
+              </WorkspaceField>
+
+              <WorkspaceField label="Pick-Up Time">
+                <TimeSlotPicker
+                  value={fields.pickupTime}
+                  onChange={(time) => setFields((prev) => ({ ...prev, pickupTime: time }))}
+                  label="Pick-Up Time"
+                />
+              </WorkspaceField>
+
+              <div className="sm:col-span-2">
+                <WorkspaceField label="Payment Status">
+                  <select value={fields.pickupStatus} onChange={set("pickupStatus")} className={INPUT}>
+                    <option value="">Select payment status</option>
+                    {PAYMENT_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
                 </WorkspaceField>
-
-                <div className="sm:col-span-2">
-                  <WorkspaceField label="Payment Status">
-                    <select
-                      value={fields.pickupStatus}
-                      onChange={set("pickupStatus")}
-                      className={INPUT}
-                    >
-                      <option value="">Select payment status</option>
-                      {PAYMENT_STATUSES.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
-                  </WorkspaceField>
-                </div>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
 
       <div className={CARD}>
         <div className="mb-2 flex items-center justify-between gap-2">
