@@ -9,6 +9,9 @@ import {
   INFINITY_PLANS,
   INFINITY_SPEEDS,
   MOBI_PLANS,
+  PAYMENT_STATUSES,
+  PICKUP_ITEMS,
+  PICKUP_TIMES,
   buildBcaeNote,
   infinityDefaultQuotaFor,
   mobiQuotaFor,
@@ -28,6 +31,10 @@ const EMPTY_FIELDS = {
   customerName: "",
   ic: "",
   contact: "",
+  pickupItem: "",
+  pickupDate: "",
+  pickupTime: "",
+  pickupStatus: "",
   mobiCurrentPlan: MOBI_PLANS[0],
   mobiUpgradePlan: MOBI_PLANS[0],
   mobiContract: CONTRACT_TYPES[0],
@@ -43,6 +50,7 @@ const EMPTY_FIELDS = {
 /** Card titles for the category-specific card. */
 const DETAILS_TITLES = {
   pickup: "Pick-Up Details",
+  // Branch, item, date, time and payment status all live in this card.
   activation: "Activation Details",
   infinity: "Plan Details",
   mobi: "Plan Details",
@@ -63,6 +71,19 @@ export default function BcaeTickets() {
   // The Mobi quota follows the chosen plan and contract type, never typed.
   const mobiDataQuota = mobiQuotaFor(fields.mobiUpgradePlan, fields.mobiContract);
   const note = buildBcaeNote(category, { ...fields, branch, mobiDataQuota });
+
+  // Every pick-up detail must be chosen before the ticket may be copied.
+  const missingPickup = [
+    !fields.pickupItem && "Item for Pick Up",
+    !fields.pickupDate && "Pick-Up Date",
+    !fields.pickupTime && "Pick-Up Time",
+    !fields.pickupStatus && "Payment Status",
+  ].filter(Boolean);
+  const missing = category === "pickup" ? missingPickup : [];
+  const [showMissing, setShowMissing] = useState(false);
+  useEffect(() => {
+    if (missing.length === 0) setShowMissing(false);
+  }, [missing.length]);
 
   // The generated ticket seeds an editable draft. Changing the category or any
   // field re-seeds it, so a manual tweak always belongs to the ticket on screen.
@@ -130,7 +151,7 @@ export default function BcaeTickets() {
             {category === "mobi" && <MobiRecontractFields fields={fields} set={set} />}
 
             {category === "pickup" && (
-              <div className="sm:col-span-2">
+              <>
                 <WorkspaceField label="Branch">
                   <select value={branch} onChange={(e) => setBranch(e.target.value)} className={INPUT}>
                     {BRANCHES.map((name) => (
@@ -140,7 +161,54 @@ export default function BcaeTickets() {
                     ))}
                   </select>
                 </WorkspaceField>
-              </div>
+
+                <WorkspaceField label="Item for Pick Up">
+                  <select value={fields.pickupItem} onChange={set("pickupItem")} className={INPUT}>
+                    <option value="">Select item</option>
+                    {PICKUP_ITEMS.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </WorkspaceField>
+
+                <WorkspaceField label="Pick-Up Date">
+                  <DateDotInput
+                    value={fields.pickupDate}
+                    onChange={(iso) => setFields((prev) => ({ ...prev, pickupDate: iso }))}
+                    label="Pick-Up Date"
+                  />
+                </WorkspaceField>
+
+                <WorkspaceField label="Pick-Up Time">
+                  <select value={fields.pickupTime} onChange={set("pickupTime")} className={INPUT}>
+                    <option value="">Select time</option>
+                    {PICKUP_TIMES.map((time) => (
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
+                </WorkspaceField>
+
+                <div className="sm:col-span-2">
+                  <WorkspaceField label="Payment Status">
+                    <select
+                      value={fields.pickupStatus}
+                      onChange={set("pickupStatus")}
+                      className={INPUT}
+                    >
+                      <option value="">Select payment status</option>
+                      {PAYMENT_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </WorkspaceField>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -172,7 +240,12 @@ export default function BcaeTickets() {
           className={PREVIEW}
         />
         <div className="mt-3">
-          <CopyButton text={draft} />
+          <CopyButton text={draft} blocked={missing.length > 0} onBlocked={() => setShowMissing(true)} />
+          {showMissing && missing.length > 0 && (
+            <p className="mt-2 text-[11px] font-bold leading-snug text-destructive">
+              Complete these first: {missing.join(", ")}.
+            </p>
+          )}
         </div>
       </div>
     </div>

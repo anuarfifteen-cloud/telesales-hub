@@ -1,20 +1,20 @@
 // Pure frontend text builders for the Workspace tab: no records, no integrations.
 
 export const CRM_AGENTS = [
-  "MOHAMMAD ANWARUDDIN BIN EMBRAN",
-  "MUHD NUR AIMAN NAJIB BIN JALANI",
-  "NOR ADIBAH HAJI ASLI",
-  "ANIL HAKIM BIN NURUL ARSHIL AZIM",
-  "NURUL DIANA YA'AKUB",
-  "MUHAMMAD KASHIRAN BIN ABDULLAH",
-  "SALWA LAMAT",
-  "NURUL HUSNINA NADIA JOHARI",
-  "DAYANG SITI NURUSUHADDAH HJ SELAMAT",
-  "NURUL AZIEMAH @AZIMAH BINTI ASMIN",
-  "NURUL KAMALIAH HJ SALIM",
-  "NURAQILAH @NUR ATIQAH BINTI JEFERIDIN",
-  "NUR HALIMATUL SA'ADAH HAJI ASSIM",
-  "SITI NURAFIQAH HJ HASHIM",
+  "Salwa Binti Lamat",
+  "Muhd Nur Aiman Najib Bin Jalani",
+  "Nur Atiqah Binti Jeferidin",
+  "Anil Hakim Bin Nurul Arshil Azim",
+  "Nurul' Diana Binti Ya'akub",
+  "Nurul Aziemah@Azimah Binti Asmin",
+  "Nor Adibah Binti Haji Asli",
+  "Nurul Husnina Nadia Binti Johari",
+  "Nurul Kamaliah Binti Haji Salim",
+  "Mohammad Kashiran Bin Abdullah",
+  "Nur Halimatul Binti Haji Assim",
+  "Siti Nurusuhaddah Binti Haji Selamat",
+  "Siti Nurafiqah Bin Haji Hashim",
+  "Mohammad Anwaruddin Bin Embran",
 ];
 
 /** Freedom registration choices, written into the note exactly as shown. */
@@ -66,9 +66,13 @@ export const BRANCHES = [
   "Gadong",
   "Tutong",
   "KB",
-  "Seria",
   "Temburong",
 ];
+
+/** Branch pick-up ticket choices. */
+export const PICKUP_ITEMS = ["Easi Prepaid", "Mobi Postpaid", "Freedom"];
+export const PICKUP_TIMES = ["9am", "10am", "2pm", "5pm"];
+export const PAYMENT_STATUSES = ["Not Yet Paid", "Already Paid"];
 
 /** YYYY-MM-DD → DD.MM.YYYY, the one date format every note is written in. */
 export function formatNoteDate(iso) {
@@ -283,19 +287,24 @@ export function buildBcaeNote(category, fields) {
   const branch = fill(fields.branch, "[Selected Branch]");
 
   if (category === "pickup") {
+    const item = fill(fields.pickupItem, "[Item for Pick Up]");
+    const pickupDate = fill(formatDotDate(fields.pickupDate), "[Pick-Up Date]");
+    const pickupTime = fill(fields.pickupTime, "[Pick-Up Time]");
+    const alreadyPaid = fields.pickupStatus === PAYMENT_STATUSES[1];
+    const action = alreadyPaid ? "pick up" : "make payment and pick up";
+
     return [
       `BCAE Ref: ${ref}`,
       "",
       `Order date: ${date}`,
       `Order ID: ${subId}`,
       `Name: ${name}`,
-      "Date/Time for pickup: ",
+      `Date/Time for pickup: ${pickupDate}, ${pickupTime}`,
       `Location: ${branch}`,
-      "Item for pick up: ",
+      `Item for pick up: ${item}`,
       `Number to be contacted: ${contact}`,
       "",
-      `Remarks: Sub would like to make payment and pick up the SIM card at the ${branch} Branch by tomorrow ##.##.####, 5pm onwards.`,
-      "kindly assist, thank you.",
+      `Remarks: Sub would like to ${action} the SIM card at the ${branch} Branch on ${pickupDate}, ${pickupTime} onwards. kindly assist, thank you.`,
     ].join("\n");
   }
 

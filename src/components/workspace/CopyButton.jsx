@@ -4,10 +4,14 @@ import { toast } from "sonner";
 import { PRIMARY_BTN } from "./workspaceStyles";
 
 /** Copies the given text and confirms it with a toast. */
-export default function CopyButton({ text, label = "Copy Note" }) {
+export default function CopyButton({ text, label = "Copy Note", blocked = false, onBlocked }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
+    if (blocked) {
+      onBlocked?.();
+      return;
+    }
     try {
       await navigator.clipboard.writeText(text);
     } catch {
