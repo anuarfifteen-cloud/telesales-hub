@@ -147,6 +147,19 @@ export const BCAE_CATEGORIES = [
   },
 ];
 
+/** Plans offered in the recontract ticket dropdowns. */
+export const MOBI_PLANS = ["Mobi 18", "Mobi 30", "Mobi 50", "Mobi 80"];
+
+/** Recontract contract types. */
+export const CONTRACT_TYPES = ["More Data", "Payless"];
+
+/** Renders an ISO date (YYYY-MM-DD) as the ticket's DD.MM.YYYY form. */
+export function formatDotDate(isoDate) {
+  const parts = String(isoDate || "").split("-");
+  if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return "";
+  return `${parts[2]}.${parts[1]}.${parts[0]}`;
+}
+
 /** Fills a value, falling back to the template's own bracket label. */
 function fill(value, placeholder) {
   const text = value === null || value === undefined ? "" : String(value).trim();
@@ -162,6 +175,11 @@ export function buildBcaeNote(category, fields) {
   const ic = fill(fields.ic, "[IC No]");
   const contact = fill(fields.contact, "[Contact No]");
   const branch = fill(fields.branch, "[Selected Branch]");
+  const currentPlan = fill(fields.currentPlan, "[Current Plan]");
+  const upgradePlan = fill(fields.upgradePlan, "[Upgrade Plan]");
+  const contractType = fill(fields.contractType, "[Contract Type]");
+  const dataQuota = fill(fields.dataQuota, "[Data Quota]");
+  const effectiveDate = fill(formatDotDate(fields.effectiveDate), "[Effective Date]");
 
   if (category === "pickup") {
     return [
@@ -205,24 +223,24 @@ export function buildBcaeNote(category, fields) {
       `IC No: ${ic}`,
       `Contact num: ${contact}`,
       "",
-      "Current Plan: Infinity XX 24M Contract - XXXGB | 100Mbps",
-      "Infinity add on choice:  Infinity XX 24M Contract - XXXGB | 100Mbps",
-      "Effective Date: XXXXXXXX",
+      `Current Plan: ${currentPlan} 24M Contract - ${dataQuota}GB | 100Mbps`,
+      `Infinity add on choice:  ${upgradePlan} 24M Contract - ${contractType} ${dataQuota}GB | 100Mbps`,
+      `Effective Date: ${effectiveDate}`,
       "",
-      `Remarks: Sub would like to recontract with infinity XX more data effective XXXXXXXX. Please assist and contact sub at ${contact}. Thank you.`,
+      `Remarks: Sub would like to recontract with ${upgradePlan} ${contractType} effective ${effectiveDate}. Please assist and contact sub at ${contact}. Thank you.`,
     ].join("\n");
   }
 
   return [
     `BCAE REF: ${ref}`,
     "",
-    "Sub requests to upgrade the mobi plan to Mobi XX More Data/Paylesss - XXGB, Recontract 24 months.",
+    `Sub requests to upgrade the mobi plan to ${upgradePlan} ${contractType} - ${dataQuota}GB, Recontract 24 months.`,
     "- no outstanding bills.",
     "- not under contract.",
     "",
-    "Current Plan : Mobi XX",
-    "Upgrade Plan : Mobi XX 24months - More Data/Payless XXGB.",
-    "Effective Date : XXXXXXX",
+    `Current Plan : ${currentPlan}`,
+    `Upgrade Plan : ${upgradePlan} 24months - ${contractType} ${dataQuota}GB.`,
+    `Effective Date : ${effectiveDate}`,
     "",
     `MSISDN : ${contact}`,
     `Sub ID : ${subId}`,
