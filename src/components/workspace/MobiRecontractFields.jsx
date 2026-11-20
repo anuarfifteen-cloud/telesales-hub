@@ -1,5 +1,6 @@
-import { CONTRACT_TYPES, MOBI_PLANS, formatDotDate } from "@/lib/workspaceTemplates";
+import { CONTRACT_TYPES, MOBI_PLANS } from "@/lib/workspaceTemplates";
 import WorkspaceField from "./WorkspaceField";
+import DateDotInput from "./DateDotInput";
 import { INPUT } from "./workspaceStyles";
 
 /** Mobi-only recontract inputs. Kept separate from the Infinity field set. */
@@ -48,16 +49,12 @@ export default function MobiRecontractFields({ fields, set }) {
 
       <div className="sm:col-span-2">
         <WorkspaceField label="Effective Date">
-          <input
-            type="date"
+          <DateDotInput
             value={fields.mobiEffectiveDate}
-            onChange={set("mobiEffectiveDate")}
-            className={INPUT}
+            onChange={(iso) => set("mobiEffectiveDate")({ target: { value: iso } })}
+            label="Mobi Effective Date"
           />
         </WorkspaceField>
-        <p className="mt-1 text-[10px] font-bold tracking-[0.08em] text-muted-foreground">
-          {formatDotDate(fields.mobiEffectiveDate) || "DD.MM.YYYY"}
-        </p>
       </div>
     </>
   );

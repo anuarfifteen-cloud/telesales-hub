@@ -3,10 +3,10 @@ import {
   INFINITY_DATA_QUOTAS,
   INFINITY_PLANS,
   INFINITY_SPEEDS,
-  formatDotDate,
   infinityDefaultQuotaFor,
 } from "@/lib/workspaceTemplates";
 import WorkspaceField from "./WorkspaceField";
+import DateDotInput from "./DateDotInput";
 import { INPUT } from "./workspaceStyles";
 
 /** Infinity-only recontract inputs. Kept separate from the Mobi field set. */
@@ -88,16 +88,12 @@ export default function InfinityRecontractFields({ fields, set }) {
 
       <div className="sm:col-span-2">
         <WorkspaceField label="Effective Date">
-          <input
-            type="date"
+          <DateDotInput
             value={fields.infinityEffectiveDate}
-            onChange={set("infinityEffectiveDate")}
-            className={INPUT}
+            onChange={(iso) => set("infinityEffectiveDate")({ target: { value: iso } })}
+            label="Infinity Effective Date"
           />
         </WorkspaceField>
-        <p className="mt-1 text-[10px] font-bold tracking-[0.08em] text-muted-foreground">
-          {formatDotDate(fields.infinityEffectiveDate) || "DD.MM.YYYY"}
-        </p>
       </div>
     </>
   );

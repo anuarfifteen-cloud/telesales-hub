@@ -14,6 +14,7 @@ import {
 } from "@/lib/workspaceTemplates";
 import WorkspacePills from "./WorkspacePills";
 import WorkspaceField from "./WorkspaceField";
+import DateDotInput from "./DateDotInput";
 import InfinityRecontractFields from "./InfinityRecontractFields";
 import MobiRecontractFields from "./MobiRecontractFields";
 import CopyButton from "./CopyButton";
@@ -90,7 +91,11 @@ export default function BcaeTickets() {
             <input value={fields.ref} onChange={set("ref")} placeholder="BCAE reference" className={INPUT} />
           </WorkspaceField>
           <WorkspaceField label="Call Date">
-            <input type="date" value={fields.date} onChange={set("date")} className={INPUT} />
+            <DateDotInput
+              value={fields.date}
+              onChange={(iso) => setFields((prev) => ({ ...prev, date: iso }))}
+              label="Call Date"
+            />
           </WorkspaceField>
           <WorkspaceField label="Sub ID / Order ID">
             <input value={fields.subId} onChange={set("subId")} placeholder="Sub or order ID" className={INPUT} />
