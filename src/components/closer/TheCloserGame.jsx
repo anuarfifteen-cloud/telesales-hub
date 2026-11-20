@@ -17,6 +17,7 @@ import {
   BONUS_PLAYS,
   DAILY_LIMIT,
   DIAMOND_PRIZE,
+  DIAMOND_SLOTS,
   DIAMOND_VALUE,
   ENTRY_FEE,
   dealFolders,
@@ -58,9 +59,9 @@ export default function TheCloserGame({ user, onUserUpdate }) {
   const [lastVipOffer, setLastVipOffer] = useState(null);
   const [luckyRevealed, setLuckyRevealed] = useState(false);
   const [result, setResult] = useState(null);
-  // True only while playing the third play of today's +3 allowance — the sixth
-  // seat of the Brunei day, where folder 500 pays 1 Diamond instead of chips.
-  const [diamondRound, setDiamondRound] = useState(false);
+  // The seat number of the Diamond Round in play (3 or 6), or null. On those two
+  // plays of the Brunei day folder 500 pays 1 Diamond instead of chips.
+  const [diamondRound, setDiamondRound] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [daily, setDaily] = useState({
@@ -130,7 +131,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     setLuckyRevealed(false);
     setResult(null);
     setError("");
-    setDiamondRound(false);
+    setDiamondRound(null);
     setPhase("idle");
   };
 
@@ -177,7 +178,8 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         setLastVipOffer(
           savedRejected === null || savedRejected === undefined ? null : Number(savedRejected)
         );
-        setDiamondRound(true);
+        // The row it was saved on says which Diamond Round to resume.
+        setDiamondRound(Number(saved.slot) || DIAMOND_SLOTS[1]);
         setPhase(round.phase === "play" ? "play" : "pick");
       })
       .catch(() => {
@@ -201,7 +203,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       lastVipOffer,
       phase,
       offerOpen,
-    }).catch(() => {});
+    }, diamondRound).catch(() => {});
   }, [diamondRound, phase, lucky, opened, offer, offerOpen, lastVipOffer]);
 
   const handleSit = async () => {
@@ -224,9 +226,9 @@ export default function TheCloserGame({ user, onUserUpdate }) {
         );
         return;
       }
-      // The +3 allowance's third play — the sixth seat of the day — is the
-      // Diamond Round. Folder 500 still weighs 500 for the offer maths.
-      setDiamondRound(Boolean(state.bonusPurchased && state.playCount >= state.limit));
+      // The third and sixth seats of the day are Diamond Rounds. Folder 500
+      // still weighs 500 for the offer maths.
+      setDiamondRound(DIAMOND_SLOTS.includes(state.playCount) ? state.playCount : null);
       // Two of the ten folders are dealt as Mystery Wildcards, each holding a
       // freshly rolled secret amount — the top two slots always stay visible.
       foldersRef.current = dealFolders();
@@ -323,7 +325,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
     try {
       // A Diamond Round buyout is still paid in chips; closing the round first
       // makes sure it can never be resumed or paid twice.
-      if (diamondRound) await finishCloserRound();
+      if (diamondRound) await finishCloserRound(diamondRound);
       await creditPrize({ user, amount, source: "buyout offer" });
       setFeedKey((k) => k + 1);
       await onUserUpdate?.();
@@ -361,7 +363,7 @@ export default function TheCloserGame({ user, onUserUpdate }) {
       setResult({ amount: diamond ? DIAMOND_PRIZE : amount, source: "lucky", diamond, lastVipOffer });
       setPhase("done");
       play("sfxWin");
-      (diamondRound ? finishCloserRound() : Promise.resolve())
+      (diamondRound ? finishCloserRound(diamondRound) : Promise.resolve())
         .then(() =>
           diamond
             ? creditDiamondPrize({ user, amount: DIAMOND_PRIZE, source: "lucky folder 500" })

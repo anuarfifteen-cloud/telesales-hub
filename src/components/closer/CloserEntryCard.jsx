@@ -91,7 +91,7 @@ export default function CloserEntryCard({
             {buyingBonus ? "Unlocking…" : `Unlock +${bonusPlays} plays · ${bonusCost} tokens`}
           </button>
           <p className="mt-1.5 text-center text-[8px] font-semibold leading-snug text-amber-100/70">
-            Third bonus play is the 💎 Diamond Round — open folder 500 to win 1 Diamond.
+            Play 3 and the third bonus play are 💎 Diamond Rounds — open folder 500 to win 1 Diamond.
           </p>
           {!canBuyBonus && (
             <p className="mt-1.5 text-center text-[9px] font-bold uppercase tracking-wide text-amber-300">

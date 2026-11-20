@@ -104,8 +104,8 @@ export const DAILY_LIMIT = 3;
 export const BONUS_PLAYS = 3;
 export const BONUS_COST = 5;
 
-/** The play number of the Brunei day that is the Diamond Round (3rd bonus play). */
-export const DIAMOND_SLOT = 6;
+/** The plays of the Brunei day that are Diamond Rounds (third and sixth seat). */
+export const DIAMOND_SLOTS = [3, 6];
 
 /** The one folder value that pays a Diamond instead of chips in a Diamond Round. */
 export const DIAMOND_VALUE = 500;
@@ -220,22 +220,34 @@ export async function creditDiamondPrize({ user, amount = DIAMOND_PRIZE, source 
 }
 
 /**
- * Dealbreaker Diamond Round progress, stored on the sixth seat's own CloserPlay
- * row. It keeps the exact shuffled folders, the kept folder and the folders
- * already opened, so a refresh resumes the same paid round instead of losing it.
+ * Dealbreaker Diamond Round progress, stored on that play's own CloserPlay row
+ * (slot 3 or slot 6). It keeps the exact shuffled folders, the kept folder and
+ * the folders already opened, so a refresh resumes the same paid round instead
+ * of losing it — and the two rounds never share state.
  */
-export async function saveCloserRound(state) {
-  const res = await base44.functions.invoke("closerSeat", { action: "round", op: "save", state });
+export async function saveCloserRound(state, slot) {
+  const res = await base44.functions.invoke("closerSeat", {
+    action: "round",
+    op: "save",
+    state,
+    slot,
+  });
   return res?.data || {};
 }
 
-/** The saved Diamond Round for today, if one is in progress. */
+/** The saved Diamond Round for today, if one is in progress, and its slot. */
 export async function loadCloserRound() {
   const res = await base44.functions.invoke("closerSeat", { action: "round", op: "load" });
-  return { round: res?.data?.round || null, finished: res?.data?.finished === true };
+  return {
+    round: res?.data?.round || null,
+    finished: res?.data?.finished === true,
+    slot: Number(res?.data?.slot) || null,
+  };
 }
 
 /** Closes the round so it can never be resumed or paid twice. */
-export async function finishCloserRound() {
-  await base44.functions.invoke("closerSeat", { action: "round", op: "finish" }).catch(() => null);
+export async function finishCloserRound(slot) {
+  await base44.functions.invoke("closerSeat", { action: "round", op: "finish", slot }).catch(
+    () => null
+  );
 }

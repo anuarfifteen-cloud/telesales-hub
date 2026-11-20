@@ -5,6 +5,8 @@ const SEAT_FEE = 100;
 /** The once-a-day token pack that adds three more seats to the day. */
 const BONUS_PLAYS = 3;
 const BONUS_COST = 5;
+/** The plays of the Brunei day that are Diamond Rounds (third and sixth seat). */
+const DIAMOND_SLOTS = [3, 6];
 
 /** Today's date in Asia/Brunei (UTC+8), independent of the device timezone. */
 function bruneiDateKey(date = new Date()) {
@@ -67,22 +69,36 @@ export default async function (req) {
       ...over,
     });
 
-    // Dealbreaker Diamond Round — the sixth seat of the Brunei day (the third
-    // play of the +3 allowance). Its progress lives on that seat's own row, so a
-    // refresh resumes the same round; the row is keyed to today's date, so it
-    // resets by itself at Brunei midnight.
+    // Dealbreaker Diamond Rounds — the third and sixth seats of the Brunei day.
+    // Each round's progress lives on its own seat row, so the two rounds never
+    // share state; the row is keyed to today's date, so it resets by itself at
+    // Brunei midnight.
     if (body.action === 'round') {
-      const seatRow = rows.find(
-        (row) => row.bonus_purchase !== true && Number(row.slot) === DAILY_LIMIT + BONUS_PLAYS
+      const diamondRows = rows.filter(
+        (row) => row.bonus_purchase !== true && DIAMOND_SLOTS.includes(Number(row.slot))
       );
+      // The round in play is the newest unfinished Diamond seat that carries
+      // saved progress, else simply the newest unfinished one.
+      const openRows = diamondRows
+        .filter((row) => !row.round_finished_at)
+        .sort((a, b) => Number(b.slot) - Number(a.slot));
+      const openRow =
+        openRows.find((row) => row.round_state && Object.keys(row.round_state).length) ||
+        openRows[0] ||
+        null;
       if (body.op === 'load') {
-        const saved = seatRow?.round_state;
+        const saved = openRow?.round_state;
         return Response.json({
           ok: true,
           round: saved && Object.keys(saved).length ? saved : null,
-          finished: Boolean(seatRow?.round_finished_at),
+          // No unfinished Diamond seat left means today's rounds are done.
+          finished: !openRow && diamondRows.length > 0,
+          slot: openRow ? Number(openRow.slot) : null,
         });
       }
+      const seatRow = Number(body.slot)
+        ? diamondRows.find((row) => Number(row.slot) === Number(body.slot)) || openRow
+        : openRow;
       if (!seatRow) return Response.json({ ok: false, blocked: 'no_round' });
       if (body.op === 'finish') {
         await base44.asServiceRole.entities.CloserPlay.update(seatRow.id, {
