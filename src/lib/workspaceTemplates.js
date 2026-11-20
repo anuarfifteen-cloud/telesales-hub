@@ -195,6 +195,17 @@ export const MOBI_PLANS = ["Mobi 18", "Mobi 30", "Mobi 50", "Mobi 80"];
 /** Recontract contract types. */
 export const CONTRACT_TYPES = ["More Data", "Payless"];
 
+/** Data quota (GB) per Mobi plan, for each contract type. */
+export const MOBI_DATA_QUOTAS = {
+  "More Data": { "Mobi 18": 8, "Mobi 30": 18, "Mobi 50": 35, "Mobi 80": 70 },
+  Payless: { "Mobi 18": 6, "Mobi 30": 15, "Mobi 50": 30, "Mobi 80": 65 },
+};
+
+/** The quota that belongs to a Mobi plan + contract type combination. */
+export function mobiQuotaFor(plan, contract) {
+  return MOBI_DATA_QUOTAS[contract]?.[plan] ?? "";
+}
+
 /** Infinity recontract plans, contracts and speeds. Infinity has no Payless tier. */
 export const INFINITY_PLANS = [
   "Infinity 38",

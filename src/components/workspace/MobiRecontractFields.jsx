@@ -1,10 +1,13 @@
-import { CONTRACT_TYPES, MOBI_PLANS } from "@/lib/workspaceTemplates";
+import { CONTRACT_TYPES, MOBI_PLANS, mobiQuotaFor } from "@/lib/workspaceTemplates";
 import WorkspaceField from "./WorkspaceField";
 import DateDotInput from "./DateDotInput";
 import { INPUT } from "./workspaceStyles";
 
 /** Mobi-only recontract inputs. Kept separate from the Infinity field set. */
 export default function MobiRecontractFields({ fields, set }) {
+  // The quota is never typed: it follows the chosen plan and contract type.
+  const quota = mobiQuotaFor(fields.mobiUpgradePlan, fields.mobiContract);
+
   return (
     <>
       <WorkspaceField label="Current Plan">
@@ -38,13 +41,12 @@ export default function MobiRecontractFields({ fields, set }) {
       </WorkspaceField>
 
       <WorkspaceField label="Data Quota (GB)">
-        <input
-          value={fields.mobiDataQuota}
-          onChange={set("mobiDataQuota")}
-          placeholder="20"
-          inputMode="numeric"
-          className={INPUT}
-        />
+        <div className={`${INPUT} flex items-center justify-between gap-2`}>
+          <span className="font-semibold">{quota ? `${quota} GB` : "—"}</span>
+          <span className="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground">
+            Auto
+          </span>
+        </div>
       </WorkspaceField>
 
       <div className="sm:col-span-2">

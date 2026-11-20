@@ -11,6 +11,7 @@ import {
   MOBI_PLANS,
   buildBcaeNote,
   infinityDefaultQuotaFor,
+  mobiQuotaFor,
 } from "@/lib/workspaceTemplates";
 import WorkspacePills from "./WorkspacePills";
 import WorkspaceField from "./WorkspaceField";
@@ -30,7 +31,6 @@ const EMPTY_FIELDS = {
   mobiCurrentPlan: MOBI_PLANS[0],
   mobiUpgradePlan: MOBI_PLANS[0],
   mobiContract: CONTRACT_TYPES[0],
-  mobiDataQuota: "",
   mobiEffectiveDate: "",
   infinityCurrentPlan: INFINITY_PLANS[0],
   infinityUpgradePlan: INFINITY_PLANS[0],
@@ -60,7 +60,9 @@ export default function BcaeTickets() {
   const set = (key) => (e) => setFields((prev) => ({ ...prev, [key]: e.target.value }));
 
   const active = BCAE_CATEGORIES.find((c) => c.key === category);
-  const note = buildBcaeNote(category, { ...fields, branch });
+  // The Mobi quota follows the chosen plan and contract type, never typed.
+  const mobiDataQuota = mobiQuotaFor(fields.mobiUpgradePlan, fields.mobiContract);
+  const note = buildBcaeNote(category, { ...fields, branch, mobiDataQuota });
 
   // The generated ticket seeds an editable draft. Changing the category or any
   // field re-seeds it, so a manual tweak always belongs to the ticket on screen.
