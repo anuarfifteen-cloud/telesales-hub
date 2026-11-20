@@ -20,7 +20,6 @@ export const CRM_AGENTS = [
 /** Plan amounts offered per plan. EASI is pay-per-use, so it has none. */
 export const PLAN_AMOUNTS = {
   freedom: [18, 28, 48, 68, 88, 168],
-  infinity: [38, 58, 78, 98, 148],
 };
 
 /** Mobi registration choices, written into the note exactly as shown. */
@@ -33,6 +32,17 @@ export const MOBI_PLAN_TYPES = [
   "$30 MORE DATA (18GB) 24M CONTRACT",
   "$50 MORE DATA (35GB) 24M CONTRACT",
   "$80 MORE DATA (70GB) 24M CONTRACT",
+];
+
+/** Infinity registration choices, written into the note exactly as shown. */
+export const INFINITY_PLAN_TYPES = [
+  "$38 (650GB) 24M CONTRACT",
+  "$58 (1000GB) 24M CONTRACT",
+  "$78 (1500GB) 24M CONTRACT",
+  "$98 (2000GB) 24M CONTRACT",
+  "$148 (2500GB) 24M CONTRACT",
+  "$148 BUL (UNLIMITED) 24M CONTRACT",
+  "$188 BUL (UNLIMITED) 24M CONTRACT",
 ];
 
 export const BRANCHES = [
@@ -100,7 +110,15 @@ const INFINITY_LINES = [
 ];
 
 /** Builds the copyable CRM registration note for the selected plan. */
-export function buildCrmNote({ plan, amount, mobiPlanType, agent, date, includeMigration }) {
+export function buildCrmNote({
+  plan,
+  amount,
+  mobiPlanType,
+  infinityPlanType,
+  agent,
+  date,
+  includeMigration,
+}) {
   const dateText = formatNoteDate(date);
   const heading = [];
   let lines = [];
@@ -125,7 +143,10 @@ export function buildCrmNote({ plan, amount, mobiPlanType, agent, date, includeM
     heading.push("NEW REGISTRATION FREEDOM", `NEW REGISTER FREEDOM $${amount || "[Amount]"}`);
     lines = FREEDOM_LINES;
   } else {
-    heading.push("NEW REGISTRATION INFINITY", `NEW REGISTER INFINITY $${amount || "[Amount]"}`);
+    heading.push(
+      "NEW REGISTRATION INFINITY",
+      `NEW REGISTER INFINITY ${infinityPlanType || INFINITY_PLAN_TYPES[0]}`
+    );
     lines = INFINITY_LINES;
   }
 
@@ -181,24 +202,34 @@ export const INFINITY_PLANS = [
   "Infinity 78",
   "Infinity 98",
   "Infinity 148",
-  "Infinity 188",
+  "Infinity 148 BUL",
+  "Infinity 188 BUL",
 ];
 export const INFINITY_CONTRACTS = ["More Data", "Device"];
 export const INFINITY_SPEEDS = ["100Mbps", "200Mbps", "500Mbps"];
 
-/** Data quotas (GB) offered per Infinity plan, so the quota dropdown follows the plan. */
-export const INFINITY_QUOTAS = {
-  "Infinity 38": [350, 500],
-  "Infinity 58": [500, 650],
-  "Infinity 78": [650, 800],
-  "Infinity 98": [800, 1000],
-  "Infinity 148": [1200, 1500],
-  "Infinity 188": [1500, 2000],
+/** The only Infinity data quotas a ticket may carry. */
+export const INFINITY_DATA_QUOTAS = [650, 1000, 1500, 2000, 2500, "UNLIMITED"];
+
+/** Each plan's official quota, pre-selected when that plan is chosen. */
+export const INFINITY_PLAN_QUOTAS = {
+  "Infinity 38": 650,
+  "Infinity 58": 1000,
+  "Infinity 78": 1500,
+  "Infinity 98": 2000,
+  "Infinity 148": 2500,
+  "Infinity 148 BUL": "UNLIMITED",
+  "Infinity 188 BUL": "UNLIMITED",
 };
 
-/** Quotas for a plan, falling back to the first plan's list. */
-export function infinityQuotasFor(plan) {
-  return INFINITY_QUOTAS[plan] || INFINITY_QUOTAS[INFINITY_PLANS[0]];
+/** The full allowed quota list for the ticket's dropdown. */
+export function infinityQuotasFor() {
+  return INFINITY_DATA_QUOTAS;
+}
+
+/** The quota that belongs to a plan, used as the dropdown's selection. */
+export function infinityDefaultQuotaFor(plan) {
+  return INFINITY_PLAN_QUOTAS[plan] ?? INFINITY_DATA_QUOTAS[0];
 }
 
 /** Renders an ISO date (YYYY-MM-DD) as the ticket's DD.MM.YYYY form. */

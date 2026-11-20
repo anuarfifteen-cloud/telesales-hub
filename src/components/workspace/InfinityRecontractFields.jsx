@@ -1,26 +1,21 @@
 import {
   INFINITY_CONTRACTS,
+  INFINITY_DATA_QUOTAS,
   INFINITY_PLANS,
   INFINITY_SPEEDS,
   formatDotDate,
-  infinityQuotasFor,
+  infinityDefaultQuotaFor,
 } from "@/lib/workspaceTemplates";
 import WorkspaceField from "./WorkspaceField";
 import { INPUT } from "./workspaceStyles";
 
 /** Infinity-only recontract inputs. Kept separate from the Mobi field set. */
 export default function InfinityRecontractFields({ fields, set }) {
-  const quotaOptions = infinityQuotasFor(fields.infinityCurrentPlan);
-
-  // Switching the plan re-points the quota list; the selection moves to that
-  // plan's first quota whenever the old one does not belong to the new plan.
+  // Switching the plan pre-selects that plan's official quota, which the agent
+  // can still change to any of the six allowed quotas.
   const onCurrentPlanChange = (e) => {
-    const plan = e.target.value;
     set("infinityCurrentPlan")(e);
-    const options = infinityQuotasFor(plan);
-    if (!options.includes(Number(fields.infinityDataQuota))) {
-      set("infinityDataQuota")({ target: { value: String(options[0]) } });
-    }
+    set("infinityDataQuota")({ target: { value: String(infinityDefaultQuotaFor(e.target.value)) } });
   };
 
   return (
@@ -73,7 +68,7 @@ export default function InfinityRecontractFields({ fields, set }) {
           onChange={set("infinityDataQuota")}
           className={INPUT}
         >
-          {quotaOptions.map((quota) => (
+          {INFINITY_DATA_QUOTAS.map((quota) => (
             <option key={quota} value={quota}>
               {quota}
             </option>

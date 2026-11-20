@@ -10,7 +10,7 @@ import {
   INFINITY_SPEEDS,
   MOBI_PLANS,
   buildBcaeNote,
-  infinityQuotasFor,
+  infinityDefaultQuotaFor,
 } from "@/lib/workspaceTemplates";
 import WorkspacePills from "./WorkspacePills";
 import WorkspaceField from "./WorkspaceField";
@@ -34,7 +34,7 @@ const EMPTY_FIELDS = {
   infinityCurrentPlan: INFINITY_PLANS[0],
   infinityUpgradePlan: INFINITY_PLANS[0],
   infinityContract: INFINITY_CONTRACTS[0],
-  infinityDataQuota: String(infinityQuotasFor(INFINITY_PLANS[0])[0]),
+  infinityDataQuota: String(infinityDefaultQuotaFor(INFINITY_PLANS[0])),
   infinitySpeed: INFINITY_SPEEDS[0],
   infinityEffectiveDate: "",
 };

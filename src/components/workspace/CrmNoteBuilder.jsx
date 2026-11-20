@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { todayInBrunei } from "@/lib/slots";
-import { CRM_AGENTS, MOBI_PLAN_TYPES, PLAN_AMOUNTS, buildCrmNote } from "@/lib/workspaceTemplates";
+import {
+  CRM_AGENTS,
+  INFINITY_PLAN_TYPES,
+  MOBI_PLAN_TYPES,
+  PLAN_AMOUNTS,
+  buildCrmNote,
+} from "@/lib/workspaceTemplates";
 import WorkspacePills from "./WorkspacePills";
 import WorkspaceField from "./WorkspaceField";
 import CopyButton from "./CopyButton";
@@ -18,12 +24,21 @@ export default function CrmNoteBuilder() {
   const [plan, setPlan] = useState("easi");
   const [amount, setAmount] = useState("");
   const [mobiPlanType, setMobiPlanType] = useState(MOBI_PLAN_TYPES[0]);
+  const [infinityPlanType, setInfinityPlanType] = useState(INFINITY_PLAN_TYPES[0]);
   const [agent, setAgent] = useState("");
   const [date, setDate] = useState(() => todayInBrunei());
   const [includeMigration, setIncludeMigration] = useState(true);
 
   const amounts = PLAN_AMOUNTS[plan] || [];
-  const note = buildCrmNote({ plan, amount, mobiPlanType, agent, date, includeMigration });
+  const note = buildCrmNote({
+    plan,
+    amount,
+    mobiPlanType,
+    infinityPlanType,
+    agent,
+    date,
+    includeMigration,
+  });
 
   // The generated note seeds an editable draft. Changing any input re-seeds it,
   // so a manual tweak always belongs to the note currently on screen.
@@ -56,6 +71,22 @@ export default function CrmNoteBuilder() {
                 className={`${INPUT} text-xs`}
               >
                 {MOBI_PLAN_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </WorkspaceField>
+          )}
+
+          {plan === "infinity" && (
+            <WorkspaceField label="Infinity Plan Type">
+              <select
+                value={infinityPlanType}
+                onChange={(e) => setInfinityPlanType(e.target.value)}
+                className={`${INPUT} text-xs`}
+              >
+                {INFINITY_PLAN_TYPES.map((type) => (
                   <option key={type} value={type}>
                     {type}
                   </option>
