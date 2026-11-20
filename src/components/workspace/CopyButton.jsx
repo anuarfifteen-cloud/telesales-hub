@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
-import { GOLD_BG, GOLD_BTN } from "./workspaceStyles";
+import { PRIMARY_BTN } from "./workspaceStyles";
 
 /** Copies the given text and confirms it with a toast. */
 export default function CopyButton({ text, label = "Copy Note" }) {
@@ -27,7 +27,7 @@ export default function CopyButton({ text, label = "Copy Note" }) {
   };
 
   return (
-    <button type="button" onClick={handleCopy} className={`${GOLD_BTN} w-full`} style={GOLD_BG}>
+    <button type="button" onClick={handleCopy} className={`${PRIMARY_BTN} w-full`}>
       {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
       {copied ? "Copied!" : label}
     </button>

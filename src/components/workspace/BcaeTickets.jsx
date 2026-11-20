@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Pin } from "lucide-react";
 import { todayInBrunei } from "@/lib/slots";
 import { BCAE_CATEGORIES, BRANCHES, buildBcaeNote } from "@/lib/workspaceTemplates";
 import WorkspacePills from "./WorkspacePills";
@@ -15,7 +16,7 @@ const EMPTY_FIELDS = {
   contact: "",
 };
 
-/** BCAE Tickets: quick inputs feeding one live copyable ticket template. */
+/** BCAE Tickets: quick inputs feeding one live, editable ticket template. */
 export default function BcaeTickets() {
   const [category, setCategory] = useState("pickup");
   const [fields, setFields] = useState(() => ({ ...EMPTY_FIELDS, date: todayInBrunei() }));
@@ -26,10 +27,17 @@ export default function BcaeTickets() {
   const active = BCAE_CATEGORIES.find((c) => c.key === category);
   const note = buildBcaeNote(category, { ...fields, branch });
 
+  // The generated ticket seeds an editable draft. Changing the category or any
+  // field re-seeds it, so a manual tweak always belongs to the ticket on screen.
+  const [draft, setDraft] = useState(note);
+  useEffect(() => {
+    setDraft(note);
+  }, [note]);
+
   return (
     <div className="flex flex-col gap-3">
       <div className={CARD}>
-        <p className="mb-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#e9cf8f]">
+        <p className="mb-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
           Category
         </p>
         <WorkspacePills
@@ -80,12 +88,32 @@ export default function BcaeTickets() {
       </div>
 
       <div className={CARD}>
-        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#e9cf8f]">
-          {active.title}
-        </p>
-        <pre className={`${PREVIEW} mt-2.5`}>{note}</pre>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+            {active.title}
+          </p>
+          <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+            Editable
+          </span>
+        </div>
+
+        {/* Routing guidance is for the agent only — never part of the copied ticket. */}
+        <div className="mb-2.5 flex items-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-3 py-2">
+          <Pin className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
+          <span className="text-[11px] font-black uppercase tracking-[0.06em] text-primary">
+            Guideline: {active.guideline}
+          </span>
+        </div>
+
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          spellCheck={false}
+          aria-label="Editable BCAE ticket preview"
+          className={PREVIEW}
+        />
         <div className="mt-3">
-          <CopyButton text={note} />
+          <CopyButton text={draft} />
         </div>
       </div>
     </div>

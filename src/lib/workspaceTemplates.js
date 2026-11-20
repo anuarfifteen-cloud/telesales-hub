@@ -118,11 +118,33 @@ export function buildCrmNote({ plan, amount, agent, date, includeMigration }) {
   ].join("\n");
 }
 
+// `guideline` is the internal routing note shown above the preview only — it is
+// never written into the ticket body, so it can never be copied to the clipboard.
 export const BCAE_CATEGORIES = [
-  { key: "pickup", label: "Branch Pick-Up", title: "Online Order Branch Pick-Up" },
-  { key: "activation", label: "SIM Activation", title: "SIM Received Not Active Yet" },
-  { key: "infinity", label: "Infinity Recontract", title: "Infinity Recontract SMS Link" },
-  { key: "mobi", label: "Mobi Recontract", title: "Mobi More Data / Payless Recontract" },
+  {
+    key: "pickup",
+    label: "Branch Pick-Up",
+    title: "Online Order Branch Pick-Up",
+    guideline: "Assign to Branches Officer",
+  },
+  {
+    key: "activation",
+    label: "SIM Activation",
+    title: "SIM Received Not Active Yet",
+    guideline: "Assign to Customer Fulfilment",
+  },
+  {
+    key: "infinity",
+    label: "Infinity Recontract",
+    title: "Infinity Recontract SMS Link",
+    guideline: "Assign to Branch Officer",
+  },
+  {
+    key: "mobi",
+    label: "Mobi Recontract",
+    title: "Mobi More Data / Payless Recontract",
+    guideline: "Assign to Branches Officer",
+  },
 ];
 
 /** Fills a value, falling back to the template's own bracket label. */
@@ -143,7 +165,6 @@ export function buildBcaeNote(category, fields) {
 
   if (category === "pickup") {
     return [
-      "ASSIGN TO BRANCHES OFFICER",
       `BCAE Ref: ${ref}`,
       "",
       `Order date: ${date}`,
@@ -161,7 +182,6 @@ export function buildBcaeNote(category, fields) {
 
   if (category === "activation") {
     return [
-      "ASSIGN TO CUSTOMER FULFILMENT",
       `BCAE Ref: ${ref}`,
       "",
       `Order date: ${date}`,
@@ -177,7 +197,6 @@ export function buildBcaeNote(category, fields) {
 
   if (category === "infinity") {
     return [
-      "ASSIGN TO BRANCH OFFICER",
       `BCAE REF: ${ref}`,
       "",
       `Call date: ${date}`,
@@ -195,7 +214,6 @@ export function buildBcaeNote(category, fields) {
   }
 
   return [
-    "ASSIGN TO BRANCHES OFFICER",
     `BCAE REF: ${ref}`,
     "",
     "Sub requests to upgrade the mobi plan to Mobi XX More Data/Paylesss - XXGB, Recontract 24 months.",

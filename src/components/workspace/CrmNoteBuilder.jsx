@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { todayInBrunei } from "@/lib/slots";
 import { CRM_AGENTS, PLAN_AMOUNTS, buildCrmNote } from "@/lib/workspaceTemplates";
 import WorkspacePills from "./WorkspacePills";
@@ -13,7 +13,7 @@ const PLANS = [
   { key: "infinity", label: "INFINITY" },
 ];
 
-/** CRM Notes: plan picker, agent, date and a live copyable registration note. */
+/** CRM Notes: plan picker, agent, date and a live, editable registration note. */
 export default function CrmNoteBuilder() {
   const [plan, setPlan] = useState("easi");
   const [amount, setAmount] = useState("");
@@ -24,6 +24,13 @@ export default function CrmNoteBuilder() {
   const amounts = PLAN_AMOUNTS[plan] || [];
   const note = buildCrmNote({ plan, amount, agent, date, includeMigration });
 
+  // The generated note seeds an editable draft. Changing any input re-seeds it,
+  // so a manual tweak always belongs to the note currently on screen.
+  const [draft, setDraft] = useState(note);
+  useEffect(() => {
+    setDraft(note);
+  }, [note]);
+
   const choosePlan = (key) => {
     setPlan(key);
     setAmount(PLAN_AMOUNTS[key]?.[0] ?? "");
@@ -32,7 +39,7 @@ export default function CrmNoteBuilder() {
   return (
     <div className="flex flex-col gap-3">
       <div className={CARD}>
-        <p className="mb-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#e9cf8f]">
+        <p className="mb-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
           Plan
         </p>
         <WorkspacePills options={PLANS} value={plan} onChange={choosePlan} />
@@ -82,14 +89,14 @@ export default function CrmNoteBuilder() {
         </WorkspaceField>
 
         {plan === "mobi" && (
-          <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-[#d4af37]/25 bg-[#0d1740] px-3 py-2.5">
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border bg-secondary px-3 py-2.5">
             <input
               type="checkbox"
               checked={includeMigration}
               onChange={(e) => setIncludeMigration(e.target.checked)}
-              className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[#e3c46a]"
+              className="mt-0.5 h-4 w-4 flex-shrink-0 accent-primary"
             />
-            <span className="text-[11px] font-semibold leading-snug text-[#f7f1df]">
+            <span className="text-[11px] font-semibold leading-snug text-secondary-foreground">
               Include Easi Migration Credit Terms
             </span>
           </label>
@@ -98,16 +105,22 @@ export default function CrmNoteBuilder() {
 
       <div className={CARD}>
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#e9cf8f]">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
             Note Preview
           </p>
-          <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#e9cf8f]/50">
-            Live
+          <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+            Editable
           </span>
         </div>
-        <pre className={PREVIEW}>{note}</pre>
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          spellCheck={false}
+          aria-label="Editable CRM note preview"
+          className={PREVIEW}
+        />
         <div className="mt-3">
-          <CopyButton text={note} />
+          <CopyButton text={draft} />
         </div>
       </div>
     </div>

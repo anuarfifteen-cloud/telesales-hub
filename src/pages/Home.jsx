@@ -1277,8 +1277,8 @@ useEffect(() => {
           {[
             { id: "booking", label: "Booking", icon: CalendarDays },
             { id: "roster", label: "Roster", icon: ClipboardList },
-            { id: "tokens", label: "Tokens", icon: Coins },
             { id: "workspace", label: "Workspace", icon: Briefcase },
+            { id: "tokens", label: "Tokens", icon: Coins },
             { id: "profile", label: "Profile", icon: UserCircle },
           ].map(({ id, label, icon: Icon }) => {
             const isActive = activeTab === id;
