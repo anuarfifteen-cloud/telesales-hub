@@ -17,10 +17,23 @@ export const CRM_AGENTS = [
   "SITI NURAFIQAH HJ HASHIM",
 ];
 
-/** Plan amounts offered per plan. EASI is pay-per-use, so it has none. */
-export const PLAN_AMOUNTS = {
-  freedom: [18, 28, 48, 68, 88, 168],
-};
+/** Freedom registration choices, written into the note exactly as shown. */
+export const FREEDOM_PLAN_TYPES = [
+  "$18 NON-CONTRACT (10GB)",
+  "$28 NON-CONTRACT (18GB)",
+  "$48 NON-CONTRACT (32GB)",
+  "$68 NON-CONTRACT (50GB)",
+  "$88 NON-CONTRACT (70GB)",
+  "$18 MORE DATA (12GB) 24M CONTRACT",
+  "$28 MORE DATA (20GB) 24M CONTRACT",
+  "$48 MORE DATA (35GB) 24M CONTRACT",
+  "$68 MORE DATA (55GB) 24M CONTRACT",
+  "$88 MORE DATA (75GB) 24M CONTRACT",
+  "$28 DEVICE TPLINK (18GB) 24M CONTRACT",
+  "$48 DEVICE TPLINK (32GB) 24M CONTRACT",
+  "$68 DEVICE TPLINK (50GB) 24M CONTRACT",
+  "$88 DEVICE TPLINK (70GB) 24M CONTRACT",
+];
 
 /** Mobi registration choices, written into the note exactly as shown. */
 export const MOBI_PLAN_TYPES = [
@@ -57,13 +70,13 @@ export const BRANCHES = [
   "Temburong",
 ];
 
-/** YYYY-MM-DD → DD/MM/YYYY, the format the notes are written in. */
+/** YYYY-MM-DD → DD.MM.YYYY, the one date format every note is written in. */
 export function formatNoteDate(iso) {
   if (!iso) return "[Date]";
   const parts = String(iso).split("-");
   if (parts.length !== 3) return String(iso);
   const [y, m, d] = parts;
-  return `${d}/${m}/${y}`;
+  return `${d}.${m}.${y}`;
 }
 
 function agreementBlock(agent, dateText) {
@@ -112,7 +125,7 @@ const INFINITY_LINES = [
 /** Builds the copyable CRM registration note for the selected plan. */
 export function buildCrmNote({
   plan,
-  amount,
+  freedomPlanType,
   mobiPlanType,
   infinityPlanType,
   agent,
@@ -140,7 +153,10 @@ export function buildCrmNote({
       lines = MOBI_LINES;
     }
   } else if (plan === "freedom") {
-    heading.push("NEW REGISTRATION FREEDOM", `NEW REGISTER FREEDOM $${amount || "[Amount]"}`);
+    heading.push(
+      "NEW REGISTRATION FREEDOM",
+      `NEW REGISTER FREEDOM ${freedomPlanType || FREEDOM_PLAN_TYPES[0]}`
+    );
     lines = FREEDOM_LINES;
   } else {
     heading.push(

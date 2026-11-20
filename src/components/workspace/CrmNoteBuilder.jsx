@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { todayInBrunei } from "@/lib/slots";
 import {
   CRM_AGENTS,
+  FREEDOM_PLAN_TYPES,
   INFINITY_PLAN_TYPES,
   MOBI_PLAN_TYPES,
-  PLAN_AMOUNTS,
   buildCrmNote,
 } from "@/lib/workspaceTemplates";
 import WorkspacePills from "./WorkspacePills";
 import WorkspaceField from "./WorkspaceField";
+import DateDotInput from "./DateDotInput";
 import CopyButton from "./CopyButton";
 import { CARD, INPUT, PREVIEW } from "./workspaceStyles";
 
@@ -22,17 +23,16 @@ const PLANS = [
 /** CRM Notes: plan picker, agent, date and a live, editable registration note. */
 export default function CrmNoteBuilder() {
   const [plan, setPlan] = useState("easi");
-  const [amount, setAmount] = useState("");
+  const [freedomPlanType, setFreedomPlanType] = useState(FREEDOM_PLAN_TYPES[0]);
   const [mobiPlanType, setMobiPlanType] = useState(MOBI_PLAN_TYPES[0]);
   const [infinityPlanType, setInfinityPlanType] = useState(INFINITY_PLAN_TYPES[0]);
   const [agent, setAgent] = useState("");
   const [date, setDate] = useState(() => todayInBrunei());
   const [includeMigration, setIncludeMigration] = useState(true);
 
-  const amounts = PLAN_AMOUNTS[plan] || [];
   const note = buildCrmNote({
     plan,
-    amount,
+    freedomPlanType,
     mobiPlanType,
     infinityPlanType,
     agent,
@@ -47,10 +47,7 @@ export default function CrmNoteBuilder() {
     setDraft(note);
   }, [note]);
 
-  const choosePlan = (key) => {
-    setPlan(key);
-    setAmount(PLAN_AMOUNTS[key]?.[0] ?? "");
-  };
+  const choosePlan = (key) => setPlan(key);
 
   return (
     <div className="flex flex-col gap-3">
@@ -95,16 +92,16 @@ export default function CrmNoteBuilder() {
             </WorkspaceField>
           )}
 
-          {amounts.length > 0 && (
-            <WorkspaceField label="Plan Amount">
+          {plan === "freedom" && (
+            <WorkspaceField label="Freedom Plan Type">
               <select
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className={INPUT}
+                value={freedomPlanType}
+                onChange={(e) => setFreedomPlanType(e.target.value)}
+                className={`${INPUT} text-xs`}
               >
-                {amounts.map((value) => (
-                  <option key={value} value={value}>
-                    ${value}
+                {FREEDOM_PLAN_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
                   </option>
                 ))}
               </select>
@@ -112,12 +109,7 @@ export default function CrmNoteBuilder() {
           )}
 
           <WorkspaceField label="Date">
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className={INPUT}
-            />
+            <DateDotInput value={date} onChange={setDate} label="CRM Note Date" />
           </WorkspaceField>
         </div>
 
