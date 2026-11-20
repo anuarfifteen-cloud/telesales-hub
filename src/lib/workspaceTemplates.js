@@ -72,19 +72,26 @@ export const BRANCHES = [
 /** Branch pick-up ticket choices. */
 export const PICKUP_ITEMS = ["Easi Prepaid", "Mobi Postpaid", "Freedom"];
 
-/** Pick-up slots: every 30 minutes of the day, written as 12-hour AM/PM. */
-function buildPickupTimes() {
+/** Pick-up window: 9:00 AM through 11:30 PM only, in 30-minute steps. */
+export const PICKUP_MERIDIEMS = ["AM", "PM"];
+
+/** Times (hour:minute only) bookable inside the chosen period. */
+export function pickupTimesFor(meridiem) {
+  const start = meridiem === "AM" ? 9 * 60 : 12 * 60;
+  const end = meridiem === "AM" ? 12 * 60 : 24 * 60;
   const slots = [];
-  for (let minutes = 0; minutes < 24 * 60; minutes += 30) {
+  for (let minutes = start; minutes < end; minutes += 30) {
     const hour24 = Math.floor(minutes / 60);
-    const suffix = hour24 < 12 ? "AM" : "PM";
     const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-    slots.push(`${hour12}:${String(minutes % 60).padStart(2, "0")} ${suffix}`);
+    slots.push(`${hour12}:${String(minutes % 60).padStart(2, "0")}`);
   }
   return slots;
 }
 
-export const PICKUP_TIMES = buildPickupTimes();
+/** "9:00" + "PM" → "9:00 PM", the exact form the ticket note writes. */
+export function formatPickupTime(time, meridiem) {
+  return time ? `${time} ${meridiem}` : "";
+}
 export const PAYMENT_STATUSES = ["Not Yet Paid", "Already Paid"];
 
 /** YYYY-MM-DD → DD.MM.YYYY, the one date format every note is written in. */
@@ -294,6 +301,8 @@ export function buildBcaeNote(category, fields) {
   const ref = fill(fields.ref, "[BCAE Ref]");
   const date = fill(formatNoteDate(fields.date), "[Date]");
   const subId = fill(fields.subId, "[Sub ID]");
+  // SIM Activation refers to the order, never the subscription.
+  const orderId = fill(fields.subId, "[Order ID]");
   const name = fill(fields.customerName, "[Customer Name]");
   const ic = fill(fields.ic, "[IC No]");
   const contact = fill(fields.contact, "[Contact No]");
@@ -332,7 +341,7 @@ export function buildBcaeNote(category, fields) {
       `BCAE Ref: ${ref}`,
       "",
       `Order date: ${date}`,
-      `Order ID: ${subId}`,
+      `Order ID: ${orderId}`,
       "Complaints No: ",
       `Customer name: ${name}`,
       `IC No: ${ic}`,
