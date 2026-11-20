@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { todayInBrunei } from "@/lib/slots";
-import { CRM_AGENTS, PLAN_AMOUNTS, buildCrmNote } from "@/lib/workspaceTemplates";
+import { CRM_AGENTS, MOBI_PLAN_TYPES, PLAN_AMOUNTS, buildCrmNote } from "@/lib/workspaceTemplates";
 import WorkspacePills from "./WorkspacePills";
 import WorkspaceField from "./WorkspaceField";
 import CopyButton from "./CopyButton";
@@ -17,12 +17,13 @@ const PLANS = [
 export default function CrmNoteBuilder() {
   const [plan, setPlan] = useState("easi");
   const [amount, setAmount] = useState("");
+  const [mobiPlanType, setMobiPlanType] = useState(MOBI_PLAN_TYPES[0]);
   const [agent, setAgent] = useState("");
   const [date, setDate] = useState(() => todayInBrunei());
   const [includeMigration, setIncludeMigration] = useState(true);
 
   const amounts = PLAN_AMOUNTS[plan] || [];
-  const note = buildCrmNote({ plan, amount, agent, date, includeMigration });
+  const note = buildCrmNote({ plan, amount, mobiPlanType, agent, date, includeMigration });
 
   // The generated note seeds an editable draft. Changing any input re-seeds it,
   // so a manual tweak always belongs to the note currently on screen.
@@ -47,6 +48,22 @@ export default function CrmNoteBuilder() {
 
       <div className={`${CARD} flex flex-col gap-3`}>
         <div className="grid gap-3 sm:grid-cols-2">
+          {plan === "mobi" && (
+            <WorkspaceField label="Mobi Plan Type">
+              <select
+                value={mobiPlanType}
+                onChange={(e) => setMobiPlanType(e.target.value)}
+                className={`${INPUT} text-xs`}
+              >
+                {MOBI_PLAN_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </WorkspaceField>
+          )}
+
           {amounts.length > 0 && (
             <WorkspaceField label="Plan Amount">
               <select

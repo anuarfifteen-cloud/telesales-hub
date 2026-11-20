@@ -19,10 +19,21 @@ export const CRM_AGENTS = [
 
 /** Plan amounts offered per plan. EASI is pay-per-use, so it has none. */
 export const PLAN_AMOUNTS = {
-  mobi: [18, 30, 50, 80],
   freedom: [18, 28, 48, 68, 88, 168],
   infinity: [38, 58, 78, 98, 148],
 };
+
+/** Mobi registration choices, written into the note exactly as shown. */
+export const MOBI_PLAN_TYPES = [
+  "$18 NON-CONTRACT (6GB)",
+  "$30 NON-CONTRACT (15GB)",
+  "$50 NON-CONTRACT (30GB)",
+  "$80 NON-CONTRACT (65GB)",
+  "$18 MORE DATA (8GB) 24M CONTRACT",
+  "$30 MORE DATA (18GB) 24M CONTRACT",
+  "$50 MORE DATA (35GB) 24M CONTRACT",
+  "$80 MORE DATA (70GB) 24M CONTRACT",
+];
 
 export const BRANCHES = [
   "Rimba Point",
@@ -89,7 +100,7 @@ const INFINITY_LINES = [
 ];
 
 /** Builds the copyable CRM registration note for the selected plan. */
-export function buildCrmNote({ plan, amount, agent, date, includeMigration }) {
+export function buildCrmNote({ plan, amount, mobiPlanType, agent, date, includeMigration }) {
   const dateText = formatNoteDate(date);
   const heading = [];
   let lines = [];
@@ -98,8 +109,18 @@ export function buildCrmNote({ plan, amount, agent, date, includeMigration }) {
     heading.push("NEW REGISTRATION EASI", "NEW REGISTER EASI PREPAID");
     lines = EASI_LINES;
   } else if (plan === "mobi") {
-    heading.push(`NEW REGISTER MOBI $${amount || "[Amount]"}`);
-    lines = includeMigration ? [...MOBI_LINES, ...MOBI_MIGRATION_LINES] : MOBI_LINES;
+    // A migration note carries its own two header lines and the credit terms.
+    const planText = mobiPlanType || MOBI_PLAN_TYPES[0];
+    if (includeMigration) {
+      heading.push(
+        "MIGRATION FROM EASI TO NEW REGISTRATION MOBI",
+        `MIGRATION FROM EASI TO NEW REGISTER MOBI ${planText}`
+      );
+      lines = [...MOBI_LINES, ...MOBI_MIGRATION_LINES];
+    } else {
+      heading.push("NEW REGISTRATION MOBI", `NEW REGISTER MOBI ${planText}`);
+      lines = MOBI_LINES;
+    }
   } else if (plan === "freedom") {
     heading.push("NEW REGISTRATION FREEDOM", `NEW REGISTER FREEDOM $${amount || "[Amount]"}`);
     lines = FREEDOM_LINES;
