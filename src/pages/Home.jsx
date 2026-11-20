@@ -12,8 +12,9 @@ import SlotCard from "@/components/booking/SlotCard";
 import DateTab from "@/components/booking/DateTab";
 import MySchedule from "@/components/booking/MySchedule";
 import LiveClock from "@/components/booking/LiveClock";
-import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins, Megaphone } from "lucide-react";
+import { CalendarDays, ClipboardList, UserCircle, Bell, Settings, ArrowLeft, LogOut, Trash2, Plus, Moon, Clock, Coins, Megaphone, Briefcase } from "lucide-react";
 import TokensTab from "./TokensTab";
+import WorkspaceView from "@/components/workspace/WorkspaceView";
 import { getStoredTheme, getCachedTheme, applyTheme, applyActiveTheme, THEME_MODE_LOCK } from "@/lib/theme";
 import { syncPublicProfile } from "@/lib/publicProfile";
 import AdminPinModal from "@/components/admin/AdminPinModal";
@@ -1025,6 +1026,9 @@ useEffect(() => {
           />
         )}
 
+        {/* ── WORKSPACE TAB ── */}
+        {activeTab === "workspace" && <WorkspaceView />}
+
         {/* ── ADMIN TAB ── */}
         {activeTab === "admin" && isAdmin && (
           <AdminDashboard onBack={() => setActiveTab("booking")} />
@@ -1267,13 +1271,14 @@ useEffect(() => {
           className="pointer-events-auto flex items-center justify-around px-3 py-1.5 rounded-full bg-card/90 border border-border backdrop-blur-xl shadow-lg"
           style={{
             width: "90%",
-            maxWidth: "420px",
+            maxWidth: "480px",
           }}
         >
           {[
             { id: "booking", label: "Booking", icon: CalendarDays },
             { id: "roster", label: "Roster", icon: ClipboardList },
             { id: "tokens", label: "Tokens", icon: Coins },
+            { id: "workspace", label: "Workspace", icon: Briefcase },
             { id: "profile", label: "Profile", icon: UserCircle },
           ].map(({ id, label, icon: Icon }) => {
             const isActive = activeTab === id;
@@ -1281,7 +1286,7 @@ useEffect(() => {
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`relative flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-full transition-all ${
+                className={`relative flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-full transition-all ${
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground"
