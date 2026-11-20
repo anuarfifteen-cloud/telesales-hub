@@ -154,9 +154,31 @@ export const MOBI_PLANS = ["Mobi 18", "Mobi 30", "Mobi 50", "Mobi 80"];
 export const CONTRACT_TYPES = ["More Data", "Payless"];
 
 /** Infinity recontract plans, contracts and speeds. Infinity has no Payless tier. */
-export const INFINITY_PLANS = ["Infinity 38", "Infinity 58", "Infinity 78", "Infinity 98", "Infinity 148"];
+export const INFINITY_PLANS = [
+  "Infinity 38",
+  "Infinity 58",
+  "Infinity 78",
+  "Infinity 98",
+  "Infinity 148",
+  "Infinity 188",
+];
 export const INFINITY_CONTRACTS = ["More Data", "Device"];
-export const INFINITY_SPEEDS = ["100Mbps", "200Mbps"];
+export const INFINITY_SPEEDS = ["100Mbps", "200Mbps", "500Mbps"];
+
+/** Data quotas (GB) offered per Infinity plan, so the quota dropdown follows the plan. */
+export const INFINITY_QUOTAS = {
+  "Infinity 38": [350, 500],
+  "Infinity 58": [500, 650],
+  "Infinity 78": [650, 800],
+  "Infinity 98": [800, 1000],
+  "Infinity 148": [1200, 1500],
+  "Infinity 188": [1500, 2000],
+};
+
+/** Quotas for a plan, falling back to the first plan's list. */
+export function infinityQuotasFor(plan) {
+  return INFINITY_QUOTAS[plan] || INFINITY_QUOTAS[INFINITY_PLANS[0]];
+}
 
 /** Renders an ISO date (YYYY-MM-DD) as the ticket's DD.MM.YYYY form. */
 export function formatDotDate(isoDate) {

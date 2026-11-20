@@ -10,6 +10,7 @@ import {
   INFINITY_SPEEDS,
   MOBI_PLANS,
   buildBcaeNote,
+  infinityQuotasFor,
 } from "@/lib/workspaceTemplates";
 import WorkspacePills from "./WorkspacePills";
 import WorkspaceField from "./WorkspaceField";
@@ -30,12 +31,20 @@ const EMPTY_FIELDS = {
   mobiContract: CONTRACT_TYPES[0],
   mobiDataQuota: "",
   mobiEffectiveDate: "",
-  infinityCurrentPlan: "",
+  infinityCurrentPlan: INFINITY_PLANS[0],
   infinityUpgradePlan: INFINITY_PLANS[0],
   infinityContract: INFINITY_CONTRACTS[0],
-  infinityDataQuota: "",
+  infinityDataQuota: String(infinityQuotasFor(INFINITY_PLANS[0])[0]),
   infinitySpeed: INFINITY_SPEEDS[0],
   infinityEffectiveDate: "",
+};
+
+/** Card titles for the category-specific card. */
+const DETAILS_TITLES = {
+  pickup: "Pick-Up Details",
+  activation: "Activation Details",
+  infinity: "Plan Details",
+  mobi: "Plan Details",
 };
 
 /** BCAE Tickets: quick inputs feeding one live, editable ticket template. */
@@ -72,49 +81,63 @@ export default function BcaeTickets() {
         />
       </div>
 
-      <div className={`${CARD} grid gap-3 sm:grid-cols-2`}>
-        <WorkspaceField label="BCAE Ref">
-          <input value={fields.ref} onChange={set("ref")} placeholder="BCAE reference" className={INPUT} />
-        </WorkspaceField>
-        <WorkspaceField label="Date">
-          <input type="date" value={fields.date} onChange={set("date")} className={INPUT} />
-        </WorkspaceField>
-        <WorkspaceField label="Sub ID / Order ID">
-          <input value={fields.subId} onChange={set("subId")} placeholder="Sub or order ID" className={INPUT} />
-        </WorkspaceField>
-        <WorkspaceField label="Customer Name">
-          <input
-            value={fields.customerName}
-            onChange={set("customerName")}
-            placeholder="Full name"
-            className={INPUT}
-          />
-        </WorkspaceField>
-        <WorkspaceField label="IC No">
-          <input value={fields.ic} onChange={set("ic")} placeholder="IC number" className={INPUT} />
-        </WorkspaceField>
-        <WorkspaceField label="Contact No">
-          <input value={fields.contact} onChange={set("contact")} placeholder="Contact number" className={INPUT} />
-        </WorkspaceField>
-
-        {category === "infinity" && <InfinityRecontractFields fields={fields} set={set} />}
-
-        {category === "mobi" && <MobiRecontractFields fields={fields} set={set} />}
-
-        {category === "pickup" && (
-          <div className="sm:col-span-2">
-            <WorkspaceField label="Branch">
-              <select value={branch} onChange={(e) => setBranch(e.target.value)} className={INPUT}>
-                {BRANCHES.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </WorkspaceField>
-          </div>
-        )}
+      <div className={CARD}>
+        <p className="mb-3 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+          Customer Details
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <WorkspaceField label="BCAE Ref">
+            <input value={fields.ref} onChange={set("ref")} placeholder="BCAE reference" className={INPUT} />
+          </WorkspaceField>
+          <WorkspaceField label="Call Date">
+            <input type="date" value={fields.date} onChange={set("date")} className={INPUT} />
+          </WorkspaceField>
+          <WorkspaceField label="Sub ID / Order ID">
+            <input value={fields.subId} onChange={set("subId")} placeholder="Sub or order ID" className={INPUT} />
+          </WorkspaceField>
+          <WorkspaceField label="Customer Name">
+            <input
+              value={fields.customerName}
+              onChange={set("customerName")}
+              placeholder="Full name"
+              className={INPUT}
+            />
+          </WorkspaceField>
+          <WorkspaceField label="IC No">
+            <input value={fields.ic} onChange={set("ic")} placeholder="IC number" className={INPUT} />
+          </WorkspaceField>
+          <WorkspaceField label="Contact No">
+            <input value={fields.contact} onChange={set("contact")} placeholder="Contact number" className={INPUT} />
+          </WorkspaceField>
+        </div>
       </div>
+
+      {category !== "activation" && (
+        <div className={CARD}>
+          <p className="mb-3 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+            {DETAILS_TITLES[category]}
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {category === "infinity" && <InfinityRecontractFields fields={fields} set={set} />}
+
+            {category === "mobi" && <MobiRecontractFields fields={fields} set={set} />}
+
+            {category === "pickup" && (
+              <div className="sm:col-span-2">
+                <WorkspaceField label="Branch">
+                  <select value={branch} onChange={(e) => setBranch(e.target.value)} className={INPUT}>
+                    {BRANCHES.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </WorkspaceField>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className={CARD}>
         <div className="mb-2 flex items-center justify-between gap-2">
