@@ -153,6 +153,11 @@ export const MOBI_PLANS = ["Mobi 18", "Mobi 30", "Mobi 50", "Mobi 80"];
 /** Recontract contract types. */
 export const CONTRACT_TYPES = ["More Data", "Payless"];
 
+/** Infinity recontract plans, contracts and speeds. Infinity has no Payless tier. */
+export const INFINITY_PLANS = ["Infinity 38", "Infinity 58", "Infinity 78", "Infinity 98", "Infinity 148"];
+export const INFINITY_CONTRACTS = ["More Data", "Device"];
+export const INFINITY_SPEEDS = ["100Mbps", "200Mbps"];
+
 /** Renders an ISO date (YYYY-MM-DD) as the ticket's DD.MM.YYYY form. */
 export function formatDotDate(isoDate) {
   const parts = String(isoDate || "").split("-");
@@ -175,11 +180,6 @@ export function buildBcaeNote(category, fields) {
   const ic = fill(fields.ic, "[IC No]");
   const contact = fill(fields.contact, "[Contact No]");
   const branch = fill(fields.branch, "[Selected Branch]");
-  const currentPlan = fill(fields.currentPlan, "[Current Plan]");
-  const upgradePlan = fill(fields.upgradePlan, "[Upgrade Plan]");
-  const contractType = fill(fields.contractType, "[Contract Type]");
-  const dataQuota = fill(fields.dataQuota, "[Data Quota]");
-  const effectiveDate = fill(formatDotDate(fields.effectiveDate), "[Effective Date]");
 
   if (category === "pickup") {
     return [
@@ -214,7 +214,15 @@ export function buildBcaeNote(category, fields) {
   }
 
   if (category === "infinity") {
+    const currentPlan = fill(fields.infinityCurrentPlan, "[Infinity Current Plan]");
+    const upgradePlan = fill(fields.infinityUpgradePlan, "[Infinity Upgrade Plan]");
+    const contract = fill(fields.infinityContract, "[Infinity Contract]");
+    const quota = fill(fields.infinityDataQuota, "[Infinity Data Quota]");
+    const speed = fill(fields.infinitySpeed, "[Infinity Speed]");
+    const effectiveDate = fill(formatDotDate(fields.infinityEffectiveDate), "[Effective Date]");
+
     return [
+      "ASSIGN TO BRANCH OFFICER",
       `BCAE REF: ${ref}`,
       "",
       `Call date: ${date}`,
@@ -223,13 +231,19 @@ export function buildBcaeNote(category, fields) {
       `IC No: ${ic}`,
       `Contact num: ${contact}`,
       "",
-      `Current Plan: ${currentPlan} 24M Contract - ${dataQuota}GB | 100Mbps`,
-      `Infinity add on choice:  ${upgradePlan} 24M Contract - ${contractType} ${dataQuota}GB | 100Mbps`,
+      `Current Plan: ${currentPlan}`,
+      `Infinity add on choice: ${upgradePlan} 24M Contract - ${contract} ${quota}GB | ${speed}`,
       `Effective Date: ${effectiveDate}`,
       "",
-      `Remarks: Sub would like to recontract with ${upgradePlan} ${contractType} effective ${effectiveDate}. Please assist and contact sub at ${contact}. Thank you.`,
+      `Remarks: Sub would like to recontract with ${upgradePlan} ${contract} effective ${effectiveDate}. Please assist and contact sub at ${contact}. Thank you.`,
     ].join("\n");
   }
+
+  const currentPlan = fill(fields.mobiCurrentPlan, "[Current Plan]");
+  const upgradePlan = fill(fields.mobiUpgradePlan, "[Upgrade Plan]");
+  const contractType = fill(fields.mobiContract, "[Contract Type]");
+  const dataQuota = fill(fields.mobiDataQuota, "[Data Quota]");
+  const effectiveDate = fill(formatDotDate(fields.mobiEffectiveDate), "[Effective Date]");
 
   return [
     `BCAE REF: ${ref}`,

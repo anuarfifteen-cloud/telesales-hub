@@ -1,10 +1,20 @@
 import { useEffect, useState } from "react";
 import { Pin } from "lucide-react";
 import { todayInBrunei } from "@/lib/slots";
-import { BCAE_CATEGORIES, BRANCHES, CONTRACT_TYPES, MOBI_PLANS, buildBcaeNote } from "@/lib/workspaceTemplates";
+import {
+  BCAE_CATEGORIES,
+  BRANCHES,
+  CONTRACT_TYPES,
+  INFINITY_CONTRACTS,
+  INFINITY_PLANS,
+  INFINITY_SPEEDS,
+  MOBI_PLANS,
+  buildBcaeNote,
+} from "@/lib/workspaceTemplates";
 import WorkspacePills from "./WorkspacePills";
 import WorkspaceField from "./WorkspaceField";
-import BcaeRecontractFields from "./BcaeRecontractFields";
+import InfinityRecontractFields from "./InfinityRecontractFields";
+import MobiRecontractFields from "./MobiRecontractFields";
 import CopyButton from "./CopyButton";
 import { CARD, INPUT, PREVIEW } from "./workspaceStyles";
 
@@ -15,24 +25,26 @@ const EMPTY_FIELDS = {
   customerName: "",
   ic: "",
   contact: "",
-  currentPlan: MOBI_PLANS[0],
-  upgradePlan: MOBI_PLANS[0],
-  contractType: CONTRACT_TYPES[0],
-  dataQuota: "",
-  effectiveDate: "",
+  mobiCurrentPlan: MOBI_PLANS[0],
+  mobiUpgradePlan: MOBI_PLANS[0],
+  mobiContract: CONTRACT_TYPES[0],
+  mobiDataQuota: "",
+  mobiEffectiveDate: "",
+  infinityCurrentPlan: "",
+  infinityUpgradePlan: INFINITY_PLANS[0],
+  infinityContract: INFINITY_CONTRACTS[0],
+  infinityDataQuota: "",
+  infinitySpeed: INFINITY_SPEEDS[0],
+  infinityEffectiveDate: "",
 };
-
-/** Categories that quote a plan change, so they share the recontract inputs. */
-const RECONTRACT_CATEGORIES = ["infinity", "mobi"];
 
 /** BCAE Tickets: quick inputs feeding one live, editable ticket template. */
 export default function BcaeTickets() {
   const [category, setCategory] = useState("pickup");
-  const [fields, setFields] = useState(() => ({
-    ...EMPTY_FIELDS,
-    date: todayInBrunei(),
-    effectiveDate: todayInBrunei(),
-  }));
+  const [fields, setFields] = useState(() => {
+    const today = todayInBrunei();
+    return { ...EMPTY_FIELDS, date: today, mobiEffectiveDate: today, infinityEffectiveDate: today };
+  });
   const [branch, setBranch] = useState(BRANCHES[0]);
 
   const set = (key) => (e) => setFields((prev) => ({ ...prev, [key]: e.target.value }));
@@ -85,9 +97,9 @@ export default function BcaeTickets() {
           <input value={fields.contact} onChange={set("contact")} placeholder="Contact number" className={INPUT} />
         </WorkspaceField>
 
-        {RECONTRACT_CATEGORIES.includes(category) && (
-          <BcaeRecontractFields fields={fields} set={set} />
-        )}
+        {category === "infinity" && <InfinityRecontractFields fields={fields} set={set} />}
+
+        {category === "mobi" && <MobiRecontractFields fields={fields} set={set} />}
 
         {category === "pickup" && (
           <div className="sm:col-span-2">
