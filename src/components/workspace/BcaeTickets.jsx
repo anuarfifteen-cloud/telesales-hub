@@ -133,19 +133,9 @@ export default function BcaeTickets() {
   return (
     <div className="flex flex-col gap-3">
       <div className={CARD}>
-        <div className="mb-2.5 flex items-center justify-between gap-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
-            Category
-          </p>
-          <button
-            type="button"
-            onClick={clearDetails}
-            className={`${PILL_IDLE} inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] transition`}
-          >
-            <RotateCcw className="h-3 w-3" />
-            Clear Details
-          </button>
-        </div>
+        <p className="mb-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+          Category
+        </p>
         <WorkspacePills
           options={BCAE_CATEGORIES.map(({ key, label }) => ({ key, label }))}
           value={category}
@@ -154,9 +144,19 @@ export default function BcaeTickets() {
       </div>
 
       <div className={CARD}>
-        <p className="mb-3 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
-          Customer Details
-        </p>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+            Customer Details
+          </p>
+          <button
+            type="button"
+            onClick={clearDetails}
+            className={`${PILL_IDLE} inline-flex flex-shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] transition`}
+          >
+            <RotateCcw className="h-3 w-3" />
+            Clear Details
+          </button>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <WorkspaceField label="BCAE Ref">
             <input value={fields.ref} onChange={set("ref")} placeholder="BCAE reference" className={INPUT} />

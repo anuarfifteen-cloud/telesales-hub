@@ -17,6 +17,13 @@ export const CRM_AGENTS = [
   "Mohammad Anwaruddin Bin Embran",
 ];
 
+/** Where the closed order came from — always the note's first line. */
+export const SALES_CHANNELS = [
+  "ORDER FROM INBOUND 16888",
+  "ORDER FROM OUTBOUND 16888",
+  "ORDER FROM ONLINE 8616888",
+];
+
 /** Freedom registration choices, written into the note exactly as shown. */
 export const FREEDOM_PLAN_TYPES = [
   "$18 NON-CONTRACT (10GB)",
@@ -155,8 +162,10 @@ export function buildCrmNote({
   agent,
   date,
   includeMigration,
+  salesChannel,
 }) {
   const dateText = formatNoteDate(date);
+  const channel = salesChannel || SALES_CHANNELS[0];
   // The note now opens on its plan line; the old title line above it was removed.
   let heading = "";
   let lines = [];
@@ -183,6 +192,7 @@ export function buildCrmNote({
   }
 
   return [
+    channel,
     heading,
     "",
     agreementBlock(agent, dateText),

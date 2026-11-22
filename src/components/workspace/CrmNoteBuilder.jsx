@@ -5,6 +5,7 @@ import {
   FREEDOM_PLAN_TYPES,
   INFINITY_PLAN_TYPES,
   MOBI_PLAN_TYPES,
+  SALES_CHANNELS,
   buildCrmNote,
 } from "@/lib/workspaceTemplates";
 import WorkspacePills from "./WorkspacePills";
@@ -29,6 +30,7 @@ export default function CrmNoteBuilder() {
   const [agent, setAgent] = useState("");
   const [date, setDate] = useState(() => todayInBrunei());
   const [includeMigration, setIncludeMigration] = useState(true);
+  const [salesChannel, setSalesChannel] = useState(SALES_CHANNELS[0]);
 
   const note = buildCrmNote({
     plan,
@@ -38,6 +40,7 @@ export default function CrmNoteBuilder() {
     agent,
     date,
     includeMigration,
+    salesChannel,
   });
 
   // The generated note seeds an editable draft. Changing any input re-seeds it,
@@ -56,6 +59,17 @@ export default function CrmNoteBuilder() {
           Plan
         </p>
         <WorkspacePills options={PLANS} value={plan} onChange={choosePlan} />
+      </div>
+
+      <div className={CARD}>
+        <p className="mb-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+          Sales Channel
+        </p>
+        <WorkspacePills
+          options={SALES_CHANNELS.map((channel) => ({ key: channel, label: channel }))}
+          value={salesChannel}
+          onChange={setSalesChannel}
+        />
       </div>
 
       <div className={`${CARD} flex flex-col gap-3`}>
