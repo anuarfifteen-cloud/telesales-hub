@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pin } from "lucide-react";
+import { Pin, RotateCcw } from "lucide-react";
 import { todayInBrunei } from "@/lib/slots";
 import {
   BCAE_CATEGORIES,
@@ -22,7 +22,7 @@ import TimeSlotPicker from "./TimeSlotPicker";
 import InfinityRecontractFields from "./InfinityRecontractFields";
 import MobiRecontractFields from "./MobiRecontractFields";
 import CopyButton from "./CopyButton";
-import { CARD, INPUT, PREVIEW } from "./workspaceStyles";
+import { CARD, INPUT, PILL_IDLE, PREVIEW } from "./workspaceStyles";
 
 const EMPTY_FIELDS = {
   ref: "",
@@ -53,7 +53,14 @@ const EMPTY_FIELDS = {
 /** The shared ID input is named per category. */
 const SUB_ID_LABELS = {
   activation: "Order ID",
-  infinity: "Sub ID",
+  infinity: "Acc ID",
+  mobi: "Acc ID",
+};
+
+const SUB_ID_PLACEHOLDERS = {
+  activation: "Order ID",
+  infinity: "Acc ID",
+  mobi: "Acc ID",
 };
 
 /** Today / Select Date choice for the SIM Activation remarks. */
@@ -107,12 +114,38 @@ export default function BcaeTickets() {
     setDraft(note);
   }, [note]);
 
+  // One click puts every ticket input, and the ticket itself, back to the start.
+  const clearDetails = () => {
+    const today = todayInBrunei();
+    const reset = { ...EMPTY_FIELDS, date: today, mobiEffectiveDate: today, infinityEffectiveDate: today };
+    setFields(reset);
+    setBranch(BRANCHES[0]);
+    setShowMissing(false);
+    setDraft(
+      buildBcaeNote(category, {
+        ...reset,
+        branch: BRANCHES[0],
+        mobiDataQuota: mobiQuotaFor(reset.mobiUpgradePlan, reset.mobiContract),
+      })
+    );
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <div className={CARD}>
-        <p className="mb-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
-          Category
-        </p>
+        <div className="mb-2.5 flex items-center justify-between gap-2">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+            Category
+          </p>
+          <button
+            type="button"
+            onClick={clearDetails}
+            className={`${PILL_IDLE} inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] transition`}
+          >
+            <RotateCcw className="h-3 w-3" />
+            Clear Details
+          </button>
+        </div>
         <WorkspacePills
           options={BCAE_CATEGORIES.map(({ key, label }) => ({ key, label }))}
           value={category}
@@ -136,7 +169,12 @@ export default function BcaeTickets() {
             />
           </WorkspaceField>
           <WorkspaceField label={SUB_ID_LABELS[category] || "Sub ID / Order ID"}>
-            <input value={fields.subId} onChange={set("subId")} placeholder="Sub or order ID" className={INPUT} />
+            <input
+              value={fields.subId}
+              onChange={set("subId")}
+              placeholder={SUB_ID_PLACEHOLDERS[category] || "Sub or order ID"}
+              className={INPUT}
+            />
           </WorkspaceField>
           {category === "infinity" && (
             <WorkspaceField label="Service Line">

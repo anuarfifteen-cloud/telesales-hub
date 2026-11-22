@@ -157,41 +157,33 @@ export function buildCrmNote({
   includeMigration,
 }) {
   const dateText = formatNoteDate(date);
-  const heading = [];
+  // The note now opens on its plan line; the old title line above it was removed.
+  let heading = "";
   let lines = [];
 
   if (plan === "easi") {
-    heading.push("NEW REGISTRATION EASI", "NEW REGISTER EASI PREPAID");
+    heading = "NEW REGISTER EASI PREPAID";
     lines = EASI_LINES;
   } else if (plan === "mobi") {
-    // A migration note carries its own two header lines and the credit terms.
+    // A migration note also carries the credit terms.
     const planText = mobiPlanType || MOBI_PLAN_TYPES[0];
     if (includeMigration) {
-      heading.push(
-        "MIGRATION FROM EASI TO NEW REGISTRATION MOBI",
-        `MIGRATION FROM EASI TO NEW REGISTER MOBI ${planText}`
-      );
+      heading = `MIGRATION FROM EASI TO NEW REGISTER MOBI ${planText}`;
       lines = [...MOBI_LINES, ...MOBI_MIGRATION_LINES];
     } else {
-      heading.push("NEW REGISTRATION MOBI", `NEW REGISTER MOBI ${planText}`);
+      heading = `NEW REGISTER MOBI ${planText}`;
       lines = MOBI_LINES;
     }
   } else if (plan === "freedom") {
-    heading.push(
-      "NEW REGISTRATION FREEDOM",
-      `NEW REGISTER FREEDOM ${freedomPlanType || FREEDOM_PLAN_TYPES[0]}`
-    );
+    heading = `NEW REGISTER FREEDOM ${freedomPlanType || FREEDOM_PLAN_TYPES[0]}`;
     lines = FREEDOM_LINES;
   } else {
-    heading.push(
-      "NEW REGISTRATION INFINITY",
-      `NEW REGISTER INFINITY ${infinityPlanType || INFINITY_PLAN_TYPES[0]}`
-    );
+    heading = `NEW REGISTER INFINITY ${infinityPlanType || INFINITY_PLAN_TYPES[0]}`;
     lines = INFINITY_LINES;
   }
 
   return [
-    ...heading,
+    heading,
     "",
     agreementBlock(agent, dateText),
     "",
@@ -301,6 +293,8 @@ export function buildBcaeNote(category, fields) {
   const ref = fill(fields.ref, "[BCAE Ref]");
   const date = fill(formatNoteDate(fields.date), "[Date]");
   const subId = fill(fields.subId, "[Sub ID]");
+  // Mobi and Infinity recontracts reference the account, not the subscription.
+  const accId = fill(fields.subId, "[Acc ID]");
   // SIM Activation refers to the order, never the subscription.
   const orderId = fill(fields.subId, "[Order ID]");
   const name = fill(fields.customerName, "[Customer Name]");
@@ -355,7 +349,9 @@ export function buildBcaeNote(category, fields) {
     const currentPlan = fill(fields.infinityCurrentPlan, "[Infinity Current Plan]");
     const upgradePlan = fill(fields.infinityUpgradePlan, "[Infinity Upgrade Plan]");
     const contract = fill(fields.infinityContract, "[Infinity Contract]");
-    const quota = fill(fields.infinityDataQuota, "[Infinity Data Quota]");
+    // UNLIMITED carries no unit; every numeric quota is written in GB.
+    const quotaValue = fill(fields.infinityDataQuota, "[Infinity Data Quota]");
+    const quota = quotaValue === "UNLIMITED" ? quotaValue : `${quotaValue}GB`;
     const speed = fill(fields.infinitySpeed, "[Infinity Speed]");
     const effectiveDate = fill(formatDotDate(fields.infinityEffectiveDate), "[Effective Date]");
 
@@ -365,13 +361,13 @@ export function buildBcaeNote(category, fields) {
       `BCAE REF: ${ref}`,
       "",
       `Call date: ${date}`,
-      `Sub Id/Service line: ${subId} / ${serviceLine}`,
+      `Acc ID/Service line: ${accId} / ${serviceLine}`,
       `Customer name: ${name}`,
       `IC No: ${ic}`,
       `Contact num: ${contact}`,
       "",
       `Current Plan: ${currentPlan}`,
-      `Infinity add on choice: ${upgradePlan} 24M Contract - ${contract} ${quota}GB | ${speed}`,
+      `Infinity add on choice: ${upgradePlan} 24M Contract - ${contract} ${quota} | ${speed}`,
       `Effective Date: ${effectiveDate}`,
       "",
       `Remarks: Sub would like to recontract with ${upgradePlan} ${contract} effective ${effectiveDate}. Please assist and contact sub at ${contact}. Thank you.`,
@@ -396,7 +392,7 @@ export function buildBcaeNote(category, fields) {
     `Effective Date : ${effectiveDate}`,
     "",
     `MSISDN : ${contact}`,
-    `Sub ID : ${subId}`,
+    `Acc ID : ${accId}`,
     `Name : ${name}`,
     `IC : ${ic}`,
     `Contact Number : ${contact}`,
