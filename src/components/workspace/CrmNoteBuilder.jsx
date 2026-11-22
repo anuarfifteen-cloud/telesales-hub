@@ -5,6 +5,8 @@ import {
   FREEDOM_PLAN_TYPES,
   INFINITY_PLAN_TYPES,
   MOBI_PLAN_TYPES,
+  PORT_IN_TELCOS,
+  REGISTRATION_TYPES,
   SALES_CHANNELS,
   buildCrmNote,
 } from "@/lib/workspaceTemplates";
@@ -31,6 +33,11 @@ export default function CrmNoteBuilder() {
   const [date, setDate] = useState(() => todayInBrunei());
   const [includeMigration, setIncludeMigration] = useState(true);
   const [salesChannel, setSalesChannel] = useState(SALES_CHANNELS[0]);
+  const [registrationType, setRegistrationType] = useState("new");
+  const [portInTelco, setPortInTelco] = useState(PORT_IN_TELCOS[0]);
+
+  // A port in order is never an Easi migration, so its credit terms never apply.
+  const isPortIn = registrationType === "port_in";
 
   const note = buildCrmNote({
     plan,
@@ -39,8 +46,10 @@ export default function CrmNoteBuilder() {
     infinityPlanType,
     agent,
     date,
-    includeMigration,
+    includeMigration: includeMigration && !isPortIn,
     salesChannel,
+    registrationType,
+    portInTelco,
   });
 
   // The generated note seeds an editable draft. Changing any input re-seeds it,
@@ -70,6 +79,30 @@ export default function CrmNoteBuilder() {
           value={salesChannel}
           onChange={setSalesChannel}
         />
+
+        <div className="mt-3 border-t border-border pt-3">
+          <p className="mb-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+            Registration Type
+          </p>
+          <WorkspacePills
+            options={REGISTRATION_TYPES}
+            value={registrationType}
+            onChange={setRegistrationType}
+          />
+        </div>
+
+        {isPortIn && (
+          <div className="mt-3">
+            <p className="mb-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+              Port In From
+            </p>
+            <WorkspacePills
+              options={PORT_IN_TELCOS.map((telco) => ({ key: telco, label: telco }))}
+              value={portInTelco}
+              onChange={setPortInTelco}
+            />
+          </div>
+        )}
       </div>
 
       <div className={`${CARD} flex flex-col gap-3`}>
@@ -142,7 +175,7 @@ export default function CrmNoteBuilder() {
           </select>
         </WorkspaceField>
 
-        {plan === "mobi" && (
+        {plan === "mobi" && !isPortIn && (
           <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border bg-secondary px-3 py-2.5">
             <input
               type="checkbox"

@@ -24,6 +24,15 @@ export const SALES_CHANNELS = [
   "ORDER FROM ONLINE 8616888",
 ];
 
+/** How the order was registered — Port In swaps the note's second line. */
+export const REGISTRATION_TYPES = [
+  { key: "new", label: "New Registration" },
+  { key: "port_in", label: "Port In" },
+];
+
+/** Source telcos a Port In order can come from. */
+export const PORT_IN_TELCOS = ["IMAGINE", "PROGRESIF"];
+
 /** Freedom registration choices, written into the note exactly as shown. */
 export const FREEDOM_PLAN_TYPES = [
   "$18 NON-CONTRACT (10GB)",
@@ -163,37 +172,49 @@ export function buildCrmNote({
   date,
   includeMigration,
   salesChannel,
+  registrationType,
+  portInTelco,
 }) {
   const dateText = formatNoteDate(date);
   const channel = salesChannel || SALES_CHANNELS[0];
-  // The note now opens on its plan line; the old title line above it was removed.
+  const isPortIn = registrationType === "port_in";
+  // The note opens on its product line; the old title line above it was removed.
+  let product = "";
   let heading = "";
   let lines = [];
 
   if (plan === "easi") {
-    heading = "NEW REGISTER EASI PREPAID";
+    product = "EASI PREPAID";
+    heading = `NEW REGISTER ${product}`;
     lines = EASI_LINES;
   } else if (plan === "mobi") {
-    // A migration note also carries the credit terms.
-    const planText = mobiPlanType || MOBI_PLAN_TYPES[0];
-    if (includeMigration) {
-      heading = `MIGRATION FROM EASI TO NEW REGISTER MOBI ${planText}`;
+    product = `MOBI ${mobiPlanType || MOBI_PLAN_TYPES[0]}`;
+    // A migration note also carries the credit terms; a port in never migrates.
+    if (includeMigration && !isPortIn) {
+      heading = `MIGRATION FROM EASI TO NEW REGISTER ${product}`;
       lines = [...MOBI_LINES, ...MOBI_MIGRATION_LINES];
     } else {
-      heading = `NEW REGISTER MOBI ${planText}`;
+      heading = `NEW REGISTER ${product}`;
       lines = MOBI_LINES;
     }
   } else if (plan === "freedom") {
-    heading = `NEW REGISTER FREEDOM ${freedomPlanType || FREEDOM_PLAN_TYPES[0]}`;
+    product = `FREEDOM ${freedomPlanType || FREEDOM_PLAN_TYPES[0]}`;
+    heading = `NEW REGISTER ${product}`;
     lines = FREEDOM_LINES;
   } else {
-    heading = `NEW REGISTER INFINITY ${infinityPlanType || INFINITY_PLAN_TYPES[0]}`;
+    product = `INFINITY ${infinityPlanType || INFINITY_PLAN_TYPES[0]}`;
+    heading = `NEW REGISTER ${product}`;
     lines = INFINITY_LINES;
   }
 
+  // A port in names the source telco and the product instead of the register line.
+  const line2 = isPortIn
+    ? `PORT IN FROM ${portInTelco || PORT_IN_TELCOS[0]} TO ${product}`
+    : heading;
+
   return [
     channel,
-    heading,
+    line2,
     "",
     agreementBlock(agent, dateText),
     "",
