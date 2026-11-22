@@ -361,18 +361,25 @@ export function buildBcaeNote(category, fields) {
       fields.simReceivedMode === "date"
         ? `on ${fill(formatDotDate(fields.simReceivedDate), "[SIM Received Date]")}`
         : "today";
+    // Instant Delivery asks for the IMSI and for activation to proceed.
+    const instant = Boolean(fields.instantDelivery);
+    const imsiLine = instant ? [`IMSI No: ${fill(fields.imsi, "[IMSI No]")}`] : [];
+    const remarks = instant
+      ? `Remarks: Sub received simcard ${received}, kindly proceed with activation. Thank You (Instant Delivery)`
+      : `Remarks: Sub received simcard ${received} and claiming line is not active yet.`;
 
     return [
       `BCAE Ref: ${ref}`,
       "",
       `Order date: ${date}`,
       `Order ID: ${orderId}`,
+      ...imsiLine,
       "Complaints No: ",
       `Customer name: ${name}`,
       `IC No: ${ic}`,
       `Number to be contacted: ${contact}`,
       "",
-      `Remarks: Sub received simcard ${received} and claiming line is not active yet.`,
+      remarks,
     ].join("\n");
   }
 
@@ -399,7 +406,7 @@ export function buildBcaeNote(category, fields) {
       "",
       `Current Plan: ${currentPlan}`,
       `Infinity add on choice: ${upgradePlan} 24M Contract - ${contract} ${quota} | ${speed}`,
-      `Effective Date: ${effectiveDate}`,
+      `*Effective Date: ${effectiveDate}*`,
       "",
       `Remarks: Sub would like to recontract with ${upgradePlan} ${contract} effective ${effectiveDate}. Please assist and contact sub at ${contact}. Thank you.`,
     ].join("\n");
@@ -420,7 +427,7 @@ export function buildBcaeNote(category, fields) {
     "",
     `Current Plan : ${currentPlan}`,
     `Upgrade Plan : ${upgradePlan} 24months - ${contractType} ${dataQuota}GB.`,
-    `Effective Date : ${effectiveDate}`,
+    `*Effective Date : ${effectiveDate}*`,
     "",
     `MSISDN : ${contact}`,
     `Acc ID : ${accId}`,

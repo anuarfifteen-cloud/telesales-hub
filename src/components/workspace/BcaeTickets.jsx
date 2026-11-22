@@ -38,6 +38,8 @@ const EMPTY_FIELDS = {
   pickupStatus: "",
   simReceivedMode: "today",
   simReceivedDate: "",
+  instantDelivery: false,
+  imsi: "",
   mobiCurrentPlan: MOBI_PLANS[0],
   mobiUpgradePlan: MOBI_PLANS[0],
   mobiContract: CONTRACT_TYPES[0],
@@ -225,6 +227,31 @@ export default function BcaeTickets() {
                     value={fields.simReceivedDate}
                     onChange={(iso) => setFields((prev) => ({ ...prev, simReceivedDate: iso }))}
                     label="SIM Received Date"
+                  />
+                </WorkspaceField>
+              )}
+
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border bg-secondary px-3 py-2.5 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={fields.instantDelivery}
+                  onChange={(e) =>
+                    setFields((prev) => ({ ...prev, instantDelivery: e.target.checked }))
+                  }
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 accent-primary"
+                />
+                <span className="text-[11px] font-semibold leading-snug text-secondary-foreground">
+                  Instant Delivery
+                </span>
+              </label>
+
+              {fields.instantDelivery && (
+                <WorkspaceField label="IMSI No">
+                  <input
+                    value={fields.imsi}
+                    onChange={set("imsi")}
+                    placeholder="IMSI number"
+                    className={INPUT}
                   />
                 </WorkspaceField>
               )}
